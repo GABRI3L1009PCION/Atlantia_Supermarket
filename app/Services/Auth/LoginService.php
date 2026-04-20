@@ -5,6 +5,7 @@ namespace App\Services\Auth;
 use App\Models\AuditLog;
 use App\Models\LoginAttempt;
 use App\Models\User;
+use App\Services\Carrito\CarritoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -22,6 +23,13 @@ class LoginService
     private const MAX_ATTEMPTS = 5;
 
     /**
+     * Crea una instancia del servicio.
+     */
+    public function __construct(private readonly CarritoService $carritoService)
+    {
+    }
+
+    /**
      * Autentica al usuario y devuelve la ruta destino.
      *
      * @param array<string, mixed> $credentials
@@ -31,6 +39,7 @@ class LoginService
     public function authenticate(array $credentials, Request $request): string
     {
         $key = $this->throttleKey($credentials['email'] ?? '', $request);
+        $guestSessionId = $request->session()->getId();
 
         if (RateLimiter::tooManyAttempts($key, self::MAX_ATTEMPTS)) {
             $this->recordAttempt($credentials['email'] ?? '', $request, false, 'rate_limited');
@@ -47,6 +56,7 @@ class LoginService
         $request->session()->regenerate();
         /** @var User $user */
         $user = $request->user();
+        $this->carritoService->mergeGuestCartIntoUser($guestSessionId, $user);
         $this->registerSuccessfulLogin($user, $request);
 
         if ($user->two_factor_enabled) {
@@ -158,7 +168,7 @@ class LoginService
             $user->hasRole('vendedor') => 'vendedor.dashboard',
             $user->hasRole('repartidor') => 'repartidor.dashboard',
             $user->hasRole('empleado') => 'empleado.dashboard',
-            default => 'cliente.catalogo.index',
+            default => 'catalogo.index',
         };
     }
 

@@ -28,5 +28,18 @@
                 {{ $producto->inventario?->stock_actual > 0 ? 'Disponible' : 'Agotado' }}
             </x-ui.badge>
         </div>
+
+        <form method="POST" action="{{ route('cliente.carrito.items.store') }}" class="mt-4">
+            @csrf
+            <input type="hidden" name="producto_id" value="{{ $producto->id }}">
+            <input type="hidden" name="cantidad" value="1">
+            <x-ui.button
+                type="submit"
+                class="w-full"
+                :disabled="$producto->inventario?->stock_actual < 1"
+            >
+                Agregar al carrito
+            </x-ui.button>
+        </form>
     </div>
 </article>

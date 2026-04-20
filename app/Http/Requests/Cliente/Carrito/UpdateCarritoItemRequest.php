@@ -14,7 +14,7 @@ class UpdateCarritoItemRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('cliente') === true;
+        return $this->user() === null || $this->user()?->hasRole('cliente') === true;
     }
 
     /**
@@ -55,4 +55,3 @@ class UpdateCarritoItemRequest extends FormRequest
         ];
     }
 }
-

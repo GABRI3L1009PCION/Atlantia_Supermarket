@@ -1,8 +1,12 @@
+@php
+    $logoPath = file_exists(public_path('images/logo.png')) ? 'images/logo.png' : 'images/atlantia-logo.svg';
+@endphp
+
 <header class="border-b border-atlantia-rose/20 bg-white shadow-sm">
     <div class="mx-auto flex min-h-20 w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
         <a href="{{ route('home') }}" class="flex items-center" aria-label="Atlantia Supermarket">
             <img
-                src="{{ asset('images/atlantia-logo.svg') }}"
+                src="{{ asset($logoPath) }}"
                 alt="Atlantia Supermarket"
                 class="h-14 w-auto sm:h-16"
             >
@@ -36,7 +40,7 @@
             </a>
 
             <a
-                href="{{ auth()->check() ? route('cliente.carrito.index') : route('login') }}"
+                href="{{ route('cliente.carrito.index') }}"
                 class="relative flex h-10 w-10 items-center justify-center rounded-md text-atlantia-wine hover:bg-atlantia-blush"
                 aria-label="Carrito"
             >

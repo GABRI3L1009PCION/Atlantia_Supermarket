@@ -13,8 +13,16 @@
 <body class="min-h-screen bg-atlantia-blush text-atlantia-ink antialiased">
     <main class="flex min-h-screen items-center justify-center px-4 py-10">
         <section class="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            <a href="{{ route('home') }}" class="block text-center text-2xl font-bold text-atlantia-wine">
-                Atlantia Supermarket
+            @php
+                $logoPath = file_exists(public_path('images/logo.png')) ? 'images/logo.png' : 'images/atlantia-logo.svg';
+            @endphp
+
+            <a href="{{ route('home') }}" class="mx-auto block w-fit" aria-label="Atlantia Supermarket">
+                <img
+                    src="{{ asset($logoPath) }}"
+                    alt="Atlantia Supermarket"
+                    class="h-16 w-auto"
+                >
             </a>
 
             <div class="mt-6">

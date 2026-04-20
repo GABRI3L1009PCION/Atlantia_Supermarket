@@ -46,7 +46,7 @@ class CarritoController extends Controller
      */
     public function update(UpdateCarritoItemRequest $request, CarritoItem $item): RedirectResponse
     {
-        $this->authorize('update', $item);
+        abort_unless($this->carritoService->ownsItem($request, $item), 403);
         $this->carritoService->updateItem($item, $request->validated());
 
         return back()->with('success', 'Carrito actualizado correctamente.');
@@ -57,7 +57,7 @@ class CarritoController extends Controller
      */
     public function destroy(Request $request, CarritoItem $item): RedirectResponse
     {
-        $this->authorize('delete', $item);
+        abort_unless($this->carritoService->ownsItem($request, $item), 403);
         $this->carritoService->removeItem($item, $request->user());
 
         return back()->with('success', 'Producto removido del carrito.');

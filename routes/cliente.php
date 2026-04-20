@@ -27,13 +27,18 @@ Route::get('/productos/{producto:uuid}', [ProductoController::class, 'show'])->n
 
 Route::prefix('cliente')
     ->as('cliente.')
-    ->middleware(['auth', 'verified', 'role:cliente', 'throttle:120,1'])
+    ->middleware(['throttle:120,1'])
     ->group(function (): void {
         Route::get('/carrito', [CarritoController::class, 'index'])->name('carrito.index');
         Route::post('/carrito/items', [CarritoController::class, 'store'])->name('carrito.items.store');
         Route::put('/carrito/items/{item}', [CarritoController::class, 'update'])->name('carrito.items.update');
         Route::delete('/carrito/items/{item}', [CarritoController::class, 'destroy'])->name('carrito.items.destroy');
+    });
 
+Route::prefix('cliente')
+    ->as('cliente.')
+    ->middleware(['auth', 'verified', 'role:cliente', 'throttle:120,1'])
+    ->group(function (): void {
         Route::get('/checkout', [CheckoutController::class, 'create'])->name('checkout.create');
         Route::post('/checkout', [CheckoutController::class, 'store'])
             ->middleware('checkout.rate')

@@ -107,6 +107,56 @@ class CarritoService
     }
 
     /**
+     * Verifica si el item pertenece al usuario o sesion actual.
+     *
+     * @param Request $request
+     * @param CarritoItem $item
+     * @return bool
+     */
+    public function ownsItem(Request $request, CarritoItem $item): bool
+    {
+        $item->loadMissing('carrito');
+        $user = $request->user();
+
+        if ($user instanceof User) {
+            return (int) $item->carrito?->user_id === (int) $user->id;
+        }
+
+        return hash_equals((string) $request->session()->getId(), (string) $item->carrito?->session_id);
+    }
+
+    /**
+     * Traslada el carrito de visitante a la cuenta del cliente.
+     *
+     * @param string $sessionId
+     * @param User $user
+     * @return void
+     */
+    public function mergeGuestCartIntoUser(string $sessionId, User $user): void
+    {
+        DB::transaction(function () use ($sessionId, $user): void {
+            $guestCart = Carrito::query()->with('items')->where([
+                'session_id' => $sessionId,
+                'estado' => 'activo',
+            ])->first();
+
+            if ($guestCart === null || $guestCart->items->isEmpty()) {
+                return;
+            }
+
+            $userCart = Carrito::query()->firstOrCreate(['user_id' => $user->id, 'estado' => 'activo'], [
+                'uuid' => (string) Str::uuid(),
+                'session_id' => null,
+                'expira_at' => now()->addDays(14),
+            ]);
+
+            $this->mergeItems($guestCart, $userCart);
+            $guestCart->items()->delete();
+            $guestCart->delete();
+        });
+    }
+
+    /**
      * Sincroniza el carrito desde API para clientes autenticados.
      *
      * @param Request $request
@@ -140,6 +190,29 @@ class CarritoService
                 'producto_id' => (int) $item['producto_id'],
                 'cantidad' => (int) $item['cantidad'],
             ]);
+        }
+    }
+
+    /**
+     * Fusiona productos repetidos entre carritos.
+     *
+     * @param Carrito $guestCart
+     * @param Carrito $userCart
+     * @return void
+     */
+    private function mergeItems(Carrito $guestCart, Carrito $userCart): void
+    {
+        foreach ($guestCart->items as $guestItem) {
+            $userItem = CarritoItem::query()->firstOrNew([
+                'carrito_id' => $userCart->id,
+                'producto_id' => $guestItem->producto_id,
+            ]);
+
+            $userItem->fill([
+                'cantidad' => min(99, (int) $userItem->cantidad + (int) $guestItem->cantidad),
+                'precio_unitario_snapshot' => $guestItem->precio_unitario_snapshot,
+            ]);
+            $userItem->save();
         }
     }
 
@@ -186,4 +259,3 @@ class CarritoService
         return (float) ($producto->precio_oferta ?? $producto->precio_base);
     }
 }
-
