@@ -3,22 +3,37 @@
 namespace App\Providers;
 
 use App\Models\CarritoItem;
+use App\Models\Cliente\Direccion;
+use App\Models\DeliveryRoute;
 use App\Models\Dte\DteFactura;
+use App\Models\Inventario;
+use App\Models\Ml\FraudAlert;
+use App\Models\Ml\RestockSuggestion;
+use App\Models\Payment;
 use App\Models\Pedido;
 use App\Models\Producto;
 use App\Models\Resena;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Models\VendorCommission;
 use App\Observers\PedidoObserver;
 use App\Observers\ProductoObserver;
 use App\Observers\ResenaObserver;
 use App\Observers\UserObserver;
 use App\Policies\CarritoItemPolicy;
+use App\Policies\DeliveryRoutePolicy;
+use App\Policies\DireccionPolicy;
 use App\Policies\DtePolicy;
+use App\Policies\FraudAlertPolicy;
+use App\Policies\InventarioPolicy;
 use App\Policies\PedidoPolicy;
+use App\Policies\PaymentPolicy;
 use App\Policies\ProductoPolicy;
 use App\Policies\ResenaPolicy;
+use App\Policies\RestockSuggestionPolicy;
+use App\Policies\UserPolicy;
 use App\Policies\VendorPolicy;
+use App\Policies\VendorCommissionPolicy;
 use App\Services\Fel\CertificadorFelInterface;
 use App\Services\Fel\InfileCertificadorService;
 use App\Services\Ml\MlServiceClient;
@@ -51,10 +66,39 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Resena::class, ResenaPolicy::class);
         Gate::policy(DteFactura::class, DtePolicy::class);
         Gate::policy(CarritoItem::class, CarritoItemPolicy::class);
+        Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(Direccion::class, DireccionPolicy::class);
+        Gate::policy(DeliveryRoute::class, DeliveryRoutePolicy::class);
+        Gate::policy(Inventario::class, InventarioPolicy::class);
+        Gate::policy(VendorCommission::class, VendorCommissionPolicy::class);
+        Gate::policy(FraudAlert::class, FraudAlertPolicy::class);
+        Gate::policy(RestockSuggestion::class, RestockSuggestionPolicy::class);
+        Gate::policy(Payment::class, PaymentPolicy::class);
 
         Gate::before(function (User $user, string $ability): ?bool {
-            return $user->isSuperAdmin() ? true : null;
+            if ($user->isSuperAdmin()) {
+                return true;
+            }
+
+            return $user->hasRole('admin') ? true : null;
         });
+
+        Gate::define('viewAdminDashboard', fn (User $user): bool => $user->hasRole('admin'));
+        Gate::define('viewAdminReports', fn (User $user): bool => $user->hasRole('admin'));
+        Gate::define('monitorMl', fn (User $user): bool => $user->hasRole('admin'));
+        Gate::define('trainMl', fn (User $user): bool => $user->hasRole('admin'));
+        Gate::define('viewRecommendations', fn (User $user): bool => $user->hasRole('cliente'));
+        Gate::define('viewVendorDashboard', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
+        Gate::define('manageFiscalProfile', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
+        Gate::define('viewOwnPredictions', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
+        Gate::define('viewVendorReports', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
+        Gate::define('viewVendorReviews', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
+        Gate::define('manageVendorZones', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
+        Gate::define('viewCourierDashboard', fn (User $user): bool => $user->hasRole('repartidor'));
+        Gate::define('sendLocation', fn (User $user): bool => $user->hasRole('repartidor'));
+        Gate::define('viewRepartidores', fn (User $user): bool => $user->hasRole('admin'));
+        Gate::define('viewRepartidor', fn (User $user, User $repartidor): bool => $user->hasRole('admin')
+            && $repartidor->hasRole('repartidor'));
 
         Producto::observe(ProductoObserver::class);
         Pedido::observe(PedidoObserver::class);

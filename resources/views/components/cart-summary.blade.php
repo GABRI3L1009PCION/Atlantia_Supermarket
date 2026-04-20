@@ -19,7 +19,7 @@
         <div class="border-t border-slate-200 pt-3">
             <div class="flex justify-between text-base">
                 <dt class="font-semibold text-slate-950">Total</dt>
-                <dd class="font-bold text-emerald-800">Q {{ number_format((float) $total, 2) }}</dd>
+                <dd class="font-bold text-atlantia-wine">Q {{ number_format((float) $total, 2) }}</dd>
             </div>
         </div>
     </dl>

@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
+use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
@@ -23,10 +25,11 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string $email
  * @property string $status
  */
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmailContract
 {
     use HasApiTokens;
     use HasFactory;
+    use MustVerifyEmail;
     use HasRoles;
     use Notifiable;
     use SoftDeletes;
