@@ -1,38 +1,73 @@
 @extends('layouts.marketplace')
 
 @section('content')
-    <section class="bg-atlantia-blush">
-        <div class="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-            <p class="text-sm font-semibold uppercase tracking-normal text-atlantia-wine">
-                Izabal compra local
-            </p>
-            <h1 class="mt-2 max-w-3xl text-3xl font-bold text-atlantia-ink sm:text-4xl">
-                Productos frescos y de diario cerca de tu casa.
-            </h1>
-            <p class="mt-3 max-w-2xl text-base text-atlantia-ink/75">
-                Compra a vendedores de Puerto Barrios, Santo Tomas de Castilla y municipios cercanos.
-            </p>
-        </div>
-    </section>
+    @php
+        $categoriasRapidas = [
+            ['label' => 'Todas las categorias', 'href' => route('catalogo.index')],
+            ['label' => 'Alimentos frescos', 'href' => route('catalogo.index', ['q' => 'frescos'])],
+            ['label' => 'Abarrotes', 'href' => route('catalogo.index', ['q' => 'abarrotes'])],
+            ['label' => 'Limpieza', 'href' => route('catalogo.index', ['q' => 'limpieza'])],
+            ['label' => 'Bebidas', 'href' => route('catalogo.index', ['q' => 'bebidas'])],
+        ];
+    @endphp
 
-    <section class="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <form method="GET" class="grid gap-3 rounded-lg border border-atlantia-rose/30 bg-white p-4 sm:grid-cols-[1fr_auto]">
+    <section class="bg-atlantia-blush py-4 shadow-inner">
+        <form method="GET" class="mx-auto grid w-full max-w-xl grid-cols-[1fr_auto] px-4 sm:px-0">
             <label for="q" class="sr-only">Buscar productos</label>
             <input
                 id="q"
                 type="search"
                 name="q"
                 value="{{ request('q') }}"
-                placeholder="Buscar productos, marcas o categorias"
-                class="rounded-md border border-atlantia-rose/40 px-4 py-3 text-sm text-atlantia-ink placeholder:text-atlantia-ink/45 focus:border-atlantia-wine focus:ring-atlantia-rose"
+                placeholder="Buscar en todo el supermercado..."
+                class="h-12 rounded-l-lg border-0 bg-white px-4 text-base text-atlantia-ink placeholder:text-atlantia-ink/55 shadow-sm focus:outline-none focus:ring-2 focus:ring-atlantia-rose"
             >
             <button
                 type="submit"
-                class="rounded-md bg-atlantia-wine px-5 py-3 text-sm font-semibold text-white hover:bg-atlantia-wine-700 focus:outline-none focus:ring-2 focus:ring-atlantia-rose focus:ring-offset-2"
+                class="h-12 rounded-r-lg bg-atlantia-wine px-6 text-base font-bold text-white shadow-sm hover:bg-atlantia-wine-700 focus:outline-none focus:ring-2 focus:ring-atlantia-rose focus:ring-offset-2"
             >
-                Buscar
+                <span class="inline-flex items-center gap-2">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M11 19C15.4 19 19 15.4 19 11C19 6.6 15.4 3 11 3C6.6 3 3 6.6 3 11C3 15.4 6.6 19 11 19Z" stroke="currentColor" stroke-width="2"/>
+                        <path d="M20.5 20.5L16.7 16.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Buscar
+                </span>
             </button>
         </form>
+    </section>
+
+    <section id="categorias" class="relative border-b border-atlantia-rose/20 bg-white py-4 shadow-sm">
+        <a
+            href="{{ route('catalogo.index') }}"
+            class="absolute left-4 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-atlantia-wine text-2xl font-bold text-white shadow-md sm:flex"
+            aria-label="Categoria anterior"
+        >
+            &lsaquo;
+        </a>
+        <div class="mx-auto flex w-full max-w-4xl items-center justify-center gap-2 overflow-x-auto px-4">
+            @foreach ($categoriasRapidas as $categoria)
+                <a
+                    href="{{ $categoria['href'] }}"
+                    class="whitespace-nowrap rounded-md px-5 py-3 text-sm font-bold {{ $loop->first ? 'bg-atlantia-wine text-white' : 'bg-atlantia-blush text-atlantia-wine hover:bg-atlantia-rose/25' }}"
+                >
+                    {{ $categoria['label'] }}
+                </a>
+            @endforeach
+        </div>
+        <a
+            href="{{ route('catalogo.index', ['page' => 2]) }}"
+            class="absolute right-4 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-atlantia-wine text-2xl font-bold text-white shadow-md sm:flex"
+            aria-label="Categoria siguiente"
+        >
+            &rsaquo;
+        </a>
+    </section>
+
+    <section class="mx-auto min-h-[313px] w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <h1 class="text-center text-2xl font-bold text-atlantia-wine">
+            Catalogo de productos
+        </h1>
 
         @if ($catalogo->count() > 0)
             <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -45,12 +80,9 @@
                 {{ $catalogo->links() }}
             </div>
         @else
-            <div class="mt-8 rounded-lg border border-atlantia-rose/30 bg-white p-8 text-center">
-                <h2 class="text-lg font-semibold text-atlantia-ink">No encontramos productos con esos filtros.</h2>
-                <p class="mt-2 text-sm text-atlantia-ink/70">
-                    Prueba con arroz, mariscos, frutas, abarrotes o productos de limpieza.
-                </p>
-            </div>
+            <p class="mt-20 text-center text-base text-atlantia-ink">
+                No hay productos para mostrar.
+            </p>
         @endif
     </section>
 @endsection

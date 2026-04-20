@@ -1,0 +1,26 @@
+<svg width="330" height="86" viewBox="0 0 330 86" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+    <title id="title">Atlantia Supermarket</title>
+    <desc id="desc">Logo de Atlantia Supermarket con olas del Caribe y texto principal.</desc>
+    <defs>
+        <linearGradient id="wave" x1="12" y1="43" x2="116" y2="43" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#0072A7"/>
+            <stop offset="0.45" stop-color="#00A4D8"/>
+            <stop offset="1" stop-color="#7A1F3D"/>
+        </linearGradient>
+        <filter id="shadow" x="-8" y="-8" width="346" height="102" color-interpolation-filters="sRGB">
+            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#2A1018" flood-opacity="0.35"/>
+        </filter>
+    </defs>
+    <g filter="url(#shadow)">
+        <path d="M106.8 29.3C95 12.8 67.7 9.3 43.8 22.2C22 33.9 12.4 54.2 25.1 66.3C38.6 79.1 70.2 73.9 94.1 55.5C105 47 111.6 37.6 106.8 29.3Z" fill="white" fill-opacity="0.92"/>
+        <path d="M18 62.5C39.5 38 62.9 31.5 87.7 43.2C101.6 49.7 114.8 49.1 127.8 40.6" stroke="url(#wave)" stroke-width="6" stroke-linecap="round"/>
+        <path d="M15 51.2C35.4 26.9 61.3 17.7 89.4 31.8" stroke="#0072A7" stroke-width="5" stroke-linecap="round"/>
+        <path d="M30 68.8C56.7 55.1 80.4 52.8 101.6 62.2" stroke="#7A1F3D" stroke-width="4" stroke-linecap="round"/>
+        <text x="60" y="52" fill="#F59BB0" font-family="Georgia, serif" font-size="27" font-style="italic">Atlantia</text>
+        <text x="145" y="52" fill="white" font-family="Georgia, serif" font-size="25" font-style="italic">Supermarket</text>
+        <path d="M291 20C285 26 282 33 282 42C288 36 292 29 291 20Z" fill="#2A1018"/>
+        <path d="M297 18C291 27 289 36 292 47C298 39 301 30 297 18Z" fill="#2A1018"/>
+        <path d="M303 21C298 29 296 37 298 47C304 40 307 31 303 21Z" fill="#2A1018"/>
+        <path d="M281 45H310" stroke="#2A1018" stroke-width="4" stroke-linecap="round"/>
+    </g>
+</svg>

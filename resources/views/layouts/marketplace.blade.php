@@ -10,10 +10,10 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="min-h-screen bg-atlantia-cream text-atlantia-ink antialiased">
+<body class="flex min-h-screen flex-col bg-white text-atlantia-ink antialiased">
     @include('layouts.partials.header')
 
-    <main id="contenido-principal" tabindex="-1">
+    <main id="contenido-principal" class="flex-1" tabindex="-1">
         @include('layouts.partials.flash')
 
         {{ $slot ?? '' }}
