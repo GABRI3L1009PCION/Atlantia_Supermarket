@@ -13,7 +13,7 @@ return new class () extends Migration {
         Schema::create('oauth_auth_codes', function (Blueprint $table): void {
             $table->string('id', 100)->primary();
             $table->foreignId('user_id')->index()->comment('Usuario propietario del codigo OAuth.');
-            $table->unsignedBigInteger('client_id')->index()->comment('Cliente OAuth que solicito el codigo.');
+            $table->string('client_id', 100)->index()->comment('Cliente OAuth que solicito el codigo.');
             $table->text('scopes')->nullable()->comment('Scopes autorizados serializados por Passport.');
             $table->boolean('revoked')->default(false)->index();
             $table->dateTime('expires_at')->nullable()->index();
@@ -28,4 +28,3 @@ return new class () extends Migration {
         Schema::dropIfExists('oauth_auth_codes');
     }
 };
-

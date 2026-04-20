@@ -11,7 +11,7 @@ return new class () extends Migration {
     public function up(): void
     {
         Schema::create('oauth_clients', function (Blueprint $table): void {
-            $table->id();
+            $table->string('id', 100)->primary();
             $table->foreignId('user_id')->nullable()->index()->comment('Usuario dueno del cliente OAuth.');
             $table->string('name');
             $table->string('secret', 100)->nullable();
@@ -32,4 +32,3 @@ return new class () extends Migration {
         Schema::dropIfExists('oauth_clients');
     }
 };
-

@@ -12,7 +12,7 @@ return new class () extends Migration {
     {
         Schema::create('oauth_personal_access_clients', function (Blueprint $table): void {
             $table->id();
-            $table->unsignedBigInteger('client_id')->unique()->comment('Cliente OAuth usado para tokens personales.');
+            $table->string('client_id', 100)->unique()->comment('Cliente OAuth usado para tokens personales.');
             $table->timestamps();
         });
     }
@@ -25,4 +25,3 @@ return new class () extends Migration {
         Schema::dropIfExists('oauth_personal_access_clients');
     }
 };
-

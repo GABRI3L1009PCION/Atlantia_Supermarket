@@ -13,7 +13,7 @@ return new class () extends Migration {
         Schema::create('oauth_access_tokens', function (Blueprint $table): void {
             $table->string('id', 100)->primary();
             $table->foreignId('user_id')->nullable()->index()->comment('Usuario propietario del token.');
-            $table->unsignedBigInteger('client_id')->index()->comment('Cliente OAuth que emitio el token.');
+            $table->string('client_id', 100)->index()->comment('Cliente OAuth que emitio el token.');
             $table->string('name')->nullable();
             $table->text('scopes')->nullable()->comment('Scopes autorizados serializados por Passport.');
             $table->boolean('revoked')->default(false)->index();
@@ -30,4 +30,3 @@ return new class () extends Migration {
         Schema::dropIfExists('oauth_access_tokens');
     }
 };
-
