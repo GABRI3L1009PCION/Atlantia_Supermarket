@@ -58,7 +58,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Passport::ignoreMigrations();
+        if (method_exists(Passport::class, 'ignoreMigrations')) {
+            Passport::ignoreMigrations();
+        }
 
         Gate::policy(Producto::class, ProductoPolicy::class);
         Gate::policy(Pedido::class, PedidoPolicy::class);
