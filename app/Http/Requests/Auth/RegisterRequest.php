@@ -33,7 +33,7 @@ class RegisterRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'min:3', 'max:160'],
-            'email' => ['required', 'string', 'email:rfc,dns', 'max:190', 'unique:users,email'],
+            'email' => ['required', 'string', 'email:rfc', 'max:190', 'unique:users,email'],
             'phone' => ['required', 'string', 'regex:/^(\+502)?[2-7][0-9]{7}$/'],
             'password' => ['required', 'confirmed', Password::min(12)->letters()->numbers()->symbols()],
             'role' => ['required', Rule::in(['cliente', 'vendedor'])],
