@@ -32,7 +32,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')
     ->as('admin.')
-    ->middleware(['auth', 'verified', 'role:admin', 'throttle:120,1'])
+    ->middleware(['auth', 'verified', 'role:admin|super_admin', 'throttle:120,1'])
     ->group(function (): void {
         Route::get('/', DashboardController::class)->name('dashboard');
 
@@ -69,7 +69,12 @@ Route::prefix('admin')
         Route::put('/usuarios/{usuario:uuid}', [UsuarioController::class, 'update'])->name('usuarios.update');
 
         Route::get('/roles-permisos', [RolPermisoController::class, 'index'])->name('roles-permisos.index');
+        Route::post('/roles-permisos/roles', [RolPermisoController::class, 'store'])->name('roles-permisos.store');
+        Route::post('/roles-permisos/permisos', [RolPermisoController::class, 'storePermission'])
+            ->name('roles-permisos.permisos.store');
         Route::put('/roles-permisos/{role}', [RolPermisoController::class, 'sync'])->name('roles-permisos.sync');
+        Route::delete('/roles-permisos/{role}', [RolPermisoController::class, 'destroy'])
+            ->name('roles-permisos.destroy');
 
         Route::get('/resenas', [ResenaController::class, 'index'])->name('resenas.index');
         Route::patch('/resenas/{resena:uuid}/moderar', [ResenaController::class, 'moderate'])->name('resenas.moderate');

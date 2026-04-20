@@ -30,6 +30,7 @@ use App\Policies\PedidoPolicy;
 use App\Policies\PaymentPolicy;
 use App\Policies\ProductoPolicy;
 use App\Policies\ResenaPolicy;
+use App\Policies\RolePolicy;
 use App\Policies\RestockSuggestionPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\VendorPolicy;
@@ -41,6 +42,7 @@ use App\Services\Ml\MlServiceClientInterface;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passport\Passport;
+use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -76,6 +78,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(FraudAlert::class, FraudAlertPolicy::class);
         Gate::policy(RestockSuggestion::class, RestockSuggestionPolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
+        Gate::policy(Role::class, RolePolicy::class);
 
         Gate::before(function (User $user, string $ability): ?bool {
             if ($user->isSuperAdmin()) {

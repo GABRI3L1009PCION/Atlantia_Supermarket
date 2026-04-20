@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\RolPermiso\StorePermissionRequest;
+use App\Http\Requests\Admin\RolPermiso\StoreRoleRequest;
 use App\Http\Requests\Admin\RolPermiso\SyncRolePermissionsRequest;
 use App\Services\Auth\RolPermisoService;
 use Illuminate\Http\RedirectResponse;
@@ -33,6 +35,28 @@ class RolPermisoController extends Controller
     }
 
     /**
+     * Crea un rol operativo.
+     */
+    public function store(StoreRoleRequest $request): RedirectResponse
+    {
+        $this->authorize('create', Role::class);
+        $this->rolPermisoService->createRole($request->validated());
+
+        return back()->with('success', 'Rol creado correctamente.');
+    }
+
+    /**
+     * Crea un permiso personalizado.
+     */
+    public function storePermission(StorePermissionRequest $request): RedirectResponse
+    {
+        $this->authorize('create', Role::class);
+        $this->rolPermisoService->createPermission($request->validated());
+
+        return back()->with('success', 'Permiso creado correctamente.');
+    }
+
+    /**
      * Sincroniza permisos de un rol.
      */
     public function sync(SyncRolePermissionsRequest $request, Role $role): RedirectResponse
@@ -41,5 +65,19 @@ class RolPermisoController extends Controller
         $this->rolPermisoService->syncPermissions($role, $request->validated());
 
         return back()->with('success', 'Permisos sincronizados correctamente.');
+    }
+
+    /**
+     * Elimina un rol operativo no protegido.
+     */
+    public function destroy(Role $role): RedirectResponse
+    {
+        $this->authorize('delete', $role);
+
+        if (! $this->rolPermisoService->deleteRole($role)) {
+            return back()->with('error', 'Este rol base no puede eliminarse.');
+        }
+
+        return back()->with('success', 'Rol eliminado correctamente.');
     }
 }

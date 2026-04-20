@@ -20,6 +20,12 @@
                 <x-ui.nav-link :href="route('admin.pedidos.index')" :active="request()->routeIs('admin.pedidos.*')">
                     Pedidos
                 </x-ui.nav-link>
+                <x-ui.nav-link
+                    :href="route('admin.roles-permisos.index')"
+                    :active="request()->routeIs('admin.roles-permisos.*')"
+                >
+                    Roles y permisos
+                </x-ui.nav-link>
             @elseif ($user?->hasRole('vendedor'))
                 <x-ui.nav-link :href="route('vendedor.dashboard')" :active="request()->routeIs('vendedor.dashboard')">
                     Inicio
