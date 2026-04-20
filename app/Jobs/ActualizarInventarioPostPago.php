@@ -18,7 +18,6 @@ class ActualizarInventarioPostPago implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    public string $queue = 'inventory';
 
     /**
      * Crea el job.

@@ -19,7 +19,6 @@ class SolicitarPrediccionDemanda implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    public string $queue = 'ml';
 
     public int $tries = 3;
 

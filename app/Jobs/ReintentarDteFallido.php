@@ -18,7 +18,6 @@ class ReintentarDteFallido implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    public string $queue = 'fel';
 
     public int $tries = 5;
 

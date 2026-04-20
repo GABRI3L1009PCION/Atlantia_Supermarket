@@ -20,7 +20,6 @@ class EnviarCorreoFactura implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    public string $queue = 'mail';
 
     public int $tries = 3;
 

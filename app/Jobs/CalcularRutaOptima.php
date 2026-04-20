@@ -19,7 +19,6 @@ class CalcularRutaOptima implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    public string $queue = 'geo';
 
     public int $tries = 3;
 

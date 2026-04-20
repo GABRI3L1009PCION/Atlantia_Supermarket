@@ -18,7 +18,6 @@ class NotificarClientePedidoConfirmado implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    public string $queue = 'notifications';
 
     /**
      * Crea el job.

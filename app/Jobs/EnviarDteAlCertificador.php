@@ -24,7 +24,6 @@ class EnviarDteAlCertificador implements ShouldQueue
     /**
      * Cola donde se procesa FEL.
      */
-    public string $queue = 'fel';
 
     /**
      * Numero maximo de intentos.

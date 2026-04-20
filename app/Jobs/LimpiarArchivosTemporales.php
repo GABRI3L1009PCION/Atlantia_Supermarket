@@ -17,7 +17,6 @@ class LimpiarArchivosTemporales implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    public string $queue = 'maintenance';
 
     /**
      * Crea el job.

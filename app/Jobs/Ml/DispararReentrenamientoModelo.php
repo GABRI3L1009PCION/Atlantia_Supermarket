@@ -18,7 +18,6 @@ class DispararReentrenamientoModelo implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    public string $queue = 'ml';
 
     /**
      * Crea el job.
