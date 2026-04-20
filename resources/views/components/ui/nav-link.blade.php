@@ -5,10 +5,10 @@
 
 @php
     $classes = $active
-        ? 'bg-emerald-50 text-emerald-800'
-        : 'text-slate-700 hover:bg-slate-50 hover:text-emerald-700';
+        ? 'bg-atlantia-wine text-white shadow-sm'
+        : 'text-atlantia-ink/80 hover:bg-white/70 hover:text-atlantia-wine';
 @endphp
 
-<a href="{{ $href }}" {{ $attributes->merge(['class' => 'block rounded-md px-3 py-2 font-medium ' . $classes]) }}>
+<a href="{{ $href }}" {{ $attributes->merge(['class' => 'block rounded-md px-3 py-2.5 font-medium transition ' . $classes]) }}>
     {{ $slot }}
 </a>

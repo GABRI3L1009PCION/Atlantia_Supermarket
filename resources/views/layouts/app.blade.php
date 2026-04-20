@@ -10,11 +10,11 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="min-h-screen bg-atlantia-cream text-atlantia-ink antialiased">
+<body class="min-h-screen bg-[#fcf7f9] text-atlantia-ink antialiased">
     <div class="min-h-screen">
-        @include('layouts.partials.header')
+        @include('layouts.partials.app-header')
 
-        <div class="mx-auto flex w-full max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
+        <div class="mx-auto flex w-full max-w-[1500px] gap-6 px-4 py-6 sm:px-6 lg:px-8">
             @include('layouts.partials.sidebar')
 
             <main id="contenido-principal" class="min-w-0 flex-1" tabindex="-1">
