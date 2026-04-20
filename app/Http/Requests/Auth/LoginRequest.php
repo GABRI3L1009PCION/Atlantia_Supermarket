@@ -17,7 +17,7 @@ class LoginRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->guest();
+        return $this->user() === null;
     }
 
     /**
