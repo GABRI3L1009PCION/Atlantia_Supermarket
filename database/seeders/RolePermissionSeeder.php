@@ -20,6 +20,14 @@ class RolePermissionSeeder extends Seeder
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $permissionsByRole = [
+            'super_admin' => [
+                'super_admin.panel',
+                'super_admin.features.gestionar',
+                'super_admin.impersonation.controlada',
+                'super_admin.integraciones.gestionar',
+                'super_admin.seguridad.gestionar',
+                'super_admin.auditoria.inmutable',
+            ],
             'cliente' => [
                 'catalogo.ver',
                 'carrito.gestionar',
@@ -74,6 +82,12 @@ class RolePermissionSeeder extends Seeder
 
         foreach ($permissionsByRole as $roleName => $permissions) {
             $role = Role::findOrCreate($roleName, 'web');
+
+            if ($roleName === 'super_admin') {
+                $role->syncPermissions(Permission::query()->pluck('name')->all());
+                continue;
+            }
+
             $role->syncPermissions($permissions);
         }
 

@@ -95,6 +95,31 @@ class UserSeeder extends Seeder
             $user->assignRole($userData['role']);
         }
 
+        if (config('atlantia.super_admin.enabled')) {
+            $superAdmin = User::query()->firstOrCreate(
+                ['email' => (string) config('atlantia.super_admin.email')],
+                [
+                    'uuid' => (string) Str::uuid(),
+                    'name' => 'Super Administrador Atlantia',
+                    'email_verified_at' => now(),
+                    'password' => Hash::make((string) env('ATLANTIA_SUPER_ADMIN_PASSWORD', self::DEV_PASSWORD)),
+                    'phone' => '+502 7948-1999',
+                    'status' => 'active',
+                    'is_system_user' => true,
+                    'two_factor_enabled' => true,
+                    'two_factor_confirmed_at' => now(),
+                ]
+            );
+
+            $superAdmin->update([
+                'status' => 'active',
+                'is_system_user' => true,
+                'two_factor_enabled' => true,
+                'two_factor_confirmed_at' => $superAdmin->two_factor_confirmed_at ?? now(),
+            ]);
+            $superAdmin->assignRole('super_admin');
+        }
+
         $empleadoUser = User::query()->where('email', 'empleado@atlantia.test')->first();
         $supervisorUser = User::query()->where('email', 'admin@atlantia.test')->first();
 

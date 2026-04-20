@@ -35,4 +35,40 @@ return [
         ],
     ],
 
+    'mapbox' => [
+        'token' => env('MAPBOX_TOKEN'),
+        'base_url' => env('MAPBOX_BASE_URL', 'https://api.mapbox.com'),
+    ],
+
+    'infile' => [
+        'base_url' => env('INFILE_BASE_URL'),
+        'username' => env('INFILE_USERNAME'),
+        'password' => env('INFILE_PASSWORD'),
+        'webhook_secret' => env('INFILE_WEBHOOK_SECRET'),
+    ],
+
+    'payment_gateway' => [
+        'base_url' => env('PAYMENT_GATEWAY_BASE_URL'),
+        'merchant_id' => env('PAYMENT_GATEWAY_MERCHANT_ID'),
+        'secret' => env('PAYMENT_GATEWAY_SECRET'),
+        'webhook_secret' => env('PAYMENT_GATEWAY_WEBHOOK_SECRET'),
+    ],
+
+    'ml' => [
+        'base_url' => env('ML_SERVICE_URL', 'http://ml-api:8000'),
+        'service_token' => env('ML_SERVICE_TOKEN'),
+        'webhook_secret' => env('ML_WEBHOOK_SECRET'),
+        'timeout_seconds' => (int) env('ML_TIMEOUT_SECONDS', 10),
+    ],
+
+    'courier' => [
+        'webhook_secret' => env('COURIER_WEBHOOK_SECRET'),
+    ],
+
+    'recaptcha' => [
+        'site_key' => env('RECAPTCHA_SITE_KEY'),
+        'secret_key' => env('RECAPTCHA_SECRET_KEY'),
+        'minimum_score' => (float) env('RECAPTCHA_MINIMUM_SCORE', 0.6),
+    ],
+
 ];

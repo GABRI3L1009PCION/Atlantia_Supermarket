@@ -10,10 +10,10 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="min-h-screen bg-emerald-50 text-slate-950 antialiased">
+<body class="min-h-screen bg-atlantia-blush text-atlantia-ink antialiased">
     <main class="flex min-h-screen items-center justify-center px-4 py-10">
         <section class="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            <a href="{{ route('home') }}" class="block text-center text-2xl font-bold text-emerald-800">
+            <a href="{{ route('home') }}" class="block text-center text-2xl font-bold text-atlantia-wine">
                 Atlantia Supermarket
             </a>
 

@@ -181,4 +181,29 @@ class User extends Authenticatable
     {
         return $query->where('is_system_user', true);
     }
+
+    /**
+     * Filtra usuarios visibles para administradores operativos.
+     *
+     * @param Builder<User> $query
+     * @return Builder<User>
+     */
+    public function scopeVisibleToOperationalAdmin(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('roles', function (Builder $roleQuery): void {
+            $roleQuery->where('name', 'super_admin');
+        });
+    }
+
+    /**
+     * Indica si el usuario tiene privilegios de super administrador.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole('super_admin')
+            || (
+                config('atlantia.super_admin.enabled')
+                && $this->email === config('atlantia.super_admin.email')
+            );
+    }
 }

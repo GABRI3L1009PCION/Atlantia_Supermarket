@@ -10,7 +10,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-950 antialiased">
+<body class="min-h-screen bg-atlantia-cream text-atlantia-ink antialiased">
     <div class="min-h-screen">
         @include('layouts.partials.header')
 
