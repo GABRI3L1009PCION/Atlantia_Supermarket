@@ -16,6 +16,13 @@ use RuntimeException;
 class TwoFactorService
 {
     /**
+     * Crea una instancia del servicio.
+     */
+    public function __construct(private readonly LoginService $loginService)
+    {
+    }
+
+    /**
      * Verifica un desafio 2FA y devuelve la ruta destino.
      *
      * @param array<string, mixed> $data
@@ -25,6 +32,8 @@ class TwoFactorService
     public function verifyChallenge(array $data, Request $request): string
     {
         $userId = $request->session()->get('auth.2fa_user_id');
+        $remember = (bool) $request->session()->get('auth.2fa_remember', false);
+        $guestSessionId = $request->session()->get('auth.2fa_guest_session_id');
 
         if ($userId === null) {
             throw new RuntimeException('No existe un desafio 2FA activo.');
@@ -37,12 +46,18 @@ class TwoFactorService
             throw new RuntimeException('Codigo 2FA invalido.');
         }
 
-        Auth::login($user, (bool) ($data['remember'] ?? false));
         $request->session()->forget('auth.2fa_user_id');
+        $request->session()->forget('auth.2fa_remember');
+        $request->session()->forget('auth.2fa_guest_session_id');
         $request->session()->regenerate();
         $this->audit($user, 'auth.two_factor_verified');
 
-        return $this->redirectRouteFor($user);
+        return $this->loginService->completeAuthenticatedSession(
+            $user,
+            $request,
+            $remember,
+            is_string($guestSessionId) ? $guestSessionId : null
+        );
     }
 
     /**
@@ -115,23 +130,6 @@ class TwoFactorService
             ->whereNull('locked_until')
             ->exists()
             && strlen($code) === 6;
-    }
-
-    /**
-     * Determina la ruta por rol.
-     *
-     * @param User $user
-     * @return string
-     */
-    private function redirectRouteFor(User $user): string
-    {
-        return match (true) {
-            $user->hasRole('admin') => 'admin.dashboard',
-            $user->hasRole('vendedor') => 'vendedor.dashboard',
-            $user->hasRole('repartidor') => 'repartidor.dashboard',
-            $user->hasRole('empleado') => 'empleado.dashboard',
-            default => 'cliente.catalogo.index',
-        };
     }
 
     /**

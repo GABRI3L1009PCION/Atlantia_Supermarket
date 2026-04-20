@@ -46,26 +46,29 @@ class LoginService
             throw new RuntimeException('Demasiados intentos de inicio de sesion.');
         }
 
-        if (! Auth::attempt($this->onlyCredentials($credentials), (bool) ($credentials['remember'] ?? false))) {
+        if (! Auth::validate($this->onlyCredentials($credentials))) {
             RateLimiter::hit($key, 900);
             $this->recordAttempt($credentials['email'] ?? '', $request, false, 'invalid_credentials');
             throw new RuntimeException('Credenciales invalidas.');
         }
 
         RateLimiter::clear($key);
-        $request->session()->regenerate();
         /** @var User $user */
-        $user = $request->user();
-        $this->carritoService->mergeGuestCartIntoUser($guestSessionId, $user);
-        $this->registerSuccessfulLogin($user, $request);
+        $user = User::query()
+            ->where('email', $credentials['email'] ?? '')
+            ->where('status', 'active')
+            ->firstOrFail();
 
         if ($user->two_factor_enabled) {
+            $request->session()->regenerate();
             $request->session()->put('auth.2fa_user_id', $user->id);
+            $request->session()->put('auth.2fa_remember', (bool) ($credentials['remember'] ?? false));
+            $request->session()->put('auth.2fa_guest_session_id', $guestSessionId);
 
             return 'two-factor.challenge';
         }
 
-        return $this->redirectRouteFor($user);
+        return $this->completeAuthenticatedSession($user, $request, (bool) ($credentials['remember'] ?? false), $guestSessionId);
     }
 
     /**
@@ -78,6 +81,33 @@ class LoginService
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+    }
+
+    /**
+     * Completa la sesion autenticada y devuelve la ruta final.
+     *
+     * @param User $user
+     * @param Request $request
+     * @param bool $remember
+     * @param string|null $guestSessionId
+     * @return string
+     */
+    public function completeAuthenticatedSession(
+        User $user,
+        Request $request,
+        bool $remember = false,
+        ?string $guestSessionId = null
+    ): string {
+        Auth::login($user, $remember);
+        $request->session()->regenerate();
+
+        if ($guestSessionId !== null) {
+            $this->carritoService->mergeGuestCartIntoUser($guestSessionId, $user);
+        }
+
+        $this->registerSuccessfulLogin($user, $request);
+
+        return $this->redirectRouteFor($user);
     }
 
     /**
