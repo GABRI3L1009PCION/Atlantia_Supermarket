@@ -22,37 +22,103 @@
         </div>
 
         <div class="px-4 py-4">
-            <p class="px-2 text-xs font-semibold uppercase tracking-wide text-atlantia-ink/45">Gestion principal</p>
-
-            <nav class="mt-3 space-y-1.5 text-sm">
+            <nav class="space-y-5 text-sm">
                 @if ($user?->hasAnyRole(['admin', 'super_admin']))
-                    <x-ui.nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
-                        Dashboard
-                    </x-ui.nav-link>
-                    <x-ui.nav-link :href="route('admin.usuarios.index')" :active="request()->routeIs('admin.usuarios.*')">
-                        Usuarios
-                    </x-ui.nav-link>
-                    <x-ui.nav-link :href="route('admin.productos.index')" :active="request()->routeIs('admin.productos.*')">
-                        Productos
-                    </x-ui.nav-link>
-                    <x-ui.nav-link :href="route('admin.categorias.index')" :active="request()->routeIs('admin.categorias.*')">
-                        Categorias
-                    </x-ui.nav-link>
-                    <x-ui.nav-link :href="route('admin.pedidos.index')" :active="request()->routeIs('admin.pedidos.*')">
-                        Pedidos
-                    </x-ui.nav-link>
-                    <x-ui.nav-link :href="route('admin.repartidores.index')" :active="request()->routeIs('admin.repartidores.*')">
-                        Repartidores
-                    </x-ui.nav-link>
-                    <x-ui.nav-link :href="route('admin.vendedores.index')" :active="request()->routeIs('admin.vendedores.*')">
-                        Vendedores
-                    </x-ui.nav-link>
-                    <x-ui.nav-link
-                        :href="route('admin.roles-permisos.index')"
-                        :active="request()->routeIs('admin.roles-permisos.*')"
-                    >
-                        Roles y permisos
-                    </x-ui.nav-link>
+                    <div>
+                        <p class="px-2 text-xs font-semibold uppercase tracking-wide text-atlantia-ink/45">
+                            Gestion principal
+                        </p>
+
+                        <div class="mt-3 space-y-1.5">
+                            <x-ui.nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
+                                Dashboard
+                            </x-ui.nav-link>
+                            <x-ui.nav-link :href="route('admin.usuarios.index')" :active="request()->routeIs('admin.usuarios.*')">
+                                Usuarios
+                            </x-ui.nav-link>
+                            <x-ui.nav-link
+                                :href="route('admin.roles-permisos.index')"
+                                :active="request()->routeIs('admin.roles-permisos.*')"
+                            >
+                                Roles y permisos
+                            </x-ui.nav-link>
+                            <x-ui.nav-link :href="route('admin.vendedores.index')" :active="request()->routeIs('admin.vendedores.*')">
+                                Vendedores
+                            </x-ui.nav-link>
+                            <x-ui.nav-link :href="route('admin.empleados.index')" :active="request()->routeIs('admin.empleados.*')">
+                                Empleados
+                            </x-ui.nav-link>
+                            <x-ui.nav-link
+                                :href="route('admin.repartidores.index')"
+                                :active="request()->routeIs('admin.repartidores.*')"
+                            >
+                                Repartidores
+                            </x-ui.nav-link>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="px-2 text-xs font-semibold uppercase tracking-wide text-atlantia-ink/45">
+                            Catalogo y operacion
+                        </p>
+
+                        <div class="mt-3 space-y-1.5">
+                            <x-ui.nav-link :href="route('admin.productos.index')" :active="request()->routeIs('admin.productos.*')">
+                                Productos
+                            </x-ui.nav-link>
+                            <x-ui.nav-link :href="route('admin.categorias.index')" :active="request()->routeIs('admin.categorias.*')">
+                                Categorias
+                            </x-ui.nav-link>
+                            <x-ui.nav-link :href="route('admin.pedidos.index')" :active="request()->routeIs('admin.pedidos.*')">
+                                Pedidos
+                            </x-ui.nav-link>
+                            <x-ui.nav-link
+                                :href="route('admin.zonas-entrega.index')"
+                                :active="request()->routeIs('admin.zonas-entrega.*')"
+                            >
+                                Zonas de entrega
+                            </x-ui.nav-link>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="px-2 text-xs font-semibold uppercase tracking-wide text-atlantia-ink/45">
+                            Finanzas, control y ML
+                        </p>
+
+                        <div class="mt-3 space-y-1.5">
+                            <x-ui.nav-link :href="route('admin.comisiones.index')" :active="request()->routeIs('admin.comisiones.*')">
+                                Comisiones
+                            </x-ui.nav-link>
+                            <x-ui.nav-link :href="route('admin.dte.index')" :active="request()->routeIs('admin.dte.*')">
+                                DTE y FEL
+                            </x-ui.nav-link>
+                            <x-ui.nav-link :href="route('admin.resenas.index')" :active="request()->routeIs('admin.resenas.*')">
+                                Resenas
+                            </x-ui.nav-link>
+                            <x-ui.nav-link
+                                :href="route('admin.antifraude.index')"
+                                :active="request()->routeIs('admin.antifraude.*')"
+                            >
+                                Antifraude
+                            </x-ui.nav-link>
+                            <x-ui.nav-link :href="route('admin.auditoria.index')" :active="request()->routeIs('admin.auditoria.*')">
+                                Auditoria
+                            </x-ui.nav-link>
+                            <x-ui.nav-link :href="route('admin.reportes.index')" :active="request()->routeIs('admin.reportes.*')">
+                                Reportes
+                            </x-ui.nav-link>
+                            <x-ui.nav-link :href="route('admin.ml.monitor')" :active="request()->routeIs('admin.ml.monitor')">
+                                Monitor ML
+                            </x-ui.nav-link>
+                            <x-ui.nav-link
+                                :href="route('admin.ml.reentrenamiento.index')"
+                                :active="request()->routeIs('admin.ml.reentrenamiento.*')"
+                            >
+                                Reentrenamiento ML
+                            </x-ui.nav-link>
+                        </div>
+                    </div>
                 @elseif ($user?->hasRole('vendedor'))
                     <x-ui.nav-link :href="route('vendedor.dashboard')" :active="request()->routeIs('vendedor.dashboard')">
                         Dashboard

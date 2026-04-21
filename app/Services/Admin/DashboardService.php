@@ -186,6 +186,26 @@ class DashboardService
                 'description' => 'Supervision de compras, estados y cumplimiento.',
                 'route' => route('admin.pedidos.index'),
             ],
+            [
+                'title' => 'Comisiones',
+                'description' => 'Cierre comercial, estados de cobro y seguimiento mensual.',
+                'route' => route('admin.comisiones.index'),
+            ],
+            [
+                'title' => 'DTE y FEL',
+                'description' => 'Seguimiento fiscal, rechazo, reintento y anulacion controlada.',
+                'route' => route('admin.dte.index'),
+            ],
+            [
+                'title' => 'Antifraude',
+                'description' => 'Revision de alertas, casos abiertos y resolucion operativa.',
+                'route' => route('admin.antifraude.index'),
+            ],
+            [
+                'title' => 'Monitor ML',
+                'description' => 'Modelos, drift, latencia y salud del ecosistema predictivo.',
+                'route' => route('admin.ml.monitor'),
+            ],
         ]);
     }
 }
