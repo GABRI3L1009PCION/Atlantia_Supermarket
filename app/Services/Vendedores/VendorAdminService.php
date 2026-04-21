@@ -39,14 +39,19 @@ class VendorAdminService
     /**
      * Aprueba vendedor.
      */
-    public function approve(Vendor $vendor, User $admin): Vendor
+    public function approve(Vendor $vendor, array $data, User $admin): Vendor
     {
-        return DB::transaction(function () use ($vendor, $admin): Vendor {
+        return DB::transaction(function () use ($vendor, $data, $admin): Vendor {
             $vendor->update([
                 'is_approved' => true,
                 'approved_by' => $admin->id,
                 'approved_at' => now(),
                 'status' => 'approved',
+                'commission_percentage' => $data['commission_percentage'],
+                'monthly_rent' => $data['monthly_rent'],
+                'accepts_cash' => (bool) ($data['acepta_cash'] ?? true),
+                'accepts_transfer' => (bool) ($data['acepta_transfer'] ?? true),
+                'accepts_card' => (bool) ($data['acepta_card'] ?? true),
                 'suspendido_at' => null,
                 'suspendido_por' => null,
                 'motivo_suspension' => null,

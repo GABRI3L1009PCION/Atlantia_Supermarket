@@ -49,7 +49,7 @@ class VendedorController extends Controller
     public function approve(AprobarVendedorRequest $request, Vendor $vendor): RedirectResponse
     {
         $this->authorize('approve', $vendor);
-        $this->vendorAdminService->approve($vendor, $request->user());
+        $this->vendorAdminService->approve($vendor, $request->validated(), $request->user());
 
         return back()->with('success', 'Vendedor aprobado correctamente.');
     }
