@@ -28,4 +28,45 @@
     .atlantia-focus {
         @apply outline-none ring-2 ring-atlantia-rose ring-offset-2;
     }
+
+    .super-admin-surface .bg-white {
+        background-color: rgb(24 24 30 / 0.92) !important;
+    }
+
+    .super-admin-surface .bg-atlantia-cream,
+    .super-admin-surface .bg-atlantia-blush {
+        background-color: rgb(255 255 255 / 0.055) !important;
+    }
+
+    .super-admin-surface [class*="border-atlantia-rose"],
+    .super-admin-surface [class*="border-emerald"],
+    .super-admin-surface [class*="border-sky"],
+    .super-admin-surface [class*="border-amber"],
+    .super-admin-surface [class*="border-red"] {
+        border-color: rgb(255 255 255 / 0.11) !important;
+    }
+
+    .super-admin-surface .text-atlantia-ink,
+    .super-admin-surface [class*="text-atlantia-ink"] {
+        color: rgb(255 255 255 / 0.82) !important;
+    }
+
+    .super-admin-surface .text-atlantia-wine,
+    .super-admin-surface [class*="text-atlantia-wine"] {
+        color: #f4a7c5 !important;
+    }
+
+    .super-admin-surface input,
+    .super-admin-surface select,
+    .super-admin-surface textarea {
+        background-color: rgb(16 16 20 / 0.94) !important;
+        border-color: rgb(255 255 255 / 0.16) !important;
+        color: rgb(255 255 255 / 0.86) !important;
+    }
+
+    .super-admin-surface table thead tr,
+    .super-admin-surface table tbody,
+    .super-admin-surface .divide-y > :not([hidden]) ~ :not([hidden]) {
+        border-color: rgb(255 255 255 / 0.10) !important;
+    }
 }

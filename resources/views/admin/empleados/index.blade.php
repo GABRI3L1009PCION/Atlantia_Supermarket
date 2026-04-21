@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends(auth()->user()?->isSuperAdmin() && request()->routeIs('admin.*') ? 'layouts.super-admin' : 'layouts.app')
 
 @section('content')
     @php

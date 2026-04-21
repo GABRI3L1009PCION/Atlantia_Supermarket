@@ -4,31 +4,31 @@
     $sections = [
         'Plataforma' => [
             ['label' => 'Vista general', 'route' => route('admin.dashboard'), 'active' => request()->routeIs('admin.dashboard')],
-            ['label' => 'Administradores', 'route' => route('admin.usuarios.index'), 'active' => request()->routeIs('admin.usuarios.*')],
+            ['label' => 'Usuarios', 'route' => route('admin.usuarios.index'), 'active' => request()->routeIs('admin.usuarios.*')],
             ['label' => 'Roles y permisos', 'route' => route('admin.roles-permisos.index'), 'active' => request()->routeIs('admin.roles-permisos.*')],
-            ['label' => 'Funciones activas', 'route' => route('admin.reportes.index'), 'active' => request()->routeIs('admin.reportes.*')],
-        ],
-        'Infraestructura' => [
-            ['label' => 'Servicios', 'route' => route('admin.dashboard'), 'active' => false],
-            ['label' => 'Base de datos', 'route' => route('admin.auditoria.index'), 'active' => request()->routeIs('admin.auditoria.*')],
-            ['label' => 'Tareas y colas', 'route' => route('admin.reportes.index'), 'active' => false],
-            ['label' => 'Registros y trazas', 'route' => route('admin.auditoria.index'), 'active' => request()->routeIs('admin.auditoria.*')],
-        ],
-        'Despliegues' => [
-            ['label' => 'Versiones', 'route' => route('admin.dashboard'), 'active' => false],
-            ['label' => 'Actualizaciones', 'route' => route('admin.dashboard'), 'active' => false],
-            ['label' => 'Migraciones de datos', 'route' => route('admin.dashboard'), 'active' => false],
-            ['label' => 'Reversion', 'route' => route('admin.dashboard'), 'active' => false],
-        ],
-        'Seguridad' => [
             ['label' => 'Auditoria', 'route' => route('admin.auditoria.index'), 'active' => request()->routeIs('admin.auditoria.*')],
-            ['label' => 'Accesos y contrasenas', 'route' => route('admin.usuarios.index'), 'active' => request()->routeIs('admin.usuarios.*')],
-            ['label' => 'Cifrado y llaves', 'route' => route('admin.roles-permisos.index'), 'active' => false],
-            ['label' => 'Respaldos', 'route' => route('admin.dashboard'), 'active' => false],
+            ['label' => 'Reportes', 'route' => route('admin.reportes.index'), 'active' => request()->routeIs('admin.reportes.*')],
+        ],
+        'Gestion' => [
+            ['label' => 'Vendedores', 'route' => route('admin.vendedores.index'), 'active' => request()->routeIs('admin.vendedores.*')],
+            ['label' => 'Empleados', 'route' => route('admin.empleados.index'), 'active' => request()->routeIs('admin.empleados.*')],
+            ['label' => 'Repartidores', 'route' => route('admin.repartidores.index'), 'active' => request()->routeIs('admin.repartidores.*')],
+        ],
+        'Catalogo y pedidos' => [
+            ['label' => 'Productos', 'route' => route('admin.productos.index'), 'active' => request()->routeIs('admin.productos.*')],
+            ['label' => 'Categorias', 'route' => route('admin.categorias.index'), 'active' => request()->routeIs('admin.categorias.*')],
+            ['label' => 'Pedidos', 'route' => route('admin.pedidos.index'), 'active' => request()->routeIs('admin.pedidos.*')],
+            ['label' => 'Zonas de entrega', 'route' => route('admin.zonas-entrega.index'), 'active' => request()->routeIs('admin.zonas-entrega.*')],
+        ],
+        'Finanzas y control' => [
+            ['label' => 'Comisiones', 'route' => route('admin.comisiones.index'), 'active' => request()->routeIs('admin.comisiones.*')],
+            ['label' => 'DTE y FEL', 'route' => route('admin.dte.index'), 'active' => request()->routeIs('admin.dte.*')],
+            ['label' => 'Resenas', 'route' => route('admin.resenas.index'), 'active' => request()->routeIs('admin.resenas.*')],
+            ['label' => 'Antifraude', 'route' => route('admin.antifraude.index'), 'active' => request()->routeIs('admin.antifraude.*')],
         ],
         'Inteligencia' => [
-            ['label' => 'Modelos en produccion', 'route' => route('admin.ml.monitor'), 'active' => request()->routeIs('admin.ml.monitor')],
-            ['label' => 'Procesos automaticos', 'route' => route('admin.ml.reentrenamiento.index'), 'active' => request()->routeIs('admin.ml.reentrenamiento.*')],
+            ['label' => 'Monitor ML', 'route' => route('admin.ml.monitor'), 'active' => request()->routeIs('admin.ml.monitor')],
+            ['label' => 'Reentrenamiento ML', 'route' => route('admin.ml.reentrenamiento.index'), 'active' => request()->routeIs('admin.ml.reentrenamiento.*')],
         ],
     ];
 @endphp
@@ -130,7 +130,7 @@
                 </div>
             </header>
 
-            <main id="contenido-principal" class="px-4 py-6 sm:px-6 lg:px-8" tabindex="-1">
+            <main id="super-admin-content" class="super-admin-surface px-4 py-6 sm:px-6 lg:px-8" tabindex="-1">
                 @include('layouts.partials.flash')
 
                 {{ $slot ?? '' }}
