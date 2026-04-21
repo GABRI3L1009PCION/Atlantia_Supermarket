@@ -98,7 +98,9 @@ class ProductoAdminService
                 'ultima_actualizacion' => now(),
             ]);
 
-            return $producto->refresh();
+            $this->storeImages($producto, $data['imagenes'] ?? []);
+
+            return $producto->refresh()->load(['vendor', 'categoria', 'inventario', 'imagenes']);
         });
     }
 
@@ -122,7 +124,7 @@ class ProductoAdminService
             }
 
             $producto->update([
-                ...collect($data)->except(['owner_type', 'stock_actual', 'stock_minimo', 'stock_maximo'])->all(),
+                ...collect($data)->except(['owner_type', 'imagenes', 'stock_actual', 'stock_minimo', 'stock_maximo'])->all(),
                 'vendor_id' => $vendor->id,
             ]);
 
@@ -136,7 +138,9 @@ class ProductoAdminService
                 ]
             );
 
-            return $producto->refresh()->load(['vendor', 'categoria', 'inventario']);
+            $this->storeImages($producto, $data['imagenes'] ?? []);
+
+            return $producto->refresh()->load(['vendor', 'categoria', 'inventario', 'imagenes']);
         });
     }
 
@@ -225,5 +229,34 @@ class ProductoAdminService
         );
 
         return $vendor;
+    }
+
+    /**
+     * Guarda imagenes administrativas del producto.
+     *
+     * @param Producto $producto
+     * @param array<int, mixed> $imagenes
+     * @return void
+     */
+    private function storeImages(Producto $producto, array $imagenes): void
+    {
+        if ($imagenes === []) {
+            return;
+        }
+
+        $disk = config('filesystems.default') === 's3' ? 's3' : 'public';
+        $startOrder = (int) $producto->imagenes()->max('orden') + 1;
+        $hasPrincipal = $producto->imagenes()->where('es_principal', true)->exists();
+
+        foreach ($imagenes as $index => $imagen) {
+            $path = $imagen->store('productos/' . $producto->uuid, $disk);
+
+            $producto->imagenes()->create([
+                'path' => $path,
+                'alt_text' => $producto->nombre,
+                'orden' => $startOrder + $index,
+                'es_principal' => ! $hasPrincipal && $index === 0,
+            ]);
+        }
     }
 }

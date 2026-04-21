@@ -6,7 +6,12 @@
             <x-page-header title="Gestionar producto" subtitle="Edita datos del producto, inventario y visibilidad en catalogo." />
 
             <div class="grid gap-6 xl:grid-cols-[1fr_280px]">
-                <form method="POST" action="{{ route('admin.productos.update', $producto) }}" class="space-y-5">
+                <form
+                    method="POST"
+                    action="{{ route('admin.productos.update', $producto) }}"
+                    enctype="multipart/form-data"
+                    class="space-y-5"
+                >
                     @csrf
                     @method('PUT')
 
@@ -108,6 +113,26 @@
                         </label>
                     </div>
 
+                    <div>
+                        <label class="text-sm font-semibold text-atlantia-ink">Agregar imagenes</label>
+                        <input
+                            name="imagenes[]"
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            multiple
+                            class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2"
+                        >
+                        <p class="mt-1 text-xs text-atlantia-ink/55">
+                            Las nuevas imagenes se agregan al final. La primera imagen subida sera principal si el producto aun no tiene una.
+                        </p>
+                        @error('imagenes')
+                            <p class="mt-1 text-sm font-semibold text-rose-700">{{ $message }}</p>
+                        @enderror
+                        @error('imagenes.*')
+                            <p class="mt-1 text-sm font-semibold text-rose-700">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     <div class="flex flex-wrap gap-3">
                         <x-ui.button type="submit">Guardar cambios</x-ui.button>
                         <a href="{{ route('admin.productos.index') }}" class="inline-flex items-center rounded-md border border-atlantia-rose/35 px-4 py-2 text-sm font-semibold text-atlantia-wine hover:bg-atlantia-blush">
@@ -123,6 +148,26 @@
                         <p class="text-sm font-semibold text-atlantia-ink">{{ $producto->uuid }}</p>
                         <p class="mt-3 text-sm text-atlantia-ink/70">Publicado</p>
                         <p class="text-sm font-semibold text-atlantia-ink">{{ optional($producto->publicado_at)->format('d/m/Y H:i') ?: 'No publicado' }}</p>
+                    </div>
+
+                    <div class="rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-4">
+                        <p class="text-xs font-semibold uppercase text-atlantia-rose">Imagenes</p>
+                        <div class="mt-3 grid grid-cols-2 gap-2">
+                            @forelse ($producto->imagenes as $imagen)
+                                <div class="overflow-hidden rounded-lg border border-atlantia-rose/20 bg-white">
+                                    <img
+                                        src="{{ asset('storage/' . $imagen->path) }}"
+                                        alt="{{ $imagen->alt_text ?? $producto->nombre }}"
+                                        class="h-24 w-full object-cover"
+                                    >
+                                    @if ($imagen->es_principal)
+                                        <p class="px-2 py-1 text-xs font-bold text-atlantia-wine">Principal</p>
+                                    @endif
+                                </div>
+                            @empty
+                                <p class="col-span-2 text-sm text-atlantia-ink/60">Sin imagenes cargadas.</p>
+                            @endforelse
+                        </div>
                     </div>
 
                     <form method="POST" action="{{ route('admin.productos.destroy', $producto) }}" class="rounded-xl border border-red-200 bg-red-50 p-4">

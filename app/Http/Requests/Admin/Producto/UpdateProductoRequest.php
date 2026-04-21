@@ -40,6 +40,8 @@ class UpdateProductoRequest extends FormRequest
             'requiere_refrigeracion' => ['sometimes', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],
             'visible_catalogo' => ['sometimes', 'boolean'],
+            'imagenes' => ['nullable', 'array', 'max:8'],
+            'imagenes.*' => ['file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ];
     }
 

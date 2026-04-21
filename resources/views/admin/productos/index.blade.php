@@ -6,7 +6,12 @@
             <x-page-header title="Productos" subtitle="Administra el catalogo multivendedor y el inventario inicial." />
 
             <div class="grid gap-6 xl:grid-cols-[430px_1fr]">
-                <form method="POST" action="{{ route('admin.productos.store') }}" class="rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-5">
+                <form
+                    method="POST"
+                    action="{{ route('admin.productos.store') }}"
+                    enctype="multipart/form-data"
+                    class="rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-5"
+                >
                     @csrf
                     <h2 class="text-lg font-bold text-atlantia-wine">Crear producto</h2>
 
@@ -109,6 +114,26 @@
                             <input type="checkbox" name="requiere_refrigeracion" value="1" class="rounded border-atlantia-rose text-atlantia-wine">
                             <span>Requiere refrigeracion</span>
                         </label>
+                    </div>
+
+                    <div class="mt-4">
+                        <label class="text-sm font-semibold text-atlantia-ink">Imagenes del producto</label>
+                        <input
+                            name="imagenes[]"
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            multiple
+                            class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2"
+                        >
+                        <p class="mt-1 text-xs text-atlantia-ink/55">
+                            Puedes agregar hasta 8 imagenes JPG, PNG o WEBP. Maximo 5 MB cada una.
+                        </p>
+                        @error('imagenes')
+                            <p class="mt-1 text-sm font-semibold text-rose-700">{{ $message }}</p>
+                        @enderror
+                        @error('imagenes.*')
+                            <p class="mt-1 text-sm font-semibold text-rose-700">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <x-ui.button type="submit" class="mt-5 w-full">Guardar producto</x-ui.button>
