@@ -12,8 +12,20 @@
 
                     <div class="grid gap-4 md:grid-cols-2">
                         <div>
-                            <label class="text-sm font-semibold text-atlantia-ink">Vendedor</label>
-                            <select name="vendor_id" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
+                            <label class="text-sm font-semibold text-atlantia-ink">Quien vende este producto</label>
+                            <select name="owner_type" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
+                                <option value="atlantia" @selected($producto->vendor?->slug === 'atlantia-supermarket')>
+                                    Atlantia Supermarket - producto propio
+                                </option>
+                                <option value="vendor" @selected($producto->vendor?->slug !== 'atlantia-supermarket')>
+                                    Vendedor local externo
+                                </option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-atlantia-ink">Vendedor local</label>
+                            <select name="vendor_id" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2">
+                                <option value="">No aplica si el producto es de Atlantia</option>
                                 @foreach ($vendors as $vendor)
                                     <option value="{{ $vendor->id }}" @selected($producto->vendor_id === $vendor->id)>{{ $vendor->business_name }}</option>
                                 @endforeach

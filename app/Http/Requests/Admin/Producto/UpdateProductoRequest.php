@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Producto;
 
+use App\Models\Vendor;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -19,10 +20,11 @@ class UpdateProductoRequest extends FormRequest
     public function rules(): array
     {
         $producto = $this->route('producto');
-        $vendorId = (int) ($this->input('vendor_id') ?: $producto?->vendor_id);
+        $vendorId = $this->resolvedVendorId((int) $producto?->vendor_id);
 
         return [
-            'vendor_id' => ['required', 'integer', 'exists:vendors,id'],
+            'owner_type' => ['required', Rule::in(['atlantia', 'vendor'])],
+            'vendor_id' => ['nullable', 'required_if:owner_type,vendor', 'integer', 'exists:vendors,id'],
             'categoria_id' => ['required', 'integer', Rule::exists('categorias', 'id')->where('is_active', true)],
             'sku' => ['required', 'string', 'max:80', Rule::unique('productos', 'sku')->where('vendor_id', $vendorId)->ignore($producto?->id)],
             'nombre' => ['required', 'string', 'min:3', 'max:180'],
@@ -55,6 +57,18 @@ class UpdateProductoRequest extends FormRequest
             'is_active' => filter_var($this->input('is_active', false), FILTER_VALIDATE_BOOLEAN),
             'visible_catalogo' => filter_var($this->input('visible_catalogo', false), FILTER_VALIDATE_BOOLEAN),
         ]);
+    }
+
+    /**
+     * Devuelve el vendedor usado para validar unicidad.
+     */
+    private function resolvedVendorId(int $fallbackVendorId): int
+    {
+        if ($this->input('owner_type') === 'vendor') {
+            return (int) ($this->input('vendor_id') ?: $fallbackVendorId);
+        }
+
+        return (int) (Vendor::query()->where('slug', 'atlantia-supermarket')->value('id') ?? $fallbackVendorId);
     }
 
     private function normalizeDecimal(mixed $value): ?string

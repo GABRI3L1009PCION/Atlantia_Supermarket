@@ -4,8 +4,11 @@ namespace App\Services\Catalogo;
 
 use App\Models\Producto;
 use App\Models\User;
+use App\Models\Vendor;
+use App\Models\VendorFiscalProfile;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
@@ -64,9 +67,10 @@ class ProductoAdminService
     public function create(array $data): Producto
     {
         return DB::transaction(function () use ($data): Producto {
+            $vendor = $this->resolveProductOwner($data);
+
             $producto = Producto::query()->create([
                 ...collect($data)->only([
-                    'vendor_id',
                     'categoria_id',
                     'sku',
                     'nombre',
@@ -81,6 +85,7 @@ class ProductoAdminService
                     'visible_catalogo',
                 ])->all(),
                 'uuid' => (string) Str::uuid(),
+                'vendor_id' => $vendor->id,
                 'slug' => ($data['slug'] ?? Str::slug((string) $data['nombre'])) . '-' . Str::lower(Str::random(4)),
                 'publicado_at' => ($data['visible_catalogo'] ?? false) ? now() : null,
             ]);
@@ -106,6 +111,8 @@ class ProductoAdminService
     public function update(Producto $producto, array $data): Producto
     {
         return DB::transaction(function () use ($producto, $data): Producto {
+            $vendor = $this->resolveProductOwner($data);
+
             if (($data['visible_catalogo'] ?? false) && $producto->publicado_at === null) {
                 $data['publicado_at'] = now();
             }
@@ -114,7 +121,10 @@ class ProductoAdminService
                 $data['publicado_at'] = null;
             }
 
-            $producto->update(collect($data)->except(['stock_actual', 'stock_minimo', 'stock_maximo'])->all());
+            $producto->update([
+                ...collect($data)->except(['owner_type', 'stock_actual', 'stock_minimo', 'stock_maximo'])->all(),
+                'vendor_id' => $vendor->id,
+            ]);
 
             $producto->inventario()->updateOrCreate(
                 ['producto_id' => $producto->id],
@@ -142,5 +152,78 @@ class ProductoAdminService
         ]);
 
         $producto->delete();
+    }
+
+    /**
+     * Resuelve si el producto pertenece a Atlantia o a un vendedor externo.
+     *
+     * @param array<string, mixed> $data
+     * @return Vendor
+     */
+    private function resolveProductOwner(array $data): Vendor
+    {
+        if (($data['owner_type'] ?? 'vendor') === 'vendor') {
+            return Vendor::query()->approved()->findOrFail((int) $data['vendor_id']);
+        }
+
+        return $this->atlantiaVendor();
+    }
+
+    /**
+     * Crea o recupera el vendedor interno que representa inventario propio de Atlantia.
+     */
+    private function atlantiaVendor(): Vendor
+    {
+        $user = User::query()->firstOrCreate(
+            ['email' => 'inventario@atlantia.local'],
+            [
+                'uuid' => (string) Str::uuid(),
+                'name' => 'Inventario Atlantia Supermarket',
+                'password' => Hash::make(Str::random(48)),
+                'email_verified_at' => now(),
+                'status' => 'active',
+                'is_system_user' => true,
+                'two_factor_enabled' => false,
+            ]
+        );
+
+        $vendor = Vendor::query()->firstOrCreate(
+            ['slug' => 'atlantia-supermarket'],
+            [
+                'uuid' => (string) Str::uuid(),
+                'user_id' => $user->id,
+                'business_name' => 'Atlantia Supermarket',
+                'descripcion' => 'Inventario propio vendido directamente por Atlantia Supermarket.',
+                'telefono_publico' => config('atlantia.contact.phone'),
+                'email_publico' => config('atlantia.contact.email', 'contacto@atlantia.local'),
+                'municipio' => 'Puerto Barrios',
+                'direccion_comercial' => 'Puerto Barrios, Izabal, Guatemala',
+                'is_approved' => true,
+                'approved_at' => now(),
+                'status' => 'approved',
+                'commission_percentage' => 0,
+                'monthly_rent' => 0,
+                'accepts_cash' => true,
+                'accepts_transfer' => true,
+                'accepts_card' => true,
+            ]
+        );
+
+        VendorFiscalProfile::query()->firstOrCreate(
+            ['vendor_id' => $vendor->id],
+            [
+                'nit' => 'CF-ATLANTIA',
+                'razon_social' => 'Atlantia Supermarket',
+                'nombre_comercial_sat' => 'Atlantia Supermarket',
+                'direccion_fiscal' => 'Puerto Barrios, Izabal, Guatemala',
+                'regimen_sat' => 'general',
+                'codigo_establecimiento' => 'ATL-001',
+                'afiliacion_iva' => 'GEN',
+                'certificador_fel' => 'infile',
+                'fel_activo' => false,
+            ]
+        );
+
+        return $vendor;
     }
 }

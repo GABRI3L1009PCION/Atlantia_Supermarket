@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Producto;
 
+use App\Models\Vendor;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -19,11 +20,12 @@ class StoreProductoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'vendor_id' => ['required', 'integer', 'exists:vendors,id'],
+            'owner_type' => ['required', Rule::in(['atlantia', 'vendor'])],
+            'vendor_id' => ['nullable', 'required_if:owner_type,vendor', 'integer', 'exists:vendors,id'],
             'categoria_id' => ['required', 'integer', Rule::exists('categorias', 'id')->where('is_active', true)],
-            'sku' => ['required', 'string', 'max:80', Rule::unique('productos', 'sku')->where('vendor_id', (int) $this->input('vendor_id'))],
+            'sku' => ['required', 'string', 'max:80', Rule::unique('productos', 'sku')->where('vendor_id', $this->resolvedVendorId())],
             'nombre' => ['required', 'string', 'min:3', 'max:180'],
-            'slug' => ['nullable', 'string', 'max:190', Rule::unique('productos', 'slug')->where('vendor_id', (int) $this->input('vendor_id'))],
+            'slug' => ['nullable', 'string', 'max:190', Rule::unique('productos', 'slug')->where('vendor_id', $this->resolvedVendorId())],
             'descripcion' => ['nullable', 'string', 'max:5000'],
             'precio_base' => ['required', 'numeric', 'min:0.01', 'decimal:0,2'],
             'precio_oferta' => ['nullable', 'numeric', 'min:0.01', 'lt:precio_base', 'decimal:0,2'],
@@ -52,6 +54,18 @@ class StoreProductoRequest extends FormRequest
             'is_active' => filter_var($this->input('is_active', true), FILTER_VALIDATE_BOOLEAN),
             'visible_catalogo' => filter_var($this->input('visible_catalogo', true), FILTER_VALIDATE_BOOLEAN),
         ]);
+    }
+
+    /**
+     * Devuelve el vendedor usado para validar unicidad.
+     */
+    private function resolvedVendorId(): int
+    {
+        if ($this->input('owner_type') === 'vendor') {
+            return (int) $this->input('vendor_id');
+        }
+
+        return (int) (Vendor::query()->where('slug', 'atlantia-supermarket')->value('id') ?? 0);
     }
 
     private function normalizeDecimal(mixed $value): ?string

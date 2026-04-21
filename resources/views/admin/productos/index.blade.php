@@ -12,10 +12,27 @@
 
                     <div class="mt-4 grid gap-4">
                         <div>
-                            <label class="text-sm font-semibold text-atlantia-ink">Vendedor</label>
-                            <select name="vendor_id" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
+                            <label class="text-sm font-semibold text-atlantia-ink">Quien vende este producto</label>
+                            <select name="owner_type" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
+                                <option value="atlantia" @selected(old('owner_type', 'atlantia') === 'atlantia')>
+                                    Atlantia Supermarket - producto propio
+                                </option>
+                                <option value="vendor" @selected(old('owner_type') === 'vendor')>
+                                    Vendedor local externo
+                                </option>
+                            </select>
+                            <p class="mt-1 text-xs text-atlantia-ink/55">
+                                Usa Atlantia para inventario propio del supermercado. Usa vendedor local para productos de terceros.
+                            </p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-atlantia-ink">Vendedor local</label>
+                            <select name="vendor_id" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2">
+                                <option value="">No aplica si el producto es de Atlantia</option>
                                 @foreach ($vendors as $vendor)
-                                    <option value="{{ $vendor->id }}">{{ $vendor->business_name }}</option>
+                                    <option value="{{ $vendor->id }}" @selected((string) old('vendor_id') === (string) $vendor->id)>
+                                        {{ $vendor->business_name }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -125,7 +142,14 @@
                                             <p class="font-semibold text-atlantia-ink">{{ $producto->nombre }}</p>
                                             <p class="text-xs text-atlantia-ink/50">{{ $producto->sku }}</p>
                                         </td>
-                                        <td class="py-3 text-atlantia-ink/70">{{ $producto->vendor?->business_name }}</td>
+                                        <td class="py-3 text-atlantia-ink/70">
+                                            {{ $producto->vendor?->business_name }}
+                                            @if ($producto->vendor?->slug === 'atlantia-supermarket')
+                                                <span class="ml-2 rounded-md bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
+                                                    Propio
+                                                </span>
+                                            @endif
+                                        </td>
                                         <td class="py-3 text-atlantia-ink/70">Q{{ number_format((float) ($producto->precio_oferta ?? $producto->precio_base), 2) }}</td>
                                         <td class="py-3 text-atlantia-ink/70">{{ $producto->inventario?->stock_actual ?? 0 }}</td>
                                         <td class="py-3">
