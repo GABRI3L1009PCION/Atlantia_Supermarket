@@ -29,7 +29,20 @@ class ResenaController extends Controller
     {
         $this->authorize('viewAny', Resena::class);
 
-        return view('admin.resenas.index', ['resenas' => $this->resenaModerationService->paginate($request->all())]);
+        return view('admin.resenas.index', [
+            'resenas' => $this->resenaModerationService->paginate($request->all()),
+            'dashboard' => $this->resenaModerationService->dashboard($request->all()),
+        ]);
+    }
+
+    /**
+     * Muestra una resena para moderacion.
+     */
+    public function show(Resena $resena): View
+    {
+        $this->authorize('view', $resena);
+
+        return view('admin.resenas.show', ['resena' => $this->resenaModerationService->detail($resena)]);
     }
 
     /**

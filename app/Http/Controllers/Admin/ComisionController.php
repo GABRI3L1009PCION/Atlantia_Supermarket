@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Comision\RecalcularComisionesRequest;
 use App\Http\Requests\Admin\Comision\UpdateComisionRequest;
 use App\Models\VendorCommission;
+use App\Models\Vendor;
 use App\Services\Comisiones\CalculadoraComisionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,7 +33,24 @@ class ComisionController extends Controller
 
         return view('admin.comisiones.index', [
             'comisiones' => $this->calculadoraComisionService->paginate($request->all()),
+            'dashboard' => $this->calculadoraComisionService->dashboard($request->all()),
+            'vendors' => Vendor::query()->approved()->orderBy('business_name')->get(),
         ]);
+    }
+
+    /**
+     * Recalcula comisiones del periodo indicado.
+     */
+    public function recalcular(RecalcularComisionesRequest $request): RedirectResponse
+    {
+        $this->authorize('viewAny', VendorCommission::class);
+
+        $procesadas = $this->calculadoraComisionService->calcularPeriodoGlobal(
+            (int) $request->validated('anio'),
+            (int) $request->validated('mes')
+        );
+
+        return back()->with('success', 'Se recalcularon ' . $procesadas . ' comisiones del periodo.');
     }
 
     /**

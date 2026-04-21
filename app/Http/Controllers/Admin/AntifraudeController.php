@@ -29,7 +29,20 @@ class AntifraudeController extends Controller
     {
         $this->authorize('viewAny', FraudAlert::class);
 
-        return view('admin.antifraude.index', ['alerts' => $this->deteccionPatronesService->paginate($request->all())]);
+        return view('admin.antifraude.index', [
+            'alerts' => $this->deteccionPatronesService->paginate($request->all()),
+            'dashboard' => $this->deteccionPatronesService->dashboard($request->all()),
+        ]);
+    }
+
+    /**
+     * Muestra detalle de una alerta antifraude.
+     */
+    public function show(FraudAlert $fraudAlert): View
+    {
+        $this->authorize('viewAny', FraudAlert::class);
+
+        return view('admin.antifraude.show', ['alert' => $this->deteccionPatronesService->detail($fraudAlert)]);
     }
 
     /**

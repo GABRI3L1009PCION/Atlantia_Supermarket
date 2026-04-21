@@ -3,9 +3,11 @@
 namespace App\Services\Fel;
 
 use App\Models\Dte\DteFactura;
+use App\Models\Dte\DteAnulacion;
 use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 
 /**
@@ -13,6 +15,15 @@ use Illuminate\Support\Collection;
  */
 class ReporteFiscalService
 {
+    /**
+     * Crea una instancia del servicio.
+     */
+    public function __construct(
+        private readonly DteGeneradorService $dteGeneradorService,
+        private readonly InfileCertificadorService $certificadorFel
+    ) {
+    }
+
     /**
      * Pagina DTE globales para administracion.
      *
@@ -47,6 +58,59 @@ class ReporteFiscalService
     public function detail(DteFactura $dte): DteFactura
     {
         return $dte->load(['vendor.fiscalProfile', 'pedido.cliente', 'items.producto', 'anulacion.usuario']);
+    }
+
+    /**
+     * Resume indicadores del panel fiscal.
+     *
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    public function dashboard(array $filters = []): array
+    {
+        $dtes = $this->queryWithFilters($filters)->get();
+
+        return [
+            'certificados' => $dtes->where('estado', 'certificado')->count(),
+            'rechazados' => $dtes->where('estado', 'rechazado')->count(),
+            'anulados' => $dtes->where('estado', 'anulado')->count(),
+            'monto_total' => round((float) $dtes->sum('monto_total'), 2),
+            'tipos' => $dtes->groupBy('tipo_dte')->map->count(),
+        ];
+    }
+
+    /**
+     * Reintenta la certificacion de un DTE rechazado o en borrador.
+     */
+    public function reintentar(DteFactura $dte): DteFactura
+    {
+        return DB::transaction(function () use ($dte): DteFactura {
+            $dte = $this->detail($dte);
+
+            if (! in_array($dte->estado, ['borrador', 'rechazado'], true)) {
+                return $dte;
+            }
+
+            $xml = $this->dteGeneradorService->generarXml($dte);
+            $respuesta = $this->certificadorFel->certificar($dte->fill(['xml_dte' => $xml]));
+
+            $dte->update([
+                'xml_dte' => $xml,
+                'uuid_sat' => $respuesta['uuid_sat'] ?? $dte->uuid_sat,
+                'serie' => $respuesta['serie'] ?? $dte->serie,
+                'numero' => $respuesta['numero'] ?? $dte->numero,
+                'pdf_path' => $respuesta['pdf_path'] ?? $dte->pdf_path,
+                'estado' => $respuesta['estado'] === 'certificado' ? 'certificado' : 'rechazado',
+                'fecha_certificacion' => $respuesta['fecha_certificacion'] ?? now(),
+                'certificador_respuesta' => $respuesta,
+            ]);
+
+            if ($dte->pedido !== null && $dte->pedido->dte_id === null) {
+                $dte->pedido->update(['dte_id' => $dte->id]);
+            }
+
+            return $this->detail($dte->refresh());
+        });
     }
 
     /**

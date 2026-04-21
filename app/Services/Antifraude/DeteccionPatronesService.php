@@ -33,6 +33,32 @@ class DeteccionPatronesService
     }
 
     /**
+     * Carga detalle completo de una alerta.
+     */
+    public function detail(FraudAlert $fraudAlert): FraudAlert
+    {
+        return $fraudAlert->load(['pedido.cliente', 'pedido.vendor', 'pedido.payments', 'user', 'revisadaPor', 'modeloVersion']);
+    }
+
+    /**
+     * Resume indicadores para el panel antifraude.
+     *
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    public function dashboard(array $filters = []): array
+    {
+        $alertas = FraudAlert::query()->get();
+
+        return [
+            'pendientes' => $alertas->where('revisada', false)->count(),
+            'resueltas' => $alertas->where('resuelta', true)->count(),
+            'alto_riesgo' => $alertas->filter(fn (FraudAlert $alert) => (float) $alert->score_riesgo >= 0.8)->count(),
+            'tipos' => $alertas->groupBy('tipo')->map->count(),
+        ];
+    }
+
+    /**
      * Evalua un pedido y genera alerta si supera el umbral.
      *
      * @param Pedido $pedido

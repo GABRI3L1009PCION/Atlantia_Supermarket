@@ -8,7 +8,7 @@ class ModerateResenaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['admin', 'empleado']) === true;
+        return $this->user()?->hasAnyRole(['admin', 'super_admin', 'empleado']) === true;
     }
 
     public function rules(): array
@@ -20,4 +20,3 @@ class ModerateResenaRequest extends FormRequest
         ];
     }
 }
-

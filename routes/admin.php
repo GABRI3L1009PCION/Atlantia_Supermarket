@@ -93,13 +93,17 @@ Route::prefix('admin')
             ->name('roles-permisos.destroy');
 
         Route::get('/resenas', [ResenaController::class, 'index'])->name('resenas.index');
+        Route::get('/resenas/{resena:uuid}', [ResenaController::class, 'show'])->name('resenas.show');
         Route::patch('/resenas/{resena:uuid}/moderar', [ResenaController::class, 'moderate'])->name('resenas.moderate');
 
         Route::get('/comisiones', [ComisionController::class, 'index'])->name('comisiones.index');
+        Route::post('/comisiones/recalcular', [ComisionController::class, 'recalcular'])->name('comisiones.recalcular');
         Route::put('/comisiones/{comision}', [ComisionController::class, 'update'])->name('comisiones.update');
 
         Route::get('/dte', [DteController::class, 'index'])->name('dte.index');
         Route::get('/dte/{dte:uuid}', [DteController::class, 'show'])->name('dte.show');
+        Route::post('/dte/{dte:uuid}/retry', [DteController::class, 'retry'])->name('dte.retry');
+        Route::post('/dte/{dte:uuid}/anular', [DteController::class, 'anular'])->name('dte.anular');
 
         Route::get('/zonas-entrega', [ZonaEntregaController::class, 'index'])->name('zonas-entrega.index');
         Route::post('/zonas-entrega', [ZonaEntregaController::class, 'store'])->name('zonas-entrega.store');
@@ -119,6 +123,7 @@ Route::prefix('admin')
             ->name('ml.reentrenamiento.store');
 
         Route::get('/antifraude', [AntifraudeController::class, 'index'])->name('antifraude.index');
+        Route::get('/antifraude/{fraudAlert:uuid}', [AntifraudeController::class, 'show'])->name('antifraude.show');
         Route::patch('/antifraude/{fraudAlert:uuid}/resolver', [AntifraudeController::class, 'resolve'])
             ->name('antifraude.resolve');
     });

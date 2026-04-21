@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorCommission;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -34,6 +35,30 @@ class CalculadoraComisionService
             ->when($filters['mes'] ?? null, fn ($query, $mes) => $query->where('mes', $mes))
             ->latest()
             ->paginate(50);
+    }
+
+    /**
+     * Resume indicadores del panel de comisiones.
+     *
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    public function dashboard(array $filters = []): array
+    {
+        $query = VendorCommission::query()
+            ->when($filters['anio'] ?? null, fn ($builder, $anio) => $builder->where('anio', $anio))
+            ->when($filters['mes'] ?? null, fn ($builder, $mes) => $builder->where('mes', $mes));
+
+        $comisiones = (clone $query)->get();
+
+        return [
+            'total_periodo' => round((float) $comisiones->sum('monto_total'), 2),
+            'pendientes' => $comisiones->where('estado', 'pendiente')->count(),
+            'facturadas' => $comisiones->where('estado', 'facturada')->count(),
+            'pagadas' => $comisiones->where('estado', 'pagada')->count(),
+            'vencidas' => $comisiones->where('estado', 'vencida')->count(),
+            'top_vendedores' => $this->topVendedores($comisiones),
+        ];
     }
 
     /**
@@ -152,6 +177,27 @@ class CalculadoraComisionService
         $commission->update($payload);
 
         return $commission->refresh();
+    }
+
+    /**
+     * Devuelve coleccion resumida de vendedores con mayor comision.
+     *
+     * @param Collection<int, VendorCommission> $comisiones
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function topVendedores(Collection $comisiones): Collection
+    {
+        return $comisiones
+            ->loadMissing('vendor')
+            ->sortByDesc('monto_total')
+            ->take(5)
+            ->map(fn (VendorCommission $comision): array => [
+                'vendor' => $comision->vendor?->business_name ?? 'Sin vendedor',
+                'monto_total' => (float) $comision->monto_total,
+                'estado' => $comision->estado,
+                'periodo' => sprintf('%02d/%d', $comision->mes, $comision->anio),
+            ])
+            ->values();
     }
 
     /**

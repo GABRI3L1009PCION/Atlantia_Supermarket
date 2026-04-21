@@ -26,6 +26,9 @@ class ReporteController extends Controller
     {
         $this->authorize('viewAdminReports', $request->user());
 
-        return view('admin.reportes.index', ['reportes' => $this->reporteAdminService->summary($request->all())]);
+        return view('admin.reportes.index', [
+            'reportes' => $this->reporteAdminService->summary($request->all()),
+            'filters' => $request->only(['fecha_desde', 'fecha_hasta']),
+        ]);
     }
 }
