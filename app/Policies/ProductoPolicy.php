@@ -39,6 +39,18 @@ class ProductoPolicy
     }
 
     /**
+     * Determina si el vendedor puede listar su catalogo propio.
+     *
+     * @param User $user
+     * @return bool
+     */
+    public function viewOwnProducts(User $user): bool
+    {
+        return $user->status === 'active'
+            && ($user->hasRole('vendedor') || $user->can('view own products'));
+    }
+
+    /**
      * Determina si el usuario puede ver un producto.
      *
      * @param User $user
