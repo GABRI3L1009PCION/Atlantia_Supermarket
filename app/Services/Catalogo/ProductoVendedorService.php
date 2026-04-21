@@ -61,7 +61,9 @@ class ProductoVendedorService
                 'ultima_actualizacion' => now(),
             ]);
 
-            return $producto;
+            $this->storeImages($producto, $data['imagenes'] ?? []);
+
+            return $producto->load(['categoria', 'inventario', 'imagenes']);
         });
     }
 
@@ -93,5 +95,31 @@ class ProductoVendedorService
         $producto->update(['is_active' => false, 'visible_catalogo' => false]);
         $producto->delete();
     }
-}
 
+    /**
+     * Guarda imagenes del producto en el disco configurado.
+     *
+     * @param Producto $producto
+     * @param array<int, mixed> $imagenes
+     * @return void
+     */
+    private function storeImages(Producto $producto, array $imagenes): void
+    {
+        if ($imagenes === []) {
+            return;
+        }
+
+        $disk = config('filesystems.default') === 's3' ? 's3' : 'public';
+
+        foreach ($imagenes as $index => $imagen) {
+            $path = $imagen->store('productos/' . $producto->uuid, $disk);
+
+            $producto->imagenes()->create([
+                'path' => $path,
+                'alt_text' => $producto->nombre,
+                'orden' => $index,
+                'es_principal' => $index === 0,
+            ]);
+        }
+    }
+}

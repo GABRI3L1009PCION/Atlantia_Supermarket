@@ -48,6 +48,9 @@ class StoreProductoRequest extends FormRequest
             'requiere_refrigeracion' => ['sometimes', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],
             'visible_catalogo' => ['sometimes', 'boolean'],
+            'stock_actual' => ['required', 'integer', 'min:0', 'max:999999'],
+            'stock_minimo' => ['required', 'integer', 'min:0', 'max:999999'],
+            'stock_maximo' => ['nullable', 'integer', 'gte:stock_minimo', 'max:999999'],
             'imagenes' => ['nullable', 'array', 'max:8'],
             'imagenes.*' => ['file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ];
@@ -72,6 +75,9 @@ class StoreProductoRequest extends FormRequest
             'precio_base.min' => 'El precio base debe ser mayor a cero.',
             'precio_oferta.lt' => 'El precio de oferta debe ser menor que el precio base.',
             'unidad_medida.in' => 'La unidad de medida seleccionada no es valida.',
+            'stock_actual.required' => 'Ingresa el stock inicial disponible.',
+            'stock_minimo.required' => 'Ingresa el stock minimo para alertas.',
+            'stock_maximo.gte' => 'El stock maximo debe ser mayor o igual al stock minimo.',
             'imagenes.max' => 'Puedes subir como maximo :max imagenes.',
             'imagenes.*.image' => 'Cada archivo debe ser una imagen valida.',
             'imagenes.*.mimes' => 'Las imagenes deben ser JPG, PNG o WEBP.',
@@ -99,6 +105,9 @@ class StoreProductoRequest extends FormRequest
             'requiere_refrigeracion' => 'requiere refrigeracion',
             'is_active' => 'producto activo',
             'visible_catalogo' => 'visible en catalogo',
+            'stock_actual' => 'stock inicial',
+            'stock_minimo' => 'stock minimo',
+            'stock_maximo' => 'stock maximo',
             'imagenes' => 'imagenes',
         ];
     }
@@ -122,6 +131,9 @@ class StoreProductoRequest extends FormRequest
             'requiere_refrigeracion' => filter_var($this->input('requiere_refrigeracion', false), FILTER_VALIDATE_BOOLEAN),
             'is_active' => filter_var($this->input('is_active', true), FILTER_VALIDATE_BOOLEAN),
             'visible_catalogo' => filter_var($this->input('visible_catalogo', true), FILTER_VALIDATE_BOOLEAN),
+            'stock_actual' => $this->input('stock_actual', 0),
+            'stock_minimo' => $this->input('stock_minimo', 5),
+            'stock_maximo' => $this->blankToNull($this->input('stock_maximo')),
         ]);
     }
 

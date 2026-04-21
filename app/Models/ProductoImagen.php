@@ -15,9 +15,8 @@ class ProductoImagen extends Model
 
     protected $fillable = [
         'producto_id',
-        'uuid',
-        'url',
-        'alt',
+        'path',
+        'alt_text',
         'orden',
         'es_principal',
     ];

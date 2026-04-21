@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Vendedor;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Vendedor\StoreProductoRequest;
 use App\Http\Requests\Vendedor\UpdateProductoRequest;
+use App\Models\Categoria;
 use App\Models\Producto;
 use App\Services\Catalogo\ProductoVendedorService;
 use Illuminate\Http\RedirectResponse;
@@ -30,7 +31,11 @@ class ProductoController extends Controller
     {
         $this->authorize('viewOwnProducts', Producto::class);
 
-        return view('vendedor.productos.index', ['productos' => $this->productoVendedorService->paginate($request->user())]);
+        return view('vendedor.productos.index', [
+            'productos' => $this->productoVendedorService->paginate($request->user()),
+            'categorias' => Categoria::query()->active()->ordered()->get(),
+            'vendor' => $request->user()->vendor,
+        ]);
     }
 
     /**
