@@ -61,14 +61,22 @@ Route::prefix('admin')
 
         Route::get('/pedidos', [PedidoController::class, 'index'])->name('pedidos.index');
         Route::get('/pedidos/{pedido:uuid}', [PedidoController::class, 'show'])->name('pedidos.show');
+        Route::put('/pedidos/{pedido:uuid}', [PedidoController::class, 'update'])->name('pedidos.update');
 
         Route::get('/repartidores', [RepartidorController::class, 'index'])->name('repartidores.index');
+        Route::post('/repartidores', [RepartidorController::class, 'store'])->name('repartidores.store');
         Route::get('/repartidores/{repartidor:uuid}', [RepartidorController::class, 'show'])
             ->name('repartidores.show');
+        Route::put('/repartidores/{repartidor:uuid}', [RepartidorController::class, 'update'])
+            ->name('repartidores.update');
+        Route::delete('/repartidores/{repartidor:uuid}', [RepartidorController::class, 'destroy'])
+            ->name('repartidores.destroy');
 
         Route::get('/empleados', [EmpleadoController::class, 'index'])->name('empleados.index');
         Route::post('/empleados', [EmpleadoController::class, 'store'])->name('empleados.store');
-        Route::put('/empleados/{empleado}', [EmpleadoController::class, 'update'])->name('empleados.update');
+        Route::get('/empleados/{empleado:uuid}', [EmpleadoController::class, 'show'])->name('empleados.show');
+        Route::put('/empleados/{empleado:uuid}', [EmpleadoController::class, 'update'])->name('empleados.update');
+        Route::delete('/empleados/{empleado:uuid}', [EmpleadoController::class, 'destroy'])->name('empleados.destroy');
 
         Route::get('/usuarios', [UsuarioController::class, 'index'])->name('usuarios.index');
         Route::post('/usuarios', [UsuarioController::class, 'store'])->name('usuarios.store');
@@ -96,6 +104,7 @@ Route::prefix('admin')
         Route::get('/zonas-entrega', [ZonaEntregaController::class, 'index'])->name('zonas-entrega.index');
         Route::post('/zonas-entrega', [ZonaEntregaController::class, 'store'])->name('zonas-entrega.store');
         Route::put('/zonas-entrega/{zona}', [ZonaEntregaController::class, 'update'])->name('zonas-entrega.update');
+        Route::delete('/zonas-entrega/{zona}', [ZonaEntregaController::class, 'destroy'])->name('zonas-entrega.destroy');
 
         Route::get('/auditoria', [AuditoriaController::class, 'index'])->name('auditoria.index');
         Route::get('/auditoria/{auditLog}', [AuditoriaController::class, 'show'])->name('auditoria.show');

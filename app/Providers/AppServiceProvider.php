@@ -3,9 +3,12 @@
 namespace App\Providers;
 
 use App\Models\CarritoItem;
+use App\Models\Categoria;
 use App\Models\Cliente\Direccion;
 use App\Models\DeliveryRoute;
+use App\Models\DeliveryZone;
 use App\Models\Dte\DteFactura;
+use App\Models\Empleado;
 use App\Models\Inventario;
 use App\Models\Ml\FraudAlert;
 use App\Models\Ml\RestockSuggestion;
@@ -16,14 +19,19 @@ use App\Models\Resena;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorCommission;
+use App\Models\AuditLog;
+use App\Policies\AuditLogPolicy;
 use App\Observers\PedidoObserver;
 use App\Observers\ProductoObserver;
 use App\Observers\ResenaObserver;
 use App\Observers\UserObserver;
 use App\Policies\CarritoItemPolicy;
+use App\Policies\CategoriaPolicy;
 use App\Policies\DeliveryRoutePolicy;
+use App\Policies\DeliveryZonePolicy;
 use App\Policies\DireccionPolicy;
 use App\Policies\DtePolicy;
+use App\Policies\EmpleadoPolicy;
 use App\Policies\FraudAlertPolicy;
 use App\Policies\InventarioPolicy;
 use App\Policies\PedidoPolicy;
@@ -79,6 +87,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(RestockSuggestion::class, RestockSuggestionPolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
         Gate::policy(Role::class, RolePolicy::class);
+        Gate::policy(Categoria::class, CategoriaPolicy::class);
+        Gate::policy(Empleado::class, EmpleadoPolicy::class);
+        Gate::policy(DeliveryZone::class, DeliveryZonePolicy::class);
+        Gate::policy(AuditLog::class, AuditLogPolicy::class);
 
         Gate::before(function (User $user, string $ability): ?bool {
             if ($user->isSuperAdmin()) {

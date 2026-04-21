@@ -54,4 +54,15 @@ class ZonaEntregaController extends Controller
 
         return back()->with('success', 'Zona de entrega actualizada correctamente.');
     }
+
+    /**
+     * Elimina logicamente una zona.
+     */
+    public function destroy(DeliveryZone $zona): RedirectResponse
+    {
+        $this->authorize('delete', $zona);
+        $this->zonaEntregaService->delete($zona);
+
+        return back()->with('success', 'Zona de entrega eliminada correctamente.');
+    }
 }

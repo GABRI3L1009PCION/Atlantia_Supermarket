@@ -16,7 +16,7 @@ class AprobarVendedorRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('admin') === true || $this->user()?->can('approve vendors') === true;
+        return $this->user()?->hasAnyRole(['admin', 'super_admin']) === true || $this->user()?->can('approve vendors') === true;
     }
 
     /**

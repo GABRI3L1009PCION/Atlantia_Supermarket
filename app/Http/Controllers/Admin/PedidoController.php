@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Pedido\UpdatePedidoRequest;
 use App\Models\Pedido;
+use App\Models\User;
 use App\Services\Pedidos\PedidoAdminService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -37,6 +40,20 @@ class PedidoController extends Controller
     {
         $this->authorize('view', $pedido);
 
-        return view('admin.pedidos.show', ['pedido' => $this->pedidoAdminService->detail($pedido)]);
+        return view('admin.pedidos.show', [
+            'pedido' => $this->pedidoAdminService->detail($pedido),
+            'repartidores' => User::query()->role('repartidor')->orderBy('name')->get(),
+        ]);
+    }
+
+    /**
+     * Actualiza estado y asignacion del pedido.
+     */
+    public function update(UpdatePedidoRequest $request, Pedido $pedido): RedirectResponse
+    {
+        $this->authorize('update', $pedido);
+        $this->pedidoAdminService->update($pedido, $request->validated(), $request->user());
+
+        return back()->with('success', 'Pedido actualizado correctamente.');
     }
 }

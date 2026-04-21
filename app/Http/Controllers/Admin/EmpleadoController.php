@@ -30,7 +30,28 @@ class EmpleadoController extends Controller
     {
         $this->authorize('viewAny', Empleado::class);
 
-        return view('admin.empleados.index', ['empleados' => $this->empleadoService->paginate($request->all())]);
+        return view('admin.empleados.index', [
+            'empleados' => $this->empleadoService->paginate($request->all()),
+            'supervisores' => Empleado::query()->with('user')->active()->orderBy('codigo_empleado')->get(),
+        ]);
+    }
+
+    /**
+     * Muestra detalle de un empleado.
+     */
+    public function show(Empleado $empleado): View
+    {
+        $this->authorize('view', $empleado);
+
+        return view('admin.empleados.show', [
+            'empleado' => $this->empleadoService->detail($empleado),
+            'supervisores' => Empleado::query()
+                ->with('user')
+                ->active()
+                ->whereKeyNot($empleado->id)
+                ->orderBy('codigo_empleado')
+                ->get(),
+        ]);
     }
 
     /**
@@ -53,5 +74,16 @@ class EmpleadoController extends Controller
         $this->empleadoService->update($empleado, $request->validated());
 
         return back()->with('success', 'Empleado actualizado correctamente.');
+    }
+
+    /**
+     * Elimina logicamente un empleado.
+     */
+    public function destroy(Empleado $empleado): RedirectResponse
+    {
+        $this->authorize('delete', $empleado);
+        $this->empleadoService->delete($empleado);
+
+        return redirect()->route('admin.empleados.index')->with('success', 'Empleado eliminado correctamente.');
     }
 }

@@ -8,7 +8,7 @@ class SyncRolePermissionsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('admin') === true;
+        return $this->user()?->hasAnyRole(['admin', 'super_admin']) === true;
     }
 
     public function rules(): array
@@ -19,4 +19,3 @@ class SyncRolePermissionsRequest extends FormRequest
         ];
     }
 }
-

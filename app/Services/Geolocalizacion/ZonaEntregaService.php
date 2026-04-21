@@ -47,5 +47,12 @@ class ZonaEntregaService
 
         return $zone->refresh();
     }
-}
 
+    /**
+     * Elimina logicamente una zona global.
+     */
+    public function delete(DeliveryZone $zone): void
+    {
+        $zone->delete();
+    }
+}
