@@ -13,8 +13,8 @@ return [
     */
 
     'super_admin' => [
-        'enabled' => (bool) env('ATLANTIA_SUPER_ADMIN_ENABLED', false),
-        'email' => env('ATLANTIA_SUPER_ADMIN_EMAIL', 'superadmin@atlantia.local'),
+        'enabled' => (bool) env('ATLANTIA_SUPER_ADMIN_ENABLED', true),
+        'email' => env('ATLANTIA_SUPER_ADMIN_EMAIL'),
     ],
 
     /*
@@ -35,4 +35,3 @@ return [
     ],
 
 ];
-

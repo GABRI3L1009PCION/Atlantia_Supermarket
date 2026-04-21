@@ -17,10 +17,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolePermissionSeeder::class,
             UserSeeder::class,
-            CategoriaSeeder::class,
-            DeliveryZoneSeeder::class,
-            DevDataSeeder::class,
-            MlHistoricalDataSeeder::class,
         ]);
     }
 }
