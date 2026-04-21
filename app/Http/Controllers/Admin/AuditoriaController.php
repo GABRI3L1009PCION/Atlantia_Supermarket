@@ -27,7 +27,11 @@ class AuditoriaController extends Controller
     {
         $this->authorize('viewAny', AuditLog::class);
 
-        return view('admin.auditoria.index', ['logs' => $this->auditoriaService->paginate($request->all())]);
+        return view('admin.auditoria.index', [
+            'logs' => $this->auditoriaService->paginate($request->all()),
+            'dashboard' => $this->auditoriaService->dashboard($request->all()),
+            'usuarios' => $this->auditoriaService->filterUsers(),
+        ]);
     }
 
     /**

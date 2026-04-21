@@ -28,7 +28,11 @@ class MlReentrenamientoController extends Controller
     {
         $this->authorize('trainMl', $request->user());
 
-        return view('admin.ml.training', ['jobs' => $this->mlTrainingService->paginate($request->all())]);
+        return view('admin.ml.training', [
+            'jobs' => $this->mlTrainingService->paginate($request->all()),
+            'dashboard' => $this->mlTrainingService->dashboard($request->all()),
+            'filters' => $request->all(),
+        ]);
     }
 
     /**

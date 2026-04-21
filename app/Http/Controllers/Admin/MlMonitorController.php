@@ -26,6 +26,9 @@ class MlMonitorController extends Controller
     {
         $this->authorize('monitorMl', $request->user());
 
-        return view('admin.ml.monitor', ['monitor' => $this->monitorDriftService->dashboard($request->all())]);
+        return view('admin.ml.monitor', [
+            'monitor' => $this->monitorDriftService->dashboard($request->all()),
+            'filters' => $request->only(['drift_threshold']),
+        ]);
     }
 }

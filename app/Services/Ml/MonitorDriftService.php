@@ -4,6 +4,7 @@ namespace App\Services\Ml;
 
 use App\Models\Ml\MlMetric;
 use App\Models\Ml\MlModelVersion;
+use App\Models\Ml\MlPredictionLog;
 use App\Models\Ml\MlTrainingJob;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -21,12 +22,20 @@ class MonitorDriftService
      */
     public function dashboard(array $filters = []): array
     {
+        $driftThreshold = (float) ($filters['drift_threshold'] ?? 0.25);
+
         return [
             'modelos_produccion' => MlModelVersion::query()->production()->count(),
+            'modelos_staging' => MlModelVersion::query()->staging()->count(),
             'jobs_activos' => MlTrainingJob::query()->active()->count(),
             'jobs_fallidos_24h' => MlTrainingJob::query()->failed()->where('created_at', '>=', now()->subDay())->count(),
-            'drift_alto' => MlMetric::query()->driftAbove((float) ($filters['drift_threshold'] ?? 0.25))->count(),
+            'drift_alto' => MlMetric::query()->driftAbove($driftThreshold)->count(),
             'metricas_recientes' => MlMetric::query()->with('modeloVersion')->latest()->limit(20)->get(),
+            'modelos_recientes' => MlModelVersion::query()->latest('fecha_entrenamiento')->limit(8)->get(),
+            'jobs_recientes' => MlTrainingJob::query()->with('modeloVersion')->latest()->limit(10)->get(),
+            'logs_recientes' => MlPredictionLog::query()->with('modeloVersion')->latest()->limit(12)->get(),
+            'latencia_promedio_ms' => (int) round((float) MlPredictionLog::query()->success()->avg('latencia_ms')),
+            'llamadas_fallidas_24h' => MlPredictionLog::query()->failed()->where('created_at', '>=', now()->subDay())->count(),
         ];
     }
 

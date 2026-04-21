@@ -35,6 +35,22 @@ class MlTrainingService
     }
 
     /**
+     * Resume la operacion del centro de entrenamiento.
+     *
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    public function dashboard(array $filters = []): array
+    {
+        return [
+            'jobs_activos' => MlTrainingJob::query()->active()->count(),
+            'jobs_completados' => MlTrainingJob::query()->completed()->count(),
+            'jobs_fallidos' => MlTrainingJob::query()->failed()->count(),
+            'jobs_recientes' => MlTrainingJob::query()->with('modeloVersion')->latest()->limit(10)->get(),
+        ];
+    }
+
+    /**
      * Inicia reentrenamiento.
      *
      * @param array<string, mixed> $data
@@ -50,12 +66,30 @@ class MlTrainingService
                 'inicio_at' => now(),
                 'estado' => 'queued',
                 'dataset_size' => $this->datasetSize($data['modelo_nombre']),
+                'metricas_finales' => [
+                    'motivo' => $data['motivo'],
+                    'forzar_reentrenamiento' => (bool) ($data['forzar_reentrenamiento'] ?? false),
+                    'usar_staging' => (bool) ($data['usar_staging'] ?? true),
+                    'fecha_inicio_dataset' => $data['fecha_inicio_dataset'] ?? null,
+                    'fecha_fin_dataset' => $data['fecha_fin_dataset'] ?? null,
+                    'parametros' => $data['parametros'] ?? [],
+                    'solicitado_por' => [
+                        'id' => $user->id,
+                        'email' => $user->email,
+                        'name' => $user->name,
+                    ],
+                ],
             ]);
 
             try {
                 $this->mlClient->post('/training/start', [
                     'job_uuid' => $job->uuid,
                     'modelo_nombre' => $job->modelo_nombre,
+                    'fecha_inicio_dataset' => $data['fecha_inicio_dataset'] ?? null,
+                    'fecha_fin_dataset' => $data['fecha_fin_dataset'] ?? null,
+                    'forzar_reentrenamiento' => (bool) ($data['forzar_reentrenamiento'] ?? false),
+                    'usar_staging' => (bool) ($data['usar_staging'] ?? true),
+                    'parametros' => $data['parametros'] ?? [],
                 ]);
             } catch (\Throwable) {
                 $job->update(['estado' => 'failed', 'fin_at' => now(), 'error_log' => 'No se pudo contactar ML service.']);
