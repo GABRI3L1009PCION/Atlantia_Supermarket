@@ -26,6 +26,12 @@ class DashboardController extends Controller
     {
         $this->authorize('viewAdminDashboard', $request->user());
 
+        if ($request->user()->isSuperAdmin()) {
+            return view('super-admin.dashboard', [
+                'metrics' => $this->dashboardService->superAdminMetrics($request->user()),
+            ]);
+        }
+
         return view('admin.dashboard', ['metrics' => $this->dashboardService->metrics($request->user())]);
     }
 }

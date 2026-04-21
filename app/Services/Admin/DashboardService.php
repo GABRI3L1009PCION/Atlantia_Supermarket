@@ -2,8 +2,11 @@
 
 namespace App\Services\Admin;
 
+use App\Models\AuditLog;
 use App\Models\Dte\DteFactura;
 use App\Models\Ml\FraudAlert;
+use App\Models\Ml\MlModelVersion;
+use App\Models\Ml\MlTrainingJob;
 use App\Models\Pedido;
 use App\Models\Producto;
 use App\Models\User;
@@ -22,12 +25,15 @@ class DashboardService
      */
     public function metrics(User $user): array
     {
+        $fraudAlerts = FraudAlert::query()->where('resuelta', false)->count();
+        $dteRejected = DteFactura::query()->where('estado', 'rechazado')->count();
+
         return [
             'overview' => [
-                'clientes_registrados' => User::query()->role('cliente')->count(),
-                'ingresos_totales' => (float) Pedido::query()->padres()->sum('total'),
-                'productos_disponibles' => Producto::query()->publicados()->count(),
-                'ordenes_completadas' => Pedido::query()->where('estado', 'entregado')->count(),
+                'pedidos_hoy' => Pedido::query()->whereDate('created_at', today())->count(),
+                'ventas_hoy' => (float) Pedido::query()->whereDate('created_at', today())->sum('total'),
+                'ticket_promedio' => (float) Pedido::query()->padres()->avg('total'),
+                'tasa_entrega' => $this->deliveryRate(),
             ],
             'operacion' => [
                 'ventas_hoy' => (float) Pedido::query()->whereDate('created_at', today())->sum('total'),
@@ -38,12 +44,118 @@ class DashboardService
                 'dte_rechazados' => DteFactura::query()->where('estado', 'rechazado')->count(),
                 'alertas_fraude_abiertas' => FraudAlert::query()->where('resuelta', false)->count(),
             ],
+            'alerts' => [
+                'total' => $fraudAlerts + $dteRejected,
+                'fraud' => $fraudAlerts,
+                'dte_rejected' => $dteRejected,
+                'stock_low' => Producto::query()->whereHas('inventario', function ($query): void {
+                    $query->whereColumn('stock_actual', '<=', 'stock_minimo');
+                })->count(),
+                'vendors_pending' => Vendor::query()->pending()->count(),
+                'ml_status' => 'OK',
+            ],
             'recent_orders' => $this->recentOrders(),
             'monthly_sales' => $this->monthlySales(),
             'notifications' => $this->notifications(),
             'courier_status' => $this->courierStatus(),
             'quick_links' => $this->quickLinks(),
         ];
+    }
+
+    /**
+     * Devuelve metricas de gobierno para super administracion.
+     *
+     * @return array<string, mixed>
+     */
+    public function superAdminMetrics(User $user): array
+    {
+        $admins = User::query()->role('admin')->count();
+        $superAdmins = User::query()->role('super_admin')->count();
+        $vendors = Vendor::query()->count();
+        $products = Producto::query()->count();
+
+        return [
+            'platform' => [
+                'environment' => app()->environment(),
+                'users' => User::query()->count(),
+                'admins' => $admins,
+                'super_admins' => $superAdmins,
+                'vendors' => $vendors,
+                'products' => $products,
+            ],
+            'services' => $this->serviceReadiness(),
+            'release' => [
+                'current' => config('app.version', '1.0.0'),
+                'environment' => app()->environment(),
+                'branch' => (string) config('app.branch', 'local'),
+                'pipeline' => [
+                    ['label' => 'Codigo', 'status' => 'lista', 'detail' => 'repositorio conectado'],
+                    ['label' => 'Migraciones', 'status' => 'lista', 'detail' => 'estructura definida'],
+                    ['label' => 'Datos reales', 'status' => 'espera', 'detail' => 'carga operativa'],
+                    ['label' => 'Aprobacion', 'status' => 'espera', 'detail' => 'super admin'],
+                    ['label' => 'Produccion', 'status' => 'pendiente', 'detail' => 'despliegue final'],
+                ],
+            ],
+            'branches' => collect([
+                ['name' => 'Atlantia Central', 'status' => 'activa', 'orders' => Pedido::query()->count()],
+                ['name' => 'Puerto Barrios', 'status' => 'configurada', 'orders' => Pedido::query()->whereHas('direccion', function ($query): void {
+                    $query->where('municipio', 'Puerto Barrios');
+                })->count()],
+                ['name' => 'Santo Tomas de Castilla', 'status' => 'configurada', 'orders' => Pedido::query()->whereHas('direccion', function ($query): void {
+                    $query->where('municipio', 'like', 'Santo Tom%');
+                })->count()],
+            ]),
+            'audit' => AuditLog::query()->latest()->limit(4)->get(),
+            'models' => MlModelVersion::query()->latest()->limit(3)->get(),
+            'training_jobs' => MlTrainingJob::query()->latest()->limit(3)->get(),
+            'counts' => [
+                'users' => User::query()->count(),
+                'admins' => User::query()->role('admin')->count(),
+                'vendors' => Vendor::query()->count(),
+                'products' => Producto::query()->count(),
+            ],
+        ];
+    }
+
+    /**
+     * Evalua si las integraciones principales tienen configuracion activa.
+     *
+     * @return Collection<int, array<string, string>>
+     */
+    private function serviceReadiness(): Collection
+    {
+        return collect([
+            [
+                'name' => 'Aplicacion Laravel',
+                'detail' => 'Entorno ' . app()->environment(),
+                'status' => 'operativo',
+            ],
+            [
+                'name' => 'Base de datos',
+                'detail' => 'Conexion ' . config('database.default'),
+                'status' => config('database.default') !== null ? 'operativo' : 'pendiente',
+            ],
+            [
+                'name' => 'Colas y jobs',
+                'detail' => 'Driver ' . config('queue.default'),
+                'status' => config('queue.default') !== 'sync' ? 'operativo' : 'configurar',
+            ],
+            [
+                'name' => 'Busqueda',
+                'detail' => 'Scout ' . (string) config('scout.driver', 'database'),
+                'status' => (string) config('scout.driver', 'database') === 'meilisearch' ? 'operativo' : 'configurar',
+            ],
+            [
+                'name' => 'FEL INFILE',
+                'detail' => config('services.infile.base_url') ? 'endpoint configurado' : 'sin endpoint',
+                'status' => config('services.infile.base_url') ? 'operativo' : 'pendiente',
+            ],
+            [
+                'name' => 'Microservicio ML',
+                'detail' => config('services.ml.base_url') ? 'endpoint configurado' : 'sin endpoint',
+                'status' => config('services.ml.base_url') ? 'operativo' : 'pendiente',
+            ],
+        ]);
     }
 
     /**
@@ -68,6 +180,20 @@ class DashboardService
                     'fecha' => optional($pedido->created_at)->format('d/m/Y H:i'),
                 ];
             });
+    }
+
+    /**
+     * Calcula tasa de entrega sobre pedidos cerrados.
+     */
+    private function deliveryRate(): float
+    {
+        $total = Pedido::query()->whereIn('estado', ['entregado', 'cancelado'])->count();
+
+        if ($total === 0) {
+            return 0.0;
+        }
+
+        return round((Pedido::query()->where('estado', 'entregado')->count() / $total) * 100, 2);
     }
 
     /**
