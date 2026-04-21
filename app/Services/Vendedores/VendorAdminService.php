@@ -77,5 +77,49 @@ class VendorAdminService
             return $vendor->refresh();
         });
     }
-}
 
+    /**
+     * Reactiva vendedor suspendido.
+     */
+    public function reactivate(Vendor $vendor, User $admin): Vendor
+    {
+        return DB::transaction(function () use ($vendor, $admin): Vendor {
+            $vendor->update([
+                'is_approved' => true,
+                'approved_by' => $admin->id,
+                'approved_at' => now(),
+                'status' => 'approved',
+                'suspendido_at' => null,
+                'suspendido_por' => null,
+                'motivo_suspension' => null,
+            ]);
+
+            $vendor->productos()->update(['is_active' => true]);
+
+            return $vendor->refresh();
+        });
+    }
+
+    /**
+     * Elimina logicamente un vendedor y oculta su catalogo.
+     */
+    public function delete(Vendor $vendor): void
+    {
+        DB::transaction(function () use ($vendor): void {
+            $vendor->productos()->update([
+                'is_active' => false,
+                'visible_catalogo' => false,
+                'publicado_at' => null,
+            ]);
+
+            $vendor->update([
+                'is_approved' => false,
+                'status' => 'suspended',
+                'suspendido_at' => now(),
+                'motivo_suspension' => 'Cuenta de vendedor eliminada por administracion.',
+            ]);
+
+            $vendor->delete();
+        });
+    }
+}

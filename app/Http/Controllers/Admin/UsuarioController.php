@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Usuario\StoreUsuarioRequest;
 use App\Http\Requests\Admin\Usuario\UpdateUsuarioRequest;
 use App\Models\User;
 use App\Services\Auth\UsuarioService;
@@ -29,7 +30,21 @@ class UsuarioController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        return view('admin.usuarios.index', ['usuarios' => $this->usuarioService->paginate($request->all())]);
+        return view('admin.usuarios.index', [
+            'usuarios' => $this->usuarioService->paginate($request->all()),
+            'roles' => \Spatie\Permission\Models\Role::query()->orderBy('name')->get(),
+        ]);
+    }
+
+    /**
+     * Crea un usuario desde administracion.
+     */
+    public function store(StoreUsuarioRequest $request): RedirectResponse
+    {
+        $this->authorize('create', User::class);
+        $this->usuarioService->create($request->validated());
+
+        return back()->with('success', 'Usuario creado correctamente.');
     }
 
     /**
@@ -39,7 +54,10 @@ class UsuarioController extends Controller
     {
         $this->authorize('view', $usuario);
 
-        return view('admin.usuarios.show', ['usuario' => $this->usuarioService->detail($usuario)]);
+        return view('admin.usuarios.show', [
+            'usuario' => $this->usuarioService->detail($usuario),
+            'roles' => \Spatie\Permission\Models\Role::query()->orderBy('name')->get(),
+        ]);
     }
 
     /**
@@ -51,5 +69,16 @@ class UsuarioController extends Controller
         $this->usuarioService->update($usuario, $request->validated());
 
         return back()->with('success', 'Usuario actualizado correctamente.');
+    }
+
+    /**
+     * Elimina un usuario.
+     */
+    public function destroy(User $usuario): RedirectResponse
+    {
+        $this->authorize('delete', $usuario);
+        $this->usuarioService->delete($usuario);
+
+        return redirect()->route('admin.usuarios.index')->with('success', 'Usuario eliminado correctamente.');
     }
 }

@@ -42,11 +42,17 @@ Route::prefix('admin')
             ->name('vendedores.approve');
         Route::patch('/vendedores/{vendor:uuid}/suspender', [VendedorController::class, 'suspend'])
             ->name('vendedores.suspend');
+        Route::patch('/vendedores/{vendor:uuid}/reactivar', [VendedorController::class, 'reactivate'])
+            ->name('vendedores.reactivate');
+        Route::delete('/vendedores/{vendor:uuid}', [VendedorController::class, 'destroy'])->name('vendedores.destroy');
 
         Route::get('/productos', [ProductoController::class, 'index'])->name('productos.index');
+        Route::post('/productos', [ProductoController::class, 'store'])->name('productos.store');
         Route::get('/productos/{producto:uuid}', [ProductoController::class, 'show'])->name('productos.show');
+        Route::put('/productos/{producto:uuid}', [ProductoController::class, 'update'])->name('productos.update');
         Route::patch('/productos/{producto:uuid}/moderar', [ProductoController::class, 'moderate'])
             ->name('productos.moderate');
+        Route::delete('/productos/{producto:uuid}', [ProductoController::class, 'destroy'])->name('productos.destroy');
 
         Route::get('/categorias', [CategoriaController::class, 'index'])->name('categorias.index');
         Route::post('/categorias', [CategoriaController::class, 'store'])->name('categorias.store');
@@ -65,8 +71,10 @@ Route::prefix('admin')
         Route::put('/empleados/{empleado}', [EmpleadoController::class, 'update'])->name('empleados.update');
 
         Route::get('/usuarios', [UsuarioController::class, 'index'])->name('usuarios.index');
+        Route::post('/usuarios', [UsuarioController::class, 'store'])->name('usuarios.store');
         Route::get('/usuarios/{usuario:uuid}', [UsuarioController::class, 'show'])->name('usuarios.show');
         Route::put('/usuarios/{usuario:uuid}', [UsuarioController::class, 'update'])->name('usuarios.update');
+        Route::delete('/usuarios/{usuario:uuid}', [UsuarioController::class, 'destroy'])->name('usuarios.destroy');
 
         Route::get('/roles-permisos', [RolPermisoController::class, 'index'])->name('roles-permisos.index');
         Route::post('/roles-permisos/roles', [RolPermisoController::class, 'store'])->name('roles-permisos.store');

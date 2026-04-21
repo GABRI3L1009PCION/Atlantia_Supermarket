@@ -64,4 +64,26 @@ class VendedorController extends Controller
 
         return back()->with('success', 'Vendedor suspendido correctamente.');
     }
+
+    /**
+     * Reactiva un vendedor suspendido.
+     */
+    public function reactivate(Request $request, Vendor $vendor): RedirectResponse
+    {
+        $this->authorize('reactivate', $vendor);
+        $this->vendorAdminService->reactivate($vendor, $request->user());
+
+        return back()->with('success', 'Vendedor reactivado correctamente.');
+    }
+
+    /**
+     * Elimina logicamente un vendedor.
+     */
+    public function destroy(Vendor $vendor): RedirectResponse
+    {
+        $this->authorize('delete', $vendor);
+        $this->vendorAdminService->delete($vendor);
+
+        return redirect()->route('admin.vendedores.index')->with('success', 'Vendedor eliminado correctamente.');
+    }
 }

@@ -85,7 +85,7 @@ class AppServiceProvider extends ServiceProvider
                 return true;
             }
 
-            return $user->hasRole('admin') ? true : null;
+            return null;
         });
 
         Gate::define('viewAdminDashboard', fn (User $user): bool => $user->hasRole('admin'));
