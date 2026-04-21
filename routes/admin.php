@@ -60,6 +60,7 @@ Route::prefix('admin')
         Route::delete('/categorias/{categoria}', [CategoriaController::class, 'destroy'])->name('categorias.destroy');
 
         Route::get('/pedidos', [PedidoController::class, 'index'])->name('pedidos.index');
+        Route::post('/pedidos/lote/actualizar', [PedidoController::class, 'updateBatch'])->name('pedidos.batch-update');
         Route::get('/pedidos/{pedido:uuid}', [PedidoController::class, 'show'])->name('pedidos.show');
         Route::put('/pedidos/{pedido:uuid}', [PedidoController::class, 'update'])->name('pedidos.update');
 

@@ -24,10 +24,31 @@
                 </form>
             </div>
 
-            <div class="mt-6 overflow-x-auto">
-                <table class="min-w-full text-sm">
+            <form method="POST" action="{{ route('admin.pedidos.batch-update') }}" class="mt-6">
+                @csrf
+
+                <div class="mb-4 grid gap-3 rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-4 xl:grid-cols-[1fr_1fr_2fr_auto]">
+                    <select name="estado" class="rounded-md border border-atlantia-rose/35 px-3 py-2">
+                        @foreach (['pendiente', 'confirmado', 'preparando', 'en_ruta', 'entregado', 'cancelado'] as $estado)
+                            <option value="{{ $estado }}">{{ ucfirst(str_replace('_', ' ', $estado)) }}</option>
+                        @endforeach
+                    </select>
+                    <select name="estado_pago" class="rounded-md border border-atlantia-rose/35 px-3 py-2">
+                        @foreach (['pendiente', 'validando', 'pagado', 'rechazado', 'reembolsado'] as $estadoPago)
+                            <option value="{{ $estadoPago }}">{{ ucfirst($estadoPago) }}</option>
+                        @endforeach
+                    </select>
+                    <input type="text" name="notas_historial" placeholder="Nota comun para el historial del lote" class="rounded-md border border-atlantia-rose/35 px-3 py-2">
+                    <x-ui.button type="submit">Actualizar lote</x-ui.button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
                     <thead>
                         <tr class="border-b border-atlantia-rose/20 text-left text-atlantia-ink/55">
+                            <th class="pb-3">
+                                <span class="sr-only">Seleccion</span>
+                            </th>
                             <th class="pb-3">Pedido</th>
                             <th class="pb-3">Cliente</th>
                             <th class="pb-3">Vendedor</th>
@@ -40,6 +61,9 @@
                     <tbody class="divide-y divide-atlantia-rose/15">
                         @forelse ($pedidos as $pedido)
                             <tr>
+                                <td class="py-3 align-top">
+                                    <input type="checkbox" name="pedidos[]" value="{{ $pedido->uuid }}" class="h-4 w-4 rounded border-atlantia-rose/40 text-atlantia-wine focus:ring-atlantia-wine">
+                                </td>
                                 <td class="py-3">
                                     <p class="font-semibold text-atlantia-ink">{{ $pedido->numero_pedido }}</p>
                                     <p class="text-xs text-atlantia-ink/55">{{ $pedido->created_at?->format('d/m/Y H:i') }}</p>
@@ -64,12 +88,13 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="py-6 text-center text-atlantia-ink/60">No hay pedidos registrados.</td>
+                                <td colspan="8" class="py-6 text-center text-atlantia-ink/60">No hay pedidos registrados.</td>
                             </tr>
                         @endforelse
                     </tbody>
-                </table>
-            </div>
+                    </table>
+                </div>
+            </form>
 
             <div class="mt-4">{{ $pedidos->links() }}</div>
         </div>

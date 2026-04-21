@@ -133,4 +133,22 @@ class PedidoAdminService
             return $this->detail($pedido->fresh());
         });
     }
+
+    /**
+     * Actualiza pedidos por lote.
+     *
+     * @param array<int, string> $uuids
+     */
+    public function updateBatch(array $uuids, array $data, User $usuario): int
+    {
+        $pedidos = Pedido::query()
+            ->whereIn('uuid', $uuids)
+            ->get();
+
+        foreach ($pedidos as $pedido) {
+            $this->update($pedido, $data, $usuario);
+        }
+
+        return $pedidos->count();
+    }
 }

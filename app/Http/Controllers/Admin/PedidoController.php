@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Pedido\BatchUpdatePedidoRequest;
 use App\Http\Requests\Admin\Pedido\UpdatePedidoRequest;
 use App\Models\Pedido;
 use App\Models\User;
@@ -55,5 +56,20 @@ class PedidoController extends Controller
         $this->pedidoAdminService->update($pedido, $request->validated(), $request->user());
 
         return back()->with('success', 'Pedido actualizado correctamente.');
+    }
+
+    /**
+     * Actualiza pedidos desde la bandeja administrativa.
+     */
+    public function updateBatch(BatchUpdatePedidoRequest $request): RedirectResponse
+    {
+        $this->authorize('viewAny', Pedido::class);
+        $procesados = $this->pedidoAdminService->updateBatch(
+            $request->validated('pedidos'),
+            $request->validated(),
+            $request->user()
+        );
+
+        return back()->with('success', "Se actualizaron {$procesados} pedidos del lote.");
     }
 }
