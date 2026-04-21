@@ -111,6 +111,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('viewVendorReports', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
         Gate::define('viewVendorReviews', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
         Gate::define('manageVendorZones', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
+        Gate::define('viewEmployeeDashboard', fn (User $user): bool => $user->hasRole('empleado'));
         Gate::define('viewCourierDashboard', fn (User $user): bool => $user->hasRole('repartidor'));
         Gate::define('sendLocation', fn (User $user): bool => $user->hasRole('repartidor'));
         Gate::define('viewRepartidores', fn (User $user): bool => $user->isAdministrator());

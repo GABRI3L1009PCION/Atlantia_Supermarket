@@ -1,6 +1,13 @@
 @php
     $user = auth()->user();
     $logoPath = file_exists(public_path('images/logo.png')) ? 'images/logo.png' : 'images/atlantia-logo.svg';
+    $panelLabel = match (true) {
+        $user?->hasAnyRole(['admin', 'super_admin']) => 'Panel administrativo',
+        $user?->hasRole('vendedor') => 'Panel de vendedor',
+        $user?->hasRole('empleado') => 'Panel operativo',
+        $user?->hasRole('repartidor') => 'Panel de reparto',
+        default => 'Mi cuenta',
+    };
 @endphp
 
 <aside class="hidden w-72 shrink-0 xl:block" aria-label="Navegacion lateral">
@@ -12,7 +19,7 @@
                 class="mx-auto h-16 w-auto"
             >
             <h2 class="mt-4 text-2xl font-bold text-atlantia-wine">Supermercado Atlantia</h2>
-            <p class="mt-1 text-sm text-atlantia-ink/55">Panel administrativo</p>
+            <p class="mt-1 text-sm text-atlantia-ink/55">{{ $panelLabel }}</p>
 
             <div class="mt-5 rounded-lg bg-white/80 px-4 py-3 text-left shadow-sm">
                 <p class="text-xs font-semibold uppercase text-atlantia-rose">Sesion activa</p>
@@ -120,34 +127,36 @@
                         </div>
                     </div>
                 @elseif ($user?->hasRole('vendedor'))
-                    <x-ui.nav-link :href="route('vendedor.dashboard')" :active="request()->routeIs('vendedor.dashboard')">
-                        Dashboard
-                    </x-ui.nav-link>
-                    <x-ui.nav-link
-                        :href="route('vendedor.productos.index')"
-                        :active="request()->routeIs('vendedor.productos.*')"
-                    >
-                        Productos
-                    </x-ui.nav-link>
-                    <x-ui.nav-link
-                        :href="route('vendedor.pedidos.index')"
-                        :active="request()->routeIs('vendedor.pedidos.*')"
-                    >
-                        Pedidos
-                    </x-ui.nav-link>
+                    <div>
+                        <p class="px-2 text-xs font-semibold uppercase tracking-wide text-atlantia-ink/45">
+                            Tienda
+                        </p>
+                        <div class="mt-3 space-y-1.5">
+                            <x-ui.nav-link :href="route('vendedor.dashboard')" :active="request()->routeIs('vendedor.dashboard')">Dashboard</x-ui.nav-link>
+                            <x-ui.nav-link :href="route('vendedor.productos.index')" :active="request()->routeIs('vendedor.productos.*')">Productos</x-ui.nav-link>
+                            <x-ui.nav-link :href="route('vendedor.inventario.index')" :active="request()->routeIs('vendedor.inventario.*')">Inventario</x-ui.nav-link>
+                            <x-ui.nav-link :href="route('vendedor.pedidos.index')" :active="request()->routeIs('vendedor.pedidos.*')">Pedidos</x-ui.nav-link>
+                            <x-ui.nav-link :href="route('vendedor.zonas-entrega.index')" :active="request()->routeIs('vendedor.zonas-entrega.*')">Zonas de entrega</x-ui.nav-link>
+                            <x-ui.nav-link :href="route('vendedor.resenas.index')" :active="request()->routeIs('vendedor.resenas.*')">Resenas</x-ui.nav-link>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="px-2 text-xs font-semibold uppercase tracking-wide text-atlantia-ink/45">
+                            Fiscal, reportes y ML
+                        </p>
+                        <div class="mt-3 space-y-1.5">
+                            <x-ui.nav-link :href="route('vendedor.perfil-fiscal.edit')" :active="request()->routeIs('vendedor.perfil-fiscal.*')">Perfil fiscal</x-ui.nav-link>
+                            <x-ui.nav-link :href="route('vendedor.dte.index')" :active="request()->routeIs('vendedor.dte.*')">DTE</x-ui.nav-link>
+                            <x-ui.nav-link :href="route('vendedor.comisiones.index')" :active="request()->routeIs('vendedor.comisiones.*')">Comisiones</x-ui.nav-link>
+                            <x-ui.nav-link :href="route('vendedor.reportes.index')" :active="request()->routeIs('vendedor.reportes.*')">Reportes</x-ui.nav-link>
+                            <x-ui.nav-link :href="route('vendedor.predicciones.index')" :active="request()->routeIs('vendedor.predicciones.*')">Prediccion demanda</x-ui.nav-link>
+                            <x-ui.nav-link :href="route('vendedor.reabasto.index')" :active="request()->routeIs('vendedor.reabasto.*')">Reabasto ML</x-ui.nav-link>
+                        </div>
+                    </div>
                 @elseif ($user?->hasRole('repartidor'))
-                    <x-ui.nav-link
-                        :href="route('repartidor.dashboard')"
-                        :active="request()->routeIs('repartidor.dashboard')"
-                    >
-                        Dashboard
-                    </x-ui.nav-link>
-                    <x-ui.nav-link
-                        :href="route('repartidor.pedidos.index')"
-                        :active="request()->routeIs('repartidor.pedidos.*')"
-                    >
-                        Entregas
-                    </x-ui.nav-link>
+                    <x-ui.nav-link :href="route('repartidor.dashboard')" :active="request()->routeIs('repartidor.dashboard')">Dashboard</x-ui.nav-link>
+                    <x-ui.nav-link :href="route('repartidor.pedidos.index')" :active="request()->routeIs('repartidor.pedidos.*')">Entregas</x-ui.nav-link>
+                    <x-ui.nav-link :href="route('repartidor.rutas.index')" :active="request()->routeIs('repartidor.rutas.*')">Rutas</x-ui.nav-link>
                 @elseif ($user?->hasRole('empleado'))
                     <x-ui.nav-link :href="route('empleado.dashboard')" :active="request()->routeIs('empleado.dashboard')">
                         Dashboard
@@ -157,6 +166,12 @@
                         :active="request()->routeIs('empleado.transferencias.*')"
                     >
                         Transferencias
+                    </x-ui.nav-link>
+                    <x-ui.nav-link :href="route('empleado.mensajes.index')" :active="request()->routeIs('empleado.mensajes.*')">
+                        Mensajes
+                    </x-ui.nav-link>
+                    <x-ui.nav-link :href="route('empleado.resenas.index')" :active="request()->routeIs('empleado.resenas.*')">
+                        Resenas
                     </x-ui.nav-link>
                 @else
                     <x-ui.nav-link :href="route('cliente.pedidos.index')" :active="request()->routeIs('cliente.pedidos.*')">

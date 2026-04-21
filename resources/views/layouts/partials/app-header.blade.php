@@ -17,16 +17,38 @@
         default => 'Atlantia Supermarket',
     };
 
-    $adminQuickLinks = [
-        ['label' => 'Dashboard', 'route' => route('admin.dashboard'), 'active' => request()->routeIs('admin.dashboard')],
-        ['label' => 'Usuarios', 'route' => route('admin.usuarios.index'), 'active' => request()->routeIs('admin.usuarios.*')],
-        ['label' => 'Vendedores', 'route' => route('admin.vendedores.index'), 'active' => request()->routeIs('admin.vendedores.*')],
-        ['label' => 'Pedidos', 'route' => route('admin.pedidos.index'), 'active' => request()->routeIs('admin.pedidos.*')],
-        ['label' => 'Comisiones', 'route' => route('admin.comisiones.index'), 'active' => request()->routeIs('admin.comisiones.*')],
-        ['label' => 'DTE', 'route' => route('admin.dte.index'), 'active' => request()->routeIs('admin.dte.*')],
-        ['label' => 'ML', 'route' => route('admin.ml.monitor'), 'active' => request()->routeIs('admin.ml.*')],
-        ['label' => 'Reportes', 'route' => route('admin.reportes.index'), 'active' => request()->routeIs('admin.reportes.*')],
-    ];
+    $quickLinks = match (true) {
+        $user?->hasAnyRole(['admin', 'super_admin']) => [
+            ['label' => 'Dashboard', 'route' => route('admin.dashboard'), 'active' => request()->routeIs('admin.dashboard')],
+            ['label' => 'Usuarios', 'route' => route('admin.usuarios.index'), 'active' => request()->routeIs('admin.usuarios.*')],
+            ['label' => 'Vendedores', 'route' => route('admin.vendedores.index'), 'active' => request()->routeIs('admin.vendedores.*')],
+            ['label' => 'Pedidos', 'route' => route('admin.pedidos.index'), 'active' => request()->routeIs('admin.pedidos.*')],
+            ['label' => 'Comisiones', 'route' => route('admin.comisiones.index'), 'active' => request()->routeIs('admin.comisiones.*')],
+            ['label' => 'DTE', 'route' => route('admin.dte.index'), 'active' => request()->routeIs('admin.dte.*')],
+            ['label' => 'ML', 'route' => route('admin.ml.monitor'), 'active' => request()->routeIs('admin.ml.*')],
+            ['label' => 'Reportes', 'route' => route('admin.reportes.index'), 'active' => request()->routeIs('admin.reportes.*')],
+        ],
+        $user?->hasRole('vendedor') => [
+            ['label' => 'Dashboard', 'route' => route('vendedor.dashboard'), 'active' => request()->routeIs('vendedor.dashboard')],
+            ['label' => 'Productos', 'route' => route('vendedor.productos.index'), 'active' => request()->routeIs('vendedor.productos.*')],
+            ['label' => 'Inventario', 'route' => route('vendedor.inventario.index'), 'active' => request()->routeIs('vendedor.inventario.*')],
+            ['label' => 'Pedidos', 'route' => route('vendedor.pedidos.index'), 'active' => request()->routeIs('vendedor.pedidos.*')],
+            ['label' => 'DTE', 'route' => route('vendedor.dte.index'), 'active' => request()->routeIs('vendedor.dte.*')],
+            ['label' => 'ML', 'route' => route('vendedor.predicciones.index'), 'active' => request()->routeIs('vendedor.predicciones.*')],
+        ],
+        $user?->hasRole('empleado') => [
+            ['label' => 'Dashboard', 'route' => route('empleado.dashboard'), 'active' => request()->routeIs('empleado.dashboard')],
+            ['label' => 'Transferencias', 'route' => route('empleado.transferencias.index'), 'active' => request()->routeIs('empleado.transferencias.*')],
+            ['label' => 'Mensajes', 'route' => route('empleado.mensajes.index'), 'active' => request()->routeIs('empleado.mensajes.*')],
+            ['label' => 'Resenas', 'route' => route('empleado.resenas.index'), 'active' => request()->routeIs('empleado.resenas.*')],
+        ],
+        $user?->hasRole('repartidor') => [
+            ['label' => 'Dashboard', 'route' => route('repartidor.dashboard'), 'active' => request()->routeIs('repartidor.dashboard')],
+            ['label' => 'Entregas', 'route' => route('repartidor.pedidos.index'), 'active' => request()->routeIs('repartidor.pedidos.*')],
+            ['label' => 'Rutas', 'route' => route('repartidor.rutas.index'), 'active' => request()->routeIs('repartidor.rutas.*')],
+        ],
+        default => [],
+    };
 @endphp
 
 <header class="border-b border-atlantia-rose/15 bg-white shadow-sm">
@@ -64,10 +86,10 @@
         </div>
     </div>
 
-    @if ($user?->hasAnyRole(['admin', 'super_admin']))
+    @if ($quickLinks !== [])
         <div class="border-t border-atlantia-rose/10 bg-[#fff8fb] xl:hidden">
             <div class="mx-auto flex w-full max-w-[1500px] gap-2 overflow-x-auto px-4 py-3 sm:px-6 lg:px-8">
-                @foreach ($adminQuickLinks as $link)
+                @foreach ($quickLinks as $link)
                     <a
                         href="{{ $link['route'] }}"
                         class="{{ $link['active'] ? 'bg-atlantia-wine text-white' : 'bg-white text-atlantia-wine' }} shrink-0 rounded-md border border-atlantia-rose/20 px-3 py-2 text-sm font-semibold shadow-sm transition hover:border-atlantia-wine"
