@@ -10,7 +10,7 @@
     };
 
     $panelTitle = match (true) {
-        $user?->hasAnyRole(['admin', 'super_admin']) => 'Administracion Atlantia',
+        $user?->hasRole('admin') => 'Administracion Atlantia',
         $user?->hasRole('vendedor') => 'Panel de vendedor',
         $user?->hasRole('repartidor') => 'Panel de repartidor',
         $user?->hasRole('empleado') => 'Panel operativo Atlantia',
@@ -18,15 +18,15 @@
     };
 
     $quickLinks = match (true) {
-        $user?->hasAnyRole(['admin', 'super_admin']) => [
+        $user?->hasRole('admin') => [
             ['label' => 'Dashboard', 'route' => route('admin.dashboard'), 'active' => request()->routeIs('admin.dashboard')],
             ['label' => 'Usuarios', 'route' => route('admin.usuarios.index'), 'active' => request()->routeIs('admin.usuarios.*')],
+            ['label' => 'Roles', 'route' => route('admin.roles-permisos.index'), 'active' => request()->routeIs('admin.roles-permisos.*')],
             ['label' => 'Vendedores', 'route' => route('admin.vendedores.index'), 'active' => request()->routeIs('admin.vendedores.*')],
+            ['label' => 'Productos', 'route' => route('admin.productos.index'), 'active' => request()->routeIs('admin.productos.*')],
             ['label' => 'Pedidos', 'route' => route('admin.pedidos.index'), 'active' => request()->routeIs('admin.pedidos.*')],
-            ['label' => 'Comisiones', 'route' => route('admin.comisiones.index'), 'active' => request()->routeIs('admin.comisiones.*')],
             ['label' => 'DTE', 'route' => route('admin.dte.index'), 'active' => request()->routeIs('admin.dte.*')],
             ['label' => 'ML', 'route' => route('admin.ml.monitor'), 'active' => request()->routeIs('admin.ml.*')],
-            ['label' => 'Reportes', 'route' => route('admin.reportes.index'), 'active' => request()->routeIs('admin.reportes.*')],
         ],
         $user?->hasRole('vendedor') => [
             ['label' => 'Dashboard', 'route' => route('vendedor.dashboard'), 'active' => request()->routeIs('vendedor.dashboard')],
@@ -51,26 +51,22 @@
     };
 @endphp
 
-<header class="border-b border-atlantia-rose/15 bg-white shadow-sm">
-    <div class="mx-auto flex min-h-20 w-full max-w-[1500px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <div class="flex items-center gap-4">
-            <a href="{{ $dashboardRoute }}" class="flex items-center" aria-label="Panel Atlantia">
-                <img
-                    src="{{ asset($logoPath) }}"
-                    alt="Atlantia Supermarket"
-                    class="h-12 w-auto"
-                >
+<header class="sticky top-0 z-30 border-b border-atlantia-rose/15 bg-white/95 backdrop-blur">
+    <div class="flex min-h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <div class="flex min-w-0 items-center gap-3">
+            <a href="{{ $dashboardRoute }}" class="flex shrink-0 items-center xl:hidden" aria-label="Panel Atlantia">
+                <img src="{{ asset($logoPath) }}" alt="Atlantia Supermarket" class="h-10 w-auto">
             </a>
 
-            <div class="hidden md:block">
-                <p class="text-xs font-semibold uppercase tracking-wide text-atlantia-rose">Control central</p>
-                <p class="text-lg font-bold text-atlantia-ink">{{ $panelTitle }}</p>
+            <div class="min-w-0">
+                <p class="text-xs font-black uppercase tracking-wide text-atlantia-rose">Control central</p>
+                <p class="truncate text-lg font-black text-atlantia-ink">{{ $panelTitle }}</p>
             </div>
         </div>
 
         <div class="flex items-center gap-3">
             <div class="hidden rounded-lg bg-atlantia-cream px-4 py-2 text-right md:block">
-                <p class="text-sm font-bold text-atlantia-ink">{{ $user?->name }}</p>
+                <p class="text-sm font-black text-atlantia-ink">{{ $user?->name }}</p>
                 <p class="text-xs text-atlantia-ink/60">{{ $user?->email }}</p>
             </div>
 
@@ -78,7 +74,7 @@
                 @csrf
                 <button
                     type="submit"
-                    class="rounded-md bg-atlantia-wine px-4 py-2 text-sm font-bold text-white hover:bg-atlantia-wine-700"
+                    class="rounded-lg bg-atlantia-wine px-4 py-2 text-sm font-black text-white transition hover:bg-atlantia-wine-700"
                 >
                     Cerrar sesion
                 </button>
@@ -88,11 +84,11 @@
 
     @if ($quickLinks !== [])
         <div class="border-t border-atlantia-rose/10 bg-[#fff8fb] xl:hidden">
-            <div class="mx-auto flex w-full max-w-[1500px] gap-2 overflow-x-auto px-4 py-3 sm:px-6 lg:px-8">
+            <div class="flex gap-2 overflow-x-auto px-4 py-3 sm:px-6 lg:px-8">
                 @foreach ($quickLinks as $link)
                     <a
                         href="{{ $link['route'] }}"
-                        class="{{ $link['active'] ? 'bg-atlantia-wine text-white' : 'bg-white text-atlantia-wine' }} shrink-0 rounded-md border border-atlantia-rose/20 px-3 py-2 text-sm font-semibold shadow-sm transition hover:border-atlantia-wine"
+                        class="{{ $link['active'] ? 'bg-atlantia-wine text-white' : 'bg-white text-atlantia-wine' }} shrink-0 rounded-lg border border-atlantia-rose/20 px-3 py-2 text-sm font-bold shadow-sm transition hover:border-atlantia-wine"
                     >
                         {{ $link['label'] }}
                     </a>

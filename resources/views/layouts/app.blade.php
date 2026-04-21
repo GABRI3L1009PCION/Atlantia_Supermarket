@@ -10,14 +10,14 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="min-h-screen bg-[#fcf7f9] text-atlantia-ink antialiased">
-    <div class="min-h-screen">
-        @include('layouts.partials.app-header')
+<body class="min-h-screen bg-[#fbf7f9] text-atlantia-ink antialiased">
+    <div class="min-h-screen xl:grid xl:grid-cols-[18rem_1fr]">
+        @include('layouts.partials.sidebar')
 
-        <div class="mx-auto flex w-full max-w-[1500px] gap-6 px-4 py-6 sm:px-6 lg:px-8">
-            @include('layouts.partials.sidebar')
+        <div class="min-w-0">
+            @include('layouts.partials.app-header')
 
-            <main id="contenido-principal" class="min-w-0 flex-1" tabindex="-1">
+            <main id="contenido-principal" class="min-w-0 px-4 py-6 sm:px-6 lg:px-8" tabindex="-1">
                 @include('layouts.partials.breadcrumbs')
                 @include('layouts.partials.flash')
 
