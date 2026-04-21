@@ -41,10 +41,32 @@
                 </form>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-sm">
+            <form method="POST" action="{{ route('admin.resenas.batch-moderate') }}">
+                @csrf
+
+                <div class="flex flex-col gap-3 rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-4 xl:flex-row xl:items-end">
+                    <div class="xl:min-w-[220px]">
+                        <label class="text-sm font-semibold text-atlantia-ink">Accion en lote</label>
+                        <select name="accion" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2">
+                            <option value="aprobar">Aprobar seleccionadas</option>
+                            <option value="rechazar">Rechazar seleccionadas</option>
+                            <option value="marcar_ml">Marcar como sospechosas ML</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-sm font-semibold text-atlantia-ink">Notas administrativas</label>
+                        <input type="text" name="notas" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" placeholder="Comentario comun para el lote">
+                    </div>
+                    <x-ui.button type="submit">Aplicar al lote</x-ui.button>
+                </div>
+
+                <div class="mt-4 overflow-x-auto">
+                    <table class="min-w-full text-sm">
                     <thead>
                         <tr class="border-b border-atlantia-rose/20 text-left text-atlantia-ink/55">
+                            <th class="pb-3">
+                                <span class="sr-only">Seleccion</span>
+                            </th>
                             <th class="pb-3">Resena</th>
                             <th class="pb-3">Producto</th>
                             <th class="pb-3">Cliente</th>
@@ -56,6 +78,9 @@
                     <tbody class="divide-y divide-atlantia-rose/15">
                         @forelse ($resenas as $resena)
                             <tr>
+                                <td class="py-3 align-top">
+                                    <input type="checkbox" name="resenas[]" value="{{ $resena->uuid }}" class="h-4 w-4 rounded border-atlantia-rose/40 text-atlantia-wine focus:ring-atlantia-wine">
+                                </td>
                                 <td class="py-3">
                                     <p class="font-semibold text-atlantia-ink">{{ $resena->titulo }}</p>
                                     <p class="line-clamp-2 text-xs text-atlantia-ink/55">{{ $resena->contenido }}</p>
@@ -81,12 +106,13 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="py-6 text-center text-atlantia-ink/60">No hay resenas para estos filtros.</td>
+                                <td colspan="7" class="py-6 text-center text-atlantia-ink/60">No hay resenas para estos filtros.</td>
                             </tr>
                         @endforelse
                     </tbody>
-                </table>
-            </div>
+                    </table>
+                </div>
+            </form>
 
             <div>{{ $resenas->links() }}</div>
         </div>

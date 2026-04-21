@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Resena\BatchModerateResenaRequest;
 use App\Http\Requests\Admin\Resena\ModerateResenaRequest;
 use App\Models\Resena;
 use App\Services\Resenas\ResenaModerationService;
@@ -54,5 +55,21 @@ class ResenaController extends Controller
         $this->resenaModerationService->moderate($resena, $request->validated(), $request->user());
 
         return back()->with('success', 'Resena moderada correctamente.');
+    }
+
+    /**
+     * Modera varias resenas desde la bandeja administrativa.
+     */
+    public function moderateBatch(BatchModerateResenaRequest $request): RedirectResponse
+    {
+        $this->authorize('moderateAny', Resena::class);
+        $procesadas = $this->resenaModerationService->moderateBatch(
+            $request->validated('resenas'),
+            $request->validated('accion'),
+            $request->validated('notas'),
+            $request->user()
+        );
+
+        return back()->with('success', "Se moderaron {$procesadas} resenas del lote.");
     }
 }

@@ -12,7 +12,7 @@ class VendorCommissionPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasRole('admin');
+        return $user->isAdministrator();
     }
 
     public function viewOwnCommissions(User $user): bool
@@ -22,12 +22,11 @@ class VendorCommissionPolicy
 
     public function view(User $user, VendorCommission $commission): bool
     {
-        return $user->hasRole('admin') || (int) $commission->vendor_id === (int) $user->vendor?->id;
+        return $user->isAdministrator() || (int) $commission->vendor_id === (int) $user->vendor?->id;
     }
 
     public function update(User $user, VendorCommission $commission): bool
     {
-        return $user->hasRole('admin');
+        return $user->isAdministrator();
     }
 }
-

@@ -93,6 +93,7 @@ Route::prefix('admin')
             ->name('roles-permisos.destroy');
 
         Route::get('/resenas', [ResenaController::class, 'index'])->name('resenas.index');
+        Route::post('/resenas/lote/moderar', [ResenaController::class, 'moderateBatch'])->name('resenas.batch-moderate');
         Route::get('/resenas/{resena:uuid}', [ResenaController::class, 'show'])->name('resenas.show');
         Route::patch('/resenas/{resena:uuid}/moderar', [ResenaController::class, 'moderate'])->name('resenas.moderate');
 
@@ -123,6 +124,8 @@ Route::prefix('admin')
             ->name('ml.reentrenamiento.store');
 
         Route::get('/antifraude', [AntifraudeController::class, 'index'])->name('antifraude.index');
+        Route::post('/antifraude/lote/resolver', [AntifraudeController::class, 'resolveBatch'])
+            ->name('antifraude.batch-resolve');
         Route::get('/antifraude/{fraudAlert:uuid}', [AntifraudeController::class, 'show'])->name('antifraude.show');
         Route::patch('/antifraude/{fraudAlert:uuid}/resolver', [AntifraudeController::class, 'resolve'])
             ->name('antifraude.resolve');

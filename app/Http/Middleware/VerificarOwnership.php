@@ -33,7 +33,7 @@ class VerificarOwnership
             abort(401, 'Debes iniciar sesion.');
         }
 
-        if ($user->hasRole('admin')) {
+        if ($user->isAdministrator()) {
             return $next($request);
         }
 

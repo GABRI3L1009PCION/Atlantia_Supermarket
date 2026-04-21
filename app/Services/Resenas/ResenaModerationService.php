@@ -5,6 +5,7 @@ namespace App\Services\Resenas;
 use App\Models\Resena;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Servicio de moderacion de resenas.
@@ -90,5 +91,31 @@ class ResenaModerationService
             ]);
 
         return $resena->refresh();
+    }
+
+    /**
+     * Modera un conjunto de resenas por lote.
+     *
+     * @param array<int, string> $uuids
+     */
+    public function moderateBatch(array $uuids, string $accion, ?string $notas, User $user): int
+    {
+        $payload = match ($accion) {
+            'aprobar' => ['aprobada' => true, 'flagged_ml' => false],
+            'rechazar' => ['aprobada' => false],
+            default => ['aprobada' => false, 'flagged_ml' => true],
+        };
+
+        return DB::transaction(function () use ($uuids, $accion, $notas, $payload, $user): int {
+            $resenas = Resena::query()
+                ->whereIn('uuid', $uuids)
+                ->get();
+
+            foreach ($resenas as $resena) {
+                $this->moderate($resena, array_merge($payload, ['notas' => $notas ?? $accion]), $user);
+            }
+
+            return $resenas->count();
+        });
     }
 }

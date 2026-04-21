@@ -100,10 +100,10 @@ class AppServiceProvider extends ServiceProvider
             return null;
         });
 
-        Gate::define('viewAdminDashboard', fn (User $user): bool => $user->hasRole('admin'));
-        Gate::define('viewAdminReports', fn (User $user): bool => $user->hasRole('admin'));
-        Gate::define('monitorMl', fn (User $user): bool => $user->hasRole('admin'));
-        Gate::define('trainMl', fn (User $user): bool => $user->hasRole('admin'));
+        Gate::define('viewAdminDashboard', fn (User $user): bool => $user->isAdministrator());
+        Gate::define('viewAdminReports', fn (User $user): bool => $user->isAdministrator());
+        Gate::define('monitorMl', fn (User $user): bool => $user->isAdministrator());
+        Gate::define('trainMl', fn (User $user): bool => $user->isAdministrator());
         Gate::define('viewRecommendations', fn (User $user): bool => $user->hasRole('cliente'));
         Gate::define('viewVendorDashboard', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
         Gate::define('manageFiscalProfile', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
@@ -113,8 +113,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('manageVendorZones', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
         Gate::define('viewCourierDashboard', fn (User $user): bool => $user->hasRole('repartidor'));
         Gate::define('sendLocation', fn (User $user): bool => $user->hasRole('repartidor'));
-        Gate::define('viewRepartidores', fn (User $user): bool => $user->hasRole('admin'));
-        Gate::define('viewRepartidor', fn (User $user, User $repartidor): bool => $user->hasRole('admin')
+        Gate::define('viewRepartidores', fn (User $user): bool => $user->isAdministrator());
+        Gate::define('viewRepartidor', fn (User $user, User $repartidor): bool => $user->isAdministrator()
             && $repartidor->hasRole('repartidor'));
 
         Producto::observe(ProductoObserver::class);

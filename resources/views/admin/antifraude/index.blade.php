@@ -42,10 +42,28 @@
                 </form>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-sm">
+            <form method="POST" action="{{ route('admin.antifraude.batch-resolve') }}">
+                @csrf
+
+                <div class="flex flex-col gap-3 rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-4 xl:flex-row xl:items-end">
+                    <div class="xl:min-w-[260px]">
+                        <label class="text-sm font-semibold text-atlantia-ink">Accion de resolucion</label>
+                        <input type="text" name="accion" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" placeholder="ej. validacion_manual" required>
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-sm font-semibold text-atlantia-ink">Notas operativas</label>
+                        <input type="text" name="notas" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" placeholder="Comentario comun para las alertas seleccionadas">
+                    </div>
+                    <x-ui.button type="submit">Resolver lote</x-ui.button>
+                </div>
+
+                <div class="mt-4 overflow-x-auto">
+                    <table class="min-w-full text-sm">
                     <thead>
                         <tr class="border-b border-atlantia-rose/20 text-left text-atlantia-ink/55">
+                            <th class="pb-3">
+                                <span class="sr-only">Seleccion</span>
+                            </th>
                             <th class="pb-3">Alerta</th>
                             <th class="pb-3">Pedido</th>
                             <th class="pb-3">Cliente</th>
@@ -57,6 +75,11 @@
                     <tbody class="divide-y divide-atlantia-rose/15">
                         @forelse ($alerts as $alert)
                             <tr>
+                                <td class="py-3 align-top">
+                                    @if (! $alert->resuelta)
+                                        <input type="checkbox" name="alertas[]" value="{{ $alert->uuid }}" class="h-4 w-4 rounded border-atlantia-rose/40 text-atlantia-wine focus:ring-atlantia-wine">
+                                    @endif
+                                </td>
                                 <td class="py-3">
                                     <p class="font-semibold text-atlantia-ink">{{ $alert->tipo }}</p>
                                     <p class="text-xs text-atlantia-ink/55">{{ $alert->created_at?->format('d/m/Y H:i') }}</p>
@@ -77,12 +100,13 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="py-6 text-center text-atlantia-ink/60">No hay alertas que coincidan con los filtros.</td>
+                                <td colspan="7" class="py-6 text-center text-atlantia-ink/60">No hay alertas que coincidan con los filtros.</td>
                             </tr>
                         @endforelse
                     </tbody>
-                </table>
-            </div>
+                    </table>
+                </div>
+            </form>
 
             <div>{{ $alerts->links() }}</div>
         </div>

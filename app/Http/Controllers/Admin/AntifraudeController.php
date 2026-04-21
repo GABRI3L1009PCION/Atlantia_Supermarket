@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Antifraude\BatchResolveFraudAlertRequest;
 use App\Http\Requests\Admin\Antifraude\ResolveFraudAlertRequest;
 use App\Models\Ml\FraudAlert;
 use App\Services\Antifraude\DeteccionPatronesService;
@@ -54,5 +55,21 @@ class AntifraudeController extends Controller
         $this->deteccionPatronesService->resolve($fraudAlert, $request->validated(), $request->user());
 
         return back()->with('success', 'Alerta antifraude resuelta correctamente.');
+    }
+
+    /**
+     * Resuelve multiples alertas desde la bandeja antifraude.
+     */
+    public function resolveBatch(BatchResolveFraudAlertRequest $request): RedirectResponse
+    {
+        $this->authorize('viewAny', FraudAlert::class);
+        $procesadas = $this->deteccionPatronesService->resolveBatch(
+            $request->validated('alertas'),
+            $request->validated('accion'),
+            $request->validated('notas'),
+            $request->user()
+        );
+
+        return back()->with('success', "Se resolvieron {$procesadas} alertas del lote.");
     }
 }

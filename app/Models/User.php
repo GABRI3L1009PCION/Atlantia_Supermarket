@@ -209,4 +209,12 @@ class User extends Authenticatable implements MustVerifyEmailContract
                 && $this->email === config('atlantia.super_admin.email')
             );
     }
+
+    /**
+     * Indica si el usuario tiene privilegios administrativos globales.
+     */
+    public function isAdministrator(): bool
+    {
+        return $this->isSuperAdmin() || $this->hasRole('admin');
+    }
 }

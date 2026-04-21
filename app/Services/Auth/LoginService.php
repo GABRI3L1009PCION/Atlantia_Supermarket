@@ -194,7 +194,7 @@ class LoginService
     private function redirectRouteFor(User $user): string
     {
         return match (true) {
-            $user->hasRole('admin') => 'admin.dashboard',
+            $user->isAdministrator() => 'admin.dashboard',
             $user->hasRole('vendedor') => 'vendedor.dashboard',
             $user->hasRole('repartidor') => 'repartidor.dashboard',
             $user->hasRole('empleado') => 'empleado.dashboard',

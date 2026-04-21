@@ -40,7 +40,7 @@ class VendorFactory extends Factory
         ]);
         $municipio = fake()->randomElement([
             'Puerto Barrios',
-            'Santo Tomás',
+            'Santo Tomas',
             'Morales',
             'Los Amates',
             'Livingston',
@@ -140,7 +140,7 @@ class VendorFactory extends Factory
     private function coordinatesForMunicipio(string $municipio): array
     {
         return match ($municipio) {
-            'Santo Tomás' => ['latitude' => 15.69690000, 'longitude' => -88.62060000],
+            'Santo Tomas' => ['latitude' => 15.69690000, 'longitude' => -88.62060000],
             'Morales' => ['latitude' => 15.47250000, 'longitude' => -88.84090000],
             'Los Amates' => ['latitude' => 15.25660000, 'longitude' => -89.09730000],
             'Livingston' => ['latitude' => 15.82830000, 'longitude' => -88.75060000],

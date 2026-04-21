@@ -114,6 +114,31 @@ class DeteccionPatronesService
     }
 
     /**
+     * Resuelve varias alertas antifraude por lote.
+     *
+     * @param array<int, string> $uuids
+     */
+    public function resolveBatch(array $uuids, string $accion, ?string $notas, User $user): int
+    {
+        return DB::transaction(function () use ($uuids, $accion, $notas, $user): int {
+            $alertas = FraudAlert::query()
+                ->whereIn('uuid', $uuids)
+                ->where('resuelta', false)
+                ->get();
+
+            foreach ($alertas as $alerta) {
+                $this->resolve($alerta, [
+                    'resuelta' => true,
+                    'accion' => $accion,
+                    'notas' => $notas,
+                ], $user);
+            }
+
+            return $alertas->count();
+        });
+    }
+
+    /**
      * Calcula score de riesgo por reglas conservadoras.
      *
      * @param Pedido $pedido

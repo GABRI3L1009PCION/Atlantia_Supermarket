@@ -35,6 +35,19 @@ class AdminPanelAuthorizationTest extends TestCase
     }
 
     /**
+     * Permite acceso al dashboard administrativo para super admin.
+     */
+    public function testSuperAdminCanAccessAdminDashboard(): void
+    {
+        $superAdmin = User::factory()->admin()->create(['email' => 'root.panel@atlantia.test']);
+        $superAdmin->assignRole('super_admin');
+
+        $response = $this->actingAs($superAdmin)->get(route('admin.dashboard'));
+
+        $response->assertOk();
+    }
+
+    /**
      * Bloquea acceso al dashboard administrativo para clientes.
      */
     public function testClienteCannotAccessAdminDashboard(): void

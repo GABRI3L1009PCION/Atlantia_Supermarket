@@ -21,7 +21,7 @@ class MlMonitorPolicy
      */
     public function before(User $user, string $ability): ?bool
     {
-        if ($user->hasRole('admin')) {
+        if ($user->isAdministrator()) {
             return true;
         }
 

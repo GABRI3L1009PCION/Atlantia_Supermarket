@@ -4,11 +4,14 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Categoria;
 use App\Models\Inventario;
+use App\Models\Pedido;
 use App\Models\Producto;
+use App\Models\Resena;
 use App\Models\User;
 use App\Models\Vendor;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -146,5 +149,60 @@ class AdminCrudOperationsTest extends TestCase
             'is_active' => 0,
             'visible_catalogo' => 0,
         ]);
+    }
+
+    /**
+     * Modera resenas por lote desde el panel administrativo.
+     */
+    public function testAdminCanModerateReviewsInBatch(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('admin');
+
+        $cliente = User::factory()->cliente()->create();
+        $cliente->assignRole('cliente');
+
+        $vendor = Vendor::factory()->approved()->create();
+        $producto = Producto::factory()->publicado()->create(['vendor_id' => $vendor->id]);
+        $pedido = Pedido::factory()->entregado()->create([
+            'cliente_id' => $cliente->id,
+            'vendor_id' => $vendor->id,
+        ]);
+
+        $resenaUno = Resena::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'producto_id' => $producto->id,
+            'cliente_id' => $cliente->id,
+            'pedido_id' => $pedido->id,
+            'calificacion' => 4,
+            'titulo' => 'Muy buen producto',
+            'contenido' => 'Entrega puntual y producto en buen estado.',
+            'imagenes_count' => 0,
+            'aprobada' => false,
+            'flagged_ml' => false,
+        ]);
+
+        $resenaDos = Resena::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'producto_id' => $producto->id,
+            'cliente_id' => $cliente->id,
+            'pedido_id' => $pedido->id,
+            'calificacion' => 5,
+            'titulo' => 'Excelente experiencia',
+            'contenido' => 'Muy recomendado para compras semanales.',
+            'imagenes_count' => 0,
+            'aprobada' => false,
+            'flagged_ml' => false,
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.resenas.batch-moderate'), [
+            'resenas' => [$resenaUno->uuid, $resenaDos->uuid],
+            'accion' => 'aprobar',
+            'notas' => 'Moderacion masiva por revision operativa.',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('resenas', ['id' => $resenaUno->id, 'aprobada' => 1, 'flagged_ml' => 0]);
+        $this->assertDatabaseHas('resenas', ['id' => $resenaDos->id, 'aprobada' => 1, 'flagged_ml' => 0]);
     }
 }

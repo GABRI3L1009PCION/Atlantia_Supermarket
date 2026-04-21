@@ -19,7 +19,7 @@ class ProductoPolicy
      */
     public function before(User $user, string $ability): ?bool
     {
-        if ($user->hasRole('admin')) {
+        if ($user->isAdministrator()) {
             return true;
         }
 
@@ -106,7 +106,7 @@ class ProductoPolicy
             return true;
         }
 
-        return $user !== null && ($user->hasRole('admin') || $this->ownsProducto($user, $producto));
+        return $user !== null && ($user->isAdministrator() || $this->ownsProducto($user, $producto));
     }
 
     /**
