@@ -23,11 +23,13 @@ class UsuarioService
      * @param array<string, mixed> $filters
      * @return LengthAwarePaginator
      */
-    public function paginate(array $filters = []): LengthAwarePaginator
+    public function paginate(array $filters = [], ?User $viewer = null): LengthAwarePaginator
     {
         return User::query()
             ->with('roles')
-            ->visibleToOperationalAdmin()
+            ->when(! $viewer?->isSuperAdmin(), function ($query): void {
+                $query->visibleToOperationalAdmin();
+            })
             ->when($filters['q'] ?? null, function ($query, string $q): void {
                 $query->where(fn ($builder) => $builder
                     ->where('name', 'like', '%' . $q . '%')

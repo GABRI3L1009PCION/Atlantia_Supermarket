@@ -5,6 +5,9 @@
         $availableRoles = auth()->user()?->isSuperAdmin()
             ? $roles
             : $roles->reject(fn ($role) => in_array($role->name, ['admin', 'super_admin'], true));
+        $inputBase = 'mt-1 w-full rounded-md border px-3 py-2';
+        $inputNormal = 'border-atlantia-rose/35';
+        $inputError = 'border-rose-500 bg-rose-50';
     @endphp
 
     <section class="mx-auto max-w-full py-2">
@@ -23,39 +26,100 @@
                     <div class="mt-4 space-y-4">
                         <div>
                             <label class="text-sm font-semibold text-atlantia-ink">Nombre completo</label>
-                            <input name="name" type="text" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
+                            <input
+                                name="name"
+                                type="text"
+                                value="{{ old('name') }}"
+                                class="{{ $inputBase }} {{ $errors->has('name') ? $inputError : $inputNormal }}"
+                                required
+                            >
+                            @error('name')
+                                <p class="mt-1 text-sm font-semibold text-rose-700">{{ $message }}</p>
+                            @enderror
                         </div>
                         <div>
                             <label class="text-sm font-semibold text-atlantia-ink">Correo electronico</label>
-                            <input name="email" type="email" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
+                            <input
+                                name="email"
+                                type="email"
+                                value="{{ old('email') }}"
+                                class="{{ $inputBase }} {{ $errors->has('email') ? $inputError : $inputNormal }}"
+                                required
+                            >
+                            @error('email')
+                                <p class="mt-1 text-sm font-semibold text-rose-700">{{ $message }}</p>
+                            @enderror
                         </div>
                         <div>
                             <label class="text-sm font-semibold text-atlantia-ink">Telefono</label>
-                            <input name="phone" type="text" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2">
+                            <input
+                                name="phone"
+                                type="text"
+                                value="{{ old('phone') }}"
+                                class="{{ $inputBase }} {{ $errors->has('phone') ? $inputError : $inputNormal }}"
+                            >
+                            @error('phone')
+                                <p class="mt-1 text-sm font-semibold text-rose-700">{{ $message }}</p>
+                            @enderror
                         </div>
                         <div>
                             <label class="text-sm font-semibold text-atlantia-ink">Rol</label>
-                            <select name="role" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
+                            <select
+                                name="role"
+                                class="{{ $inputBase }} {{ $errors->has('role') ? $inputError : $inputNormal }}"
+                                required
+                            >
                                 @foreach ($availableRoles as $role)
-                                    <option value="{{ $role->name }}">{{ $role->name }}</option>
+                                    <option value="{{ $role->name }}" @selected(old('role') === $role->name)>
+                                        {{ $role->name }}
+                                    </option>
                                 @endforeach
                             </select>
+                            @error('role')
+                                <p class="mt-1 text-sm font-semibold text-rose-700">{{ $message }}</p>
+                            @enderror
                         </div>
                         <div>
                             <label class="text-sm font-semibold text-atlantia-ink">Estado</label>
-                            <select name="status" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
-                                <option value="active">Activo</option>
-                                <option value="inactive">Inactivo</option>
-                                <option value="suspended">Suspendido</option>
+                            <select
+                                name="status"
+                                class="{{ $inputBase }} {{ $errors->has('status') ? $inputError : $inputNormal }}"
+                                required
+                            >
+                                <option value="active" @selected(old('status', 'active') === 'active')>Activo</option>
+                                <option value="inactive" @selected(old('status') === 'inactive')>Inactivo</option>
+                                <option value="suspended" @selected(old('status') === 'suspended')>Suspendido</option>
                             </select>
+                            @error('status')
+                                <p class="mt-1 text-sm font-semibold text-rose-700">{{ $message }}</p>
+                            @enderror
                         </div>
                         <div>
                             <label class="text-sm font-semibold text-atlantia-ink">Contrasena</label>
-                            <input name="password" type="password" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
+                            <input
+                                name="password"
+                                type="password"
+                                class="{{ $inputBase }} {{ $errors->has('password') ? $inputError : $inputNormal }}"
+                                required
+                            >
+                            <p class="mt-1 text-xs text-atlantia-ink/55">
+                                Minimo 12 caracteres, con letras, numeros y simbolos.
+                            </p>
+                            @error('password')
+                                <p class="mt-1 text-sm font-semibold text-rose-700">{{ $message }}</p>
+                            @enderror
                         </div>
                         <div>
                             <label class="text-sm font-semibold text-atlantia-ink">Confirmar contrasena</label>
-                            <input name="password_confirmation" type="password" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
+                            <input
+                                name="password_confirmation"
+                                type="password"
+                                class="{{ $inputBase }} {{ $errors->has('password_confirmation') ? $inputError : $inputNormal }}"
+                                required
+                            >
+                            @error('password_confirmation')
+                                <p class="mt-1 text-sm font-semibold text-rose-700">{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
 

@@ -45,11 +45,39 @@ class StoreUsuarioRequest extends FormRequest
     {
         return [
             'name.required' => 'Ingresa el nombre completo.',
+            'name.min' => 'El nombre debe tener al menos 3 caracteres.',
             'email.required' => 'Ingresa el correo electronico.',
+            'email.email' => 'Ingresa un correo electronico valido.',
             'email.unique' => 'Ya existe una cuenta con ese correo.',
+            'password.required' => 'Ingresa una contrasena temporal para el usuario.',
             'password.confirmed' => 'La confirmacion de contrasena no coincide.',
+            'password.min' => 'La contrasena debe tener al menos 12 caracteres.',
+            'password.letters' => 'La contrasena debe incluir letras.',
+            'password.numbers' => 'La contrasena debe incluir numeros.',
+            'password.symbols' => 'La contrasena debe incluir al menos un simbolo.',
+            'status.required' => 'Selecciona el estado inicial del usuario.',
+            'status.in' => 'El estado seleccionado no es valido.',
+            'role.required' => 'Selecciona el rol del usuario.',
             'role.exists' => 'El rol seleccionado no existe.',
             'role.not_in' => 'No tienes permiso para crear usuarios con ese rol.',
+        ];
+    }
+
+    /**
+     * Nombres legibles para mensajes de validacion.
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'name' => 'nombre completo',
+            'email' => 'correo electronico',
+            'phone' => 'telefono',
+            'password' => 'contrasena',
+            'password_confirmation' => 'confirmacion de contrasena',
+            'status' => 'estado',
+            'role' => 'rol',
         ];
     }
 

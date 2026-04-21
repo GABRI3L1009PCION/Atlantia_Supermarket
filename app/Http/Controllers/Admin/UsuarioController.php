@@ -31,7 +31,7 @@ class UsuarioController extends Controller
         $this->authorize('viewAny', User::class);
 
         return view('admin.usuarios.index', [
-            'usuarios' => $this->usuarioService->paginate($request->all()),
+            'usuarios' => $this->usuarioService->paginate($request->all(), $request->user()),
             'roles' => \Spatie\Permission\Models\Role::query()->orderBy('name')->get(),
         ]);
     }
