@@ -76,6 +76,17 @@
         color: white;
     }
 
+    .admin-zone-marker {
+        @apply flex h-10 w-10 items-center justify-center rounded-md bg-slate-500 text-xs font-black text-white shadow-lg;
+        border: 3px solid rgb(255 255 255 / 0.92);
+        cursor: pointer;
+        transform: translateY(-8px);
+    }
+
+    .admin-zone-marker-active {
+        @apply bg-atlantia-wine;
+    }
+
     .super-admin-surface .bg-white {
         background-color: rgb(24 24 30 / 0.92) !important;
     }

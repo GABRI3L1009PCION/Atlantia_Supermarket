@@ -17,7 +17,39 @@
             'sab' => 'Sab',
             'dom' => 'Dom',
         ];
+        $mapboxToken = config('services.mapbox.token');
+        $municipioCentros = [
+            'Puerto Barrios' => ['latitude' => 15.7309, 'longitude' => -88.5944],
+            'Santo Tomas' => ['latitude' => 15.6968, 'longitude' => -88.6166],
+            'Morales' => ['latitude' => 15.4769, 'longitude' => -88.8166],
+            'Los Amates' => ['latitude' => 15.2558, 'longitude' => -89.0964],
+            'Livingston' => ['latitude' => 15.8277, 'longitude' => -88.7501],
+            'El Estor' => ['latitude' => 15.5333, 'longitude' => -89.3500],
+        ];
+        $zonasMapa = $collection->map(function ($zona) use ($municipioCentros) {
+            $fallback = $municipioCentros[$zona->municipio] ?? $municipioCentros['Puerto Barrios'];
+            $metadata = $zona->poligono_geojson['metadata'] ?? [];
+
+            return [
+                'id' => $zona->id,
+                'nombre' => $zona->nombre,
+                'municipio' => $zona->municipio,
+                'slug' => $zona->slug,
+                'descripcion' => $zona->descripcion,
+                'activa' => (bool) $zona->activa,
+                'costo' => (float) $zona->costo_base,
+                'tiempo' => (int) ($metadata['tiempo_estimado_min'] ?? 45),
+                'barrios' => $metadata['barrios'] ?? [],
+                'latitude' => (float) ($zona->latitude_centro ?? $fallback['latitude']),
+                'longitude' => (float) ($zona->longitude_centro ?? $fallback['longitude']),
+                'features' => $zona->poligono_geojson['features'] ?? [],
+            ];
+        })->values();
     @endphp
+
+    @if ($mapboxToken)
+        <link href="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.css" rel="stylesheet">
+    @endif
 
     <section class="mx-auto max-w-full py-2">
         <div class="space-y-6">
@@ -514,21 +546,154 @@
                             <h2 class="text-2xl font-black text-atlantia-wine">Mapa de cobertura</h2>
                             <span class="text-sm font-bold text-atlantia-ink/55">Izabal, Guatemala</span>
                         </div>
-                        <div
-                            class="mt-5 flex min-h-72 items-center justify-center rounded-lg border border-dashed
-                                border-atlantia-rose/35 bg-atlantia-blush p-6 text-center"
-                        >
-                            <div>
-                                <p class="text-lg font-black text-atlantia-ink">Mapa operativo listo para activar</p>
-                                <p class="mt-2 max-w-lg text-sm leading-6 text-atlantia-ink/65">
-                                    Las coordenadas centrales y el metadata de barrios ya quedan guardados. La capa
-                                    visual de poligonos puede activarse con Mapbox Draw en la siguiente iteracion.
-                                </p>
+
+                        @if ($mapboxToken)
+                            <div class="relative mt-5 overflow-hidden rounded-lg border border-atlantia-rose/25">
+                                <div id="delivery-zones-map" class="h-[420px] w-full bg-atlantia-blush"></div>
+                                <div class="absolute left-4 top-4 rounded-lg bg-white/95 p-3 shadow-lg backdrop-blur">
+                                    <p class="text-xs font-black uppercase tracking-normal text-atlantia-wine">
+                                        {{ $zonasMapa->count() }} zonas visibles
+                                    </p>
+                                    <p class="mt-1 text-xs text-atlantia-ink/60">
+                                        Marcadores por centro operativo.
+                                    </p>
+                                </div>
                             </div>
-                        </div>
+                        @else
+                            <div
+                                class="mt-5 flex min-h-72 items-center justify-center rounded-lg border border-dashed
+                                    border-atlantia-rose/35 bg-atlantia-blush p-6 text-center"
+                            >
+                                <div>
+                                    <p class="text-lg font-black text-atlantia-ink">Configura Mapbox para ver cobertura</p>
+                                    <p class="mt-2 max-w-lg text-sm leading-6 text-atlantia-ink/65">
+                                        Agrega MAPBOX_TOKEN en tu archivo .env y limpia cache para activar el mapa.
+                                    </p>
+                                </div>
+                            </div>
+                        @endif
                     </section>
                 </section>
             </div>
         </div>
     </section>
+
+    @if ($mapboxToken)
+        <script src="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.js"></script>
+        <script>
+            (() => {
+                const token = @json($mapboxToken);
+                const zones = @json($zonasMapa);
+                const mapElement = document.getElementById('delivery-zones-map');
+
+                if (! mapElement || ! window.mapboxgl) {
+                    return;
+                }
+
+                mapboxgl.accessToken = token;
+
+                const defaultCenter = [-88.6166, 15.6968];
+                const firstZone = zones[0];
+                const initialCenter = firstZone
+                    ? [Number(firstZone.longitude), Number(firstZone.latitude)]
+                    : defaultCenter;
+
+                const map = new mapboxgl.Map({
+                    container: 'delivery-zones-map',
+                    style: 'mapbox://styles/mapbox/streets-v12',
+                    center: initialCenter,
+                    zoom: firstZone ? 12 : 9,
+                    pitch: 35,
+                    bearing: -10,
+                    antialias: true,
+                });
+
+                map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
+
+                const markerElement = (zone) => {
+                    const element = document.createElement('button');
+                    element.type = 'button';
+                    element.className = zone.activa ? 'admin-zone-marker admin-zone-marker-active' : 'admin-zone-marker';
+                    element.textContent = zone.nombre.slice(0, 2).toUpperCase();
+
+                    return element;
+                };
+
+                const polygonFeatureCollection = () => ({
+                    type: 'FeatureCollection',
+                    features: zones.flatMap((zone) => (zone.features || []).map((feature) => ({
+                        ...feature,
+                        properties: {
+                            ...(feature.properties || {}),
+                            nombre: zone.nombre,
+                            activa: zone.activa,
+                        },
+                    }))),
+                });
+
+                const addPolygons = () => {
+                    const polygons = polygonFeatureCollection();
+
+                    if (! polygons.features.length) {
+                        return;
+                    }
+
+                    map.addSource('delivery-zones-polygons', {
+                        type: 'geojson',
+                        data: polygons,
+                    });
+
+                    map.addLayer({
+                        id: 'delivery-zones-fill',
+                        type: 'fill',
+                        source: 'delivery-zones-polygons',
+                        paint: {
+                            'fill-color': '#7a1f3d',
+                            'fill-opacity': 0.18,
+                        },
+                    });
+
+                    map.addLayer({
+                        id: 'delivery-zones-outline',
+                        type: 'line',
+                        source: 'delivery-zones-polygons',
+                        paint: {
+                            'line-color': '#7a1f3d',
+                            'line-width': 2,
+                        },
+                    });
+                };
+
+                const fitZones = () => {
+                    if (! zones.length) {
+                        return;
+                    }
+
+                    const bounds = new mapboxgl.LngLatBounds();
+                    zones.forEach((zone) => bounds.extend([Number(zone.longitude), Number(zone.latitude)]));
+                    map.fitBounds(bounds, { padding: 70, maxZoom: 13, duration: 700 });
+                };
+
+                map.on('load', () => {
+                    addPolygons();
+
+                    zones.forEach((zone) => {
+                        const popupHtml = `
+                            <strong>${zone.nombre}</strong><br>
+                            ${zone.municipio}<br>
+                            Envio: Q ${Number(zone.costo).toFixed(2)}<br>
+                            Tiempo: ${zone.tiempo} min
+                        `;
+
+                        new mapboxgl.Marker({ element: markerElement(zone), anchor: 'bottom' })
+                            .setLngLat([Number(zone.longitude), Number(zone.latitude)])
+                            .setPopup(new mapboxgl.Popup({ offset: 18 }).setHTML(popupHtml))
+                            .addTo(map);
+                    });
+
+                    fitZones();
+                });
+            })();
+        </script>
+    @endif
 @endsection
