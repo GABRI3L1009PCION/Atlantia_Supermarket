@@ -22,11 +22,16 @@
                 <article class="rounded-lg border border-slate-200 p-4">
                     <div class="flex items-center justify-between gap-4">
                         <div class="flex min-w-0 items-center gap-3">
+                            @php
+                                $iniciales = \Illuminate\Support\Str::upper(
+                                    \Illuminate\Support\Str::substr($grupo['vendor']?->business_name ?? 'AS', 0, 2)
+                                );
+                            @endphp
                             <span
                                 class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-atlantia-wine
                                     text-sm font-bold text-white"
                             >
-                                {{ Str::upper(Str::substr($grupo['vendor']?->business_name ?? 'AS', 0, 2)) }}
+                                {{ $iniciales }}
                             </span>
                             <div class="min-w-0">
                                 <h3 class="truncate font-bold text-atlantia-ink">

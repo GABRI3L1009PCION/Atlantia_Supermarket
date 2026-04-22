@@ -6,6 +6,7 @@ use App\Models\Cliente\Direccion;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Servicio de direcciones de entrega.
@@ -30,11 +31,20 @@ class DireccionService
     public function create(User $user, array $data): Direccion
     {
         return DB::transaction(function () use ($user, $data): Direccion {
-            if ($data['es_principal'] ?? false) {
+            $debeSerPrincipal = (bool) ($data['es_principal'] ?? false)
+                || ! Direccion::query()->where('user_id', $user->id)->exists();
+
+            if ($debeSerPrincipal) {
                 Direccion::query()->where('user_id', $user->id)->update(['es_principal' => false]);
             }
 
-            return Direccion::query()->create([...$data, 'user_id' => $user->id]);
+            return Direccion::query()->create([
+                ...$data,
+                'uuid' => (string) Str::uuid(),
+                'user_id' => $user->id,
+                'es_principal' => $debeSerPrincipal,
+                'activa' => true,
+            ]);
         });
     }
 
@@ -64,4 +74,3 @@ class DireccionService
         $direccion->delete();
     }
 }
-
