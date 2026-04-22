@@ -6,6 +6,7 @@ use App\Exceptions\PagoRechazadoException;
 use App\Exceptions\StockInsuficienteException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cliente\CheckoutRequest;
+use App\Models\Pedido;
 use App\Services\Pedidos\CheckoutService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,7 +29,7 @@ class CheckoutController extends Controller
      */
     public function create(Request $request): View
     {
-        $this->authorize('checkout', $request->user());
+        $this->authorize('checkout', Pedido::class);
 
         return view('cliente.checkout.create', ['checkout' => $this->checkoutService->summary($request)]);
     }
