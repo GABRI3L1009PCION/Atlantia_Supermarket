@@ -192,6 +192,20 @@ class PedidoPolicy
     }
 
     /**
+     * Determina si el repartidor puede reportar una incidencia.
+     *
+     * @param User $user
+     * @param Pedido $pedido
+     * @return bool
+     */
+    public function reportIncident(User $user, Pedido $pedido): bool
+    {
+        return $this->isAssignedCourier($user, $pedido)
+            && ! in_array($pedido->estado, ['cancelado', 'entregado'], true)
+            && ($user->hasRole('repartidor') || $user->can('update delivery status'));
+    }
+
+    /**
      * Determina si el usuario puede rastrear un pedido.
      *
      * @param User $user

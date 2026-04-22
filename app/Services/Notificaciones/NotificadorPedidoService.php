@@ -91,6 +91,28 @@ class NotificadorPedidoService
     }
 
     /**
+     * Notifica al repartidor que el pedido ya puede recogerse.
+     *
+     * @param Pedido $pedido
+     * @return void
+     */
+    public function pedidoListoParaRecoger(Pedido $pedido): void
+    {
+        $pedido->loadMissing('deliveryRoute.repartidor');
+
+        if ($pedido->deliveryRoute?->repartidor === null) {
+            return;
+        }
+
+        $this->notificarUsuario($pedido->deliveryRoute->repartidor, 'pedido.listo_para_recoger', [
+            'titulo' => 'Pedido listo para recoger',
+            'mensaje' => "El pedido {$pedido->numero_pedido} ya esta listo para que pases a recogerlo.",
+            'pedido_uuid' => $pedido->uuid,
+            'numero_pedido' => $pedido->numero_pedido,
+        ]);
+    }
+
+    /**
      * Crea notificacion interna y auditoria de email encolado.
      *
      * @param User $user

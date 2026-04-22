@@ -8,6 +8,7 @@
     <title>{{ $title ?? 'Atlantia Supermarket' }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @stack('styles')
     @livewireStyles
 </head>
 <body class="min-h-screen bg-[#fbf7f9] text-atlantia-ink antialiased">

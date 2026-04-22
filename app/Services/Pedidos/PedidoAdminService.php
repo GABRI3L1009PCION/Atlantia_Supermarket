@@ -2,10 +2,12 @@
 
 namespace App\Services\Pedidos;
 
+use App\Events\RepartidorAsignado;
 use App\Models\DeliveryRoute;
 use App\Models\Pedido;
 use App\Models\PedidoEstado;
 use App\Models\User;
+use App\Services\Notificaciones\NotificadorPedidoService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -96,6 +98,10 @@ class PedidoAdminService
                     'notas' => $data['notas_historial'] ?? $data['notas'] ?? 'Actualizacion administrativa.',
                     'usuario_id' => $usuario->id,
                 ]);
+
+                if ($pedido->estado === 'listo_para_entrega') {
+                    app(NotificadorPedidoService::class)->pedidoListoParaRecoger($pedido);
+                }
             }
 
             $payment = $pedido->payments()->latest()->first();
@@ -118,6 +124,8 @@ class PedidoAdminService
                 }
 
                 if (! empty($data['repartidor_id'])) {
+                    $repartidorAnterior = $pedido->deliveryRoute?->repartidor_id;
+
                     DeliveryRoute::query()->updateOrCreate(
                         ['pedido_id' => $pedido->id],
                         [
@@ -125,8 +133,15 @@ class PedidoAdminService
                             'repartidor_id' => $data['repartidor_id'],
                             'estado' => in_array($pedido->estado, ['en_ruta', 'entregado'], true) ? 'iniciada' : 'asignada',
                             'asignada_at' => $pedido->deliveryRoute?->asignada_at ?? now(),
+                            'aceptada_at' => $repartidorAnterior === (int) $data['repartidor_id']
+                                ? $pedido->deliveryRoute?->aceptada_at
+                                : null,
                         ]
                     );
+
+                    if ($repartidorAnterior !== (int) $data['repartidor_id']) {
+                        RepartidorAsignado::dispatch($pedido->fresh(), User::query()->findOrFail($data['repartidor_id']));
+                    }
                 }
             }
 

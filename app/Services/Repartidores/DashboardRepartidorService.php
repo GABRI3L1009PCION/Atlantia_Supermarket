@@ -33,6 +33,20 @@ class DashboardRepartidorService
                     ->where('estado', 'iniciada')
                     ->count(),
             ],
+            'ruta_actual' => DeliveryRoute::query()
+                ->with(['pedido.cliente', 'pedido.direccion', 'pedido.items.producto'])
+                ->where('repartidor_id', $user->id)
+                ->whereIn('estado', ['asignada', 'iniciada', 'pausada'])
+                ->orderByRaw("CASE estado WHEN 'iniciada' THEN 0 WHEN 'asignada' THEN 1 ELSE 2 END")
+                ->oldest('asignada_at')
+                ->first(),
+            'proximas_entregas' => DeliveryRoute::query()
+                ->with(['pedido.cliente', 'pedido.direccion'])
+                ->where('repartidor_id', $user->id)
+                ->whereIn('estado', ['asignada', 'pendiente'])
+                ->latest('asignada_at')
+                ->limit(4)
+                ->get(),
             'rutas_recientes' => DeliveryRoute::query()
                 ->with('pedido.cliente')
                 ->where('repartidor_id', $user->id)

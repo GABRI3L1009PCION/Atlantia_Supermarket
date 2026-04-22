@@ -4,6 +4,7 @@ namespace App\Services\Pedidos;
 
 use App\Models\Pedido;
 use App\Models\User;
+use App\Services\Notificaciones\NotificadorPedidoService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
@@ -45,7 +46,10 @@ class PedidoVendedorService
             'usuario_id' => $user->id,
         ]);
 
+        if ($pedido->estado === 'listo_para_entrega') {
+            app(NotificadorPedidoService::class)->pedidoListoParaRecoger($pedido);
+        }
+
         return $pedido->refresh();
     }
 }
-

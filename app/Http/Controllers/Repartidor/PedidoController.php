@@ -52,4 +52,37 @@ class PedidoController extends Controller
 
         return back()->with('success', 'Estado de entrega actualizado correctamente.');
     }
+
+    /**
+     * Acepta una entrega asignada.
+     */
+    public function accept(Pedido $pedido, Request $request): RedirectResponse
+    {
+        $this->authorize('updateDeliveryStatus', $pedido);
+        $this->pedidoRepartidorService->accept($pedido, $request->user());
+
+        return back()->with('success', 'Entrega aceptada. Te avisaremos cuando este lista para recoger.');
+    }
+
+    /**
+     * Marca el pedido como recogido.
+     */
+    public function pickup(Pedido $pedido, Request $request): RedirectResponse
+    {
+        $this->authorize('updateDeliveryStatus', $pedido);
+        $this->pedidoRepartidorService->pickup($pedido, $request->user());
+
+        return back()->with('success', 'Pedido recogido. Ya puedes iniciar la entrega al cliente.');
+    }
+
+    /**
+     * Marca el pedido como entregado.
+     */
+    public function deliver(UpdateEntregaEstadoRequest $request, Pedido $pedido): RedirectResponse
+    {
+        $this->authorize('updateDeliveryStatus', $pedido);
+        $this->pedidoRepartidorService->deliver($pedido, $request->validated(), $request->user());
+
+        return back()->with('success', 'Entrega completada correctamente.');
+    }
 }

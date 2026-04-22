@@ -14,9 +14,8 @@ class UpdatePedidoEstadoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'estado' => ['required', 'in:confirmado,en_preparacion,listo_para_entrega,cancelado'],
+            'estado' => ['required', 'in:confirmado,preparando,listo_para_entrega,cancelado'],
             'notas' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }
-

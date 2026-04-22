@@ -24,6 +24,9 @@ Route::prefix('repartidor')
 
         Route::get('/pedidos', [PedidoController::class, 'index'])->name('pedidos.index');
         Route::get('/pedidos/{pedido:uuid}', [PedidoController::class, 'show'])->name('pedidos.show');
+        Route::patch('/pedidos/{pedido:uuid}/aceptar', [PedidoController::class, 'accept'])->name('pedidos.accept');
+        Route::patch('/pedidos/{pedido:uuid}/recoger', [PedidoController::class, 'pickup'])->name('pedidos.pickup');
+        Route::patch('/pedidos/{pedido:uuid}/entregar', [PedidoController::class, 'deliver'])->name('pedidos.deliver');
         Route::patch('/pedidos/{pedido:uuid}/estado', [PedidoController::class, 'updateEstado'])
             ->name('pedidos.estado');
 
