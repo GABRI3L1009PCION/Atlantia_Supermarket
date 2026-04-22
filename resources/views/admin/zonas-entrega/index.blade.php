@@ -132,6 +132,11 @@
                                 required
                             >
                             <p class="mt-1 text-xs text-atlantia-ink/55">Nombre visible en checkout para el cliente.</p>
+                            @error('nombre')
+                                <p class="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700">
+                                    {{ $message }}
+                                </p>
+                            @enderror
                         </div>
 
                         <div>
@@ -149,6 +154,11 @@
                                 >
                             </div>
                             <p class="mt-1 text-xs text-atlantia-ink/55">Usado en reportes y facturacion operativa.</p>
+                            @error('slug')
+                                <p class="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700">
+                                    {{ $message }}
+                                </p>
+                            @enderror
                         </div>
 
                         <div>
@@ -600,11 +610,11 @@
 
                 const map = new mapboxgl.Map({
                     container: 'delivery-zones-map',
-                    style: 'mapbox://styles/mapbox/streets-v12',
+                    style: 'mapbox://styles/mapbox/satellite-streets-v12',
                     center: initialCenter,
                     zoom: firstZone ? 12 : 9,
-                    pitch: 35,
-                    bearing: -10,
+                    pitch: 55,
+                    bearing: -18,
                     antialias: true,
                 });
 

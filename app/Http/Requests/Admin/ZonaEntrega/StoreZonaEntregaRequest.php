@@ -15,7 +15,7 @@ class StoreZonaEntregaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nombre' => ['required', 'string', 'max:120'],
+            'nombre' => ['required', 'string', 'max:120', 'unique:delivery_zones,nombre'],
             'slug' => ['nullable', 'string', 'max:140', 'unique:delivery_zones,slug'],
             'descripcion' => ['nullable', 'string', 'max:500'],
             'municipio' => ['required', 'in:Puerto Barrios,Santo Tomas,Morales,Los Amates,Livingston,El Estor'],
@@ -34,6 +34,14 @@ class StoreZonaEntregaRequest extends FormRequest
             'longitude_centro' => ['nullable', 'numeric', 'between:-180,180'],
             'poligono_geojson' => ['nullable', 'array'],
             'activa' => ['sometimes', 'boolean'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'nombre.unique' => 'Ya existe una zona con ese nombre. Usa otro nombre o edita la zona existente.',
+            'slug.unique' => 'Ya existe una zona con ese codigo interno.',
         ];
     }
 

@@ -18,7 +18,7 @@ class UpdateZonaEntregaRequest extends FormRequest
         $zoneId = $this->route('zona')?->id;
 
         return [
-            'nombre' => ['required', 'string', 'max:120'],
+            'nombre' => ['required', 'string', 'max:120', Rule::unique('delivery_zones', 'nombre')->ignore($zoneId)],
             'slug' => ['nullable', 'string', 'max:140', Rule::unique('delivery_zones', 'slug')->ignore($zoneId)],
             'descripcion' => ['nullable', 'string', 'max:500'],
             'municipio' => ['required', 'in:Puerto Barrios,Santo Tomas,Morales,Los Amates,Livingston,El Estor'],
@@ -37,6 +37,14 @@ class UpdateZonaEntregaRequest extends FormRequest
             'longitude_centro' => ['nullable', 'numeric', 'between:-180,180'],
             'poligono_geojson' => ['nullable', 'array'],
             'activa' => ['sometimes', 'boolean'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'nombre.unique' => 'Ya existe una zona con ese nombre. Usa otro nombre.',
+            'slug.unique' => 'Ya existe una zona con ese codigo interno.',
         ];
     }
 
