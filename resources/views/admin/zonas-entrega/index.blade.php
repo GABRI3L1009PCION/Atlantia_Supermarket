@@ -43,13 +43,6 @@
                 'latitude' => (float) ($zona->latitude_centro ?? $fallback['latitude']),
                 'longitude' => (float) ($zona->longitude_centro ?? $fallback['longitude']),
                 'hasCoordinates' => $zona->latitude_centro !== null && $zona->longitude_centro !== null,
-                'searchText' => trim(implode(', ', array_filter([
-                    $metadata['barrios'][0] ?? null,
-                    $zona->nombre,
-                    $zona->descripcion,
-                    $zona->municipio,
-                    'Izabal Guatemala',
-                ]))),
                 'features' => $zona->poligono_geojson['features'] ?? [],
             ];
         })->values();
@@ -316,6 +309,7 @@
                             <label>
                                 <span class="text-sm font-black text-atlantia-ink">Latitud centro</span>
                                 <input
+                                    id="latitude_centro"
                                     name="latitude_centro"
                                     type="number"
                                     step="0.00000001"
@@ -328,6 +322,7 @@
                             <label>
                                 <span class="text-sm font-black text-atlantia-ink">Longitud centro</span>
                                 <input
+                                    id="longitude_centro"
                                     name="longitude_centro"
                                     type="number"
                                     step="0.00000001"
@@ -338,6 +333,31 @@
                                 >
                             </label>
                         </div>
+
+                        @if ($mapboxToken)
+                            <div class="rounded-lg border border-atlantia-rose/25 bg-atlantia-cream p-4">
+                                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <p class="text-sm font-black text-atlantia-ink">Ubicacion exacta para reparto</p>
+                                        <p class="mt-1 text-xs text-atlantia-ink/60">
+                                            Haz clic en el punto exacto donde debe iniciar la cobertura de la zona.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        data-center-picker
+                                        class="rounded-md border border-atlantia-rose/35 bg-white px-3 py-2 text-xs
+                                            font-black text-atlantia-wine hover:bg-atlantia-blush"
+                                    >
+                                        Centrar en Santo Tomas
+                                    </button>
+                                </div>
+                                <div
+                                    id="delivery-zone-picker-map"
+                                    class="mt-4 h-72 overflow-hidden rounded-lg border border-atlantia-rose/25 bg-atlantia-blush"
+                                ></div>
+                            </div>
+                        @endif
 
                         <div class="space-y-4 border-t border-slate-200 pt-5">
                             <label class="flex items-center justify-between gap-4">
@@ -499,8 +519,6 @@
                                                 <input name="nombre" value="{{ $zona->nombre }}" class="rounded-md border border-atlantia-rose/30 px-3 py-2">
                                                 <input name="slug" value="{{ $zona->slug }}" class="rounded-md border border-atlantia-rose/30 px-3 py-2">
                                                 <textarea name="descripcion" rows="2" class="rounded-md border border-atlantia-rose/30 px-3 py-2">{{ $zona->descripcion }}</textarea>
-                                                <input type="hidden" name="latitude_centro" value="{{ $zona->latitude_centro }}">
-                                                <input type="hidden" name="longitude_centro" value="{{ $zona->longitude_centro }}">
                                                 <input type="hidden" name="capacidad_diaria" value="{{ $metadata['capacidad_diaria'] ?? 60 }}">
                                                 <input type="hidden" name="envio_gratis_desde" value="{{ $metadata['envio_gratis_desde'] ?? '' }}">
                                                 <input type="hidden" name="hora_apertura" value="{{ $metadata['hora_apertura'] ?? '' }}">
@@ -522,6 +540,24 @@
                                                     </select>
                                                     <input name="costo_base" type="number" step="0.01" value="{{ $zona->costo_base }}" class="rounded-md border border-atlantia-rose/30 px-3 py-2">
                                                     <input name="tiempo_estimado_min" type="number" value="{{ $time }}" class="rounded-md border border-atlantia-rose/30 px-3 py-2">
+                                                </div>
+                                                <div class="grid gap-3 sm:grid-cols-2">
+                                                    <input
+                                                        name="latitude_centro"
+                                                        type="number"
+                                                        step="0.00000001"
+                                                        value="{{ $zona->latitude_centro }}"
+                                                        class="rounded-md border border-atlantia-rose/30 px-3 py-2"
+                                                        placeholder="Latitud exacta"
+                                                    >
+                                                    <input
+                                                        name="longitude_centro"
+                                                        type="number"
+                                                        step="0.00000001"
+                                                        value="{{ $zona->longitude_centro }}"
+                                                        class="rounded-md border border-atlantia-rose/30 px-3 py-2"
+                                                        placeholder="Longitud exacta"
+                                                    >
                                                 </div>
                                                 <input name="barrios" value="{{ implode(', ', $barrios) }}" class="rounded-md border border-atlantia-rose/30 px-3 py-2">
                                                 <input type="hidden" name="activa" value="0">
@@ -603,8 +639,11 @@
                 const token = @json($mapboxToken);
                 const zones = @json($zonasMapa);
                 const mapElement = document.getElementById('delivery-zones-map');
+                const pickerElement = document.getElementById('delivery-zone-picker-map');
+                const latitudeInput = document.getElementById('latitude_centro');
+                const longitudeInput = document.getElementById('longitude_centro');
 
-                if (! mapElement || ! window.mapboxgl) {
+                if (! window.mapboxgl) {
                     return;
                 }
 
@@ -616,17 +655,21 @@
                     ? [Number(firstZone.longitude), Number(firstZone.latitude)]
                     : defaultCenter;
 
-                const map = new mapboxgl.Map({
-                    container: 'delivery-zones-map',
-                    style: 'mapbox://styles/mapbox/satellite-streets-v12',
-                    center: initialCenter,
-                    zoom: firstZone ? 12 : 9,
-                    pitch: 55,
-                    bearing: -18,
-                    antialias: true,
-                });
+                let map = null;
 
-                map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
+                if (mapElement) {
+                    map = new mapboxgl.Map({
+                        container: 'delivery-zones-map',
+                        style: 'mapbox://styles/mapbox/satellite-streets-v12',
+                        center: initialCenter,
+                        zoom: firstZone ? 12 : 9,
+                        pitch: 55,
+                        bearing: -18,
+                        antialias: true,
+                    });
+
+                    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
+                }
 
                 const markerElement = (zone) => {
                     const element = document.createElement('button');
@@ -682,75 +725,87 @@
                     });
                 };
 
-                const fitZones = () => {
-                    if (! zones.length) {
+                const fitZones = (resolvedZones) => {
+                    const exactZones = resolvedZones.filter((zone) => zone.hasCoordinates);
+
+                    if (! exactZones.length || ! map) {
                         return;
                     }
 
                     const bounds = new mapboxgl.LngLatBounds();
-                    zones.forEach((zone) => bounds.extend([Number(zone.longitude), Number(zone.latitude)]));
+                    exactZones.forEach((zone) => bounds.extend([Number(zone.longitude), Number(zone.latitude)]));
                     map.fitBounds(bounds, { padding: 70, maxZoom: 13, duration: 700 });
                 };
 
-                const geocodeZone = async (zone) => {
-                    if (zone.hasCoordinates || ! zone.searchText) {
-                        return zone;
+                const initPicker = () => {
+                    if (! pickerElement || ! latitudeInput || ! longitudeInput) {
+                        return;
                     }
 
-                    try {
-                        const query = encodeURIComponent(zone.searchText);
-                        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json`
-                            + `?access_token=${encodeURIComponent(token)}`
-                            + '&country=GT&limit=1&language=es'
-                            + `&proximity=${Number(zone.longitude)},${Number(zone.latitude)}`;
-                        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                    const currentPosition = latitudeInput.value && longitudeInput.value
+                        ? [Number(longitudeInput.value), Number(latitudeInput.value)]
+                        : defaultCenter;
 
-                        if (! response.ok) {
-                            return zone;
-                        }
+                    const pickerMap = new mapboxgl.Map({
+                        container: 'delivery-zone-picker-map',
+                        style: 'mapbox://styles/mapbox/satellite-streets-v12',
+                        center: currentPosition,
+                        zoom: 15,
+                        pitch: 45,
+                        bearing: -15,
+                    });
 
-                        const payload = await response.json();
-                        const coordinates = payload.features?.[0]?.center;
+                    pickerMap.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
 
-                        if (! coordinates || coordinates.length < 2) {
-                            return zone;
-                        }
+                    const pickerMarker = new mapboxgl.Marker({
+                        color: '#7a1f3d',
+                        draggable: true,
+                    }).setLngLat(currentPosition).addTo(pickerMap);
 
-                        return {
-                            ...zone,
-                            longitude: Number(coordinates[0]),
-                            latitude: Number(coordinates[1]),
-                            geocoded: true,
-                        };
-                    } catch (error) {
-                        return zone;
-                    }
+                    const setCoordinates = (lngLat) => {
+                        latitudeInput.value = Number(lngLat.lat).toFixed(8);
+                        longitudeInput.value = Number(lngLat.lng).toFixed(8);
+                    };
+
+                    pickerMarker.on('dragend', () => setCoordinates(pickerMarker.getLngLat()));
+                    pickerMap.on('click', (event) => {
+                        pickerMarker.setLngLat(event.lngLat);
+                        setCoordinates(event.lngLat);
+                    });
+
+                    document.querySelector('[data-center-picker]')?.addEventListener('click', () => {
+                        pickerMap.flyTo({ center: defaultCenter, zoom: 15, pitch: 45, bearing: -15 });
+                    });
                 };
 
-                const resolveZones = async () => Promise.all(zones.map((zone) => geocodeZone(zone)));
+                if (! map) {
+                    initPicker();
+                    return;
+                }
 
                 map.on('load', () => {
                     addPolygons();
 
-                    resolveZones().then((resolvedZones) => {
-                        resolvedZones.forEach((zone) => {
+                    zones.forEach((zone) => {
+                        if (! zone.hasCoordinates) {
+                            return;
+                        }
+
                         const popupHtml = `
                             <strong>${zone.nombre}</strong><br>
                             ${zone.municipio}<br>
                             Envio: Q ${Number(zone.costo).toFixed(2)}<br>
                             Tiempo: ${zone.tiempo} min
-                            ${zone.geocoded ? '<br><small>Ubicacion aproximada por Mapbox</small>' : ''}
                         `;
 
                         new mapboxgl.Marker({ element: markerElement(zone), anchor: 'bottom' })
                             .setLngLat([Number(zone.longitude), Number(zone.latitude)])
                             .setPopup(new mapboxgl.Popup({ offset: 18 }).setHTML(popupHtml))
                             .addTo(map);
-                        });
-
-                        zones.splice(0, zones.length, ...resolvedZones);
-                        fitZones();
                     });
+
+                    fitZones(zones);
+                    initPicker();
                 });
             })();
         </script>
