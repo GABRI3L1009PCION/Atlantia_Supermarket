@@ -1,6 +1,29 @@
-<section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="direccion-title">
-    <h2 id="direccion-title" class="text-lg font-semibold text-slate-950">Direccion de entrega</h2>
-    <p class="mt-1 text-sm text-slate-600">Selecciona donde quieres recibir tu pedido.</p>
+<section
+    class="rounded-lg border border-atlantia-rose/20 bg-white p-5 shadow-sm sm:p-7"
+    aria-labelledby="direccion-title"
+>
+    <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+            <h2 id="direccion-title" class="flex items-center gap-3 text-2xl font-bold text-atlantia-ink">
+                <span
+                    class="flex h-9 w-9 items-center justify-center rounded-md bg-atlantia-wine text-base text-white"
+                >
+                    1
+                </span>
+                Direccion de entrega
+            </h2>
+            <p class="mt-2 text-sm text-atlantia-ink/70">
+                Selecciona donde quieres recibir tu pedido.
+            </p>
+        </div>
+
+        <a
+            href="{{ route('cliente.direcciones.index') }}"
+            class="inline-flex rounded-md px-3 py-2 text-sm font-bold text-atlantia-wine hover:bg-atlantia-blush"
+        >
+            + Administrar
+        </a>
+    </header>
 
     @if ($direcciones->isEmpty())
         <div class="mt-4">
@@ -14,42 +37,63 @@
             </x-ui.empty-state>
         </div>
     @else
-        <div class="mt-4 grid gap-3">
+        @error('direccion_id')
+            <p class="mt-4 rounded-md bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {{ $message }}
+            </p>
+        @enderror
+
+        <div class="mt-5 grid gap-3">
             @foreach ($direcciones as $direccion)
                 <label
                     wire:key="checkout-direccion-{{ $direccion->id }}"
-                    class="cursor-pointer rounded-lg border p-4"
+                    class="relative cursor-pointer rounded-lg border-2 p-5 transition hover:border-atlantia-wine/60"
                     @class([
-                        'border-emerald-600 bg-emerald-50' => $direccionId === $direccion->id,
+                        'border-atlantia-wine bg-atlantia-blush' => $direccionId === $direccion->id,
                         'border-slate-200 bg-white' => $direccionId !== $direccion->id,
                     ])
                 >
-                    <div class="flex gap-3">
+                    <div class="flex gap-4">
                         <input
                             type="radio"
                             name="direccion_id"
                             value="{{ $direccion->id }}"
                             wire:click="seleccionarDireccion({{ $direccion->id }})"
                             @checked($direccionId === $direccion->id)
-                            class="mt-1"
+                            class="mt-1 border-atlantia-rose text-atlantia-wine focus:ring-atlantia-rose"
                         >
 
                         <div class="min-w-0 flex-1">
                             <div class="flex flex-wrap items-center gap-2">
-                                <span class="font-semibold text-slate-950">{{ $direccion->alias }}</span>
+                                <span class="rounded bg-white px-2 py-1 text-xs font-bold uppercase text-atlantia-wine">
+                                    {{ $direccion->alias }}
+                                </span>
                                 @if ($direccion->es_principal)
-                                    <x-ui.badge variant="success">Principal</x-ui.badge>
+                                    <span class="rounded bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-800">
+                                        Principal
+                                    </span>
                                 @endif
                             </div>
-                            <p class="mt-1 text-sm text-slate-600">{{ $direccion->municipio }}</p>
-                            <p class="mt-1 text-sm text-slate-600">{{ $direccion->direccion_linea_1 }}</p>
+                            <p class="mt-3 font-bold text-atlantia-ink">
+                                {{ $direccion->nombre_contacto ?: auth()->user()?->name }}
+                            </p>
+                            <p class="mt-1 text-sm leading-6 text-atlantia-ink/70">
+                                {{ $direccion->direccion_linea_1 }}
+                                @if ($direccion->zona_o_barrio)
+                                    <br>{{ $direccion->zona_o_barrio }}
+                                @endif
+                                <br>{{ $direccion->municipio }}
+                                @if ($direccion->telefono_contacto)
+                                    - {{ $direccion->telefono_contacto }}
+                                @endif
+                            </p>
                         </div>
                     </div>
 
                     @if (! $direccion->es_principal)
                         <button
                             type="button"
-                            class="mt-3 text-sm font-semibold text-emerald-800"
+                            class="mt-3 text-sm font-semibold text-atlantia-wine hover:underline"
                             wire:click.prevent="marcarPrincipal({{ $direccion->id }})"
                         >
                             Usar como principal
@@ -57,6 +101,15 @@
                     @endif
                 </label>
             @endforeach
+
+            <a
+                href="{{ route('cliente.direcciones.index') }}"
+                class="flex min-h-28 items-center justify-center rounded-lg border-2 border-dashed border-slate-300
+                    bg-white px-4 py-6 text-center text-sm font-bold text-atlantia-ink/65 hover:border-atlantia-wine
+                    hover:text-atlantia-wine"
+            >
+                + Agregar nueva direccion
+            </a>
         </div>
     @endif
 </section>

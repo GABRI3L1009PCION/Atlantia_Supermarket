@@ -4,6 +4,7 @@ namespace App\Livewire\Checkout;
 
 use App\Models\Carrito;
 use App\Models\CarritoItem;
+use App\Models\Cliente\Direccion;
 use App\Models\DeliveryZone;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -24,6 +25,21 @@ class ResumenMultivendedor extends Component
      * Metodo de pago actual.
      */
     public string $metodoPago = 'efectivo';
+
+    /**
+     * Inicializa la direccion usada para estimar envio.
+     *
+     * @return void
+     */
+    public function mount(): void
+    {
+        $this->direccionId = Direccion::query()
+            ->where('user_id', auth()->id())
+            ->active()
+            ->orderByDesc('es_principal')
+            ->orderBy('alias')
+            ->value('id');
+    }
 
     /**
      * Actualiza direccion seleccionada.
