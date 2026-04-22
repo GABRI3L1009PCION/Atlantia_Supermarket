@@ -20,7 +20,7 @@
         $mapboxToken = config('services.mapbox.token');
         $municipioCentros = [
             'Puerto Barrios' => ['latitude' => 15.7309, 'longitude' => -88.5944],
-            'Santo Tomas' => ['latitude' => 15.6968, 'longitude' => -88.6166],
+            'Santo Tomas' => ['latitude' => 15.6906, 'longitude' => -88.6229],
             'Morales' => ['latitude' => 15.4769, 'longitude' => -88.8166],
             'Los Amates' => ['latitude' => 15.2558, 'longitude' => -89.0964],
             'Livingston' => ['latitude' => 15.8277, 'longitude' => -88.7501],
@@ -42,6 +42,14 @@
                 'barrios' => $metadata['barrios'] ?? [],
                 'latitude' => (float) ($zona->latitude_centro ?? $fallback['latitude']),
                 'longitude' => (float) ($zona->longitude_centro ?? $fallback['longitude']),
+                'hasCoordinates' => $zona->latitude_centro !== null && $zona->longitude_centro !== null,
+                'searchText' => trim(implode(', ', array_filter([
+                    $metadata['barrios'][0] ?? null,
+                    $zona->nombre,
+                    $zona->descripcion,
+                    $zona->municipio,
+                    'Izabal Guatemala',
+                ]))),
                 'features' => $zona->poligono_geojson['features'] ?? [],
             ];
         })->values();
@@ -602,7 +610,7 @@
 
                 mapboxgl.accessToken = token;
 
-                const defaultCenter = [-88.6166, 15.6968];
+                const defaultCenter = [-88.6229, 15.6906];
                 const firstZone = zones[0];
                 const initialCenter = firstZone
                     ? [Number(firstZone.longitude), Number(firstZone.latitude)]
@@ -684,24 +692,65 @@
                     map.fitBounds(bounds, { padding: 70, maxZoom: 13, duration: 700 });
                 };
 
+                const geocodeZone = async (zone) => {
+                    if (zone.hasCoordinates || ! zone.searchText) {
+                        return zone;
+                    }
+
+                    try {
+                        const query = encodeURIComponent(zone.searchText);
+                        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json`
+                            + `?access_token=${encodeURIComponent(token)}`
+                            + '&country=GT&limit=1&language=es'
+                            + `&proximity=${Number(zone.longitude)},${Number(zone.latitude)}`;
+                        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+
+                        if (! response.ok) {
+                            return zone;
+                        }
+
+                        const payload = await response.json();
+                        const coordinates = payload.features?.[0]?.center;
+
+                        if (! coordinates || coordinates.length < 2) {
+                            return zone;
+                        }
+
+                        return {
+                            ...zone,
+                            longitude: Number(coordinates[0]),
+                            latitude: Number(coordinates[1]),
+                            geocoded: true,
+                        };
+                    } catch (error) {
+                        return zone;
+                    }
+                };
+
+                const resolveZones = async () => Promise.all(zones.map((zone) => geocodeZone(zone)));
+
                 map.on('load', () => {
                     addPolygons();
 
-                    zones.forEach((zone) => {
+                    resolveZones().then((resolvedZones) => {
+                        resolvedZones.forEach((zone) => {
                         const popupHtml = `
                             <strong>${zone.nombre}</strong><br>
                             ${zone.municipio}<br>
                             Envio: Q ${Number(zone.costo).toFixed(2)}<br>
                             Tiempo: ${zone.tiempo} min
+                            ${zone.geocoded ? '<br><small>Ubicacion aproximada por Mapbox</small>' : ''}
                         `;
 
                         new mapboxgl.Marker({ element: markerElement(zone), anchor: 'bottom' })
                             .setLngLat([Number(zone.longitude), Number(zone.latitude)])
                             .setPopup(new mapboxgl.Popup({ offset: 18 }).setHTML(popupHtml))
                             .addTo(map);
-                    });
+                        });
 
-                    fitZones();
+                        zones.splice(0, zones.length, ...resolvedZones);
+                        fitZones();
+                    });
                 });
             })();
         </script>
