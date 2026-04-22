@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
@@ -43,6 +44,28 @@ class VerificationController extends Controller
     public function verify(EmailVerificationRequest $request): RedirectResponse
     {
         $this->emailVerificationService->verify($request->user());
+
+        return redirect()->route('cliente.catalogo.index')->with('success', 'Correo verificado correctamente.');
+    }
+
+    /**
+     * Verifica el correo con codigo enviado al email.
+     *
+     * @param Request $request
+     * @return RedirectResponse
+     *
+     * @throws ValidationException
+     */
+    public function verifyCode(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'code' => ['required', 'digits:6'],
+        ], [
+            'code.required' => 'Ingresa el codigo enviado a tu correo.',
+            'code.digits' => 'El codigo debe tener 6 digitos.',
+        ]);
+
+        $this->emailVerificationService->verifyCode($request->user(), (string) $validated['code']);
 
         return redirect()->route('cliente.catalogo.index')->with('success', 'Correo verificado correctamente.');
     }

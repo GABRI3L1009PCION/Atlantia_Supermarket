@@ -4,7 +4,9 @@ namespace App\Models;
 
 use App\Models\Cliente\ClienteDetalle;
 use App\Models\Cliente\Direccion;
+use App\Notifications\Auth\EmailVerificationCodeNotification;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -44,6 +46,8 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'name',
         'email',
         'email_verified_at',
+        'email_verification_code_hash',
+        'email_verification_code_expires_at',
         'password',
         'phone',
         'status',
@@ -73,6 +77,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
     {
         return [
             'email_verified_at' => 'datetime',
+            'email_verification_code_expires_at' => 'datetime',
             'password' => 'hashed',
             'is_system_user' => 'boolean',
             'last_login_at' => 'datetime',
@@ -216,5 +221,31 @@ class User extends Authenticatable implements MustVerifyEmailContract
     public function isAdministrator(): bool
     {
         return $this->isSuperAdmin() || $this->hasRole('admin');
+    }
+
+    /**
+     * Envia un codigo de verificacion de correo con marca Atlantia.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $code = (string) random_int(100000, 999999);
+
+        $this->forceFill([
+            'email_verification_code_hash' => Hash::make($code),
+            'email_verification_code_expires_at' => now()->addMinutes(15),
+        ])->save();
+
+        $this->notify(new EmailVerificationCodeNotification($code));
+    }
+
+    /**
+     * Limpia el codigo temporal de verificacion.
+     */
+    public function clearEmailVerificationCode(): void
+    {
+        $this->forceFill([
+            'email_verification_code_hash' => null,
+            'email_verification_code_expires_at' => null,
+        ])->save();
     }
 }

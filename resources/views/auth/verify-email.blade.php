@@ -6,11 +6,11 @@
         $isLocalLogMailer = app()->environment('local') && in_array($mailDriver, ['log', 'array'], true);
     @endphp
 
-    <x-page-header title="Verifica tu correo" subtitle="Antes de continuar, confirma tu direccion de correo electronico." />
+    <x-page-header title="Verifica tu correo" subtitle="Ingresa el codigo de 6 digitos que enviamos a tu correo." />
 
     <div class="mb-5 rounded-lg border border-atlantia-rose/20 bg-atlantia-cream p-4 text-sm leading-6 text-atlantia-ink/75">
         <p>
-            Enviamos un enlace de verificacion a
+            Enviamos un codigo de verificacion a
             <strong class="text-atlantia-ink">{{ auth()->user()?->email }}</strong>.
         </p>
 
@@ -19,7 +19,7 @@
                 <p class="font-bold">Modo desarrollo detectado</p>
                 <p class="mt-1">
                     Tu aplicacion esta usando <strong>MAIL_MAILER={{ $mailDriver }}</strong>, por eso el correo no
-                    llega a Gmail. Laravel guarda el enlace en <strong>storage/logs/laravel.log</strong>.
+                    llega a Gmail. Laravel guarda el codigo en <strong>storage/logs/laravel.log</strong>.
                 </p>
             </div>
         @else
@@ -29,9 +29,34 @@
         @endif
     </div>
 
-    <form method="POST" action="{{ route('verification.send') }}" class="space-y-3">
+    <form method="POST" action="{{ route('verification.code') }}" class="space-y-4">
         @csrf
-        <x-ui.button type="submit" class="w-full">Reenviar verificacion</x-ui.button>
+        <label class="block">
+            <span class="mb-1 block text-sm font-bold text-atlantia-ink">Codigo de verificacion</span>
+            <input
+                name="code"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]{6}"
+                maxlength="6"
+                autocomplete="one-time-code"
+                placeholder="123456"
+                class="w-full rounded-md border border-atlantia-rose/40 bg-white px-4 py-3 text-center text-2xl font-black tracking-[0.35em] text-atlantia-ink shadow-sm focus:border-atlantia-wine focus:outline-none focus:ring-2 focus:ring-atlantia-rose"
+                required
+            >
+            @error('code')
+                <span class="mt-1 block text-sm font-semibold text-red-700">{{ $message }}</span>
+            @enderror
+        </label>
+
+        <x-ui.button type="submit" class="w-full">Confirmar correo</x-ui.button>
+    </form>
+
+    <form method="POST" action="{{ route('verification.send') }}" class="mt-3">
+        @csrf
+        <button type="submit" class="w-full rounded-md border border-atlantia-rose/30 px-4 py-2 text-sm font-bold text-atlantia-wine hover:bg-atlantia-blush">
+            Reenviar codigo
+        </button>
     </form>
 
     <form method="POST" action="{{ route('logout') }}" class="mt-4">
