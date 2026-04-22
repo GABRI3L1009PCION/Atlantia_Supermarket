@@ -45,7 +45,7 @@ class VerificationController extends Controller
     {
         $this->emailVerificationService->verify($request->user());
 
-        return redirect()->route('cliente.catalogo.index')->with('success', 'Correo verificado correctamente.');
+        return redirect()->route('catalogo.index')->with('success', 'Correo verificado correctamente.');
     }
 
     /**
@@ -67,7 +67,7 @@ class VerificationController extends Controller
 
         $this->emailVerificationService->verifyCode($request->user(), (string) $validated['code']);
 
-        return redirect()->route('cliente.catalogo.index')->with('success', 'Correo verificado correctamente.');
+        return redirect()->route('catalogo.index')->with('success', 'Correo verificado correctamente.');
     }
 
     /**
