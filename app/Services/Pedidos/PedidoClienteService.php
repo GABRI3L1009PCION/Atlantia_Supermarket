@@ -33,10 +33,11 @@ class PedidoClienteService
             'direccion',
             'items.producto.vendor',
             'pedidosHijos.vendor',
+            'pedidosHijos.items.producto',
+            'pedidosHijos.dteFacturas',
             'payments',
             'estados.usuario',
             'deliveryRoute',
         ]);
     }
 }
-

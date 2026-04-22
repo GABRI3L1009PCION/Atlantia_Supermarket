@@ -71,6 +71,16 @@ class Pedido extends Model
     }
 
     /**
+     * Usa UUID para rutas publicas del pedido.
+     *
+     * @return string
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
+    }
+
+    /**
      * Pedido padre cuando el pedido pertenece a un vendedor.
      *
      * @return BelongsTo<Pedido, Pedido>
