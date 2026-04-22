@@ -48,6 +48,8 @@ Route::prefix('cliente')
         Route::get('/pedidos/{pedido:uuid}', [PedidoController::class, 'show'])->name('pedidos.show');
         Route::get('/pedidos/{pedido:uuid}/seguimiento', [SeguimientoController::class, 'show'])
             ->name('pedidos.seguimiento');
+        Route::get('/pedidos/{pedido:uuid}/seguimiento/live', [SeguimientoController::class, 'live'])
+            ->name('pedidos.seguimiento.live');
 
         Route::get('/direcciones', [DireccionController::class, 'index'])->name('direcciones.index');
         Route::post('/direcciones', [DireccionController::class, 'store'])->name('direcciones.store');
