@@ -52,6 +52,9 @@
                         <h1 class="mt-1 text-2xl font-black text-atlantia-ink">
                             Ruta de entrega
                         </h1>
+                        <p class="mt-1 text-sm text-atlantia-ink/60">
+                            Vista satelital con calles, relieve y movimiento GPS.
+                        </p>
                     </div>
 
                     <span
@@ -65,6 +68,22 @@
                 <div class="relative">
                     @if ($mapboxToken)
                         <div id="tracking-map" class="h-[520px] w-full bg-atlantia-blush"></div>
+                        <div class="absolute left-4 top-4 flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                data-map-style="real"
+                                class="rounded-md bg-atlantia-wine px-3 py-2 text-xs font-black text-white shadow"
+                            >
+                                Vista real
+                            </button>
+                            <button
+                                type="button"
+                                data-map-style="street"
+                                class="rounded-md bg-white px-3 py-2 text-xs font-black text-atlantia-wine shadow"
+                            >
+                                Calles
+                            </button>
+                        </div>
                     @else
                         <div class="flex h-[520px] items-center justify-center bg-atlantia-blush p-6 text-center">
                             <div class="max-w-md">
@@ -177,6 +196,14 @@
                 mapboxgl.accessToken = tracking.token;
 
                 const lngLat = (point) => [Number(point.longitude), Number(point.latitude)];
+                const makeMarkerElement = (label, className) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = className;
+                    wrapper.textContent = label;
+
+                    return wrapper;
+                };
+
                 const lineFeature = (points) => ({
                     type: 'Feature',
                     geometry: {
@@ -187,14 +214,21 @@
 
                 const map = new mapboxgl.Map({
                     container: 'tracking-map',
-                    style: 'mapbox://styles/mapbox/streets-v12',
+                    style: 'mapbox://styles/mapbox/satellite-streets-v12',
                     center: lngLat(tracking.repartidor || tracking.centro || tracking.destino),
-                    zoom: 13,
+                    zoom: 14,
+                    pitch: 58,
+                    bearing: -18,
+                    antialias: true,
                 });
 
-                map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
+                map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
+                map.addControl(new mapboxgl.FullscreenControl(), 'top-right');
 
-                const destinoMarker = new mapboxgl.Marker({ color: '#7a1f3d' })
+                const destinoMarker = new mapboxgl.Marker({
+                    element: makeMarkerElement('Destino', 'tracking-marker tracking-marker-destination'),
+                    anchor: 'bottom',
+                })
                     .setLngLat(lngLat(tracking.destino))
                     .setPopup(new mapboxgl.Popup().setHTML('<strong>Destino</strong><br>' + (tracking.destino.address || 'Entrega')))
                     .addTo(map);
@@ -207,7 +241,10 @@
                     }
 
                     if (! repartidorMarker) {
-                        repartidorMarker = new mapboxgl.Marker({ color: '#059669' })
+                        repartidorMarker = new mapboxgl.Marker({
+                            element: makeMarkerElement('Repartidor', 'tracking-marker tracking-marker-courier'),
+                            anchor: 'bottom',
+                        })
                             .setPopup(new mapboxgl.Popup().setHTML('<strong>Repartidor</strong><br>Ubicacion actual'))
                             .addTo(map);
                     }
@@ -245,6 +282,44 @@
                     });
                 };
 
+                const addRealisticLayers = () => {
+                    if (! map.getSource('mapbox-dem')) {
+                        map.addSource('mapbox-dem', {
+                            type: 'raster-dem',
+                            url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+                            tileSize: 512,
+                            maxzoom: 14,
+                        });
+                    }
+
+                    map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.2 });
+                    map.setFog({
+                        color: 'rgb(255, 247, 249)',
+                        'high-color': 'rgb(200, 111, 137)',
+                        'horizon-blend': 0.12,
+                    });
+
+                    if (! map.getLayer('atlantia-3d-buildings') && map.getSource('composite')) {
+                        const layers = map.getStyle().layers;
+                        const labelLayer = layers.find((layer) => layer.type === 'symbol' && layer.layout?.['text-field']);
+
+                        map.addLayer({
+                            id: 'atlantia-3d-buildings',
+                            source: 'composite',
+                            'source-layer': 'building',
+                            filter: ['==', 'extrude', 'true'],
+                            type: 'fill-extrusion',
+                            minzoom: 14,
+                            paint: {
+                                'fill-extrusion-color': '#d6b9c5',
+                                'fill-extrusion-height': ['get', 'height'],
+                                'fill-extrusion-base': ['get', 'min_height'],
+                                'fill-extrusion-opacity': 0.55,
+                            },
+                        }, labelLayer?.id);
+                    }
+                };
+
                 const fitToData = (data) => {
                     const points = [data.destino, data.repartidor, ...(data.rutaReal || []), ...(data.rutaPlanificada || [])]
                         .filter(Boolean);
@@ -255,7 +330,7 @@
 
                     const bounds = new mapboxgl.LngLatBounds();
                     points.forEach((point) => bounds.extend(lngLat(point)));
-                    map.fitBounds(bounds, { padding: 80, maxZoom: 15, duration: 700 });
+                    map.fitBounds(bounds, { padding: 80, maxZoom: 16, duration: 700, pitch: 58, bearing: -18 });
                 };
 
                 const applyTracking = (data, shouldFit = false) => {
@@ -272,7 +347,24 @@
                     }
                 };
 
-                map.on('load', () => applyTracking(tracking, true));
+                const reloadStyle = (style) => {
+                    map.setStyle(style === 'real'
+                        ? 'mapbox://styles/mapbox/satellite-streets-v12'
+                        : 'mapbox://styles/mapbox/streets-v12');
+                    map.once('style.load', () => {
+                        addRealisticLayers();
+                        applyTracking(tracking, true);
+                    });
+                };
+
+                document.querySelectorAll('[data-map-style]').forEach((button) => {
+                    button.addEventListener('click', () => reloadStyle(button.dataset.mapStyle));
+                });
+
+                map.on('load', () => {
+                    addRealisticLayers();
+                    applyTracking(tracking, true);
+                });
 
                 window.setInterval(async () => {
                     try {

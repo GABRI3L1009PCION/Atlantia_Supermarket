@@ -45,6 +45,37 @@
         @apply border-atlantia-wine bg-atlantia-blush text-atlantia-wine;
     }
 
+    .tracking-marker {
+        @apply rounded-md px-3 py-2 text-xs font-black text-white shadow-lg;
+        transform: translateY(-8px);
+    }
+
+    .tracking-marker::after {
+        border-left: 7px solid transparent;
+        border-right: 7px solid transparent;
+        border-top: 9px solid var(--tracking-marker-color);
+        bottom: -8px;
+        content: '';
+        left: 50%;
+        position: absolute;
+        transform: translateX(-50%);
+    }
+
+    .tracking-marker-destination {
+        @apply bg-atlantia-wine;
+        --tracking-marker-color: var(--color-atlantia-wine);
+    }
+
+    .tracking-marker-courier {
+        @apply bg-emerald-600;
+        --tracking-marker-color: #059669;
+    }
+
+    .tracking-marker-destination,
+    .tracking-marker-courier {
+        color: white;
+    }
+
     .super-admin-surface .bg-white {
         background-color: rgb(24 24 30 / 0.92) !important;
     }
