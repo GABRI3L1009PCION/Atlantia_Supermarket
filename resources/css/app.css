@@ -91,6 +91,10 @@
         @apply bg-atlantia-wine;
     }
 
+    .catalog-range {
+        accent-color: var(--color-atlantia-wine);
+    }
+
     .super-admin-surface .bg-white {
         background-color: rgb(24 24 30 / 0.92) !important;
     }
