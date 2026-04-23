@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DevolucionController;
 use App\Http\Controllers\Admin\DteController;
 use App\Http\Controllers\Admin\EmpleadoController;
+use App\Http\Controllers\Admin\HeroBannerController;
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\MlMonitorController;
 use App\Http\Controllers\Admin\MlReentrenamientoController;
@@ -61,6 +62,10 @@ Route::prefix('admin')
         Route::post('/categorias', [CategoriaController::class, 'store'])->name('categorias.store');
         Route::put('/categorias/{categoria}', [CategoriaController::class, 'update'])->name('categorias.update');
         Route::delete('/categorias/{categoria}', [CategoriaController::class, 'destroy'])->name('categorias.destroy');
+        Route::get('/hero-banners', [HeroBannerController::class, 'index'])->name('hero-banners.index');
+        Route::post('/hero-banners', [HeroBannerController::class, 'store'])->name('hero-banners.store');
+        Route::put('/hero-banners/{heroBanner:uuid}', [HeroBannerController::class, 'update'])->name('hero-banners.update');
+        Route::delete('/hero-banners/{heroBanner:uuid}', [HeroBannerController::class, 'destroy'])->name('hero-banners.destroy');
 
         Route::get('/pedidos', [PedidoController::class, 'index'])->name('pedidos.index');
         Route::post('/pedidos/lote/actualizar', [PedidoController::class, 'updateBatch'])->name('pedidos.batch-update');

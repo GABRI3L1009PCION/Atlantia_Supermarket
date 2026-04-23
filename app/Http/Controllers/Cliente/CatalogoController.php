@@ -7,6 +7,7 @@ use App\Models\Categoria;
 use App\Models\Producto;
 use App\Models\Vendor;
 use App\Services\Catalogo\CatalogoService;
+use App\Services\Storefront\HeroBannerService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -18,7 +19,10 @@ class CatalogoController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly CatalogoService $catalogoService)
+    public function __construct(
+        private readonly CatalogoService $catalogoService,
+        private readonly HeroBannerService $heroBannerService,
+    )
     {
     }
 
@@ -63,6 +67,7 @@ class CatalogoController extends Controller
             'catalogo' => $this->catalogoService->catalogo($request->all()),
             'destacados' => $destacados,
             'categoriasDestacadas' => $categoriasDestacadas,
+            'heroBanner' => $this->heroBannerService->resolveForStorefront(),
             'metricas' => [
                 'productos' => Producto::query()->publicados()->count(),
                 'categorias' => Categoria::query()->active()->count(),

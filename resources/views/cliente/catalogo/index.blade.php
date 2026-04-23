@@ -1,14 +1,14 @@
 @extends('layouts.marketplace')
 
 @section('content')
-    @php
-        $heroImage = 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=1600&q=80';
-        $basketImage = 'https://images.unsplash.com/photo-1579113800032-c38bd7635818?auto=format&fit=crop&w=1200&q=80';
-    @endphp
-
-    <section class="relative overflow-hidden pt-4">
+    <section
+        class="relative overflow-hidden pt-4"
+        data-hero-banner="{{ $heroBanner['name'] }}"
+        data-hero-banner-fallback="{{ $heroBanner['is_fallback'] ? '1' : '0' }}"
+    >
         <div class="absolute inset-0">
-            <img src="{{ $heroImage }}" alt="Interior de supermercado" class="h-full w-full object-cover">
+            <img src="{{ $heroBanner['mobile_image'] }}" alt="Banner principal Atlantia Supermarket" class="h-full w-full object-cover md:hidden">
+            <img src="{{ $heroBanner['desktop_image'] }}" alt="Banner principal Atlantia Supermarket" class="hidden h-full w-full object-cover md:block">
             <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(249,254,255,0.86),rgba(239,250,255,0.70),rgba(233,247,252,0.44))]"></div>
             <div class="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.75),transparent_24%),radial-gradient(circle_at_72%_24%,rgba(115,232,244,0.22),transparent_25%)]"></div>
         </div>
@@ -33,14 +33,7 @@
                 </form>
             </div>
 
-            <div class="relative hidden h-full min-h-[260px] lg:block">
-                <div class="absolute inset-x-10 bottom-2 h-8 rounded-full border border-atlantia-cyan/25 bg-atlantia-cyan/8 blur-sm"></div>
-                <img
-                    src="{{ $basketImage }}"
-                    alt="Canasta con frutas y vegetales"
-                    class="absolute bottom-0 right-0 h-[290px] w-auto object-contain drop-shadow-[0_18px_30px_rgba(18,51,66,0.18)]"
-                >
-            </div>
+            <div class="hidden lg:block"></div>
         </div>
     </section>
 

@@ -13,6 +13,7 @@ use App\Models\DeliveryZone;
 use App\Models\Devolucion;
 use App\Models\Dte\DteFactura;
 use App\Models\Empleado;
+use App\Models\HeroBanner;
 use App\Models\Inventario;
 use App\Models\Ml\FraudAlert;
 use App\Models\Ml\RestockSuggestion;
@@ -43,6 +44,7 @@ use App\Policies\DireccionPolicy;
 use App\Policies\DtePolicy;
 use App\Policies\EmpleadoPolicy;
 use App\Policies\FraudAlertPolicy;
+use App\Policies\HeroBannerPolicy;
 use App\Policies\InventarioPolicy;
 use App\Policies\PedidoPolicy;
 use App\Policies\PaymentPolicy;
@@ -136,6 +138,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Empleado::class, EmpleadoPolicy::class);
         Gate::policy(DeliveryZone::class, DeliveryZonePolicy::class);
         Gate::policy(AuditLog::class, AuditLogPolicy::class);
+        Gate::policy(HeroBanner::class, HeroBannerPolicy::class);
 
         Gate::before(function (User $user, string $ability): ?bool {
             if ($user->isSuperAdmin()) {
