@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('repartidor')
     ->as('repartidor.')
-    ->middleware(['auth', 'verified', 'role:repartidor', 'throttle:120,1'])
+    ->middleware(['auth', 'verified', 'role:repartidor', 'throttle:60,1'])
     ->group(function (): void {
         Route::get('/', DashboardController::class)->name('dashboard');
 

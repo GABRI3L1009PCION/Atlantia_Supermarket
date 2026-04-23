@@ -41,7 +41,7 @@ Route::prefix('cliente')
     ->group(function (): void {
         Route::get('/checkout', [CheckoutController::class, 'create'])->name('checkout.create');
         Route::post('/checkout', [CheckoutController::class, 'store'])
-            ->middleware('checkout.rate')
+            ->middleware(['checkout.rate', 'throttle:checkout'])
             ->name('checkout.store');
 
         Route::get('/pedidos', [PedidoController::class, 'index'])->name('pedidos.index');

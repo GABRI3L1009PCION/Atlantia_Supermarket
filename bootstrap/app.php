@@ -32,6 +32,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             SecurityHeaders::class,
         ]);
+        $middleware->api(append: [
+            SecurityHeaders::class,
+        ]);
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/pasarela-pago',
+            'webhooks/certificador-fel',
+            'webhooks/courier-externo',
+            'webhooks/ml-service',
+        ]);
 
         $middleware->alias([
             'audit.request' => AuditoriaRequest::class,

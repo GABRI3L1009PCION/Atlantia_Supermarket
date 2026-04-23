@@ -33,13 +33,13 @@ class RegisterRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'min:3', 'max:160'],
-            'email' => ['required', 'string', 'email:rfc', 'max:190', 'unique:users,email'],
-            'phone' => ['required', 'string', 'regex:/^(\+502)?[2-7][0-9]{7}$/'],
+            'email' => ['required', 'string', 'email:rfc,dns', 'max:190', 'unique:users,email'],
+            'phone' => ['required', 'string', 'min:8', 'max:15', 'regex:/^\+?[1-9][0-9]{7,14}$/'],
             'password' => ['required', 'confirmed', Password::min(12)->letters()->numbers()->symbols()],
             'role' => ['required', Rule::in(['cliente', 'vendedor'])],
             'acepta_terminos' => ['accepted'],
             'acepta_privacidad' => ['accepted'],
-            'dpi' => ['nullable', 'string', 'regex:/^[0-9]{13}$/'],
+            'dpi' => ['nullable', 'string', 'digits:13'],
             'fecha_nacimiento' => ['nullable', 'date', 'before_or_equal:-18 years'],
             'genero' => ['nullable', Rule::in(['femenino', 'masculino', 'otro', 'prefiero_no_decir'])],
             'preferencias' => ['nullable', 'array'],
@@ -50,7 +50,17 @@ class RegisterRequest extends FormRequest
             'direccion_comercial' => [Rule::requiredIf($isVendedor), 'nullable', 'string', 'min:8', 'max:500'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
-            'nit' => [Rule::requiredIf($isVendedor), 'nullable', 'string', 'regex:/^[0-9Kk\-]{4,30}$/'],
+            'nit' => [
+                Rule::requiredIf($isVendedor),
+                'nullable',
+                'string',
+                'regex:/^[0-9Kk\-]{4,30}$/',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! $this->nitValidoGuatemala((string) $value)) {
+                        $fail('Ingresa un NIT valido para Guatemala.');
+                    }
+                },
+            ],
             'razon_social' => [Rule::requiredIf($isVendedor), 'nullable', 'string', 'min:3', 'max:220'],
             'direccion_fiscal' => [Rule::requiredIf($isVendedor), 'nullable', 'string', 'min:8', 'max:600'],
             'regimen_sat' => [Rule::requiredIf($isVendedor), 'nullable', Rule::in([
@@ -75,21 +85,24 @@ class RegisterRequest extends FormRequest
             'email.required' => 'Ingresa tu correo electronico.',
             'email.email' => 'Ingresa un correo electronico valido.',
             'email.unique' => 'Este correo electronico ya esta registrado.',
+            'email.dns' => 'El dominio del correo electronico no existe o no recibe correo.',
             'phone.required' => 'Ingresa un telefono de contacto.',
-            'phone.regex' => 'Ingresa un telefono valido de Guatemala.',
+            'phone.min' => 'El telefono debe tener al menos 8 digitos.',
+            'phone.max' => 'El telefono no debe superar 15 digitos.',
+            'phone.regex' => 'Ingresa un telefono valido en formato nacional o E.164.',
             'password.required' => 'Ingresa una contrasena.',
             'password.confirmed' => 'La confirmacion de contrasena no coincide.',
             'role.required' => 'Selecciona el tipo de cuenta.',
             'role.in' => 'El tipo de cuenta seleccionado no es valido.',
             'acepta_terminos.accepted' => 'Debes aceptar los terminos y condiciones.',
             'acepta_privacidad.accepted' => 'Debes aceptar la politica de privacidad.',
-            'dpi.regex' => 'El DPI debe contener 13 digitos.',
+            'dpi.digits' => 'El DPI debe contener exactamente 13 digitos.',
             'fecha_nacimiento.before_or_equal' => 'Debes ser mayor de edad para registrarte.',
             'business_name.required' => 'Ingresa el nombre comercial del vendedor.',
             'municipio.required' => 'Selecciona el municipio donde opera el vendedor.',
             'direccion_comercial.required' => 'Ingresa la direccion comercial del vendedor.',
             'nit.required' => 'Ingresa el NIT del vendedor.',
-            'nit.regex' => 'Ingresa un NIT valido para Guatemala.',
+            'nit.regex' => 'El NIT solo puede contener numeros, guion y la letra K.',
             'razon_social.required' => 'Ingresa la razon social registrada ante SAT.',
             'direccion_fiscal.required' => 'Ingresa la direccion fiscal registrada ante SAT.',
             'regimen_sat.required' => 'Selecciona el regimen SAT.',
@@ -143,7 +156,8 @@ class RegisterRequest extends FormRequest
             'role' => $this->input('role', 'cliente'),
             'acepta_marketing' => filter_var($this->input('acepta_marketing', false), FILTER_VALIDATE_BOOLEAN),
             'business_name' => $this->blankToNull($this->input('business_name')),
-            'nit' => Str::upper(str_replace(' ', '', (string) $this->input('nit'))),
+            'dpi' => preg_replace('/\D+/', '', (string) $this->input('dpi')) ?: null,
+            'nit' => Str::upper(str_replace([' ', '.'], '', (string) $this->input('nit'))),
         ]);
     }
 
@@ -187,5 +201,39 @@ class RegisterRequest extends FormRequest
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * Valida el digito verificador del NIT guatemalteco.
+     *
+     * @param string $nit
+     * @return bool
+     */
+    private function nitValidoGuatemala(string $nit): bool
+    {
+        $nit = Str::upper(str_replace('-', '', trim($nit)));
+
+        if (! preg_match('/^[0-9]+[0-9K]$/', $nit) || strlen($nit) < 2) {
+            return false;
+        }
+
+        $verificador = substr($nit, -1);
+        $base = substr($nit, 0, -1);
+        $factor = strlen($base) + 1;
+        $suma = 0;
+
+        foreach (str_split($base) as $digito) {
+            $suma += ((int) $digito) * $factor;
+            $factor--;
+        }
+
+        $resultado = 11 - ($suma % 11);
+        $esperado = match ($resultado) {
+            11 => '0',
+            10 => 'K',
+            default => (string) $resultado,
+        };
+
+        return $verificador === $esperado;
     }
 }

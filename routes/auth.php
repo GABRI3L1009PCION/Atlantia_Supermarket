@@ -23,7 +23,7 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:5,15')->name('login.store');
 
     Route::get('/registro', [RegisterController::class, 'create'])->name('register');
-    Route::post('/registro', [RegisterController::class, 'store'])->middleware('throttle:10,1')->name('register.store');
+    Route::post('/registro', [RegisterController::class, 'store'])->middleware('throttle:registro')->name('register.store');
 
     Route::get('/password/forgot', [ForgotPasswordController::class, 'create'])->name('password.request');
     Route::post('/password/email', [ForgotPasswordController::class, 'store'])

@@ -15,7 +15,7 @@ class RateLimitCheckout
     /**
      * Maximo de intentos por minuto.
      */
-    private const MAX_ATTEMPTS = 20;
+    private const MAX_ATTEMPTS = 10;
 
     /**
      * Crea una instancia del middleware.

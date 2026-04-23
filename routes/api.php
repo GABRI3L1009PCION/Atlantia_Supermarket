@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Route;
 Route::as('api.')
     ->middleware(['api', 'security.headers'])
     ->group(function (): void {
-        Route::get('/buscar', BusquedaController::class)->middleware('throttle:120,1')->name('buscar');
+        Route::get('/buscar', BusquedaController::class)->middleware('throttle:busqueda')->name('buscar');
         Route::get('/stock/{producto:uuid}', [StockApiController::class, 'show'])
             ->middleware('throttle:120,1')
             ->name('stock.show');

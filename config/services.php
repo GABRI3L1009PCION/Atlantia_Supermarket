@@ -36,7 +36,7 @@ return [
     ],
 
     'mapbox' => [
-        'token' => env('MAPBOX_TOKEN'),
+        'token' => env('ATLANTIA_MAPBOX_TOKEN', env('MAPBOX_TOKEN')),
         'base_url' => env('MAPBOX_BASE_URL', 'https://api.mapbox.com'),
     ],
 

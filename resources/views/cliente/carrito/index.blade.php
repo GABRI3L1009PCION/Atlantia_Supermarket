@@ -167,7 +167,7 @@
         </div>
 
         @push('scripts')
-            <script>
+            <script @nonce>
                 document.querySelectorAll('[data-open-register-modal]').forEach((button) => {
                     button.addEventListener('click', () => {
                         document.getElementById('registro-requerido-modal')?.classList.remove('hidden');

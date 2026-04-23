@@ -32,7 +32,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')
     ->as('admin.')
-    ->middleware(['auth', 'verified', 'role:admin|super_admin', 'throttle:120,1'])
+    ->middleware(['auth', 'verified', 'role:admin|super_admin', 'throttle:60,1'])
     ->group(function (): void {
         Route::get('/', DashboardController::class)->name('dashboard');
 

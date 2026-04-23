@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('vendedor')
     ->as('vendedor.')
-    ->middleware(['auth', 'verified', 'role:vendedor', 'throttle:120,1'])
+    ->middleware(['auth', 'verified', 'role:vendedor', 'throttle:60,1'])
     ->group(function (): void {
         Route::get('/', DashboardController::class)->name('dashboard');
 

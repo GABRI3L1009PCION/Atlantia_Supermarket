@@ -633,8 +633,8 @@
     </section>
 
     @if ($mapboxToken)
-        <script src="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.js"></script>
-        <script>
+        <script @nonce src="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.js"></script>
+        <script @nonce>
             (() => {
                 const token = @json($mapboxToken);
                 const zones = @json($zonasMapa);

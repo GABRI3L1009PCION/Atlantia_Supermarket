@@ -47,7 +47,11 @@ use App\Services\Fel\CertificadorFelInterface;
 use App\Services\Fel\InfileCertificadorService;
 use App\Services\Ml\MlServiceClient;
 use App\Services\Ml\MlServiceClientInterface;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passport\Passport;
 use Spatie\Permission\Models\Role;
@@ -68,6 +72,30 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (app()->environment('production') && (bool) env('APP_DEBUG', false)) {
+            throw new \RuntimeException('APP_DEBUG no puede estar activo en produccion.');
+        }
+
+        if (app()->environment('production') && ! $this->hasValidApplicationKey()) {
+            throw new \RuntimeException('APP_KEY debe estar generado y tener al menos 32 bytes en produccion.');
+        }
+
+        Blade::directive('nonce', function (): string {
+            return "<?php echo 'nonce=\"' . e(request()->attributes->get('csp_nonce', '')) . '\"'; ?>";
+        });
+
+        RateLimiter::for('registro', function (Request $request): Limit {
+            return Limit::perHour(5)->by($request->ip());
+        });
+
+        RateLimiter::for('checkout', function (Request $request): Limit {
+            return Limit::perMinute(10)->by((string) ($request->user()?->id ?? $request->ip()));
+        });
+
+        RateLimiter::for('busqueda', function (Request $request): Limit {
+            return Limit::perMinute(60)->by((string) ($request->user()?->id ?? $request->ip()));
+        });
+
         if (method_exists(Passport::class, 'ignoreMigrations')) {
             Passport::ignoreMigrations();
         }
@@ -122,5 +150,21 @@ class AppServiceProvider extends ServiceProvider
         Pedido::observe(PedidoObserver::class);
         User::observe(UserObserver::class);
         Resena::observe(ResenaObserver::class);
+    }
+
+    /**
+     * Verifica que la clave de aplicacion tenga entropia suficiente.
+     */
+    private function hasValidApplicationKey(): bool
+    {
+        $key = (string) config('app.key');
+
+        if (str_starts_with($key, 'base64:')) {
+            $decoded = base64_decode(substr($key, 7), true);
+
+            return is_string($decoded) && strlen($decoded) >= 32;
+        }
+
+        return strlen($key) >= 32;
     }
 }

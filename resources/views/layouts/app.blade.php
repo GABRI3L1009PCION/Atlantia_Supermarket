@@ -4,12 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="csp-nonce" content="{{ request()->attributes->get('csp_nonce') }}">
 
     <title>{{ $title ?? 'Atlantia Supermarket' }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
-    @livewireStyles
+    @livewireStyles(['nonce' => request()->attributes->get('csp_nonce')])
 </head>
 <body class="min-h-screen bg-[#fbf7f9] text-atlantia-ink antialiased">
     <div class="min-h-screen xl:grid xl:grid-cols-[18rem_1fr]">
@@ -28,7 +29,7 @@
         </div>
     </div>
 
-    @livewireScripts
+    @livewireScripts(['nonce' => request()->attributes->get('csp_nonce')])
     @stack('scripts')
 </body>
 </html>

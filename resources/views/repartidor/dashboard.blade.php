@@ -366,8 +366,8 @@
 
     @if ($mapboxToken && $destino)
         @push('scripts')
-            <script src="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.js"></script>
-            <script>
+            <script @nonce src="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.js"></script>
+            <script @nonce>
                 (() => {
                     const element = document.getElementById('courier-current-map');
 
