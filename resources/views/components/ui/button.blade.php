@@ -5,11 +5,11 @@
 
 @php
     $classes = [
-        'primary' => 'bg-atlantia-wine text-white hover:bg-atlantia-wine-700 focus:ring-atlantia-rose',
-        'secondary' => 'bg-white text-atlantia-ink ring-1 ring-atlantia-rose/40 hover:bg-atlantia-blush focus:ring-atlantia-rose',
+        'primary' => 'bg-atlantia-cyan-700 text-white hover:bg-atlantia-deep focus:ring-atlantia-cyan',
+        'secondary' => 'bg-white/90 text-atlantia-deep ring-1 ring-atlantia-cyan/35 hover:bg-atlantia-frost focus:ring-atlantia-cyan',
         'danger' => 'bg-red-700 text-white hover:bg-red-800 focus:ring-red-600',
-        'ghost' => 'bg-transparent text-atlantia-ink hover:bg-atlantia-blush focus:ring-atlantia-rose',
-    ][$variant] ?? 'bg-atlantia-wine text-white hover:bg-atlantia-wine-700 focus:ring-atlantia-rose';
+        'ghost' => 'bg-transparent text-atlantia-deep hover:bg-atlantia-frost focus:ring-atlantia-cyan',
+    ][$variant] ?? 'bg-atlantia-cyan-700 text-white hover:bg-atlantia-deep focus:ring-atlantia-cyan';
 @endphp
 
 <button

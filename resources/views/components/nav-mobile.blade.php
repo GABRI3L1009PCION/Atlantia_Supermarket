@@ -6,7 +6,7 @@
 <div class="md:hidden" x-data="{ open: false }">
     <button
         type="button"
-        class="inline-flex h-11 w-11 items-center justify-center rounded-md border border-atlantia-rose/20 bg-atlantia-cream text-atlantia-wine shadow-sm"
+        class="inline-flex h-11 w-11 items-center justify-center rounded-md border border-atlantia-cyan/35 bg-white/88 text-atlantia-cyan-700 shadow-sm"
         aria-label="Abrir menu principal"
         :aria-expanded="open ? 'true' : 'false'"
         aria-controls="nav-mobile-panel"
@@ -28,7 +28,7 @@
         x-show="open"
         x-cloak
         @click.outside="open = false"
-        class="absolute inset-x-4 top-[5.7rem] z-40 rounded-lg border border-atlantia-rose/20 bg-white p-4 shadow-xl"
+        class="absolute inset-x-4 top-[5.7rem] z-40 rounded-[8px] border border-white/80 bg-white/88 p-4 shadow-[0_18px_48px_rgba(18,51,66,0.12)] backdrop-blur-xl"
         role="dialog"
         aria-modal="true"
         aria-label="Menu principal"
@@ -37,7 +37,7 @@
             @foreach ($items as $item)
                 <a
                     href="{{ $item['href'] }}"
-                    class="{{ !empty($item['active']) ? 'bg-atlantia-wine text-white' : 'text-atlantia-ink hover:bg-atlantia-blush' }} block rounded-md px-4 py-3 text-sm font-bold"
+                    class="{{ !empty($item['active']) ? 'bg-atlantia-cyan-700 text-white' : 'text-atlantia-deep hover:bg-atlantia-frost' }} block rounded-md px-4 py-3 text-sm font-bold"
                     @click="open = false"
                 >
                     {{ $item['label'] }}
@@ -46,7 +46,7 @@
 
             <a
                 href="{{ $contactHref }}"
-                class="block rounded-md px-4 py-3 text-sm font-bold text-atlantia-ink hover:bg-atlantia-blush"
+                class="block rounded-md px-4 py-3 text-sm font-bold text-atlantia-deep hover:bg-atlantia-frost"
                 @click="open = false"
             >
                 Contacto

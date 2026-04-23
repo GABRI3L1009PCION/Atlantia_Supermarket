@@ -12,7 +12,7 @@
 
 <label class="block">
     @if ($label)
-        <span class="mb-1 block text-sm font-medium text-slate-800">{{ $label }}</span>
+        <span class="mb-1 block text-sm font-medium text-atlantia-deep">{{ $label }}</span>
     @endif
 
     <select
@@ -23,8 +23,8 @@
             aria-describedby="{{ $errorId }}"
         @enderror
         {{ $attributes->merge([
-            'class' => 'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 ' .
-                'shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600',
+            'class' => 'w-full rounded-md border border-atlantia-cyan/30 bg-white/90 px-3 py-2 text-sm text-atlantia-deep ' .
+                'shadow-sm focus:border-atlantia-cyan-700 focus:outline-none focus:ring-2 focus:ring-atlantia-cyan',
         ]) }}
     >
         {{ $slot }}

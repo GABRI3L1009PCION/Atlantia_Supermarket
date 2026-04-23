@@ -1,9 +1,9 @@
 <section class="space-y-8" aria-labelledby="catalogo-productos-title">
-    <header class="space-y-5 rounded-lg border border-atlantia-rose/12 bg-white p-5 shadow-sm">
+    <header class="glass-surface space-y-5 rounded-[8px] p-5">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-                <p class="text-sm font-black uppercase tracking-[0.22em] text-atlantia-wine">Catalogo</p>
-                <h2 id="catalogo-productos-title" class="mt-2 text-3xl font-black tracking-tight text-atlantia-ink">
+                <p class="text-sm font-black uppercase tracking-[0.22em] text-atlantia-cyan-700">Catalogo</p>
+                <h2 id="catalogo-productos-title" class="mt-2 text-3xl font-black tracking-tight text-atlantia-deep">
                     Todo lo que necesitas, ordenado para comprar mejor
                 </h2>
             </div>
@@ -35,7 +35,7 @@
                 <select
                     name="rating"
                     wire:model.live="ratingMin"
-                    class="h-12 rounded-md border border-atlantia-rose/20 bg-atlantia-cream px-4 text-sm text-atlantia-ink focus:border-atlantia-wine focus:outline-none focus:ring-2 focus:ring-atlantia-rose/35"
+                    class="h-12 rounded-md border border-atlantia-cyan/30 bg-white/90 px-4 text-sm text-atlantia-deep shadow-sm focus:border-atlantia-cyan-700 focus:outline-none focus:ring-2 focus:ring-atlantia-cyan"
                 >
                     <option value="0">Rating: todos</option>
                     <option value="3">3 estrellas o mas</option>
@@ -47,11 +47,11 @@
 
         <div class="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
             <div>
-                <p class="mb-3 text-sm font-bold text-atlantia-ink">Categorias</p>
+                <p class="mb-3 text-sm font-bold text-atlantia-deep">Categorias</p>
                 <div class="flex flex-wrap gap-2">
                     @foreach ($categorias as $categoria)
                         @php($seleccionada = in_array($categoria->id, $this->categoriaIds(), true))
-                        <label class="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition {{ $seleccionada ? 'border-atlantia-wine bg-atlantia-wine text-white' : 'border-atlantia-rose/15 bg-atlantia-cream text-atlantia-ink hover:border-atlantia-wine/35' }}">
+                        <label class="{{ $seleccionada ? 'catalog-chip catalog-chip-active' : 'catalog-chip' }}">
                             <input
                                 type="checkbox"
                                 value="{{ $categoria->id }}"
@@ -67,23 +67,23 @@
             <div class="grid gap-4 sm:grid-cols-2">
                 <div>
                     <div class="mb-2 flex items-center justify-between gap-2">
-                        <label class="text-sm font-bold text-atlantia-ink">Precio minimo</label>
-                        <span class="text-sm font-semibold text-atlantia-wine">Q {{ number_format($precioMin, 0) }}</span>
+                        <label class="text-sm font-bold text-atlantia-deep">Precio minimo</label>
+                        <span class="text-sm font-semibold text-atlantia-cyan-700">Q {{ number_format($precioMin, 0) }}</span>
                     </div>
                     <input type="range" min="0" max="500" step="5" wire:model.live="precioMin" class="catalog-range w-full">
                 </div>
 
                 <div>
                     <div class="mb-2 flex items-center justify-between gap-2">
-                        <label class="text-sm font-bold text-atlantia-ink">Precio maximo</label>
-                        <span class="text-sm font-semibold text-atlantia-wine">Q {{ number_format($precioMax, 0) }}</span>
+                        <label class="text-sm font-bold text-atlantia-deep">Precio maximo</label>
+                        <span class="text-sm font-semibold text-atlantia-cyan-700">Q {{ number_format($precioMax, 0) }}</span>
                     </div>
                     <input type="range" min="50" max="1500" step="10" wire:model.live="precioMax" class="catalog-range w-full">
                 </div>
             </div>
         </div>
 
-        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-atlantia-rose/10 pt-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-atlantia-cyan/12 pt-4">
             <div class="flex flex-wrap gap-2">
                 @if ($search)
                     <x-ui.badge variant="info">Busqueda: {{ $search }}</x-ui.badge>
@@ -100,12 +100,12 @@
             </div>
 
             <div class="flex items-center gap-4">
-                <label class="flex items-center gap-3 text-sm font-semibold text-atlantia-ink">
-                    <input type="checkbox" wire:model.live="soloEnStock" class="rounded border-atlantia-rose text-atlantia-wine">
+                <label class="flex items-center gap-3 text-sm font-semibold text-atlantia-deep">
+                    <input type="checkbox" wire:model.live="soloEnStock" class="rounded border-atlantia-cyan text-atlantia-cyan-700">
                     Solo disponibles
                 </label>
 
-                <button type="button" class="text-sm font-bold text-atlantia-wine transition hover:text-atlantia-wine-700" wire:click="limpiarFiltros">
+                <button type="button" class="text-sm font-bold text-atlantia-cyan-700 transition hover:text-atlantia-deep" wire:click="limpiarFiltros">
                     Limpiar filtros
                 </button>
             </div>
@@ -114,7 +114,7 @@
 
     <div wire:loading.delay class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" aria-hidden="true">
         @for ($i = 0; $i < 10; $i++)
-            <div class="animate-pulse rounded-lg border border-atlantia-rose/15 bg-white p-3 shadow-sm">
+            <div class="animate-pulse rounded-[8px] border border-atlantia-cyan/20 bg-white/90 p-3 shadow-sm">
                 <div class="mb-3 aspect-[4/3] rounded-md bg-slate-200"></div>
                 <div class="mb-2 h-4 w-5/6 rounded bg-slate-200"></div>
                 <div class="mb-3 h-4 w-1/2 rounded bg-slate-200"></div>
@@ -137,8 +137,8 @@
                 @endforeach
             </div>
 
-            <footer class="flex flex-col gap-4 border-t border-atlantia-rose/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
-                <p class="text-sm text-atlantia-ink/70">
+            <footer class="flex flex-col gap-4 border-t border-atlantia-cyan/12 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-sm text-atlantia-deep/65">
                     Pagina {{ $pagination['current_page'] }} de {{ $pagination['last_page'] }}
                 </p>
 
