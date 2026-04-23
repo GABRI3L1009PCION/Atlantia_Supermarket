@@ -28,13 +28,16 @@ class MeilisearchService
         $cacheVersion = Cache::get('search:version', 1);
         $cacheKey = 'search:' . $cacheVersion . ':' . sha1(json_encode($this->normalizeFilters($filters)) . ":{$page}:{$perPage}");
 
-        return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($query, $filters, $perPage): array {
+        $payload = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($query, $filters, $perPage): array {
             $results = $query !== ''
                 ? $this->searchWithScout($query, $filters, $perPage)
                 : $this->searchWithEloquent($filters, $perPage);
 
             return [
-                'items' => $results->items(),
+                'product_ids' => collect($results->items())
+                    ->map(fn (Producto $producto): int => (int) $producto->getKey())
+                    ->values()
+                    ->all(),
                 'pagination' => [
                     'current_page' => $results->currentPage(),
                     'per_page' => $results->perPage(),
@@ -44,6 +47,11 @@ class MeilisearchService
                 'filters' => $this->normalizeFilters($filters),
             ];
         });
+
+        return [
+            ...$payload,
+            'items' => $this->hydrateCachedProducts($payload['product_ids'] ?? []),
+        ];
     }
 
     /**
@@ -155,7 +163,7 @@ class MeilisearchService
     private function searchWithEloquent(array $filters, int $perPage): LengthAwarePaginator
     {
         $builder = Producto::query()
-            ->with(['categoria', 'vendor', 'inventario', 'imagenPrincipal'])
+            ->with(['categoria', 'vendor', 'inventario', 'imagenPrincipal', 'media'])
             ->withAvg(['resenas as rating_promedio' => fn (Builder $query) => $query->where('aprobada', true)], 'calificacion')
             ->publicados();
 
@@ -283,5 +291,29 @@ class MeilisearchService
             'mas_nuevo', 'recientes' => $builder->latest('publicado_at'),
             default => $builder->latest('publicado_at'),
         };
+    }
+
+    /**
+     * Rehidrata productos cacheados sin serializar modelos completos.
+     *
+     * @param array<int, int> $productIds
+     * @return Collection<int, Producto>
+     */
+    private function hydrateCachedProducts(array $productIds): Collection
+    {
+        if ($productIds === []) {
+            return collect();
+        }
+
+        $productos = Producto::query()
+            ->with(['categoria', 'vendor', 'inventario', 'imagenPrincipal', 'media'])
+            ->whereIn('id', $productIds)
+            ->get()
+            ->keyBy('id');
+
+        return collect($productIds)
+            ->map(fn (int $productId): ?Producto => $productos->get($productId))
+            ->filter()
+            ->values();
     }
 }

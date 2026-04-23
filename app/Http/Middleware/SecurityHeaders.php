@@ -28,6 +28,12 @@ class SecurityHeaders
 
         $response = $next($request);
 
+        if ($request->routeIs('home', 'catalogo.*', 'productos.show')) {
+            $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+            $response->headers->set('Pragma', 'no-cache');
+            $response->headers->set('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
+        }
+
         $response->headers->set('X-Frame-Options', 'DENY');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
