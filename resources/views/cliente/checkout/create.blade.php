@@ -40,7 +40,7 @@
             </li>
         </ol>
 
-        <form method="POST" action="{{ route('cliente.checkout.store') }}" class="grid gap-6 lg:grid-cols-[1fr_380px]">
+        <form method="POST" action="{{ route('cliente.checkout.store') }}" class="grid gap-6 lg:grid-cols-[1fr_380px]" data-protect-submit>
             @csrf
 
             <div class="space-y-6">

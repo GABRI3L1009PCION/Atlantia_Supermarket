@@ -3,6 +3,7 @@
 ])
 
 @php
+    $estado = $estado instanceof \BackedEnum ? $estado->value : $estado;
     $variant = match ($estado) {
         'entregado', 'completado' => 'success',
         'cancelado', 'rechazado' => 'danger',

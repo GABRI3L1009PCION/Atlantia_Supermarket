@@ -20,7 +20,6 @@ class PagoRechazadoException extends AtlantiaDomainException
      */
     public function publicMessage(): string
     {
-        return 'El pago fue rechazado por el procesador.';
+        return $this->getMessage() ?: 'El pago fue rechazado por el procesador.';
     }
 }
-

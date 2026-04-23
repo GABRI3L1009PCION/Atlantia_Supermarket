@@ -54,6 +54,13 @@ return [
         'webhook_secret' => env('PAYMENT_GATEWAY_WEBHOOK_SECRET'),
     ],
 
+    'stripe' => [
+        'publishable_key' => env('STRIPE_PUBLISHABLE_KEY'),
+        'secret_key' => env('STRIPE_SECRET_KEY'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        'currency' => env('STRIPE_CURRENCY', 'gtq'),
+    ],
+
     'ml' => [
         'base_url' => env('ML_SERVICE_URL', 'http://ml-api:8000'),
         'service_token' => env('ML_SERVICE_TOKEN'),

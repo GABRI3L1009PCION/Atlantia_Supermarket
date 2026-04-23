@@ -151,9 +151,9 @@ class StockService
      */
     public function releaseForPedido(Pedido $pedido): void
     {
-        $pedido->loadMissing('items.producto');
+        $pedido->loadMissing(['items.producto', 'pedidosHijos.items.producto']);
 
-        foreach ($pedido->items as $item) {
+        foreach ($this->itemsFromPedidoTree($pedido) as $item) {
             $this->release($item->producto, (int) $item->cantidad);
         }
     }
@@ -187,11 +187,43 @@ class StockService
      */
     public function consumeReservedForPedido(Pedido $pedido): void
     {
-        $pedido->loadMissing('items.producto');
+        $pedido->loadMissing(['items.producto', 'pedidosHijos.items.producto']);
 
-        foreach ($pedido->items as $item) {
+        foreach ($this->itemsFromPedidoTree($pedido) as $item) {
             $this->consumeReserved($item->producto, (int) $item->cantidad);
         }
+    }
+
+    /**
+     * Restaura stock fisico de un pedido devuelto.
+     *
+     * @param Pedido $pedido
+     * @return void
+     */
+    public function restoreForPedido(Pedido $pedido): void
+    {
+        $pedido->loadMissing(['items.producto', 'pedidosHijos.items.producto']);
+
+        foreach ($this->itemsFromPedidoTree($pedido) as $item) {
+            $this->restore($item->producto, (int) $item->cantidad);
+        }
+    }
+
+    /**
+     * Restaura stock fisico de un producto.
+     */
+    public function restore(Producto $producto, int $cantidad): Inventario
+    {
+        return DB::transaction(function () use ($producto, $cantidad): Inventario {
+            $inventario = $this->lockedInventario($producto);
+
+            $inventario->update([
+                'stock_actual' => $inventario->stock_actual + $cantidad,
+                'ultima_actualizacion' => now(),
+            ]);
+
+            return $inventario->refresh();
+        });
     }
 
     /**
@@ -283,6 +315,20 @@ class StockService
             'stock_maximo' => null,
             'ultima_actualizacion' => now(),
         ]);
+    }
+
+    /**
+     * Obtiene items de un pedido padre o hijo sin duplicar lineas.
+     *
+     * @return \Illuminate\Support\Collection<int, mixed>
+     */
+    private function itemsFromPedidoTree(Pedido $pedido): \Illuminate\Support\Collection
+    {
+        if ($pedido->pedidosHijos->isNotEmpty()) {
+            return $pedido->pedidosHijos->flatMap(fn (Pedido $pedidoHijo) => $pedidoHijo->items);
+        }
+
+        return $pedido->items;
     }
 
     /**

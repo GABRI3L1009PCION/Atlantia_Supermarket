@@ -2,10 +2,13 @@
 
 namespace App\Services\Pagos;
 
+use App\Enums\EstadoPago;
+use App\Enums\MetodoPago;
 use App\Exceptions\PagoRechazadoException;
 use App\Models\Payment;
 use App\Models\Pedido;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 /**
@@ -32,7 +35,9 @@ class PasarelaPagoService
     public function registrarPagoCheckout(Pedido $pedido, array $data): Payment
     {
         return DB::transaction(function () use ($pedido, $data): Payment {
-            $metodo = (string) $data['metodo_pago'];
+            $metodo = $data['metodo_pago'] instanceof MetodoPago
+                ? $data['metodo_pago']->value
+                : (string) $data['metodo_pago'];
             $payload = $this->procesarSegunMetodo($pedido, $metodo, $data);
 
             $payment = Payment::query()->create([
@@ -40,7 +45,7 @@ class PasarelaPagoService
                 'pedido_id' => $pedido->id,
                 'metodo' => $metodo,
                 'monto' => $pedido->total,
-                'estado' => $payload['estado'],
+                'estado' => $payload['estado'] instanceof EstadoPago ? $payload['estado']->value : $payload['estado'],
                 'transaccion_id_pasarela' => $payload['transaccion_id_pasarela'] ?? null,
                 'hmac_validado' => $payload['hmac_validado'] ?? false,
                 'referencia_bancaria' => $payload['referencia_bancaria'] ?? null,
@@ -49,7 +54,7 @@ class PasarelaPagoService
                 'pasarela_payload' => $payload,
             ]);
 
-            $pedido->update(['estado_pago' => $this->estadoPedidoPago($payment->estado)]);
+            $pedido->update(['estado_pago' => $this->estadoPedidoPago($payment->estado)->value]);
 
             return $payment;
         });
@@ -83,12 +88,14 @@ class PasarelaPagoService
             }
 
             $payment->update([
-                'estado' => $payload['status'] === 'approved' ? 'aprobado' : 'rechazado',
+                'estado' => ($payload['status'] ?? null) === 'approved'
+                    ? EstadoPago::Aprobado->value
+                    : EstadoPago::Rechazado->value,
                 'hmac_validado' => true,
                 'validado_at' => now(),
                 'pasarela_payload' => $payload,
             ]);
-            $payment->pedido()->update(['estado_pago' => $this->estadoPedidoPago($payment->estado)]);
+            $payment->pedido()->update(['estado_pago' => $this->estadoPedidoPago($payment->estado)->value]);
 
             return $payment->refresh();
         });
@@ -107,15 +114,18 @@ class PasarelaPagoService
     private function procesarSegunMetodo(Pedido $pedido, string $metodo, array $data): array
     {
         return match ($metodo) {
-            'tarjeta' => $this->procesarTarjetaMock($pedido, $data),
-            'transferencia' => ['estado' => 'validando', 'referencia_bancaria' => $data['referencia_bancaria'] ?? null],
-            'efectivo' => ['estado' => 'pendiente'],
+            MetodoPago::Tarjeta->value => $this->procesarTarjetaStripe($pedido, $data),
+            MetodoPago::Transferencia->value => [
+                'estado' => EstadoPago::Validando,
+                'referencia_bancaria' => $data['referencia_bancaria'] ?? null,
+            ],
+            MetodoPago::Efectivo->value => ['estado' => EstadoPago::Pendiente],
             default => throw new PagoRechazadoException('Metodo de pago no soportado.'),
         };
     }
 
     /**
-     * Procesa tarjeta contra contrato mock de pasarela.
+     * Procesa tarjeta con Stripe Payment Intents.
      *
      * @param Pedido $pedido
      * @param array<string, mixed> $data
@@ -123,22 +133,102 @@ class PasarelaPagoService
      *
      * @throws PagoRechazadoException
      */
-    private function procesarTarjetaMock(Pedido $pedido, array $data): array
+    private function procesarTarjetaStripe(Pedido $pedido, array $data): array
     {
-        if (($data['card_token'] ?? null) === 'tok_rechazada') {
-            throw new PagoRechazadoException('La pasarela rechazo el pago.');
+        $secret = (string) config('services.stripe.secret_key');
+
+        if ($secret === '') {
+            throw new PagoRechazadoException('Stripe no esta configurado para procesar tarjetas.');
+        }
+
+        $paymentMethod = (string) ($data['card_token'] ?? '');
+
+        if ($paymentMethod === '') {
+            throw new PagoRechazadoException('No se recibio el metodo de pago seguro de Stripe.');
+        }
+
+        $response = Http::asForm()
+            ->withToken($secret)
+            ->withHeaders(['Idempotency-Key' => 'pedido-' . $pedido->uuid])
+            ->timeout(20)
+            ->post('https://api.stripe.com/v1/payment_intents', [
+                'amount' => (int) round(((float) $pedido->total) * 100),
+                'currency' => strtolower((string) config('services.stripe.currency', 'gtq')),
+                'payment_method' => $paymentMethod,
+                'confirm' => 'true',
+                'description' => 'Atlantia Supermarket pedido ' . $pedido->numero_pedido,
+                'metadata[pedido_uuid]' => $pedido->uuid,
+                'metadata[numero_pedido]' => $pedido->numero_pedido,
+            ]);
+
+        if (! $response->successful()) {
+            throw new PagoRechazadoException(
+                (string) ($response->json('error.message') ?: 'Stripe rechazo el pago.')
+            );
+        }
+
+        $payload = $response->json();
+        $status = (string) ($payload['status'] ?? '');
+
+        if (! in_array($status, ['succeeded', 'processing', 'requires_capture'], true)) {
+            throw new PagoRechazadoException('Stripe no aprobo el pago de la tarjeta.');
         }
 
         return [
-            'estado' => 'aprobado',
-            'transaccion_id_pasarela' => 'ATL-PAY-' . Str::upper(Str::random(12)),
+            'estado' => EstadoPago::Aprobado,
+            'transaccion_id_pasarela' => $payload['id'] ?? null,
             'hmac_validado' => true,
             'validado_at' => now(),
-            'gateway' => 'mock-visanet',
-            'authorization' => 'APROBADA',
+            'gateway' => 'stripe',
+            'authorization' => $status,
             'amount' => (float) $pedido->total,
             'currency' => 'GTQ',
+            'stripe_payment_intent' => $payload['id'] ?? null,
+            'stripe_status' => $status,
         ];
+    }
+
+    /**
+     * Solicita reembolso en Stripe cuando existe PaymentIntent.
+     */
+    public function reembolsar(Payment $payment, float $monto): Payment
+    {
+        return DB::transaction(function () use ($payment, $monto): Payment {
+            $payment->refresh();
+            $payload = $payment->pasarela_payload ?? [];
+
+            if ($payment->metodo === MetodoPago::Tarjeta && ($payload['stripe_payment_intent'] ?? null)) {
+                $secret = (string) config('services.stripe.secret_key');
+
+                if ($secret === '') {
+                    throw new PagoRechazadoException('Stripe no esta configurado para reembolsos.');
+                }
+
+                $response = Http::asForm()
+                    ->withToken($secret)
+                    ->timeout(20)
+                    ->post('https://api.stripe.com/v1/refunds', [
+                        'payment_intent' => $payload['stripe_payment_intent'],
+                        'amount' => (int) round($monto * 100),
+                    ]);
+
+                if (! $response->successful()) {
+                    throw new PagoRechazadoException(
+                        (string) ($response->json('error.message') ?: 'Stripe rechazo el reembolso.')
+                    );
+                }
+
+                $payload['stripe_refund'] = $response->json();
+            }
+
+            $payment->update([
+                'estado' => EstadoPago::Reembolsado->value,
+                'pasarela_payload' => $payload,
+            ]);
+            $payment->pedido()->update(['estado_pago' => EstadoPago::Reembolsado->value]);
+
+            return $payment->refresh();
+        });
     }
 
     /**
@@ -147,14 +237,16 @@ class PasarelaPagoService
      * @param string $estado
      * @return string
      */
-    private function estadoPedidoPago(string $estado): string
+    private function estadoPedidoPago(string|EstadoPago $estado): EstadoPago
     {
-        return match ($estado) {
-            'aprobado' => 'pagado',
-            'validando' => 'validando',
-            'rechazado' => 'rechazado',
-            'reembolsado' => 'reembolsado',
-            default => 'pendiente',
+        $estadoValue = $estado instanceof EstadoPago ? $estado->value : $estado;
+
+        return match ($estadoValue) {
+            EstadoPago::Aprobado->value => EstadoPago::Pagado,
+            EstadoPago::Validando->value => EstadoPago::Validando,
+            EstadoPago::Rechazado->value => EstadoPago::Rechazado,
+            EstadoPago::Reembolsado->value => EstadoPago::Reembolsado,
+            default => EstadoPago::Pendiente,
         };
     }
 }

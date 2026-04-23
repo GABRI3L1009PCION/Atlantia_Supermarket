@@ -2,7 +2,10 @@
 
 namespace App\Services\Pedidos;
 
+use App\Enums\EstadoPago;
+use App\Enums\EstadoPedido;
 use App\Exceptions\StockInsuficienteException;
+use App\Exceptions\PagoRechazadoException;
 use App\Exceptions\TransaccionFallidaException;
 use App\Models\Carrito;
 use App\Models\Cliente\Direccion;
@@ -58,8 +61,10 @@ class CheckoutService
      */
     public function checkout(User $cliente, array $data): Pedido
     {
+        $rejectedPayment = null;
+
         try {
-            return DB::transaction(function () use ($cliente, $data): Pedido {
+            $pedido = DB::transaction(function () use ($cliente, $data, &$rejectedPayment): Pedido {
                 $carrito = $this->lockedCartFor($cliente);
                 $direccion = $this->direccionFor($cliente, (int) $data['direccion_id']);
                 $items = $carrito->items()->with(['producto.vendor', 'producto.inventario'])->lockForUpdate()->get();
@@ -69,19 +74,50 @@ class CheckoutService
                 }
 
                 $this->stockService->assertAvailableForItems($items);
+                $this->stockService->reserveForItems($items);
+
                 $totals = $this->calculateTotals($items, (float) ($data['envio'] ?? 0));
                 $pedido = $this->splitMultivendedorService->crearPedidoDesdeCarrito($cliente, $direccion, $items, $totals, $data);
 
-                $payment = $this->pasarelaPagoService->registrarPagoCheckout($pedido, $data);
+                try {
+                    $payment = $this->pasarelaPagoService->registrarPagoCheckout($pedido, $data);
+                } catch (PagoRechazadoException $exception) {
+                    $this->stockService->releaseForPedido($pedido);
+                    $this->estadoPedidoService->registrar(
+                        $pedido,
+                        EstadoPedido::Cancelado,
+                        'Pedido cancelado por rechazo de pago.',
+                        $cliente
+                    );
+                    $rejectedPayment = $exception;
+
+                    return $pedido->refresh();
+                }
+
                 $this->splitMultivendedorService->crearSplitsDePago($payment, $pedido);
-                $this->stockService->reserveForItems($items);
-                $this->estadoPedidoService->registrar($pedido, 'confirmado', 'Pedido confirmado por checkout.', $cliente);
+
+                if ($payment->estado !== EstadoPago::Rechazado) {
+                    $this->estadoPedidoService->registrar(
+                        $pedido,
+                        EstadoPedido::Confirmado,
+                        'Pedido confirmado por checkout.',
+                        $cliente
+                    );
+                }
 
                 $carrito->update(['estado' => 'convertido']);
 
                 return $pedido->refresh();
             });
+
+            if ($rejectedPayment instanceof PagoRechazadoException) {
+                throw $rejectedPayment;
+            }
+
+            return $pedido;
         } catch (StockInsuficienteException|TransaccionFallidaException $exception) {
+            throw $exception;
+        } catch (PagoRechazadoException $exception) {
             throw $exception;
         } catch (Throwable $exception) {
             throw new TransaccionFallidaException('No fue posible completar el checkout.', previous: $exception);

@@ -53,7 +53,7 @@
                                         <td class="py-3 font-semibold text-atlantia-wine">Q{{ number_format((float) $pedido->total, 2) }}</td>
                                         <td class="py-3 text-right">
                                             <span class="rounded-md bg-atlantia-blush px-3 py-1 text-xs font-bold text-atlantia-wine">
-                                                {{ str_replace('_', ' ', $pedido->estado) }}
+                                                {{ str_replace('_', ' ', $pedido->estadoValor()) }}
                                             </span>
                                         </td>
                                     </tr>

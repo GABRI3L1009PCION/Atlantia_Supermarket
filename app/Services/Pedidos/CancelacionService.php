@@ -2,6 +2,7 @@
 
 namespace App\Services\Pedidos;
 
+use App\Enums\EstadoPedido;
 use App\Exceptions\TransaccionFallidaException;
 use App\Models\Pedido;
 use App\Models\User;
@@ -37,14 +38,14 @@ class CancelacionService
     {
         try {
             return DB::transaction(function () use ($pedido, $usuario, $motivo): Pedido {
-                if (in_array($pedido->estado, ['entregado', 'cancelado'], true)) {
+                if (in_array($pedido->estado, [EstadoPedido::Entregado, EstadoPedido::Cancelado], true)) {
                     throw new TransaccionFallidaException('El pedido no puede cancelarse en su estado actual.');
                 }
 
                 $pedido->loadMissing('items');
                 $this->stockService->releaseForPedido($pedido);
 
-                return $this->estadoPedidoService->registrar($pedido, 'cancelado', $motivo, $usuario);
+                return $this->estadoPedidoService->registrar($pedido, EstadoPedido::Cancelado, $motivo, $usuario);
             });
         } catch (TransaccionFallidaException $exception) {
             throw $exception;

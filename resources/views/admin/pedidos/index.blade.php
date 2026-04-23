@@ -73,11 +73,11 @@
                                 <td class="py-3 font-semibold text-atlantia-ink">Q{{ number_format((float) $pedido->total, 2) }}</td>
                                 <td class="py-3">
                                     <span class="rounded-md bg-atlantia-blush px-3 py-1 text-xs font-bold text-atlantia-wine">
-                                        {{ $pedido->estado_pago }}
+                                        {{ str_replace('_', ' ', $pedido->estadoPagoValor()) }}
                                     </span>
                                 </td>
                                 <td class="py-3">
-                                    <p class="font-semibold text-atlantia-ink">{{ $pedido->estado }}</p>
+                                    <p class="font-semibold text-atlantia-ink">{{ str_replace('_', ' ', $pedido->estadoValor()) }}</p>
                                     <p class="text-xs text-atlantia-ink/55">{{ $pedido->deliveryRoute?->repartidor?->name ?? 'Sin asignar' }}</p>
                                 </td>
                                 <td class="py-3 text-right">

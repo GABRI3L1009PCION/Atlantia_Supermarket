@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Enums\EstadoPedido;
 use App\Events\PedidoCreado;
 use App\Events\PedidoEntregado;
 use App\Jobs\Ml\DetectarFraudeEnPedido;
@@ -52,7 +53,7 @@ class PedidoObserver
      */
     public function updated(Pedido $pedido): void
     {
-        if ($pedido->wasChanged('estado') && $pedido->estado === 'entregado') {
+        if ($pedido->wasChanged('estado') && $pedido->estado === EstadoPedido::Entregado) {
             PedidoEntregado::dispatch($pedido);
         }
     }

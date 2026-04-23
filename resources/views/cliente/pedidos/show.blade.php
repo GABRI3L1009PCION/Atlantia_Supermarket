@@ -5,8 +5,8 @@
         $clienteNombre = explode(' ', trim(auth()->user()?->name ?? 'cliente'))[0] ?: 'cliente';
         $payment = $pedido->payments->first();
         $fechaPedido = ($pedido->confirmado_at ?? $pedido->created_at)->format('d/m/Y h:i a');
-        $estado = (string) $pedido->estado;
-        $estadoPago = (string) $pedido->estado_pago;
+        $estado = $pedido->estadoValor();
+        $estadoPago = $pedido->estadoPagoValor();
         $items = $pedido->pedidosHijos->flatMap->items;
         $itemsCount = (int) $items->sum('cantidad');
         $seguimiento = [
@@ -50,7 +50,7 @@
                         <div>
                             <p class="text-xs font-black uppercase tracking-normal text-atlantia-ink/50">Metodo de pago</p>
                             <p class="mt-2 font-bold text-atlantia-ink">
-                                {{ ucfirst(str_replace('_', ' ', (string) $pedido->metodo_pago)) }}
+                                {{ ucfirst(str_replace('_', ' ', $pedido->metodoPagoValor())) }}
                             </p>
                         </div>
                     </div>
@@ -129,7 +129,7 @@
                                 Metodo de pago
                             </p>
                             <p class="mt-3 font-bold text-atlantia-ink">
-                                {{ ucfirst((string) $pedido->metodo_pago) }}
+                                {{ ucfirst($pedido->metodoPagoValor()) }}
                                 <span class="font-normal text-atlantia-ink/60">
                                     - {{ ucfirst($estadoPago) }}
                                 </span>
@@ -262,7 +262,7 @@
                     <span
                         class="mt-5 inline-flex rounded-full bg-amber-100 px-4 py-2 text-xs font-black uppercase text-amber-800"
                     >
-                        {{ $payment?->estado === 'aprobado' ? 'Pago confirmado' : 'Pago al entregar' }}
+                        {{ $payment?->estadoValor() === 'aprobado' ? 'Pago confirmado' : 'Pago al entregar' }}
                     </span>
 
                     <div class="mt-6 grid gap-3">
@@ -280,6 +280,15 @@
                         >
                             Seguir comprando
                         </a>
+                        @can('create', [\App\Models\Devolucion::class, $pedido])
+                            <a
+                                href="{{ route('cliente.devoluciones.create', $pedido) }}"
+                                class="rounded-md border border-atlantia-rose/40 px-5 py-3 text-center text-sm font-black
+                                    text-atlantia-wine hover:bg-atlantia-blush"
+                            >
+                                Solicitar devolucion
+                            </a>
+                        @endcan
                     </div>
 
                     <div class="mt-6 rounded-lg bg-atlantia-blush p-4">

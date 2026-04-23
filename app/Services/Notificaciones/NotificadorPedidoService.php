@@ -33,7 +33,7 @@ class NotificadorPedidoService
             'titulo' => 'Pedido confirmado',
             'mensaje' => "Tu pedido {$pedido->numero_pedido} fue confirmado.",
             'pedido_uuid' => $pedido->uuid,
-            'estado' => $pedido->estado,
+            'estado' => $pedido->estadoValor(),
         ]);
 
         if ($pedido->vendor?->user !== null) {

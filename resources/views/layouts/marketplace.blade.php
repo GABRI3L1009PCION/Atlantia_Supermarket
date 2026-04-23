@@ -8,7 +8,7 @@
     <title>{{ $title ?? 'Atlantia Supermarket' }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @livewireStyles
+    @livewireStyles(['nonce' => request()->attributes->get('csp_nonce')])
 </head>
 <body class="flex min-h-screen flex-col bg-white text-atlantia-ink antialiased">
     @include('layouts.partials.header')
@@ -22,7 +22,8 @@
 
     @include('layouts.partials.footer')
 
-    @livewireScripts
+    @livewireScripts(['nonce' => request()->attributes->get('csp_nonce')])
+    @include('layouts.partials.protect-submit')
     @stack('scripts')
 </body>
 </html>

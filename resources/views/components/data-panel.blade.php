@@ -40,12 +40,20 @@
                                         {{ $item->nombre ?? $item->name ?? $item->business_name ?? $item->numero_pedido ?? $item->numero_dte ?? $item->titulo ?? $item->uuid ?? 'Registro' }}
                                     </p>
                                     <p class="mt-1 text-xs text-atlantia-ink/50">
-                                        {{ $item->email ?? $item->sku ?? $item->metodo ?? $item->tipo ?? optional($item->created_at)->format('d/m/Y H:i') }}
+                                        @php
+                                            $meta = $item->email ?? $item->sku ?? $item->metodo ?? $item->tipo ?? null;
+                                            $meta = $meta instanceof \BackedEnum ? $meta->value : $meta;
+                                        @endphp
+                                        {{ $meta ?? optional($item->created_at)->format('d/m/Y H:i') }}
                                     </p>
                                 </td>
                                 <td class="px-4 py-3 text-right text-atlantia-ink/65">
                                     <span class="inline-flex rounded-md bg-atlantia-blush px-3 py-1 text-xs font-bold text-atlantia-wine">
-                                        {{ $item->estado ?? $item->status ?? optional($item->created_at)->format('d/m/Y H:i') }}
+                                        @php
+                                            $badge = $item->estado ?? $item->status ?? null;
+                                            $badge = $badge instanceof \BackedEnum ? $badge->value : $badge;
+                                        @endphp
+                                        {{ $badge ?? optional($item->created_at)->format('d/m/Y H:i') }}
                                     </span>
                                 </td>
                             </tr>

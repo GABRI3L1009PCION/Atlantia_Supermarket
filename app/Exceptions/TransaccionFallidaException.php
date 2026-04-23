@@ -20,7 +20,6 @@ class TransaccionFallidaException extends AtlantiaDomainException
      */
     public function publicMessage(): string
     {
-        return 'La transaccion no pudo completarse de forma segura.';
+        return $this->getMessage() ?: 'La transaccion no pudo completarse de forma segura.';
     }
 }
-

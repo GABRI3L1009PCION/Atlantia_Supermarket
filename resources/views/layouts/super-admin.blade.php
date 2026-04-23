@@ -24,6 +24,7 @@
             ['label' => 'Comisiones', 'route' => route('admin.comisiones.index'), 'active' => request()->routeIs('admin.comisiones.*')],
             ['label' => 'DTE y FEL', 'route' => route('admin.dte.index'), 'active' => request()->routeIs('admin.dte.*')],
             ['label' => 'Resenas', 'route' => route('admin.resenas.index'), 'active' => request()->routeIs('admin.resenas.*')],
+            ['label' => 'Devoluciones', 'route' => route('admin.devoluciones.index'), 'active' => request()->routeIs('admin.devoluciones.*')],
             ['label' => 'Antifraude', 'route' => route('admin.antifraude.index'), 'active' => request()->routeIs('admin.antifraude.*')],
         ],
         'Inteligencia' => [
@@ -43,7 +44,7 @@
     <title>{{ $title ?? 'Atlantia Super Admin' }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @livewireStyles
+    @livewireStyles(['nonce' => request()->attributes->get('csp_nonce')])
 </head>
 <body class="min-h-screen bg-[#101014] text-[#f7f0f4] antialiased">
     <div class="min-h-screen xl:grid xl:grid-cols-[18rem_1fr]">
@@ -139,7 +140,8 @@
         </div>
     </div>
 
-    @livewireScripts
+    @livewireScripts(['nonce' => request()->attributes->get('csp_nonce')])
+    @include('layouts.partials.protect-submit')
     @stack('scripts')
 </body>
 </html>

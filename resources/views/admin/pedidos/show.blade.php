@@ -19,16 +19,16 @@
                         <div class="rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-4">
                             <p class="text-sm text-atlantia-ink/55">Vendedor</p>
                             <p class="mt-2 font-semibold text-atlantia-ink">{{ $pedido->vendor?->business_name ?? 'Consolidado Atlantia' }}</p>
-                            <p class="text-sm text-atlantia-ink/55">{{ ucfirst($pedido->metodo_pago) }}</p>
+                            <p class="text-sm text-atlantia-ink/55">{{ ucfirst($pedido->metodoPagoValor()) }}</p>
                         </div>
                         <div class="rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-4">
                             <p class="text-sm text-atlantia-ink/55">Total</p>
                             <p class="mt-2 text-2xl font-bold text-atlantia-wine">Q{{ number_format((float) $pedido->total, 2) }}</p>
-                            <p class="text-sm text-atlantia-ink/55">Pago {{ $pedido->estado_pago }}</p>
+                            <p class="text-sm text-atlantia-ink/55">Pago {{ str_replace('_', ' ', $pedido->estadoPagoValor()) }}</p>
                         </div>
                         <div class="rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-4">
                             <p class="text-sm text-atlantia-ink/55">Entrega</p>
-                            <p class="mt-2 font-semibold text-atlantia-ink">{{ ucfirst(str_replace('_', ' ', $pedido->estado)) }}</p>
+                            <p class="mt-2 font-semibold text-atlantia-ink">{{ ucfirst(str_replace('_', ' ', $pedido->estadoValor())) }}</p>
                             <p class="text-sm text-atlantia-ink/55">{{ $pedido->deliveryRoute?->repartidor?->name ?? 'Sin asignar' }}</p>
                         </div>
                     </div>
@@ -72,8 +72,8 @@
                                 <div class="rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-4">
                                     <div class="flex items-center justify-between gap-3">
                                         <div>
-                                            <p class="font-semibold text-atlantia-ink">{{ ucfirst($payment->metodo) }}</p>
-                                            <p class="text-sm text-atlantia-ink/55">{{ $payment->estado }}</p>
+                                            <p class="font-semibold text-atlantia-ink">{{ ucfirst($payment->metodoValor()) }}</p>
+                                            <p class="text-sm text-atlantia-ink/55">{{ str_replace('_', ' ', $payment->estadoValor()) }}</p>
                                         </div>
                                         <p class="font-bold text-atlantia-wine">Q{{ number_format((float) $payment->monto, 2) }}</p>
                                     </div>
@@ -129,7 +129,7 @@
                             <label class="text-sm font-semibold text-atlantia-ink">Estado del pedido</label>
                             <select name="estado" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
                                 @foreach (['pendiente', 'confirmado', 'preparando', 'en_ruta', 'entregado', 'cancelado'] as $estado)
-                                    <option value="{{ $estado }}" @selected($pedido->estado === $estado)>{{ ucfirst(str_replace('_', ' ', $estado)) }}</option>
+                                    <option value="{{ $estado }}" @selected($pedido->estadoValor() === $estado)>{{ ucfirst(str_replace('_', ' ', $estado)) }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -137,7 +137,7 @@
                             <label class="text-sm font-semibold text-atlantia-ink">Estado de pago</label>
                             <select name="estado_pago" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
                                 @foreach (['pendiente', 'validando', 'pagado', 'rechazado', 'reembolsado'] as $estadoPago)
-                                    <option value="{{ $estadoPago }}" @selected($pedido->estado_pago === $estadoPago)>{{ ucfirst($estadoPago) }}</option>
+                                    <option value="{{ $estadoPago }}" @selected($pedido->estadoPagoValor() === $estadoPago)>{{ ucfirst($estadoPago) }}</option>
                                 @endforeach
                             </select>
                         </div>

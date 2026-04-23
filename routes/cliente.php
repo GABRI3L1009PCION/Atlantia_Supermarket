@@ -4,6 +4,7 @@ use App\Http\Controllers\Cliente\CarritoController;
 use App\Http\Controllers\Cliente\CatalogoController;
 use App\Http\Controllers\Cliente\CheckoutController;
 use App\Http\Controllers\Cliente\DireccionController;
+use App\Http\Controllers\Cliente\DevolucionController;
 use App\Http\Controllers\Cliente\PedidoController;
 use App\Http\Controllers\Cliente\PerfilController;
 use App\Http\Controllers\Cliente\ProductoController;
@@ -46,6 +47,11 @@ Route::prefix('cliente')
 
         Route::get('/pedidos', [PedidoController::class, 'index'])->name('pedidos.index');
         Route::get('/pedidos/{pedido:uuid}', [PedidoController::class, 'show'])->name('pedidos.show');
+        Route::get('/pedidos/{pedido:uuid}/devolucion', [DevolucionController::class, 'create'])
+            ->name('devoluciones.create');
+        Route::post('/pedidos/{pedido:uuid}/devolucion', [DevolucionController::class, 'store'])
+            ->middleware('throttle:10,1')
+            ->name('devoluciones.store');
         Route::get('/pedidos/{pedido:uuid}/seguimiento', [SeguimientoController::class, 'show'])
             ->name('pedidos.seguimiento');
         Route::get('/pedidos/{pedido:uuid}/seguimiento/live', [SeguimientoController::class, 'live'])

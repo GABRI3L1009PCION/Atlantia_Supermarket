@@ -44,7 +44,10 @@ class CheckoutController extends Controller
 
             return redirect()->route('cliente.pedidos.show', $pedido)->with('success', 'Pedido creado correctamente.');
         } catch (StockInsuficienteException|PagoRechazadoException $exception) {
-            return back()->withInput()->with('error', $exception->getMessage());
+            return back()
+                ->withInput()
+                ->with('error', $exception->publicMessage())
+                ->with('error_type', class_basename($exception));
         }
     }
 }

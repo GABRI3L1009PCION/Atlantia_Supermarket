@@ -2,6 +2,8 @@
 
 namespace App\Services\Antifraude;
 
+use App\Enums\EstadoPago;
+use App\Enums\MetodoPago;
 use App\Models\Ml\FraudAlert;
 use App\Models\Pedido;
 use App\Models\User;
@@ -154,7 +156,7 @@ class DeteccionPatronesService
             $razones[] = 'monto_alto';
         }
 
-        if ($pedido->metodo_pago === 'tarjeta' && $pedido->estado_pago !== 'pagado') {
+        if ($pedido->metodo_pago === MetodoPago::Tarjeta && $pedido->estado_pago !== EstadoPago::Pagado) {
             $score += 0.25;
             $razones[] = 'tarjeta_no_confirmada';
         }
@@ -179,7 +181,7 @@ class DeteccionPatronesService
             'score_riesgo' => min(1.0, round($score, 6)),
             'razones' => $razones,
             'pedido_total' => (float) $pedido->total,
-            'metodo_pago' => $pedido->metodo_pago,
+            'metodo_pago' => $pedido->metodoPagoValor(),
             'pedidos_recientes_cliente' => $pedidosRecientes,
         ];
     }

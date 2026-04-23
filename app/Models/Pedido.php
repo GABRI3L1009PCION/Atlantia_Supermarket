@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\EstadoPago;
+use App\Enums\EstadoPedido;
+use App\Enums\MetodoPago;
 use App\Models\Cliente\Direccion;
 use App\Models\Dte\DteFactura;
 use Illuminate\Database\Eloquent\Builder;
@@ -64,6 +67,9 @@ class Pedido extends Model
             'impuestos' => 'decimal:2',
             'descuento' => 'decimal:2',
             'total' => 'decimal:2',
+            'estado' => EstadoPedido::class,
+            'metodo_pago' => MetodoPago::class,
+            'estado_pago' => EstadoPago::class,
             'confirmado_at' => 'datetime',
             'cancelado_at' => 'datetime',
             'deleted_at' => 'datetime',
@@ -181,6 +187,16 @@ class Pedido extends Model
     }
 
     /**
+     * Devoluciones solicitadas sobre el pedido.
+     *
+     * @return HasMany<Devolucion>
+     */
+    public function devoluciones(): HasMany
+    {
+        return $this->hasMany(Devolucion::class);
+    }
+
+    /**
      * Ruta de entrega asociada al pedido.
      *
      * @return HasOne<DeliveryRoute>
@@ -243,5 +259,29 @@ class Pedido extends Model
     public function scopeHijos(Builder $query): Builder
     {
         return $query->whereNotNull('pedido_padre_id');
+    }
+
+    /**
+     * Devuelve estado como texto plano para vistas y payloads.
+     */
+    public function estadoValor(): string
+    {
+        return $this->estado instanceof EstadoPedido ? $this->estado->value : (string) $this->estado;
+    }
+
+    /**
+     * Devuelve estado de pago como texto plano para vistas y payloads.
+     */
+    public function estadoPagoValor(): string
+    {
+        return $this->estado_pago instanceof EstadoPago ? $this->estado_pago->value : (string) $this->estado_pago;
+    }
+
+    /**
+     * Devuelve metodo de pago como texto plano para vistas y payloads.
+     */
+    public function metodoPagoValor(): string
+    {
+        return $this->metodo_pago instanceof MetodoPago ? $this->metodo_pago->value : (string) $this->metodo_pago;
     }
 }

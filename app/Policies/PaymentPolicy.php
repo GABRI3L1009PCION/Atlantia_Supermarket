@@ -2,6 +2,8 @@
 
 namespace App\Policies;
 
+use App\Enums\EstadoPago;
+use App\Enums\MetodoPago;
 use App\Models\Payment;
 use App\Models\User;
 
@@ -18,8 +20,7 @@ class PaymentPolicy
     public function validateTransfer(User $user, Payment $payment): bool
     {
         return $this->validateTransfers($user)
-            && $payment->metodo === 'transferencia'
-            && $payment->estado === 'pendiente';
+            && $payment->metodo === MetodoPago::Transferencia
+            && $payment->estado === EstadoPago::Pendiente;
     }
 }
-

@@ -7,6 +7,7 @@ use App\Models\Categoria;
 use App\Models\Cliente\Direccion;
 use App\Models\DeliveryRoute;
 use App\Models\DeliveryZone;
+use App\Models\Devolucion;
 use App\Models\Dte\DteFactura;
 use App\Models\Empleado;
 use App\Models\Inventario;
@@ -20,6 +21,8 @@ use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorCommission;
 use App\Models\AuditLog;
+use App\Events\DevolucionAprobada;
+use App\Listeners\EnviarEmailDevolucionAprobada;
 use App\Policies\AuditLogPolicy;
 use App\Observers\PedidoObserver;
 use App\Observers\ProductoObserver;
@@ -29,6 +32,7 @@ use App\Policies\CarritoItemPolicy;
 use App\Policies\CategoriaPolicy;
 use App\Policies\DeliveryRoutePolicy;
 use App\Policies\DeliveryZonePolicy;
+use App\Policies\DevolucionPolicy;
 use App\Policies\DireccionPolicy;
 use App\Policies\DtePolicy;
 use App\Policies\EmpleadoPolicy;
@@ -50,6 +54,7 @@ use App\Services\Ml\MlServiceClientInterface;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -109,6 +114,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Direccion::class, DireccionPolicy::class);
         Gate::policy(DeliveryRoute::class, DeliveryRoutePolicy::class);
+        Gate::policy(Devolucion::class, DevolucionPolicy::class);
         Gate::policy(Inventario::class, InventarioPolicy::class);
         Gate::policy(VendorCommission::class, VendorCommissionPolicy::class);
         Gate::policy(FraudAlert::class, FraudAlertPolicy::class);
@@ -145,6 +151,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('viewRepartidores', fn (User $user): bool => $user->isAdministrator());
         Gate::define('viewRepartidor', fn (User $user, User $repartidor): bool => $user->isAdministrator()
             && $repartidor->hasRole('repartidor'));
+
+        Event::listen(DevolucionAprobada::class, EnviarEmailDevolucionAprobada::class);
 
         Producto::observe(ProductoObserver::class);
         Pedido::observe(PedidoObserver::class);

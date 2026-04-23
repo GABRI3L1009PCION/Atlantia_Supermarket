@@ -66,6 +66,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return back()
                 ->withInput()
-                ->with('error', $exception->publicMessage());
+                ->with('error', $exception->publicMessage())
+                ->with('error_type', class_basename($exception));
         });
     })->create();

@@ -22,7 +22,6 @@ abstract class AtlantiaDomainException extends RuntimeException
      */
     public function publicMessage(): string
     {
-        return 'No fue posible completar la operacion solicitada.';
+        return $this->getMessage() ?: 'No fue posible completar la operacion solicitada.';
     }
 }
-

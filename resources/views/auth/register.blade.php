@@ -3,7 +3,7 @@
 @section('content')
     <x-page-header title="Crear cuenta" subtitle="Compra a vendedores locales de Izabal con una cuenta segura." />
 
-    <form method="POST" action="{{ route('register.store') }}" class="space-y-4">
+    <form method="POST" action="{{ route('register.store') }}" class="space-y-4" data-protect-submit>
         @csrf
         <input type="hidden" name="role" value="cliente">
 

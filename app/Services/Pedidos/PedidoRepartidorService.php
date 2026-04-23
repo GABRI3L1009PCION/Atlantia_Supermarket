@@ -2,6 +2,7 @@
 
 namespace App\Services\Pedidos;
 
+use App\Enums\EstadoPedido;
 use App\Models\Pedido;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -63,12 +64,12 @@ class PedidoRepartidorService
                 $pedido->deliveryRoute->update(['aceptada_at' => now()]);
             }
 
-            if ($pedido->estado === 'confirmado') {
-                $pedido->update(['estado' => 'preparando']);
+            if ($pedido->estado === EstadoPedido::Confirmado) {
+                $pedido->update(['estado' => EstadoPedido::EnPreparacion->value]);
             }
 
             $pedido->estados()->create([
-                'estado' => $pedido->estado,
+                'estado' => $pedido->estadoValor(),
                 'notas' => 'Entrega aceptada por el repartidor. Se notificara cuando el pedido este listo.',
                 'usuario_id' => $user->id,
             ]);
@@ -85,7 +86,7 @@ class PedidoRepartidorService
         return DB::transaction(function () use ($pedido, $user): Pedido {
             $pedido->loadMissing('deliveryRoute');
 
-            $pedido->update(['estado' => 'en_ruta']);
+            $pedido->update(['estado' => EstadoPedido::EnRuta->value]);
 
             if ($pedido->deliveryRoute !== null) {
                 $pedido->deliveryRoute->update([
@@ -96,7 +97,7 @@ class PedidoRepartidorService
             }
 
             $pedido->estados()->create([
-                'estado' => 'en_ruta',
+                'estado' => EstadoPedido::EnRuta->value,
                 'notas' => 'Pedido recogido por el repartidor y en camino al cliente.',
                 'usuario_id' => $user->id,
             ]);
@@ -121,7 +122,7 @@ class PedidoRepartidorService
                 $evidencePath = $data['foto_entrega']->store('entregas', 'public');
             }
 
-            $pedido->update(['estado' => 'entregado']);
+            $pedido->update(['estado' => EstadoPedido::Entregado->value]);
 
             if ($pedido->deliveryRoute !== null) {
                 $startedAt = $pedido->deliveryRoute->iniciada_at ?? $pedido->deliveryRoute->asignada_at ?? now();
@@ -135,7 +136,7 @@ class PedidoRepartidorService
             }
 
             $pedido->estados()->create([
-                'estado' => 'entregado',
+                'estado' => EstadoPedido::Entregado->value,
                 'notas' => $data['notas'] ?? 'Pedido entregado al cliente.',
                 'usuario_id' => $user->id,
             ]);

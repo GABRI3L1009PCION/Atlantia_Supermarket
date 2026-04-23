@@ -20,7 +20,6 @@ class StockInsuficienteException extends AtlantiaDomainException
      */
     public function publicMessage(): string
     {
-        return 'Uno o mas productos no tienen stock suficiente.';
+        return $this->getMessage() ?: 'Uno o mas productos no tienen stock suficiente.';
     }
 }
-

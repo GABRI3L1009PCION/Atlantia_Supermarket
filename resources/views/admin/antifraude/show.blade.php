@@ -72,7 +72,7 @@
                         </div>
                         <div>
                             <dt class="text-atlantia-ink/55">Metodo de pago</dt>
-                            <dd class="font-semibold text-atlantia-ink">{{ $alert->pedido?->metodo_pago ?? 'Sin dato' }}</dd>
+                            <dd class="font-semibold text-atlantia-ink">{{ $alert->pedido?->metodoPagoValor() ?? 'Sin dato' }}</dd>
                         </div>
                         <div>
                             <dt class="text-atlantia-ink/55">Total</dt>

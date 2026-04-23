@@ -2,6 +2,8 @@
 
 namespace App\Services\Pedidos;
 
+use App\Enums\EstadoPago;
+use App\Enums\EstadoPedido;
 use App\Events\RepartidorAsignado;
 use App\Models\DeliveryRoute;
 use App\Models\Pedido;
@@ -81,11 +83,11 @@ class PedidoAdminService
                 'notas' => $data['notas'] ?? $pedido->notas,
             ]);
 
-            if ($data['estado'] === 'confirmado' && $pedido->confirmado_at === null) {
+            if ($data['estado'] === EstadoPedido::Confirmado->value && $pedido->confirmado_at === null) {
                 $pedido->confirmado_at = now();
             }
 
-            if ($data['estado'] === 'cancelado') {
+            if ($data['estado'] === EstadoPedido::Cancelado->value) {
                 $pedido->cancelado_at = now();
             }
 
@@ -94,12 +96,12 @@ class PedidoAdminService
             if ($estadoAnterior !== $pedido->estado || ! empty($data['notas_historial'])) {
                 PedidoEstado::query()->create([
                     'pedido_id' => $pedido->id,
-                    'estado' => $pedido->estado,
+                    'estado' => $pedido->estadoValor(),
                     'notas' => $data['notas_historial'] ?? $data['notas'] ?? 'Actualizacion administrativa.',
                     'usuario_id' => $usuario->id,
                 ]);
 
-                if ($pedido->estado === 'listo_para_entrega') {
+                if ($pedido->estado === EstadoPedido::ListoParaEntrega) {
                     app(NotificadorPedidoService::class)->pedidoListoParaRecoger($pedido);
                 }
             }
@@ -109,8 +111,8 @@ class PedidoAdminService
             if ($payment !== null && $estadoPagoAnterior !== $pedido->estado_pago) {
                 $payment->update([
                     'estado' => match ($pedido->estado_pago) {
-                        'pagado' => 'aprobado',
-                        default => $pedido->estado_pago,
+                        EstadoPago::Pagado => EstadoPago::Aprobado->value,
+                        default => $pedido->estadoPagoValor(),
                     },
                 ]);
             }
@@ -131,7 +133,9 @@ class PedidoAdminService
                         [
                             'uuid' => $pedido->deliveryRoute?->uuid ?? (string) Str::uuid(),
                             'repartidor_id' => $data['repartidor_id'],
-                            'estado' => in_array($pedido->estado, ['en_ruta', 'entregado'], true) ? 'iniciada' : 'asignada',
+                            'estado' => in_array($pedido->estado, [EstadoPedido::EnRuta, EstadoPedido::Entregado], true)
+                                ? 'iniciada'
+                                : 'asignada',
                             'asignada_at' => $pedido->deliveryRoute?->asignada_at ?? now(),
                             'aceptada_at' => $repartidorAnterior === (int) $data['repartidor_id']
                                 ? $pedido->deliveryRoute?->aceptada_at

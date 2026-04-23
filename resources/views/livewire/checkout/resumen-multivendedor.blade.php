@@ -108,8 +108,10 @@
             class="mt-5 flex w-full items-center justify-center rounded-md bg-atlantia-wine px-5 py-4 text-base
                 font-black text-white shadow-lg shadow-atlantia-wine/20 transition hover:bg-atlantia-wine-700
                 focus:outline-none focus:ring-2 focus:ring-atlantia-rose focus:ring-offset-2"
+            wire:loading.attr="disabled"
         >
-            Confirmar y pagar Q {{ number_format($total, 2) }}
+            <span wire:loading.remove>Confirmar y pagar Q {{ number_format($total, 2) }}</span>
+            <span wire:loading>Procesando total...</span>
         </button>
 
         <p class="mt-4 text-center text-xs text-atlantia-ink/55">

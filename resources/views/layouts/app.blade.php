@@ -30,6 +30,7 @@
     </div>
 
     @livewireScripts(['nonce' => request()->attributes->get('csp_nonce')])
+    @include('layouts.partials.protect-submit')
     @stack('scripts')
 </body>
 </html>

@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\EstadoPedido;
 use App\Models\Pedido;
 use App\Models\User;
 
@@ -149,7 +150,7 @@ class PedidoPolicy
     public function updateVendorStatus(User $user, Pedido $pedido): bool
     {
         return $this->ownsPedidoAsVendor($user, $pedido)
-            && ! in_array($pedido->estado, ['cancelado', 'entregado'], true)
+            && ! in_array($pedido->estado, [EstadoPedido::Cancelado, EstadoPedido::Entregado], true)
             && ($user->hasRole('vendedor') || $user->can('update vendor order status'));
     }
 
@@ -187,7 +188,7 @@ class PedidoPolicy
     public function updateDeliveryStatus(User $user, Pedido $pedido): bool
     {
         return $this->isAssignedCourier($user, $pedido)
-            && ! in_array($pedido->estado, ['cancelado', 'entregado'], true)
+            && ! in_array($pedido->estado, [EstadoPedido::Cancelado, EstadoPedido::Entregado], true)
             && ($user->hasRole('repartidor') || $user->can('update delivery status'));
     }
 
@@ -201,7 +202,7 @@ class PedidoPolicy
     public function reportIncident(User $user, Pedido $pedido): bool
     {
         return $this->isAssignedCourier($user, $pedido)
-            && ! in_array($pedido->estado, ['cancelado', 'entregado'], true)
+            && ! in_array($pedido->estado, [EstadoPedido::Cancelado, EstadoPedido::Entregado], true)
             && ($user->hasRole('repartidor') || $user->can('update delivery status'));
     }
 
@@ -231,7 +232,7 @@ class PedidoPolicy
     public function review(User $user, Pedido $pedido): bool
     {
         return $this->ownsPedidoAsCliente($user, $pedido)
-            && $pedido->estado === 'entregado'
+            && $pedido->estado === EstadoPedido::Entregado
             && $user->status === 'active';
     }
 
@@ -244,7 +245,7 @@ class PedidoPolicy
      */
     public function cancel(User $user, Pedido $pedido): bool
     {
-        if (in_array($pedido->estado, ['cancelado', 'entregado'], true)) {
+        if (in_array($pedido->estado, [EstadoPedido::Cancelado, EstadoPedido::Entregado], true)) {
             return false;
         }
 

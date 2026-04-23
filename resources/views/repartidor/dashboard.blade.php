@@ -28,8 +28,8 @@
             : null;
         $geometry = $rutaActual?->ruta_planificada['geometry'] ?? null;
         $accepted = $rutaActual?->aceptada_at !== null;
-        $readyToPickup = $pedidoActual?->estado === 'listo_para_entrega';
-        $inRoute = $pedidoActual?->estado === 'en_ruta';
+        $readyToPickup = $pedidoActual?->estadoValor() === 'listo_para_entrega';
+        $inRoute = $pedidoActual?->estadoValor() === 'en_ruta';
         $pendingPickup = $accepted && ! $readyToPickup && ! $inRoute;
         $statusBadge = match (true) {
             $inRoute => ['label' => 'EN CAMINO', 'class' => 'bg-atlantia-wine text-white'],
@@ -224,11 +224,11 @@
 
                                 <div class="rounded-xl bg-emerald-600 p-4 text-white">
                                     <p class="text-xs font-black uppercase tracking-[0.16em] text-white/75">
-                                        {{ $pedidoActual->metodo_pago === 'efectivo' ? 'Cobrar en efectivo' : 'Pago registrado' }}
+                                        {{ $pedidoActual->metodoPagoValor() === 'efectivo' ? 'Cobrar en efectivo' : 'Pago registrado' }}
                                     </p>
                                     <div class="mt-1 flex items-end justify-between gap-3">
                                         <p class="text-4xl font-black">Q {{ number_format($total, 2) }}</p>
-                                        @if ($pedidoActual->metodo_pago === 'efectivo')
+                                        @if ($pedidoActual->metodoPagoValor() === 'efectivo')
                                             <p class="text-right text-xs font-bold text-white/80">
                                                 Si paga con Q20.00<br>Cambio: Q {{ number_format($cambioSugerido, 2) }}
                                             </p>
@@ -338,7 +338,7 @@
                                         <div class="text-right">
                                             <p class="font-black text-atlantia-wine">Q {{ number_format((float) $ruta->pedido?->total, 2) }}</p>
                                             <p class="mt-1 rounded bg-sky-50 px-2 py-1 text-[10px] font-black uppercase text-sky-700">
-                                                {{ $ruta->pedido?->metodo_pago }}
+                                                {{ $ruta->pedido?->metodoPagoValor() }}
                                             </p>
                                         </div>
                                     </div>

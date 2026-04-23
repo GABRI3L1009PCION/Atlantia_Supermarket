@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AuditoriaController;
 use App\Http\Controllers\Admin\CategoriaController;
 use App\Http\Controllers\Admin\ComisionController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DevolucionController;
 use App\Http\Controllers\Admin\DteController;
 use App\Http\Controllers\Admin\EmpleadoController;
 use App\Http\Controllers\Admin\MlMonitorController;
@@ -97,6 +98,10 @@ Route::prefix('admin')
         Route::post('/resenas/lote/moderar', [ResenaController::class, 'moderateBatch'])->name('resenas.batch-moderate');
         Route::get('/resenas/{resena:uuid}', [ResenaController::class, 'show'])->name('resenas.show');
         Route::patch('/resenas/{resena:uuid}/moderar', [ResenaController::class, 'moderate'])->name('resenas.moderate');
+
+        Route::get('/devoluciones', [DevolucionController::class, 'index'])->name('devoluciones.index');
+        Route::patch('/devoluciones/{devolucion:uuid}', [DevolucionController::class, 'update'])
+            ->name('devoluciones.update');
 
         Route::get('/comisiones', [ComisionController::class, 'index'])->name('comisiones.index');
         Route::post('/comisiones/recalcular', [ComisionController::class, 'recalcular'])->name('comisiones.recalcular');

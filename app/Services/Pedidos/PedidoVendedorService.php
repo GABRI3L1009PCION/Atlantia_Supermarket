@@ -2,6 +2,7 @@
 
 namespace App\Services\Pedidos;
 
+use App\Enums\EstadoPedido;
 use App\Models\Pedido;
 use App\Models\User;
 use App\Services\Notificaciones\NotificadorPedidoService;
@@ -46,7 +47,7 @@ class PedidoVendedorService
             'usuario_id' => $user->id,
         ]);
 
-        if ($pedido->estado === 'listo_para_entrega') {
+        if ($pedido->estado === EstadoPedido::ListoParaEntrega) {
             app(NotificadorPedidoService::class)->pedidoListoParaRecoger($pedido);
         }
 

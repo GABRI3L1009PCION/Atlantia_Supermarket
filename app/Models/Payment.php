@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\EstadoPago;
+use App\Enums\MetodoPago;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -48,6 +50,8 @@ class Payment extends Model
     {
         return [
             'monto' => 'decimal:2',
+            'metodo' => MetodoPago::class,
+            'estado' => EstadoPago::class,
             'hmac_validado' => 'boolean',
             'validado_at' => 'datetime',
             'pasarela_payload' => 'array',
@@ -116,5 +120,21 @@ class Payment extends Model
     public function scopeMetodo(Builder $query, string $metodo): Builder
     {
         return $query->where('metodo', $metodo);
+    }
+
+    /**
+     * Devuelve metodo como texto plano para vistas y payloads.
+     */
+    public function metodoValor(): string
+    {
+        return $this->metodo instanceof MetodoPago ? $this->metodo->value : (string) $this->metodo;
+    }
+
+    /**
+     * Devuelve estado como texto plano para vistas y payloads.
+     */
+    public function estadoValor(): string
+    {
+        return $this->estado instanceof EstadoPago ? $this->estado->value : (string) $this->estado;
     }
 }

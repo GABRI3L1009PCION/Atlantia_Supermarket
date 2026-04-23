@@ -11,7 +11,7 @@
             'liveUrl' => route('cliente.pedidos.seguimiento.live', $pedido),
             'pedido' => [
                 'numero' => $pedido->numero_pedido,
-                'estado' => $pedido->estado,
+                'estado' => $pedido->estadoValor(),
             ],
             'centro' => $seguimiento['centro'],
             'destino' => $seguimiento['destino'],
@@ -117,8 +117,9 @@
                     <div class="mt-5 space-y-4">
                         @foreach (['confirmado', 'preparando', 'en_ruta', 'entregado'] as $estadoPaso)
                             @php
-                                $activo = $pedido->estado === $estadoPaso;
-                                $completado = array_search($pedido->estado, ['confirmado', 'preparando', 'en_ruta', 'entregado'], true)
+                                $estadoActual = $pedido->estadoValor();
+                                $activo = $estadoActual === $estadoPaso;
+                                $completado = array_search($estadoActual, ['confirmado', 'preparando', 'en_ruta', 'entregado'], true)
                                     >= array_search($estadoPaso, ['confirmado', 'preparando', 'en_ruta', 'entregado'], true);
                             @endphp
                             <div class="flex gap-3">

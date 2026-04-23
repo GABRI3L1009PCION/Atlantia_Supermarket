@@ -46,7 +46,7 @@
                                 </div>
                                 <div class="text-left sm:text-right">
                                     <p class="font-bold text-atlantia-wine">Q{{ number_format((float) $payment->monto, 2) }}</p>
-                                    <p class="text-xs text-atlantia-ink/55">{{ $payment->estado }}</p>
+                                    <p class="text-xs text-atlantia-ink/55">{{ str_replace('_', ' ', $payment->estadoValor()) }}</p>
                                 </div>
                             </div>
                         @empty
