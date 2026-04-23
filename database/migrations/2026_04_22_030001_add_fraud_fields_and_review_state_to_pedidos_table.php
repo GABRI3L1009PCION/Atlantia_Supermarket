@@ -24,6 +24,10 @@ return new class () extends Migration {
             $table->index(['fraud_revisado', 'fraud_score'], 'pedidos_fraud_review_index');
         });
 
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement(
             "ALTER TABLE pedidos MODIFY estado ENUM(
                 'pendiente',
@@ -45,6 +49,15 @@ return new class () extends Migration {
     public function down(): void
     {
         DB::table('pedidos')->where('estado', 'en_revision')->update(['estado' => 'confirmado']);
+
+        if (DB::getDriverName() === 'sqlite') {
+            Schema::table('pedidos', function (Blueprint $table): void {
+                $table->dropIndex('pedidos_fraud_review_index');
+                $table->dropColumn(['fraud_score', 'fraud_revisado']);
+            });
+
+            return;
+        }
 
         DB::statement(
             "ALTER TABLE pedidos MODIFY estado ENUM(

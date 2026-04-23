@@ -15,6 +15,10 @@ return new class () extends Migration {
             WHERE municipio LIKE 'Santo Tom%'
         ");
 
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement("
             ALTER TABLE direcciones
             MODIFY municipio ENUM(
@@ -33,6 +37,10 @@ return new class () extends Migration {
      */
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement("
             ALTER TABLE direcciones
             MODIFY municipio ENUM(
