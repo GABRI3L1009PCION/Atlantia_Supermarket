@@ -164,6 +164,7 @@ class AdminCrudOperationsTest extends TestCase
 
         $vendor = Vendor::factory()->approved()->create();
         $producto = Producto::factory()->publicado()->create(['vendor_id' => $vendor->id]);
+        $productoDos = Producto::factory()->publicado()->create(['vendor_id' => $vendor->id]);
         $pedido = Pedido::factory()->entregado()->create([
             'cliente_id' => $cliente->id,
             'vendor_id' => $vendor->id,
@@ -184,7 +185,7 @@ class AdminCrudOperationsTest extends TestCase
 
         $resenaDos = Resena::query()->create([
             'uuid' => (string) Str::uuid(),
-            'producto_id' => $producto->id,
+            'producto_id' => $productoDos->id,
             'cliente_id' => $cliente->id,
             'pedido_id' => $pedido->id,
             'calificacion' => 5,

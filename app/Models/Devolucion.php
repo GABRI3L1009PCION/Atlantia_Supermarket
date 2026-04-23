@@ -16,6 +16,13 @@ class Devolucion extends Model
     use HasFactory;
 
     /**
+     * Tabla asociada al modelo.
+     *
+     * @var string
+     */
+    protected $table = 'devoluciones';
+
+    /**
      * Atributos asignables masivamente.
      *
      * @var array<int, string>

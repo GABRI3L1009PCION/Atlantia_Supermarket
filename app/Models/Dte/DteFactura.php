@@ -5,8 +5,10 @@ namespace App\Models\Dte;
 use App\Models\Pedido;
 use App\Models\Vendor;
 use App\Models\VendorCommission;
+use Database\Factories\DteFacturaFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -169,5 +171,13 @@ class DteFactura extends Model
     public function scopeTipoDte(Builder $query, string $tipoDte): Builder
     {
         return $query->where('tipo_dte', $tipoDte);
+    }
+
+    /**
+     * Resuelve la factory del modelo cuando vive en subnamespace.
+     */
+    protected static function newFactory(): Factory
+    {
+        return DteFacturaFactory::new();
     }
 }

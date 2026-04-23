@@ -7,8 +7,8 @@ use App\DTOs\PedidoDTO;
 use App\Enums\EstadoPago;
 use App\Enums\EstadoPedido;
 use App\Exceptions\DireccionFueraDeZonaException;
-use App\Exceptions\StockInsuficienteException;
 use App\Exceptions\PagoRechazadoException;
+use App\Exceptions\StockInsuficienteException;
 use App\Exceptions\TransaccionFallidaException;
 use App\Jobs\AnalizarFraudeOrden;
 use App\Models\Carrito;
@@ -106,12 +106,7 @@ class CheckoutService
                     $payment = $this->pasarelaPagoService->registrarPagoCheckout($pedido, $pedidoDTO);
                 } catch (PagoRechazadoException $exception) {
                     $this->stockService->releaseForPedido($pedido);
-                    $this->estadoPedidoService->registrar(
-                        $pedido,
-                        EstadoPedido::Cancelado,
-                        'Pedido cancelado por rechazo de pago.',
-                        $cliente
-                    );
+                    $this->cancelPedidoTree($pedido, $cliente, 'Pedido cancelado por rechazo de pago.');
                     $rejectedPayment = $exception;
 
                     return $pedido->refresh();
@@ -140,7 +135,7 @@ class CheckoutService
             AnalizarFraudeOrden::dispatch($pedido->id);
 
             return $pedido;
-        } catch (StockInsuficienteException|TransaccionFallidaException $exception) {
+        } catch (StockInsuficienteException|DireccionFueraDeZonaException|TransaccionFallidaException $exception) {
             Log::warning('Checkout business rule failed', [
                 'user_id' => $cliente->id,
                 'direccion_id' => $pedidoDTO->direccionId,
@@ -284,5 +279,19 @@ class CheckoutService
             'total' => (float) $total->toDecimal(),
             'cupon' => $respuestaCupon['valido'] ? $respuestaCupon['cupon'] : null,
         ];
+    }
+
+    /**
+     * Cancela el pedido padre y todos sus pedidos hijos relacionados.
+     */
+    private function cancelPedidoTree(Pedido $pedido, User $cliente, string $nota): void
+    {
+        $pedido->loadMissing('pedidosHijos');
+
+        $this->estadoPedidoService->registrar($pedido, EstadoPedido::Cancelado, $nota, $cliente);
+
+        foreach ($pedido->pedidosHijos as $pedidoHijo) {
+            $this->estadoPedidoService->registrar($pedidoHijo, EstadoPedido::Cancelado, $nota, $cliente);
+        }
     }
 }
