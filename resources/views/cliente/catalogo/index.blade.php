@@ -2,93 +2,61 @@
 
 @section('content')
     @php
-        $heroImage = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1600&q=80';
+        $heroImage = 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=1600&q=80';
+        $basketImage = 'https://images.unsplash.com/photo-1579113800032-c38bd7635818?auto=format&fit=crop&w=1200&q=80';
     @endphp
 
-    <section class="relative overflow-hidden">
+    <section class="relative overflow-hidden pt-4">
         <div class="absolute inset-0">
-            <img src="{{ $heroImage }}" alt="Mercado local con frutas y verduras frescas" class="h-full w-full object-cover">
-            <div class="absolute inset-0 bg-[linear-gradient(110deg,rgba(248,253,255,0.92),rgba(236,249,255,0.82),rgba(241,252,255,0.38))]"></div>
-            <div class="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(115,232,244,0.28),transparent_26%),radial-gradient(circle_at_72%_30%,rgba(115,232,244,0.16),transparent_24%)]"></div>
+            <img src="{{ $heroImage }}" alt="Interior de supermercado" class="h-full w-full object-cover">
+            <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(249,254,255,0.86),rgba(239,250,255,0.70),rgba(233,247,252,0.44))]"></div>
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.75),transparent_24%),radial-gradient(circle_at_72%_24%,rgba(115,232,244,0.22),transparent_25%)]"></div>
         </div>
 
-        <div class="relative mx-auto grid min-h-[340px] w-full max-w-7xl items-center gap-6 px-4 py-8 sm:px-6 lg:min-h-[390px] lg:grid-cols-[minmax(0,1.02fr)_minmax(300px,0.9fr)] lg:px-8 lg:py-10">
-            <div class="max-w-2xl">
-                <p class="text-sm font-black uppercase tracking-[0.22em] text-atlantia-cyan-700">Atlantia Supermarket</p>
-                <h1 class="mt-3 max-w-[10ch] text-3xl font-black leading-tight text-atlantia-deep sm:text-4xl lg:text-[4rem]">
+        <div class="relative mx-auto grid min-h-[280px] w-full max-w-7xl items-center gap-4 px-4 py-8 sm:px-6 lg:min-h-[320px] lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)] lg:px-8 lg:py-10">
+            <div class="max-w-xl pl-2 sm:pl-6">
+                <h1 class="max-w-[14ch] text-3xl font-medium leading-tight text-black/85 sm:text-4xl lg:text-[3.35rem]">
                     Tu supermercado local, listo para comprar sin perder tiempo.
                 </h1>
-                <p class="mt-4 max-w-xl text-sm leading-6 text-atlantia-deep/72 sm:text-base">
-                    Compra frutas, despensa, bebidas y esenciales del hogar en una experiencia clara, fresca y hecha
-                    para vender mejor.
-                </p>
 
-                <form action="{{ route('catalogo.index') }}" method="GET" class="glass-surface cyan-ring mt-6 max-w-xl rounded-full p-1.5">
+                <form action="{{ route('catalogo.index') }}" method="GET" class="mt-5 max-w-md rounded-full border border-atlantia-cyan/60 bg-white/72 p-1.5 shadow-[0_8px_22px_rgba(18,51,66,0.08)] backdrop-blur-sm">
                     <div class="flex items-center gap-2 rounded-full">
                         <input
                             type="search"
                             name="q"
                             value="{{ request('q', '') }}"
                             placeholder="Busca frutas, abarrotes, limpieza o tu marca favorita"
-                            class="h-10 w-full rounded-full border-0 bg-transparent px-4 text-sm text-atlantia-deep placeholder:text-atlantia-deep/45 focus:outline-none focus:ring-0"
+                            class="h-8 w-full rounded-full border-0 bg-transparent px-3 text-[11px] text-atlantia-deep placeholder:text-atlantia-deep/45 focus:outline-none focus:ring-0 sm:text-xs"
                         >
-                        <button
-                            type="submit"
-                            class="inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-atlantia-cyan-700 px-5 text-sm font-bold text-white transition hover:bg-atlantia-deep"
-                        >
-                            Buscar
-                        </button>
+                        <button type="submit" class="sr-only">Buscar</button>
                     </div>
                 </form>
-
-                <div class="mt-5 flex flex-wrap gap-2 text-xs font-semibold text-atlantia-deep/72 sm:text-sm">
-                    <span class="rounded-full border border-atlantia-cyan/30 bg-white/70 px-3 py-1.5">Entrega local verificada</span>
-                    <span class="rounded-full border border-atlantia-cyan/30 bg-white/70 px-3 py-1.5">Vendedores aprobados</span>
-                    <span class="rounded-full border border-atlantia-cyan/30 bg-white/70 px-3 py-1.5">Compra rapida y segura</span>
-                </div>
             </div>
 
-            <div class="hidden lg:block">
-                <div class="glass-surface relative overflow-hidden rounded-[8px] p-4">
-                    <div class="absolute inset-x-8 top-4 h-16 rounded-full bg-atlantia-cyan/18 blur-3xl"></div>
-                    <img
-                        src="https://images.unsplash.com/photo-1579113800032-c38bd7635818?auto=format&fit=crop&w=900&q=80"
-                        alt="Canasta con frutas y vegetales en supermercado"
-                        class="relative mx-auto aspect-[4/3] w-full rounded-[8px] object-cover"
-                    >
-                    <div class="mt-4 grid grid-cols-3 gap-2.5">
-                        <div class="rounded-[8px] border border-atlantia-cyan/20 bg-white/80 px-3 py-2.5 text-center">
-                            <p class="text-xs font-black uppercase tracking-[0.18em] text-atlantia-cyan-700">Productos</p>
-                            <p class="mt-1.5 text-xl font-black text-atlantia-deep">{{ number_format($metricas['productos']) }}</p>
-                        </div>
-                        <div class="rounded-[8px] border border-atlantia-cyan/20 bg-white/80 px-3 py-2.5 text-center">
-                            <p class="text-xs font-black uppercase tracking-[0.18em] text-atlantia-cyan-700">Categorias</p>
-                            <p class="mt-1.5 text-xl font-black text-atlantia-deep">{{ number_format($metricas['categorias']) }}</p>
-                        </div>
-                        <div class="rounded-[8px] border border-atlantia-cyan/20 bg-white/80 px-3 py-2.5 text-center">
-                            <p class="text-xs font-black uppercase tracking-[0.18em] text-atlantia-cyan-700">Vendedores</p>
-                            <p class="mt-1.5 text-xl font-black text-atlantia-deep">{{ number_format($metricas['vendedores']) }}</p>
-                        </div>
-                    </div>
-                </div>
+            <div class="relative hidden h-full min-h-[260px] lg:block">
+                <div class="absolute inset-x-10 bottom-2 h-8 rounded-full border border-atlantia-cyan/25 bg-atlantia-cyan/8 blur-sm"></div>
+                <img
+                    src="{{ $basketImage }}"
+                    alt="Canasta con frutas y vegetales"
+                    class="absolute bottom-0 right-0 h-[290px] w-auto object-contain drop-shadow-[0_18px_30px_rgba(18,51,66,0.18)]"
+                >
             </div>
         </div>
     </section>
 
-    <section id="categorias" class="border-b border-atlantia-cyan/15 bg-white/55 backdrop-blur-sm">
-        <div class="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-            <div class="mb-8 text-center">
-                <p class="text-sm font-black uppercase tracking-[0.22em] text-atlantia-cyan-700">Compra por seccion</p>
-                <h2 class="mt-3 text-3xl font-black tracking-tight text-atlantia-deep sm:text-4xl">Explora por categoria</h2>
+    <section id="categorias" class="border-b border-atlantia-cyan/10 bg-white/88">
+        <div class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+            <div class="mb-5">
+                <h2 class="text-2xl font-medium tracking-tight text-black/85">Explora por Categoria</h2>
             </div>
 
             <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 @foreach ($categoriasDestacadas as $categoria)
                     <a href="{{ $categoria['href'] }}" class="group text-center">
-                        <div class="mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-white/80 bg-white/82 shadow-[0_16px_36px_rgba(18,51,66,0.09)] ring-1 ring-atlantia-cyan/28 transition group-hover:-translate-y-1 group-hover:shadow-[0_20px_42px_rgba(18,51,66,0.12)]">
-                            <img src="{{ $categoria['image'] }}" alt="{{ $categoria['nombre'] }}" class="h-full w-full object-cover">
+                        <div class="mx-auto flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-atlantia-cyan/18 bg-[radial-gradient(circle,rgba(255,255,255,0.98),rgba(232,251,255,0.86))] shadow-[0_10px_24px_rgba(18,51,66,0.10)] ring-1 ring-atlantia-cyan/16 transition group-hover:-translate-y-1 group-hover:shadow-[0_16px_30px_rgba(18,51,66,0.12)]">
+                            <img src="{{ $categoria['image'] }}" alt="{{ $categoria['nombre'] }}" class="h-12 w-12 object-cover opacity-80 mix-blend-multiply">
                         </div>
-                        <p class="mx-auto mt-4 max-w-[11ch] text-lg font-semibold leading-6 text-atlantia-deep">
+                        <p class="mx-auto mt-3 max-w-[13ch] text-sm font-medium uppercase leading-5 text-black/75">
                             {{ $categoria['nombre'] }}
                         </p>
                     </a>
