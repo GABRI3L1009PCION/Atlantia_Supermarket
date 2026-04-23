@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Cliente;
 
+use App\DTOs\CarritoItemDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cliente\Carrito\AddCarritoItemRequest;
 use App\Http\Requests\Cliente\Carrito\UpdateCarritoItemRequest;
@@ -36,7 +37,7 @@ class CarritoController extends Controller
      */
     public function store(AddCarritoItemRequest $request): RedirectResponse
     {
-        $this->carritoService->addItem($request, $request->validated());
+        $this->carritoService->addItem($request, CarritoItemDTO::fromArray($request->validated()));
 
         return back()->with('success', 'Producto agregado al carrito.');
     }
@@ -47,7 +48,8 @@ class CarritoController extends Controller
     public function update(UpdateCarritoItemRequest $request, CarritoItem $item): RedirectResponse
     {
         abort_unless($this->carritoService->ownsItem($request, $item), 403);
-        $this->carritoService->updateItem($item, $request->validated());
+        $payload = [...$request->validated(), 'producto_id' => $item->producto_id];
+        $this->carritoService->updateItem($item, CarritoItemDTO::fromArray($payload));
 
         return back()->with('success', 'Carrito actualizado correctamente.');
     }

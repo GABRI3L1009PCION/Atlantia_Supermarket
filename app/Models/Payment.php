@@ -23,6 +23,14 @@ class Payment extends Model
     use HasFactory;
 
     /**
+     * Asocia la factory local con el modelo.
+     */
+    protected static function newFactory(): \Database\Factories\PagoFactory
+    {
+        return \Database\Factories\PagoFactory::new();
+    }
+
+    /**
      * Atributos asignables masivamente.
      *
      * @var array<int, string>

@@ -10,7 +10,11 @@
 @endphp
 
 <article {{ $attributes->merge(['class' => 'rounded-lg border border-atlantia-rose/30 bg-white shadow-sm']) }}>
-    <a href="{{ route('productos.show', $producto) }}" class="block">
+    <div class="relative">
+        <div class="absolute right-3 top-3 z-10">
+            <livewire:cliente.wishlist-button :producto-id="$producto->id" :key="'wishlist-' . $producto->id" />
+        </div>
+        <a href="{{ route('productos.show', $producto) }}" class="block">
         <div class="aspect-[4/3] overflow-hidden rounded-t-lg bg-atlantia-blush">
             @if ($imageUrl)
                 <img
@@ -19,7 +23,7 @@
                         srcset="{{ $cardImage }} 600w, {{ $fullImage }} 1200w"
                         sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
                     @endif
-                    alt="{{ $producto->nombre }}"
+                    alt="Producto {{ $producto->nombre }} de {{ $producto->vendor?->business_name ?? 'Atlantia Supermarket' }}"
                     class="h-full w-full object-cover"
                     loading="lazy"
                 >
@@ -29,7 +33,8 @@
                 </div>
             @endif
         </div>
-    </a>
+        </a>
+    </div>
 
     <div class="p-4">
         <p class="text-xs font-semibold uppercase text-atlantia-wine">{{ $producto->vendor?->business_name }}</p>
@@ -48,6 +53,7 @@
             <x-ui.button
                 type="submit"
                 class="w-full"
+                aria-label="Agregar {{ $producto->nombre }} al carrito"
                 :disabled="$producto->inventario?->stock_actual < 1"
             >
                 Agregar al carrito

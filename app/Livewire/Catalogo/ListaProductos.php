@@ -4,6 +4,7 @@ namespace App\Livewire\Catalogo;
 
 use App\Models\Categoria;
 use App\Models\Producto;
+use App\Models\Vendor;
 use App\Services\Busqueda\MeilisearchService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -32,6 +33,12 @@ class ListaProductos extends Component
     public ?int $categoriaId = null;
 
     /**
+     * Categorias multiples en query string.
+     */
+    #[Url(as: 'categorias')]
+    public array $categorias = [];
+
+    /**
      * Municipio seleccionado para filtrar vendedores.
      */
     #[Url]
@@ -42,6 +49,36 @@ class ListaProductos extends Component
      */
     #[Url]
     public string $orden = 'relevancia';
+
+    /**
+     * Precio minimo del filtro.
+     */
+    #[Url(as: 'precio_min')]
+    public int $precioMin = 0;
+
+    /**
+     * Precio maximo del filtro.
+     */
+    #[Url(as: 'precio_max')]
+    public int $precioMax = 9999;
+
+    /**
+     * Rating minimo solicitado.
+     */
+    #[Url(as: 'rating')]
+    public int $ratingMin = 0;
+
+    /**
+     * Solo productos con stock disponible.
+     */
+    #[Url(as: 'stock')]
+    public bool $soloEnStock = false;
+
+    /**
+     * Vendedor filtrado.
+     */
+    #[Url(as: 'vendor')]
+    public ?int $vendorId = null;
 
     /**
      * Cantidad de productos por pagina.
@@ -72,8 +109,15 @@ class ListaProductos extends Component
         return [
             'search' => 'nullable|string|max:120',
             'categoriaId' => 'nullable|integer|exists:categorias,id',
+            'categorias' => 'array',
+            'categorias.*' => 'integer|exists:categorias,id',
             'municipio' => 'nullable|string|in:' . implode(',', $this->municipios),
-            'orden' => 'required|string|in:relevancia,precio_asc,precio_desc,recientes',
+            'orden' => 'required|string|in:relevancia,precio_asc,precio_desc,recientes,mas_vendido,mas_nuevo',
+            'precioMin' => 'nullable|integer|min:0|max:999999',
+            'precioMax' => 'nullable|integer|min:0|max:999999',
+            'ratingMin' => 'nullable|integer|min:0|max:5',
+            'soloEnStock' => 'boolean',
+            'vendorId' => 'nullable|integer|exists:vendors,id',
         ];
     }
 
@@ -122,6 +166,18 @@ class ListaProductos extends Component
     public function updatedCategoriaId(): void
     {
         $this->validateOnly('categoriaId');
+        $this->sincronizarCategoriasDesdeCategoriaId();
+        $this->resetPage();
+    }
+
+    /**
+     * Reinicia paginacion al cambiar categorias multiples.
+     *
+     * @return void
+     */
+    public function updatedCategorias(): void
+    {
+        $this->validateOnly('categorias');
         $this->resetPage();
     }
 
@@ -148,13 +204,80 @@ class ListaProductos extends Component
     }
 
     /**
+     * Reinicia paginacion al cambiar precio minimo.
+     *
+     * @return void
+     */
+    public function updatedPrecioMin(): void
+    {
+        $this->validateOnly('precioMin');
+        $this->normalizarRangoPrecio();
+        $this->resetPage();
+    }
+
+    /**
+     * Reinicia paginacion al cambiar precio maximo.
+     *
+     * @return void
+     */
+    public function updatedPrecioMax(): void
+    {
+        $this->validateOnly('precioMax');
+        $this->normalizarRangoPrecio();
+        $this->resetPage();
+    }
+
+    /**
+     * Reinicia paginacion al cambiar rating.
+     *
+     * @return void
+     */
+    public function updatedRatingMin(): void
+    {
+        $this->validateOnly('ratingMin');
+        $this->resetPage();
+    }
+
+    /**
+     * Reinicia paginacion al cambiar stock.
+     *
+     * @return void
+     */
+    public function updatedSoloEnStock(): void
+    {
+        $this->validateOnly('soloEnStock');
+        $this->resetPage();
+    }
+
+    /**
+     * Reinicia paginacion al cambiar vendedor.
+     *
+     * @return void
+     */
+    public function updatedVendorId(): void
+    {
+        $this->validateOnly('vendorId');
+        $this->resetPage();
+    }
+
+    /**
      * Limpia todos los filtros del catalogo.
      *
      * @return void
      */
     public function limpiarFiltros(): void
     {
-        $this->reset(['search', 'categoriaId', 'municipio']);
+        $this->reset([
+            'search',
+            'categoriaId',
+            'categorias',
+            'municipio',
+            'precioMin',
+            'ratingMin',
+            'soloEnStock',
+            'vendorId',
+        ]);
+        $this->precioMax = 9999;
         $this->orden = 'relevancia';
         $this->resetPage();
     }
@@ -188,6 +311,7 @@ class ListaProductos extends Component
             'productos' => $this->ordenarProductos(collect($resultados['items'])),
             'pagination' => $resultados['pagination'],
             'categorias' => Categoria::query()->active()->ordered()->get(),
+            'vendors' => Vendor::query()->approved()->orderBy('business_name')->get(),
         ]);
     }
 
@@ -201,8 +325,15 @@ class ListaProductos extends Component
         return [
             'q' => $this->search,
             'categoria_id' => $this->categoriaId,
+            'categoria_ids' => $this->categoriaIds(),
             'municipio' => $this->municipio,
+            'precio_min' => $this->precioMin,
+            'precio_max' => $this->precioMax,
+            'rating_min' => $this->ratingMin,
+            'en_stock' => $this->soloEnStock,
+            'vendor_id' => $this->vendorId,
             'per_page' => $this->perPage,
+            'orden' => $this->orden,
         ];
     }
 
@@ -219,7 +350,8 @@ class ListaProductos extends Component
             'precio_desc' => $productos
                 ->sortByDesc(fn (Producto $producto) => $this->precioOrdenable($producto))
                 ->values(),
-            'recientes' => $productos->sortByDesc('publicado_at')->values(),
+            'mas_vendido' => $productos->sortByDesc(fn (Producto $producto) => $producto->pedido_items_count ?? 0)->values(),
+            'mas_nuevo', 'recientes' => $productos->sortByDesc('publicado_at')->values(),
             default => $productos,
         };
     }
@@ -233,5 +365,42 @@ class ListaProductos extends Component
     private function precioOrdenable(Producto $producto): float
     {
         return (float) ($producto->precio_oferta ?? $producto->precio_base);
+    }
+
+    /**
+     * Obtiene ids de categorias seleccionadas desde la URL.
+     *
+     * @return array<int, int>
+     */
+    public function categoriaIds(): array
+    {
+        return collect($this->categorias)
+            ->map(fn (mixed $value): int => (int) $value)
+            ->filter(fn (int $value): bool => $value > 0)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Alinea categoria simple con selector multiple.
+     *
+     * @return void
+     */
+    private function sincronizarCategoriasDesdeCategoriaId(): void
+    {
+        $this->categorias = $this->categoriaId ? [$this->categoriaId] : [];
+    }
+
+    /**
+     * Mantiene el rango de precios en orden logico.
+     *
+     * @return void
+     */
+    private function normalizarRangoPrecio(): void
+    {
+        if ($this->precioMin > $this->precioMax) {
+            [$this->precioMin, $this->precioMax] = [$this->precioMax, $this->precioMin];
+        }
     }
 }

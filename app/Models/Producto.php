@@ -185,6 +185,16 @@ class Producto extends Model implements HasMedia
     }
 
     /**
+     * Clientes que guardaron el producto en wishlist.
+     *
+     * @return HasMany<Wishlist>
+     */
+    public function wishlists(): HasMany
+    {
+        return $this->hasMany(Wishlist::class);
+    }
+
+    /**
      * Filtra productos activos.
      *
      * @param Builder<Producto> $query

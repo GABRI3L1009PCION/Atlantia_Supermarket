@@ -181,6 +181,16 @@ class Pedido extends Model
     }
 
     /**
+     * Historial ampliado de transiciones del pedido.
+     *
+     * @return HasMany<PedidoHistorialEstado>
+     */
+    public function historialEstados(): HasMany
+    {
+        return $this->hasMany(PedidoHistorialEstado::class)->latest();
+    }
+
+    /**
      * Pagos asociados al pedido.
      *
      * @return HasMany<Payment>

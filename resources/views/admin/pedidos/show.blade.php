@@ -100,13 +100,13 @@
                     <div class="rounded-2xl border border-atlantia-rose/20 bg-white p-6 shadow-sm">
                         <h2 class="text-lg font-bold text-atlantia-wine">Historial</h2>
                         <div class="mt-4 space-y-3">
-                            @forelse ($pedido->estados as $estado)
+                            @forelse ($pedido->historialEstados as $estado)
                                 <div class="rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-4">
                                     <div class="flex items-center justify-between gap-3">
-                                        <p class="font-semibold text-atlantia-ink">{{ ucfirst(str_replace('_', ' ', $estado->estado)) }}</p>
+                                        <p class="font-semibold text-atlantia-ink">{{ ucfirst(str_replace('_', ' ', $estado->estado_nuevo)) }}</p>
                                         <span class="text-xs text-atlantia-ink/55">{{ $estado->created_at?->format('d/m/Y H:i') }}</span>
                                     </div>
-                                    <p class="mt-2 text-sm text-atlantia-ink/70">{{ $estado->notas ?: 'Sin observaciones.' }}</p>
+                                    <p class="mt-2 text-sm text-atlantia-ink/70">{{ $estado->nota ?: 'Sin observaciones.' }}</p>
                                     <p class="mt-2 text-xs text-atlantia-ink/55">Registrado por {{ $estado->usuario?->name ?? 'Sistema' }}</p>
                                 </div>
                             @empty

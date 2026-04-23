@@ -1,9 +1,12 @@
 <?php
 
+use App\Jobs\LimpiarCarritosAbandonados;
+use App\Jobs\LimpiarTokensExpirados;
 use App\Models\User;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Str;
 
 Artisan::command('inspire', function () {
@@ -50,3 +53,13 @@ Artisan::command('atlantia:create-super-admin {--name=} {--email=} {--phone=}', 
 
     return 0;
 })->purpose('Crear el primer super administrador real de Atlantia');
+
+Schedule::job(new LimpiarCarritosAbandonados())->daily();
+Schedule::job(new LimpiarTokensExpirados())->daily();
+Schedule::command('queue:prune-failed --hours=720')->weekly();
+
+if (config('session.driver') === 'database') {
+    Schedule::command('session:gc')->hourly();
+}
+
+Schedule::command('scout:sync-index-settings')->weekly();

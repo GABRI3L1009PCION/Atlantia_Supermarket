@@ -2,6 +2,7 @@
 
 namespace App\Services\Notificaciones;
 
+use App\Contracts\NotificacionContract;
 use App\Models\Ml\RestockSuggestion;
 use App\Models\SentEmail;
 use Illuminate\Support\Str;
@@ -14,7 +15,7 @@ class NotificadorSugerenciaMlService
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly NotificationService $notificationService)
+    public function __construct(private readonly NotificacionContract $notificationService)
     {
     }
 
@@ -42,7 +43,7 @@ class NotificadorSugerenciaMlService
             'urgencia' => $suggestion->urgencia,
         ];
 
-        $this->notificationService->create($user, 'ml.sugerencia_reabasto', $data);
+        $this->notificationService->enviar($user, 'ml.sugerencia_reabasto', $data);
 
         SentEmail::query()->create([
             'uuid' => (string) Str::uuid(),

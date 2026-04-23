@@ -158,6 +158,36 @@ class User extends Authenticatable implements MustVerifyEmailContract
     }
 
     /**
+     * Wishlist del cliente.
+     *
+     * @return HasMany<Wishlist>
+     */
+    public function wishlists(): HasMany
+    {
+        return $this->hasMany(Wishlist::class);
+    }
+
+    /**
+     * Historial de puntos del cliente.
+     *
+     * @return HasOne<PuntosCliente>
+     */
+    public function puntosCliente(): HasOne
+    {
+        return $this->hasOne(PuntosCliente::class);
+    }
+
+    /**
+     * Movimientos de puntos del cliente.
+     *
+     * @return HasMany<TransaccionPunto>
+     */
+    public function transaccionesPuntos(): HasMany
+    {
+        return $this->hasMany(TransaccionPunto::class);
+    }
+
+    /**
      * Filtra usuarios activos.
      *
      * @param Builder<User> $query

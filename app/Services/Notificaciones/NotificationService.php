@@ -2,6 +2,7 @@
 
 namespace App\Services\Notificaciones;
 
+use App\Contracts\NotificacionContract;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -9,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * Servicio de lectura de notificaciones internas.
  */
-class NotificationService
+class NotificationService implements NotificacionContract
 {
     /**
      * Lista notificaciones recientes del usuario.
@@ -25,6 +26,43 @@ class NotificationService
             ->latest()
             ->limit(50)
             ->get();
+    }
+
+    /**
+     * Obtiene ultimas notificaciones del usuario.
+     *
+     * @param User $user
+     * @param int $limit
+     * @return Collection<int, object>
+     */
+    public function latest(User $user, int $limit = 10): Collection
+    {
+        return DB::table('notifications')
+            ->where('notifiable_type', User::class)
+            ->where('notifiable_id', $user->id)
+            ->latest()
+            ->limit(max(1, $limit))
+            ->get()
+            ->map(function (object $notification): object {
+                $notification->data = json_decode((string) $notification->data, true) ?? [];
+
+                return $notification;
+            });
+    }
+
+    /**
+     * Cuenta notificaciones no leidas.
+     *
+     * @param User $user
+     * @return int
+     */
+    public function unreadCount(User $user): int
+    {
+        return DB::table('notifications')
+            ->where('notifiable_type', User::class)
+            ->where('notifiable_id', $user->id)
+            ->whereNull('read_at')
+            ->count();
     }
 
     /**
@@ -44,6 +82,21 @@ class NotificationService
             ->where('notifiable_type', User::class)
             ->where('notifiable_id', $user->id)
             ->whereIn('id', $ids)
+            ->whereNull('read_at')
+            ->update(['read_at' => now(), 'updated_at' => now()]);
+    }
+
+    /**
+     * Marca todas las notificaciones del usuario como leidas.
+     *
+     * @param User $user
+     * @return int
+     */
+    public function markAllAsRead(User $user): int
+    {
+        return DB::table('notifications')
+            ->where('notifiable_type', User::class)
+            ->where('notifiable_id', $user->id)
             ->whereNull('read_at')
             ->update(['read_at' => now(), 'updated_at' => now()]);
     }
@@ -72,5 +125,18 @@ class NotificationService
         ]);
 
         return $id;
+    }
+
+    /**
+     * Envia una notificacion interna compatible con el contrato de dominio.
+     *
+     * @param User $user
+     * @param string $tipo
+     * @param array<string, mixed> $datos
+     * @return string
+     */
+    public function enviar(User $user, string $tipo, array $datos): string
+    {
+        return $this->create($user, $tipo, $datos);
     }
 }

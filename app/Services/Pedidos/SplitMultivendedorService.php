@@ -37,7 +37,12 @@ class SplitMultivendedorService
         $pedidoPadre = $this->crearPedidoBase($cliente, $direccion, null, null, $totals, $data);
 
         foreach ($items->groupBy('producto.vendor_id') as $vendorId => $vendorItems) {
-            $vendorTotals = $this->totalsForItems($vendorItems, (float) $totals['envio'] / max(1, $vendorIds->count()));
+            $vendorTotals = $this->totalsForItems(
+                $vendorItems,
+                (float) $totals['envio'] / max(1, $vendorIds->count()),
+                (float) ($totals['descuento'] ?? 0),
+                (float) ($totals['subtotal'] ?? 0)
+            );
             $pedidoHijo = $this->crearPedidoBase($cliente, $direccion, (int) $vendorId, $pedidoPadre, $vendorTotals, $data);
 
             $this->crearItems($pedidoHijo, $vendorItems);
@@ -140,21 +145,32 @@ class SplitMultivendedorService
      *
      * @param Collection<int, mixed> $items
      * @param float $envio
+     * @param float $descuentoGlobal
+     * @param float $subtotalGlobal
      * @return array<string, float>
      */
-    private function totalsForItems(Collection $items, float $envio): array
+    private function totalsForItems(
+        Collection $items,
+        float $envio,
+        float $descuentoGlobal = 0,
+        float $subtotalGlobal = 0
+    ): array
     {
         $subtotal = $items->sum(function ($item): float {
             return (float) ($item->producto->precio_oferta ?? $item->producto->precio_base) * (int) $item->cantidad;
         });
-        $impuestos = round($subtotal * 0.12, 2);
+        $descuento = $subtotalGlobal > 0
+            ? round(($subtotal / $subtotalGlobal) * $descuentoGlobal, 2)
+            : 0.0;
+        $baseImponible = max(0, $subtotal - $descuento);
+        $impuestos = round($baseImponible * 0.12, 2);
 
         return [
             'subtotal' => round($subtotal, 2),
             'envio' => round($envio, 2),
             'impuestos' => $impuestos,
-            'descuento' => 0,
-            'total' => round($subtotal + $envio + $impuestos, 2),
+            'descuento' => $descuento,
+            'total' => round($baseImponible + $envio + $impuestos, 2),
         ];
     }
 

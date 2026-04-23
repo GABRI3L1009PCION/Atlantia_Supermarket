@@ -25,6 +25,7 @@
             ['label' => 'Vendedores', 'route' => route('admin.vendedores.index'), 'active' => request()->routeIs('admin.vendedores.*')],
             ['label' => 'Productos', 'route' => route('admin.productos.index'), 'active' => request()->routeIs('admin.productos.*')],
             ['label' => 'Pedidos', 'route' => route('admin.pedidos.index'), 'active' => request()->routeIs('admin.pedidos.*')],
+            ['label' => 'Cupones', 'route' => route('admin.cupones.index'), 'active' => request()->routeIs('admin.cupones.*')],
             ['label' => 'DTE', 'route' => route('admin.dte.index'), 'active' => request()->routeIs('admin.dte.*')],
             ['label' => 'ML', 'route' => route('admin.ml.monitor'), 'active' => request()->routeIs('admin.ml.*')],
         ],
@@ -65,6 +66,7 @@
         </div>
 
         <div class="flex items-center gap-3">
+            <livewire:cliente.campanilla-notificaciones />
             <div class="hidden rounded-lg bg-atlantia-cream px-4 py-2 text-right md:block">
                 <p class="text-sm font-black text-atlantia-ink">{{ $user?->name }}</p>
                 <p class="text-xs text-atlantia-ink/60">{{ $user?->email }}</p>

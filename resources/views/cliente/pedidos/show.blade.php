@@ -92,6 +92,31 @@
                             Ver en mapa
                         </a>
                     </div>
+
+                    <div class="mt-8 rounded-lg border border-atlantia-rose/20 bg-white p-5">
+                        <h3 class="text-lg font-black text-atlantia-ink">Timeline operativo</h3>
+                        <div class="mt-4 space-y-4">
+                            @forelse ($pedido->historialEstados->sortBy('created_at') as $movimiento)
+                                <div class="flex gap-4">
+                                    <div class="mt-1 h-3 w-3 shrink-0 rounded-full bg-atlantia-wine"></div>
+                                    <div>
+                                        <p class="font-bold text-atlantia-ink">
+                                            {{ ucfirst(str_replace('_', ' ', $movimiento->estado_nuevo)) }}
+                                        </p>
+                                        <p class="text-sm text-atlantia-ink/60">
+                                            {{ $movimiento->created_at?->format('d/m/Y h:i a') }}
+                                            · {{ $movimiento->usuario?->name ?? 'Sistema Atlantia' }}
+                                        </p>
+                                        @if ($movimiento->nota)
+                                            <p class="mt-1 text-sm text-atlantia-ink/75">{{ $movimiento->nota }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                            @empty
+                                <p class="text-sm text-atlantia-ink/60">Aun no hay movimientos historicos registrados.</p>
+                            @endforelse
+                        </div>
+                    </div>
                 </section>
 
                 <section class="rounded-lg border border-atlantia-rose/20 bg-white p-6 shadow-sm sm:p-8">

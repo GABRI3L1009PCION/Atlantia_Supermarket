@@ -156,13 +156,13 @@ class MeilisearchService
     {
         $builder = Producto::query()
             ->with(['categoria', 'vendor', 'inventario', 'imagenPrincipal'])
+            ->withAvg(['resenas as rating_promedio' => fn (Builder $query) => $query->where('aprobada', true)], 'calificacion')
             ->publicados();
 
         $this->applyEloquentFilters($builder, $filters);
+        $this->applySort($builder, (string) ($filters['orden'] ?? 'relevancia'));
 
-        return $builder
-            ->orderByRaw('COALESCE(precio_oferta, precio_base) asc')
-            ->paginate($perPage);
+        return $builder->paginate($perPage);
     }
 
     /**
@@ -186,11 +186,24 @@ class MeilisearchService
             })
             ->when($filters['categoria_id'] ?? null, fn (Builder $builder, $id) => $builder->where('categoria_id', $id))
             ->when($filters['vendor_id'] ?? null, fn (Builder $builder, $id) => $builder->where('vendor_id', $id))
+            ->when(! empty($filters['categoria_ids']), fn (Builder $builder) => $builder->whereIn('categoria_id', (array) $filters['categoria_ids']))
             ->when($filters['precio_min'] ?? null, function (Builder $builder, $precio): void {
                 $builder->whereRaw('COALESCE(precio_oferta, precio_base) >= ?', [$precio]);
             })
             ->when($filters['precio_max'] ?? null, function (Builder $builder, $precio): void {
                 $builder->whereRaw('COALESCE(precio_oferta, precio_base) <= ?', [$precio]);
+            })
+            ->when($filters['rating_min'] ?? null, function (Builder $builder, $rating): void {
+                $builder->whereHas('resenas', function (Builder $query) use ($rating): void {
+                    $query->where('aprobada', true)
+                        ->groupBy('producto_id')
+                        ->havingRaw('AVG(calificacion) >= ?', [(float) $rating]);
+                });
+            })
+            ->when(! empty($filters['en_stock']), function (Builder $builder): void {
+                $builder->whereHas('inventario', function (Builder $query): void {
+                    $query->whereRaw('stock_actual - stock_reservado > 0');
+                });
             })
             ->when(isset($filters['requiere_refrigeracion']), function (Builder $builder) use ($filters): void {
                 $builder->where('requiere_refrigeracion', (bool) $filters['requiere_refrigeracion']);
@@ -216,6 +229,10 @@ class MeilisearchService
             }
         }
 
+        foreach ((array) ($filters['categoria_ids'] ?? []) as $categoriaId) {
+            $meiliFilters[] = 'categoria_id = ' . (int) $categoriaId;
+        }
+
         if (! empty($filters['precio_min'])) {
             $meiliFilters[] = 'precio_base >= ' . (float) $filters['precio_min'];
         }
@@ -238,11 +255,33 @@ class MeilisearchService
         return [
             'q' => trim((string) ($filters['q'] ?? '')),
             'categoria_id' => $filters['categoria_id'] ?? null,
+            'categoria_ids' => array_values(array_filter((array) ($filters['categoria_ids'] ?? []))),
             'vendor_id' => $filters['vendor_id'] ?? null,
             'municipio' => $filters['municipio'] ?? null,
             'precio_min' => $filters['precio_min'] ?? null,
             'precio_max' => $filters['precio_max'] ?? null,
+            'rating_min' => $filters['rating_min'] ?? null,
+            'en_stock' => (bool) ($filters['en_stock'] ?? false),
+            'orden' => $filters['orden'] ?? 'relevancia',
             'requiere_refrigeracion' => $filters['requiere_refrigeracion'] ?? null,
         ];
+    }
+
+    /**
+     * Aplica orden seguro para resultados locales.
+     *
+     * @param Builder<Producto> $builder
+     * @param string $orden
+     * @return void
+     */
+    private function applySort(Builder $builder, string $orden): void
+    {
+        match ($orden) {
+            'precio_asc' => $builder->orderByRaw('COALESCE(precio_oferta, precio_base) asc'),
+            'precio_desc' => $builder->orderByRaw('COALESCE(precio_oferta, precio_base) desc'),
+            'mas_vendido' => $builder->withCount('pedidoItems')->orderByDesc('pedido_items_count'),
+            'mas_nuevo', 'recientes' => $builder->latest('publicado_at'),
+            default => $builder->latest('publicado_at'),
+        };
     }
 }

@@ -72,6 +72,10 @@
                 <dt class="text-atlantia-ink/65">IVA incluido</dt>
                 <dd class="font-semibold text-atlantia-ink">Q {{ number_format($impuestos, 2) }}</dd>
             </div>
+            <div class="flex justify-between">
+                <dt class="text-emerald-700">Descuento</dt>
+                <dd class="font-semibold text-emerald-700">- Q {{ number_format($descuento, 2) }}</dd>
+            </div>
             <div class="flex justify-between border-t border-atlantia-ink pt-4 text-base">
                 <dt>
                     <span class="block font-bold text-atlantia-ink">Total a pagar</span>
@@ -81,14 +85,62 @@
             </div>
         </dl>
 
+        <div class="mt-5 rounded-lg border border-slate-200 p-4">
+            <div class="flex gap-2">
+                <input
+                    type="text"
+                    wire:model.live.debounce.400ms="couponCode"
+                    placeholder="Tienes otro cupon?"
+                    class="w-full rounded-md border border-atlantia-rose/30 px-4 py-3 text-sm
+                        focus:border-atlantia-wine focus:ring-atlantia-rose"
+                >
+                <button
+                    type="button"
+                    wire:click="aplicarCupon"
+                    wire:loading.attr="disabled"
+                    class="rounded-md bg-slate-900 px-4 py-3 text-sm font-bold text-white"
+                >
+                    <span wire:loading.remove wire:target="aplicarCupon">Aplicar</span>
+                    <span wire:loading wire:target="aplicarCupon">Validando...</span>
+                </button>
+            </div>
+
+            @if ($couponState['mensaje'])
+                <p class="mt-3 rounded-md px-4 py-3 text-sm font-semibold
+                    {{ $couponState['valido'] ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
+                    {{ $couponState['mensaje'] }}
+                </p>
+            @endif
+
+            @if ($couponState['valido'])
+                <button
+                    type="button"
+                    wire:click="quitarCupon"
+                    class="mt-3 text-sm font-bold text-atlantia-wine hover:underline"
+                >
+                    Quitar cupon
+                </button>
+            @endif
+        </div>
+
+        @if ($puntos)
+            <div class="mt-4 rounded-lg bg-sky-50 p-4 text-sm text-sky-900">
+                <p class="font-bold">Puntos Atlantia</p>
+                <p class="mt-1">Saldo actual: {{ number_format((int) $puntos->puntos_actuales) }} puntos.</p>
+                <p class="mt-1">Esta compra te otorgara aproximadamente {{ $puntosProximos }} puntos nuevos.</p>
+            </div>
+        @endif
+
         <input type="hidden" name="envio" value="{{ $envio }}">
         <input type="hidden" name="metodo_pago" value="{{ $metodoPago }}">
+        <input type="hidden" name="coupon_code" value="{{ $couponCode }}">
 
         <label class="mt-5 flex items-start gap-3 text-sm text-atlantia-ink/75">
             <input
                 type="checkbox"
                 name="acepta_terminos_checkout"
                 value="1"
+                wire:model.live="aceptaTerminos"
                 @checked(old('acepta_terminos_checkout'))
                 class="mt-1 rounded border-atlantia-rose text-atlantia-wine focus:ring-atlantia-rose"
             >
@@ -103,15 +155,17 @@
             <p class="mt-2 text-sm font-semibold text-red-700">{{ $message }}</p>
         @enderror
 
+        @error('aceptaTerminos')
+            <p class="mt-2 text-sm font-semibold text-red-700">{{ $message }}</p>
+        @enderror
+
         <button
             type="submit"
             class="mt-5 flex w-full items-center justify-center rounded-md bg-atlantia-wine px-5 py-4 text-base
                 font-black text-white shadow-lg shadow-atlantia-wine/20 transition hover:bg-atlantia-wine-700
                 focus:outline-none focus:ring-2 focus:ring-atlantia-rose focus:ring-offset-2"
-            wire:loading.attr="disabled"
         >
-            <span wire:loading.remove>Confirmar y pagar Q {{ number_format($total, 2) }}</span>
-            <span wire:loading>Procesando total...</span>
+            Confirmar y pagar Q {{ number_format($total, 2) }}
         </button>
 
         <p class="mt-4 text-center text-xs text-atlantia-ink/55">

@@ -10,8 +10,15 @@
         </div>
 
         @if ($items->isNotEmpty())
-            <button type="button" class="text-sm font-semibold text-red-700" wire:click="vaciarCarrito">
-                Vaciar
+            <button
+                type="button"
+                class="text-sm font-semibold text-red-700"
+                wire:click="vaciarCarrito"
+                wire:loading.attr="disabled"
+                wire:target="vaciarCarrito"
+            >
+                <span wire:loading.remove wire:target="vaciarCarrito">Vaciar</span>
+                <span wire:loading wire:target="vaciarCarrito">Procesando...</span>
             </button>
         @endif
     </header>
@@ -58,6 +65,8 @@
                                 type="button"
                                 class="rounded-md border border-slate-300 px-2 py-1 text-sm"
                                 wire:click="disminuir({{ $item->id }})"
+                                wire:loading.attr="disabled"
+                                wire:target="disminuir({{ $item->id }})"
                                 aria-label="Disminuir cantidad"
                             >
                                 -
@@ -75,6 +84,8 @@
                                 type="button"
                                 class="rounded-md border border-slate-300 px-2 py-1 text-sm"
                                 wire:click="incrementar({{ $item->id }})"
+                                wire:loading.attr="disabled"
+                                wire:target="incrementar({{ $item->id }})"
                                 aria-label="Aumentar cantidad"
                             >
                                 +
@@ -83,8 +94,12 @@
                                 type="button"
                                 class="ml-auto text-sm font-semibold text-red-700"
                                 wire:click="eliminarItem({{ $item->id }})"
+                                wire:loading.attr="disabled"
+                                wire:target="eliminarItem({{ $item->id }})"
+                                aria-label="Quitar {{ $item->producto?->nombre }} del carrito"
                             >
-                                Quitar
+                                <span wire:loading.remove wire:target="eliminarItem({{ $item->id }})">Quitar</span>
+                                <span wire:loading wire:target="eliminarItem({{ $item->id }})">Quitando...</span>
                             </button>
                         </div>
                     </div>

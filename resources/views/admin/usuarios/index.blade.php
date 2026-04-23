@@ -166,9 +166,19 @@
                                             </span>
                                         </td>
                                         <td class="py-3 text-right">
-                                            <a href="{{ route('admin.usuarios.show', $usuario) }}" class="font-semibold text-atlantia-wine hover:underline">
-                                                Gestionar
-                                            </a>
+                                            <div class="flex justify-end gap-3">
+                                                <a href="{{ route('admin.usuarios.show', $usuario) }}" class="font-semibold text-atlantia-wine hover:underline">
+                                                    Gestionar
+                                                </a>
+                                                @can('impersonate', $usuario)
+                                                    <a
+                                                        href="{{ route('admin.impersonation.start', $usuario) }}"
+                                                        class="font-semibold text-amber-700 hover:underline"
+                                                    >
+                                                        Entrar como
+                                                    </a>
+                                                @endcan
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty

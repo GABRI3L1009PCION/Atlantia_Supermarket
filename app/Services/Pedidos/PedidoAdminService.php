@@ -8,6 +8,7 @@ use App\Events\RepartidorAsignado;
 use App\Models\DeliveryRoute;
 use App\Models\Pedido;
 use App\Models\PedidoEstado;
+use App\Models\PedidoHistorialEstado;
 use App\Models\User;
 use App\Services\Notificaciones\NotificadorPedidoService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -19,6 +20,13 @@ use Illuminate\Support\Str;
  */
 class PedidoAdminService
 {
+    /**
+     * Crea una instancia del servicio.
+     */
+    public function __construct(private readonly EstadoPedidoService $estadoPedidoService)
+    {
+    }
+
     /**
      * Pagina pedidos globales.
      *
@@ -61,6 +69,7 @@ class PedidoAdminService
             'items.producto',
             'payments.splits.vendor',
             'estados.usuario',
+            'historialEstados.usuario',
             'deliveryRoute.repartidor',
             'dteFacturas',
         ]);
@@ -74,26 +83,29 @@ class PedidoAdminService
     public function update(Pedido $pedido, array $data, User $usuario): Pedido
     {
         return DB::transaction(function () use ($pedido, $data, $usuario): Pedido {
-            $estadoAnterior = $pedido->estado;
-            $estadoPagoAnterior = $pedido->estado_pago;
+            $estadoAnterior = $pedido->estadoValor();
+            $estadoPagoAnterior = $pedido->estadoPagoValor();
+            $cambioEstado = $estadoAnterior !== $data['estado'];
 
             $pedido->fill([
-                'estado' => $data['estado'],
                 'estado_pago' => $data['estado_pago'],
                 'notas' => $data['notas'] ?? $pedido->notas,
             ]);
 
-            if ($data['estado'] === EstadoPedido::Confirmado->value && $pedido->confirmado_at === null) {
-                $pedido->confirmado_at = now();
-            }
-
-            if ($data['estado'] === EstadoPedido::Cancelado->value) {
-                $pedido->cancelado_at = now();
-            }
-
             $pedido->save();
 
-            if ($estadoAnterior !== $pedido->estado || ! empty($data['notas_historial'])) {
+            if ($cambioEstado) {
+                $pedido = $this->estadoPedidoService->registrar(
+                    $pedido,
+                    $data['estado'],
+                    $data['notas_historial'] ?? $data['notas'] ?? 'Actualizacion administrativa.',
+                    $usuario
+                );
+
+                if ($pedido->estado === EstadoPedido::ListoParaEntrega) {
+                    app(NotificadorPedidoService::class)->pedidoListoParaRecoger($pedido);
+                }
+            } elseif (! empty($data['notas_historial'])) {
                 PedidoEstado::query()->create([
                     'pedido_id' => $pedido->id,
                     'estado' => $pedido->estadoValor(),
@@ -101,14 +113,18 @@ class PedidoAdminService
                     'usuario_id' => $usuario->id,
                 ]);
 
-                if ($pedido->estado === EstadoPedido::ListoParaEntrega) {
-                    app(NotificadorPedidoService::class)->pedidoListoParaRecoger($pedido);
-                }
+                PedidoHistorialEstado::query()->create([
+                    'pedido_id' => $pedido->id,
+                    'estado_anterior' => $pedido->estadoValor(),
+                    'estado_nuevo' => $pedido->estadoValor(),
+                    'usuario_id' => $usuario->id,
+                    'nota' => $data['notas_historial'],
+                ]);
             }
 
             $payment = $pedido->payments()->latest()->first();
 
-            if ($payment !== null && $estadoPagoAnterior !== $pedido->estado_pago) {
+            if ($payment !== null && $estadoPagoAnterior !== $pedido->estadoPagoValor()) {
                 $payment->update([
                     'estado' => match ($pedido->estado_pago) {
                         EstadoPago::Pagado => EstadoPago::Aprobado->value,

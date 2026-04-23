@@ -2,6 +2,7 @@
 
 namespace App\Services\Carrito;
 
+use App\DTOs\CarritoItemDTO;
 use App\Exceptions\StockInsuficienteException;
 use App\Models\Carrito;
 use App\Models\CarritoItem;
@@ -36,20 +37,20 @@ class CarritoService
      * Agrega un producto al carrito con precio validado por servidor.
      *
      * @param Request $request
-     * @param array<string, mixed> $data
+     * @param CarritoItemDTO $itemDTO
      * @return CarritoItem
      */
-    public function addItem(Request $request, array $data): CarritoItem
+    public function addItem(Request $request, CarritoItemDTO $itemDTO): CarritoItem
     {
-        return DB::transaction(function () use ($request, $data): CarritoItem {
+        return DB::transaction(function () use ($request, $itemDTO): CarritoItem {
             $carrito = $this->activeCart($request);
             $producto = Producto::query()
                 ->with('inventario')
                 ->publicados()
                 ->lockForUpdate()
-                ->findOrFail((int) $data['producto_id']);
+                ->findOrFail($itemDTO->productoId);
 
-            $cantidad = (int) $data['cantidad'];
+            $cantidad = $itemDTO->cantidad;
             $this->assertStockDisponible($producto, $cantidad);
 
             $item = CarritoItem::query()->firstOrNew([
@@ -74,14 +75,14 @@ class CarritoService
      * Actualiza cantidad de un item del carrito.
      *
      * @param CarritoItem $item
-     * @param array<string, mixed> $data
+     * @param CarritoItemDTO $itemDTO
      * @return CarritoItem
      */
-    public function updateItem(CarritoItem $item, array $data): CarritoItem
+    public function updateItem(CarritoItem $item, CarritoItemDTO $itemDTO): CarritoItem
     {
-        return DB::transaction(function () use ($item, $data): CarritoItem {
+        return DB::transaction(function () use ($item, $itemDTO): CarritoItem {
             $item->loadMissing('producto.inventario');
-            $cantidad = (int) $data['cantidad'];
+            $cantidad = $itemDTO->cantidad;
 
             $this->assertStockDisponible($item->producto, $cantidad);
 
@@ -180,16 +181,14 @@ class CarritoService
      * Crea items desde una coleccion validada.
      *
      * @param Request $request
-     * @param Collection<int, mixed> $items
+     * @param Collection<int, CarritoItemDTO|array<string, mixed>> $items
      * @return void
      */
     private function createItemsFromCollection(Request $request, Collection $items): void
     {
         foreach ($items as $item) {
-            $this->addItem($request, [
-                'producto_id' => (int) $item['producto_id'],
-                'cantidad' => (int) $item['cantidad'],
-            ]);
+            $itemDTO = $item instanceof CarritoItemDTO ? $item : CarritoItemDTO::fromArray((array) $item);
+            $this->addItem($request, $itemDTO);
         }
     }
 

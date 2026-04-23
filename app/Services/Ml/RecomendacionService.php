@@ -2,6 +2,7 @@
 
 namespace App\Services\Ml;
 
+use App\Contracts\MlServiceContract;
 use App\Exceptions\MlServiceUnavailableException;
 use App\Models\Ml\ProductRecommendation;
 use App\Models\Producto;
@@ -17,7 +18,7 @@ class RecomendacionService
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly MlServiceClient $mlClient)
+    public function __construct(private readonly MlServiceContract $mlClient)
     {
     }
 
@@ -62,7 +63,7 @@ class RecomendacionService
     public function generarParaCliente(User $user, int $limit = 12): int
     {
         try {
-            $resultado = $this->mlClient->post('/recommend/products', [
+            $resultado = $this->mlClient->recomendar([
                 'cliente_id' => $user->id,
                 'limit' => $limit,
             ]);

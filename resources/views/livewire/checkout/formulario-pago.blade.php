@@ -2,6 +2,16 @@
     class="rounded-lg border border-atlantia-rose/20 bg-white p-5 shadow-sm sm:p-7"
     aria-labelledby="metodo-pago-title"
 >
+    @php
+        $fieldIcon = function (string $field): string {
+            return match ($this->fieldState($field)) {
+                'valid' => 'text-emerald-600',
+                'invalid' => 'text-rose-600',
+                default => 'text-slate-300',
+            };
+        };
+    @endphp
+
     <h2 id="metodo-pago-title" class="flex items-center gap-3 text-2xl font-bold text-atlantia-ink">
         <span
             class="flex h-9 w-9 items-center justify-center rounded-md bg-atlantia-wine text-base text-white"
@@ -70,41 +80,68 @@
                     <label for="card_number_preview" class="text-sm font-bold text-atlantia-ink">
                         Numero de tarjeta
                     </label>
-                    <input
-                        id="card_number_preview"
-                        type="text"
-                        inputmode="numeric"
-                        autocomplete="cc-number"
-                        placeholder="1234 5678 9012 3456"
-                        class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 text-sm
-                            focus:border-atlantia-wine focus:ring-atlantia-rose"
-                    >
+                    <div class="relative">
+                        <input
+                            id="card_number_preview"
+                            type="text"
+                            inputmode="numeric"
+                            autocomplete="cc-number"
+                            wire:model.live.debounce.250ms="cardNumberPreview"
+                            placeholder="1234 5678 9012 3456"
+                            class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 pr-11 text-sm
+                                focus:border-atlantia-wine focus:ring-atlantia-rose"
+                        >
+                        <span class="absolute inset-y-0 right-3 top-2 flex items-center {{ $fieldIcon('cardNumberPreview') }}" aria-hidden="true">
+                            {!! $this->fieldState('cardNumberPreview') === 'valid' ? '&#10003;' : ($this->fieldState('cardNumberPreview') === 'invalid' ? '&#10005;' : '&bull;') !!}
+                        </span>
+                    </div>
+                    @error('cardNumberPreview')
+                        <p class="mt-2 text-sm font-semibold text-red-700">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
                         <label for="card_exp_preview" class="text-sm font-bold text-atlantia-ink">Vencimiento</label>
-                        <input
-                            id="card_exp_preview"
-                            type="text"
-                            inputmode="numeric"
-                            autocomplete="cc-exp"
-                            placeholder="MM / AA"
-                            class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 text-sm
-                                focus:border-atlantia-wine focus:ring-atlantia-rose"
-                        >
+                        <div class="relative">
+                            <input
+                                id="card_exp_preview"
+                                type="text"
+                                inputmode="numeric"
+                                autocomplete="cc-exp"
+                                wire:model.blur="cardExpPreview"
+                                placeholder="MM / AA"
+                                class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 pr-11 text-sm
+                                    focus:border-atlantia-wine focus:ring-atlantia-rose"
+                            >
+                            <span class="absolute inset-y-0 right-3 top-2 flex items-center {{ $fieldIcon('cardExpPreview') }}" aria-hidden="true">
+                                {!! $this->fieldState('cardExpPreview') === 'valid' ? '&#10003;' : ($this->fieldState('cardExpPreview') === 'invalid' ? '&#10005;' : '&bull;') !!}
+                            </span>
+                        </div>
+                        @error('cardExpPreview')
+                            <p class="mt-2 text-sm font-semibold text-red-700">{{ $message }}</p>
+                        @enderror
                     </div>
                     <div>
                         <label for="card_cvv_preview" class="text-sm font-bold text-atlantia-ink">CVV</label>
-                        <input
-                            id="card_cvv_preview"
-                            type="text"
-                            inputmode="numeric"
-                            autocomplete="cc-csc"
-                            placeholder="123"
-                            class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 text-sm
-                                focus:border-atlantia-wine focus:ring-atlantia-rose"
-                        >
+                        <div class="relative">
+                            <input
+                                id="card_cvv_preview"
+                                type="text"
+                                inputmode="numeric"
+                                autocomplete="cc-csc"
+                                wire:model.live.debounce.250ms="cardCvvPreview"
+                                placeholder="123"
+                                class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 pr-11 text-sm
+                                    focus:border-atlantia-wine focus:ring-atlantia-rose"
+                            >
+                            <span class="absolute inset-y-0 right-3 top-2 flex items-center {{ $fieldIcon('cardCvvPreview') }}" aria-hidden="true">
+                                {!! $this->fieldState('cardCvvPreview') === 'valid' ? '&#10003;' : ($this->fieldState('cardCvvPreview') === 'invalid' ? '&#10005;' : '&bull;') !!}
+                            </span>
+                        </div>
+                        @error('cardCvvPreview')
+                            <p class="mt-2 text-sm font-semibold text-red-700">{{ $message }}</p>
+                        @enderror
                     </div>
                 </div>
 
@@ -112,14 +149,23 @@
                     <label for="card_name_preview" class="text-sm font-bold text-atlantia-ink">
                         Nombre en la tarjeta
                     </label>
-                    <input
-                        id="card_name_preview"
-                        type="text"
-                        autocomplete="cc-name"
-                        placeholder="Como aparece en tu tarjeta"
-                        class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 text-sm
-                            focus:border-atlantia-wine focus:ring-atlantia-rose"
-                    >
+                    <div class="relative">
+                        <input
+                            id="card_name_preview"
+                            type="text"
+                            autocomplete="cc-name"
+                            wire:model.blur="cardNamePreview"
+                            placeholder="Como aparece en tu tarjeta"
+                            class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 pr-11 text-sm
+                                focus:border-atlantia-wine focus:ring-atlantia-rose"
+                        >
+                        <span class="absolute inset-y-0 right-3 top-2 flex items-center {{ $fieldIcon('cardNamePreview') }}" aria-hidden="true">
+                            {!! $this->fieldState('cardNamePreview') === 'valid' ? '&#10003;' : ($this->fieldState('cardNamePreview') === 'invalid' ? '&#10005;' : '&bull;') !!}
+                        </span>
+                    </div>
+                    @error('cardNamePreview')
+                        <p class="mt-2 text-sm font-semibold text-red-700">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
 
@@ -135,11 +181,24 @@
 
     @if ($metodoPago === 'transferencia')
         <div class="mt-4">
-            <x-ui.input
-                label="Referencia de transferencia"
-                name="referencia_bancaria"
-                wire:model.live="referenciaTransferencia"
-            />
+            <label for="referencia_bancaria" class="block text-sm font-bold text-atlantia-ink">
+                Referencia de transferencia
+            </label>
+            <div class="relative">
+                <input
+                    id="referencia_bancaria"
+                    name="referencia_bancaria"
+                    type="text"
+                    wire:model.live.debounce.250ms="referenciaTransferencia"
+                    class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 pr-11 text-sm focus:border-atlantia-wine focus:ring-atlantia-rose"
+                >
+                <span class="absolute inset-y-0 right-3 top-2 flex items-center {{ $fieldIcon('referenciaTransferencia') }}" aria-hidden="true">
+                    {!! $this->fieldState('referenciaTransferencia') === 'valid' ? '&#10003;' : ($this->fieldState('referenciaTransferencia') === 'invalid' ? '&#10005;' : '&bull;') !!}
+                </span>
+            </div>
+            @error('referenciaTransferencia')
+                <p class="mt-2 text-sm font-semibold text-red-700">{{ $message }}</p>
+            @enderror
         </div>
     @endif
 </section>

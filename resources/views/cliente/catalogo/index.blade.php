@@ -65,24 +65,6 @@
     </section>
 
     <section class="mx-auto min-h-[313px] w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <h1 class="text-center text-2xl font-bold text-atlantia-wine">
-            Catalogo de productos
-        </h1>
-
-        @if ($catalogo->count() > 0)
-            <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                @foreach ($catalogo as $producto)
-                    <x-product-card :producto="$producto" />
-                @endforeach
-            </div>
-
-            <div class="mt-8">
-                {{ $catalogo->links() }}
-            </div>
-        @else
-            <p class="mt-20 text-center text-base text-atlantia-ink">
-                No hay productos para mostrar.
-            </p>
-        @endif
+        <livewire:catalogo.lista-productos :search="(string) request('q', '')" />
     </section>
 @endsection

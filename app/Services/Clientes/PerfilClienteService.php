@@ -15,7 +15,7 @@ class PerfilClienteService
      */
     public function detail(User $user): User
     {
-        return $user->load(['clienteDetalle', 'direcciones']);
+        return $user->load(['clienteDetalle', 'direcciones', 'puntosCliente']);
     }
 
     /**
@@ -37,4 +37,3 @@ class PerfilClienteService
         });
     }
 }
-

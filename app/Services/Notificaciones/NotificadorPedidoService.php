@@ -2,6 +2,7 @@
 
 namespace App\Services\Notificaciones;
 
+use App\Contracts\NotificacionContract;
 use App\Models\Pedido;
 use App\Models\SentEmail;
 use App\Models\User;
@@ -15,7 +16,7 @@ class NotificadorPedidoService
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly NotificationService $notificationService)
+    public function __construct(private readonly NotificacionContract $notificationService)
     {
     }
 
@@ -122,7 +123,7 @@ class NotificadorPedidoService
      */
     private function notificarUsuario(User $user, string $type, array $data): void
     {
-        $this->notificationService->create($user, $type, $data);
+        $this->notificationService->enviar($user, $type, $data);
         $this->registrarEmail($user, $data['titulo'], $type, $data);
     }
 

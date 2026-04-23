@@ -2,6 +2,7 @@
 
 namespace App\Services\Ml;
 
+use App\Contracts\MlServiceContract;
 use App\Exceptions\MlServiceUnavailableException;
 use App\Models\Ml\SalesPrediction;
 use App\Models\Producto;
@@ -19,7 +20,7 @@ class PrediccionDemandaService
      * Crea una instancia del servicio.
      */
     public function __construct(
-        private readonly MlServiceClient $mlClient,
+        private readonly MlServiceContract $mlClient,
         private readonly FallbackPrediccionService $fallbackPrediccionService
     ) {
     }
@@ -73,7 +74,7 @@ class PrediccionDemandaService
         $producto->loadMissing(['vendor', 'inventario']);
 
         try {
-            $resultado = $this->mlClient->post('/forecast/demand', [
+            $resultado = $this->mlClient->predecirDemanda([
                 'producto_id' => $producto->id,
                 'vendor_id' => $producto->vendor_id,
                 'horizonte_dias' => $horizonteDias,

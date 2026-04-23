@@ -6,6 +6,8 @@ use App\Models\Carrito;
 use App\Models\CarritoItem;
 use App\Models\Cliente\Direccion;
 use App\Models\DeliveryZone;
+use App\Services\Fidelizacion\PuntosService;
+use App\Services\Promociones\CuponService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\On;
@@ -25,6 +27,28 @@ class ResumenMultivendedor extends Component
      * Metodo de pago actual.
      */
     public string $metodoPago = 'efectivo';
+
+    /**
+     * Aceptacion de terminos del checkout.
+     */
+    public bool $aceptaTerminos = false;
+
+    /**
+     * Codigo de cupon ingresado por el cliente.
+     */
+    public string $couponCode = '';
+
+    /**
+     * Respuesta actual de cupon.
+     *
+     * @var array<string, mixed>
+     */
+    public array $couponState = [
+        'valido' => false,
+        'mensaje' => null,
+        'descuento' => 0.0,
+        'cupon' => null,
+    ];
 
     /**
      * Inicializa la direccion usada para estimar envio.
@@ -77,6 +101,51 @@ class ResumenMultivendedor extends Component
     }
 
     /**
+     * Valida en tiempo real la aceptacion de terminos.
+     */
+    public function updatedAceptaTerminos(): void
+    {
+        $this->validateOnly('aceptaTerminos', [
+            'aceptaTerminos' => ['accepted'],
+        ], [
+            'aceptaTerminos.accepted' => 'Debes aceptar los terminos y condiciones para continuar.',
+        ]);
+    }
+
+    /**
+     * Valida un cupon en tiempo real.
+     *
+     * @return void
+     */
+    public function aplicarCupon(): void
+    {
+        $subtotal = $this->subtotal($this->items());
+        $this->couponState = app(CuponService::class)->resolver(auth()->user(), $this->couponCode, $subtotal);
+
+        $this->dispatch(
+            'toast',
+            type: $this->couponState['valido'] ? 'success' : 'warning',
+            message: $this->couponState['mensaje']
+        );
+    }
+
+    /**
+     * Elimina el cupon activo del resumen.
+     *
+     * @return void
+     */
+    public function quitarCupon(): void
+    {
+        $this->couponCode = '';
+        $this->couponState = [
+            'valido' => false,
+            'mensaje' => null,
+            'descuento' => 0.0,
+            'cupon' => null,
+        ];
+    }
+
+    /**
      * Renderiza resumen multivendedor.
      *
      * @return View
@@ -87,15 +156,22 @@ class ResumenMultivendedor extends Component
         $grupos = $this->gruposPorVendedor($items);
         $subtotal = $this->subtotal($items);
         $envio = $this->envioEstimado();
-        $impuestos = round($subtotal * 0.12, 2);
+        $descuento = (float) ($this->couponState['descuento'] ?? 0);
+        $baseImponible = max(0, $subtotal - $descuento);
+        $impuestos = round($baseImponible * 0.12, 2);
+        $puntos = auth()->check() ? app(PuntosService::class)->saldo(auth()->user()) : null;
 
         return view('livewire.checkout.resumen-multivendedor', [
             'grupos' => $grupos,
             'subtotal' => $subtotal,
             'envio' => $envio,
+            'descuento' => $descuento,
             'impuestos' => $impuestos,
-            'total' => round($subtotal + $envio + $impuestos, 2),
+            'total' => round($baseImponible + $envio + $impuestos, 2),
             'metodoPago' => $this->metodoPago,
+            'couponState' => $this->couponState,
+            'puntos' => $puntos,
+            'puntosProximos' => (int) floor(round($baseImponible + $envio + $impuestos, 2) / 10),
         ]);
     }
 

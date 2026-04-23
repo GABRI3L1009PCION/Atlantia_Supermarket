@@ -9,6 +9,7 @@ use App\Models\Inventario;
 use App\Models\Pedido;
 use App\Models\Producto;
 use App\Models\User;
+use App\Notifications\StockBajoNotification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -244,7 +245,10 @@ class StockService
                 'ultima_actualizacion' => now(),
             ]);
 
-            return $inventario->refresh();
+            $inventario = $inventario->refresh();
+            $this->notificarStockBajo($producto, $inventario);
+
+            return $inventario;
         });
     }
 
@@ -280,6 +284,7 @@ class StockService
                 ]);
 
                 $this->audit($inventario, $user, 'inventario.actualizado', $oldValues, $inventario->fresh()->toArray());
+                $this->notificarStockBajo($producto, $inventario->refresh());
 
                 return $inventario->refresh();
             });
@@ -358,5 +363,27 @@ class StockService
             'new_values' => $newValues,
             'metadata' => ['producto_id' => $inventario->producto_id],
         ]);
+    }
+
+    /**
+     * Envia alerta al vendedor cuando el stock cae al minimo configurado.
+     *
+     * @param Producto $producto
+     * @param Inventario $inventario
+     * @return void
+     */
+    private function notificarStockBajo(Producto $producto, Inventario $inventario): void
+    {
+        if ($inventario->stock_actual > $inventario->stock_minimo) {
+            return;
+        }
+
+        $producto->loadMissing('vendor.user');
+
+        if ($producto->vendor?->user === null) {
+            return;
+        }
+
+        $producto->vendor->user->notify(new StockBajoNotification($producto, (int) $inventario->stock_actual));
     }
 }

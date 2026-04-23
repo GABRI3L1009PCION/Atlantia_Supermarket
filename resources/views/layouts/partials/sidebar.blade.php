@@ -33,6 +33,7 @@
             ],
             'Finanzas y ML' => [
                 ['label' => 'Comisiones', 'route' => route('admin.comisiones.index'), 'active' => request()->routeIs('admin.comisiones.*')],
+                ['label' => 'Cupones', 'route' => route('admin.cupones.index'), 'active' => request()->routeIs('admin.cupones.*')],
                 ['label' => 'DTE y FEL', 'route' => route('admin.dte.index'), 'active' => request()->routeIs('admin.dte.*')],
                 ['label' => 'Resenas', 'route' => route('admin.resenas.index'), 'active' => request()->routeIs('admin.resenas.*')],
                 ['label' => 'Devoluciones', 'route' => route('admin.devoluciones.index'), 'active' => request()->routeIs('admin.devoluciones.*')],
@@ -80,6 +81,7 @@
             'Cuenta' => [
                 ['label' => 'Mis pedidos', 'route' => route('cliente.pedidos.index'), 'active' => request()->routeIs('cliente.pedidos.*')],
                 ['label' => 'Direcciones', 'route' => route('cliente.direcciones.index'), 'active' => request()->routeIs('cliente.direcciones.*')],
+                ['label' => 'Wishlist', 'route' => route('cliente.wishlist.index'), 'active' => request()->routeIs('cliente.wishlist.*')],
             ],
         ],
     };

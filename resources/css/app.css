@@ -18,6 +18,10 @@
 }
 
 @layer base {
+    [x-cloak] {
+        display: none !important;
+    }
+
     body {
         background: var(--color-atlantia-cream);
         color: var(--color-atlantia-ink);

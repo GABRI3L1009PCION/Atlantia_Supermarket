@@ -49,4 +49,20 @@ class UserPolicy
 
         return $user->hasRole('admin') && ! $model->isSuperAdmin() && ! $model->hasRole('admin');
     }
+
+    /**
+     * Permite impersonar usuarios operativos desde super admin.
+     */
+    public function impersonate(User $user, User $model): bool
+    {
+        if (! $user->isSuperAdmin()) {
+            return false;
+        }
+
+        if ((int) $user->id === (int) $model->id) {
+            return false;
+        }
+
+        return ! $model->isSuperAdmin();
+    }
 }

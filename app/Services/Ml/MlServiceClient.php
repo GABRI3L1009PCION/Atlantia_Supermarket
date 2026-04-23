@@ -2,6 +2,7 @@
 
 namespace App\Services\Ml;
 
+use App\Contracts\MlServiceContract;
 use App\Exceptions\MlServiceUnavailableException;
 use App\Models\Ml\MlPredictionLog;
 use Illuminate\Support\Facades\Http;
@@ -10,7 +11,7 @@ use Throwable;
 /**
  * Cliente HTTP auditable hacia el microservicio ML FastAPI.
  */
-class MlServiceClient implements MlServiceClientInterface
+class MlServiceClient implements MlServiceClientInterface, MlServiceContract
 {
     /**
      * Ejecuta POST contra ML service.
@@ -34,6 +35,39 @@ class MlServiceClient implements MlServiceClientInterface
     public function get(string $endpoint, array $query = []): array
     {
         return $this->request('get', $endpoint, $query);
+    }
+
+    /**
+     * Detecta fraude en un pedido.
+     *
+     * @param array<string, mixed> $datos
+     * @return array<string, mixed>
+     */
+    public function detectarFraude(array $datos): array
+    {
+        return $this->post('/fraud/order', $datos);
+    }
+
+    /**
+     * Solicita prediccion de demanda.
+     *
+     * @param array<string, mixed> $datos
+     * @return array<string, mixed>
+     */
+    public function predecirDemanda(array $datos): array
+    {
+        return $this->post('/forecast/demand', $datos);
+    }
+
+    /**
+     * Solicita recomendaciones de productos.
+     *
+     * @param array<string, mixed> $datos
+     * @return array<string, mixed>
+     */
+    public function recomendar(array $datos): array
+    {
+        return $this->post('/recommend/products', $datos);
     }
 
     /**

@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\HealthController;
+use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Cliente\CatalogoController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,6 +17,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web', 'security.headers'])->group(function (): void {
     Route::get('/', [CatalogoController::class, 'index'])->name('home');
+    Route::get('/health', HealthController::class)->name('health');
+    Route::get('/admin/salir-impersonacion', [ImpersonationController::class, 'stop'])
+        ->middleware('auth')
+        ->name('admin.impersonation.stop');
 
     $routeFiles = [
         __DIR__ . '/auth.php',

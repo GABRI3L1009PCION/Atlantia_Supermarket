@@ -2,6 +2,7 @@
 
 namespace App\Services\Clientes;
 
+use App\DTOs\DireccionDTO;
 use App\Models\Cliente\Direccion;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -26,12 +27,13 @@ class DireccionService
     /**
      * Crea direccion del cliente.
      *
-     * @param array<string, mixed> $data
+     * @param DireccionDTO $direccionDTO
      */
-    public function create(User $user, array $data): Direccion
+    public function create(User $user, DireccionDTO $direccionDTO): Direccion
     {
-        return DB::transaction(function () use ($user, $data): Direccion {
-            $debeSerPrincipal = (bool) ($data['es_principal'] ?? false)
+        return DB::transaction(function () use ($user, $direccionDTO): Direccion {
+            $data = $direccionDTO->toArray();
+            $debeSerPrincipal = $direccionDTO->esPrincipal
                 || ! Direccion::query()->where('user_id', $user->id)->exists();
 
             if ($debeSerPrincipal) {
@@ -51,12 +53,14 @@ class DireccionService
     /**
      * Actualiza direccion.
      *
-     * @param array<string, mixed> $data
+     * @param DireccionDTO $direccionDTO
      */
-    public function update(Direccion $direccion, array $data): Direccion
+    public function update(Direccion $direccion, DireccionDTO $direccionDTO): Direccion
     {
-        return DB::transaction(function () use ($direccion, $data): Direccion {
-            if ($data['es_principal'] ?? false) {
+        return DB::transaction(function () use ($direccion, $direccionDTO): Direccion {
+            $data = $direccionDTO->toArray();
+
+            if ($direccionDTO->esPrincipal) {
                 Direccion::query()->where('user_id', $direccion->user_id)->update(['es_principal' => false]);
             }
 

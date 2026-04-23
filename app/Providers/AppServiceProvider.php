@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Contracts\MlServiceContract;
+use App\Contracts\NotificacionContract;
+use App\Contracts\PasarelaPagoContract;
 use App\Models\CarritoItem;
 use App\Models\Categoria;
 use App\Models\Cliente\Direccion;
@@ -54,6 +57,8 @@ use App\Services\Fel\CertificadorFelInterface;
 use App\Services\Fel\InfileCertificadorService;
 use App\Services\Ml\MlServiceClient;
 use App\Services\Ml\MlServiceClientInterface;
+use App\Services\Notificaciones\NotificationService;
+use App\Services\Pagos\PasarelaPagoService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
@@ -73,6 +78,9 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(CertificadorFelInterface::class, InfileCertificadorService::class);
         $this->app->bind(MlServiceClientInterface::class, MlServiceClient::class);
+        $this->app->bind(MlServiceContract::class, MlServiceClient::class);
+        $this->app->bind(NotificacionContract::class, NotificationService::class);
+        $this->app->bind(PasarelaPagoContract::class, PasarelaPagoService::class);
     }
 
     /**

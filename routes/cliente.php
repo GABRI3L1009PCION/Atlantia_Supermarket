@@ -11,6 +11,7 @@ use App\Http\Controllers\Cliente\ProductoController;
 use App\Http\Controllers\Cliente\RecomendacionController;
 use App\Http\Controllers\Cliente\ResenaController;
 use App\Http\Controllers\Cliente\SeguimientoController;
+use App\Http\Controllers\Cliente\WishlistController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -67,6 +68,9 @@ Route::prefix('cliente')
         Route::delete('/resenas/{resena:uuid}', [ResenaController::class, 'destroy'])->name('resenas.destroy');
 
         Route::get('/recomendaciones', [RecomendacionController::class, 'index'])->name('recomendaciones.index');
+        Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+        Route::post('/wishlist/{producto:uuid}/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
+        Route::post('/wishlist/agregar-todo', [WishlistController::class, 'addAllToCart'])->name('wishlist.add-all');
 
         Route::get('/perfil', [PerfilController::class, 'edit'])->name('perfil.edit');
         Route::put('/perfil', [PerfilController::class, 'update'])->name('perfil.update');

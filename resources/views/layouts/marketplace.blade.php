@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,6 +21,23 @@
     </main>
 
     @include('layouts.partials.footer')
+    <x-toast />
+
+    <div
+        id="livewire-global-overlay"
+        class="pointer-events-none fixed inset-0 z-[94] hidden items-center justify-center bg-slate-950/35 backdrop-blur-[1px]"
+        role="status"
+        aria-live="polite"
+        aria-label="Cargando contenido"
+    >
+        <div class="rounded-xl bg-white px-5 py-4 text-sm font-bold text-atlantia-wine shadow-xl">
+            Cargando...
+        </div>
+    </div>
+
+    <div class="fixed bottom-5 right-5 z-40 md:hidden">
+        <livewire:carrito.icono-carrito />
+    </div>
 
     @livewireScripts(['nonce' => request()->attributes->get('csp_nonce')])
     @include('layouts.partials.protect-submit')

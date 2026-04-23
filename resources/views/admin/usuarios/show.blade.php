@@ -85,6 +85,21 @@
                         <p class="text-sm font-semibold text-atlantia-ink">{{ optional($usuario->last_login_at)->format('d/m/Y H:i') ?: 'Sin registro' }}</p>
                     </div>
 
+                    @can('impersonate', $usuario)
+                        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                            <p class="text-sm font-bold text-amber-900">Acceso temporal</p>
+                            <p class="mt-2 text-sm text-amber-800/85">
+                                Ingresa como este usuario para revisar permisos, panel y experiencia real.
+                            </p>
+                            <a
+                                href="{{ route('admin.impersonation.start', $usuario) }}"
+                                class="mt-4 inline-flex items-center rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+                            >
+                                Entrar como este usuario
+                            </a>
+                        </div>
+                    @endcan
+
                     @can('delete', $usuario)
                         <form method="POST" action="{{ route('admin.usuarios.destroy', $usuario) }}" class="rounded-xl border border-red-200 bg-red-50 p-4">
                             @csrf

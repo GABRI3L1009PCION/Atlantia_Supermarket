@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,6 +21,7 @@
 
             <main id="contenido-principal" class="min-w-0 px-4 py-6 sm:px-6 lg:px-8" tabindex="-1">
                 @include('layouts.partials.breadcrumbs')
+                @include('layouts.partials.impersonation-banner')
                 @include('layouts.partials.flash')
 
                 {{ $slot ?? '' }}
@@ -30,6 +31,18 @@
     </div>
 
     @livewireScripts(['nonce' => request()->attributes->get('csp_nonce')])
+    <x-toast />
+    <div
+        id="livewire-global-overlay"
+        class="pointer-events-none fixed inset-0 z-[94] hidden items-center justify-center bg-slate-950/35 backdrop-blur-[1px]"
+        role="status"
+        aria-live="polite"
+        aria-label="Cargando contenido"
+    >
+        <div class="rounded-xl bg-white px-5 py-4 text-sm font-bold text-atlantia-wine shadow-xl">
+            Cargando...
+        </div>
+    </div>
     @include('layouts.partials.protect-submit')
     @stack('scripts')
 </body>

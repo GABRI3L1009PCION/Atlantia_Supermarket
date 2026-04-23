@@ -33,6 +33,7 @@ class ProductoObserver
     public function saved(Producto $producto): void
     {
         $this->bumpSearchVersion();
+        Cache::forget('categorias');
 
         if ($producto->is_active && $producto->visible_catalogo && $producto->publicado_at !== null) {
             $producto->searchable();
@@ -52,6 +53,9 @@ class ProductoObserver
     public function deleted(Producto $producto): void
     {
         $this->bumpSearchVersion();
+        Cache::forget('categorias');
+        $producto->carritoItems()->delete();
+        $producto->clearMediaCollection('productos');
         $producto->unsearchable();
     }
 

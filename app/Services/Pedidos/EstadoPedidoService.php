@@ -5,7 +5,12 @@ namespace App\Services\Pedidos;
 use App\Enums\EstadoPedido;
 use App\Models\Pedido;
 use App\Models\PedidoEstado;
+use App\Models\PedidoHistorialEstado;
 use App\Models\User;
+use App\Notifications\PedidoConfirmadoNotification;
+use App\Notifications\PedidoEnCaminoNotification;
+use App\Notifications\PedidoEntregadoNotification;
+use App\Services\Fidelizacion\PuntosService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -13,6 +18,13 @@ use Illuminate\Support\Facades\DB;
  */
 class EstadoPedidoService
 {
+    /**
+     * Crea una instancia del servicio.
+     */
+    public function __construct(private readonly PuntosService $puntosService)
+    {
+    }
+
     /**
      * Registra un estado y actualiza el pedido.
      *
@@ -25,6 +37,7 @@ class EstadoPedidoService
     public function registrar(Pedido $pedido, string|EstadoPedido $estado, ?string $notas = null, ?User $usuario = null): Pedido
     {
         return DB::transaction(function () use ($pedido, $estado, $notas, $usuario): Pedido {
+            $estadoAnterior = $pedido->estadoValor();
             $estadoValue = $estado instanceof EstadoPedido ? $estado->value : $estado;
 
             $pedido->update($this->payloadEstado($estado));
@@ -36,7 +49,22 @@ class EstadoPedidoService
                 'usuario_id' => $usuario?->id,
             ]);
 
-            return $pedido->refresh();
+            PedidoHistorialEstado::query()->create([
+                'pedido_id' => $pedido->id,
+                'estado_anterior' => $estadoAnterior,
+                'estado_nuevo' => $estadoValue,
+                'usuario_id' => $usuario?->id,
+                'nota' => $notas,
+            ]);
+
+            $pedido = $pedido->refresh();
+            $this->notificarCambio($pedido, $estadoValue);
+
+            if ($estadoValue === EstadoPedido::Entregado->value) {
+                $this->puntosService->otorgarPorPedido($pedido);
+            }
+
+            return $pedido;
         });
     }
 
@@ -67,6 +95,29 @@ class EstadoPedidoService
             EstadoPedido::Confirmado->value => ['estado' => $estadoValue, 'confirmado_at' => now()],
             EstadoPedido::Cancelado->value => ['estado' => $estadoValue, 'cancelado_at' => now()],
             default => ['estado' => $estadoValue],
+        };
+    }
+
+    /**
+     * Dispara notificaciones in-app segun el estado alcanzado.
+     *
+     * @param Pedido $pedido
+     * @param string $estado
+     * @return void
+     */
+    private function notificarCambio(Pedido $pedido, string $estado): void
+    {
+        $pedido->loadMissing('cliente');
+
+        if ($pedido->cliente === null) {
+            return;
+        }
+
+        match ($estado) {
+            EstadoPedido::Confirmado->value => $pedido->cliente->notify(new PedidoConfirmadoNotification($pedido)),
+            EstadoPedido::EnRuta->value => $pedido->cliente->notify(new PedidoEnCaminoNotification($pedido)),
+            EstadoPedido::Entregado->value => $pedido->cliente->notify(new PedidoEntregadoNotification($pedido)),
+            default => null,
         };
     }
 }

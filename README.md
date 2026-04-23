@@ -19,11 +19,10 @@ Marketplace multirrol para supermercado online en Izabal, Guatemala.
 
 Nunca subas `.env` al repositorio. El archivo ya esta ignorado por Git y debe existir solo en cada servidor o maquina local.
 
-Para preparar el entorno:
+Para preparar el entorno, copia la plantilla:
 
 ```bash
 cp .env.example .env
-php artisan key:generate
 ```
 
 Luego llena los valores reales en `.env`. Usa nombres de secretos dedicados:
@@ -54,12 +53,58 @@ La aplicacion bloquea el arranque si `APP_ENV=production` y `APP_DEBUG=true` est
 ## Instalacion local
 
 ```bash
+cp .env.example .env
 composer install
 npm install
+php artisan key:generate
 php artisan migrate --seed
+php artisan storage:link
+php artisan scout:import "App\Models\Producto"
 npm run build
 php artisan serve
 ```
+
+Tambien puedes usar el comando automatizado:
+
+```bash
+make setup-local
+```
+
+Este objetivo ejecuta:
+
+```bash
+cp .env.example .env
+composer install
+npm install
+php artisan key:generate
+php artisan migrate --seed
+php artisan storage:link
+php artisan scout:import "App\Models\Producto"
+npm run build
+```
+
+## Health check
+
+El endpoint operativo del marketplace queda disponible en:
+
+```bash
+GET /health
+```
+
+Respuesta esperada:
+
+```json
+{
+  "status": "ok",
+  "database": "ok",
+  "redis": "ok",
+  "meilisearch": "ok",
+  "ml_service": "ok",
+  "timestamp": "2026-04-23T00:00:00-06:00"
+}
+```
+
+Si algun servicio falla, responde `503` con el detalle del servicio afectado. Esto sirve para Docker healthchecks, balanceadores y monitoreo externo.
 
 ## Seguridad operativa
 

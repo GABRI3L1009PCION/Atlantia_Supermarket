@@ -4,10 +4,12 @@ use App\Http\Controllers\Admin\AntifraudeController;
 use App\Http\Controllers\Admin\AuditoriaController;
 use App\Http\Controllers\Admin\CategoriaController;
 use App\Http\Controllers\Admin\ComisionController;
+use App\Http\Controllers\Admin\CuponController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DevolucionController;
 use App\Http\Controllers\Admin\DteController;
 use App\Http\Controllers\Admin\EmpleadoController;
+use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\MlMonitorController;
 use App\Http\Controllers\Admin\MlReentrenamientoController;
 use App\Http\Controllers\Admin\PedidoController;
@@ -85,6 +87,8 @@ Route::prefix('admin')
         Route::get('/usuarios/{usuario:uuid}', [UsuarioController::class, 'show'])->name('usuarios.show');
         Route::put('/usuarios/{usuario:uuid}', [UsuarioController::class, 'update'])->name('usuarios.update');
         Route::delete('/usuarios/{usuario:uuid}', [UsuarioController::class, 'destroy'])->name('usuarios.destroy');
+        Route::get('/impersonar/{usuario:uuid}', [ImpersonationController::class, 'start'])
+            ->name('impersonation.start');
 
         Route::get('/roles-permisos', [RolPermisoController::class, 'index'])->name('roles-permisos.index');
         Route::post('/roles-permisos/roles', [RolPermisoController::class, 'store'])->name('roles-permisos.store');
@@ -106,6 +110,10 @@ Route::prefix('admin')
         Route::get('/comisiones', [ComisionController::class, 'index'])->name('comisiones.index');
         Route::post('/comisiones/recalcular', [ComisionController::class, 'recalcular'])->name('comisiones.recalcular');
         Route::put('/comisiones/{comision}', [ComisionController::class, 'update'])->name('comisiones.update');
+        Route::get('/cupones', [CuponController::class, 'index'])->name('cupones.index');
+        Route::post('/cupones', [CuponController::class, 'store'])->name('cupones.store');
+        Route::put('/cupones/{cupon}', [CuponController::class, 'update'])->name('cupones.update');
+        Route::delete('/cupones/{cupon}', [CuponController::class, 'destroy'])->name('cupones.destroy');
 
         Route::get('/dte', [DteController::class, 'index'])->name('dte.index');
         Route::get('/dte/{dte:uuid}', [DteController::class, 'show'])->name('dte.show');

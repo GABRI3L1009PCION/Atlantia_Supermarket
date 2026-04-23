@@ -2,6 +2,7 @@
 
 namespace App\Services\Notificaciones;
 
+use App\Contracts\NotificacionContract;
 use App\Models\Inventario;
 use App\Models\SentEmail;
 use Illuminate\Support\Str;
@@ -14,7 +15,7 @@ class NotificadorStockService
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly NotificationService $notificationService)
+    public function __construct(private readonly NotificacionContract $notificationService)
     {
     }
 
@@ -41,7 +42,7 @@ class NotificadorStockService
             'stock_minimo' => $inventario->stock_minimo,
         ];
 
-        $this->notificationService->create($user, 'inventario.stock_bajo', $data);
+        $this->notificationService->enviar($user, 'inventario.stock_bajo', $data);
 
         SentEmail::query()->create([
             'uuid' => (string) Str::uuid(),

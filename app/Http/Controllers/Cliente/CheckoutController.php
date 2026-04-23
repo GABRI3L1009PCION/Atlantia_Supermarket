@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Cliente;
 
+use App\DTOs\PedidoDTO;
 use App\Exceptions\PagoRechazadoException;
 use App\Exceptions\StockInsuficienteException;
 use App\Http\Controllers\Controller;
@@ -40,7 +41,10 @@ class CheckoutController extends Controller
     public function store(CheckoutRequest $request): RedirectResponse
     {
         try {
-            $pedido = $this->checkoutService->checkout($request->user(), $request->validated());
+            $pedido = $this->checkoutService->checkout(
+                $request->user(),
+                PedidoDTO::fromCheckoutArray($request->validated())
+            );
 
             return redirect()->route('cliente.pedidos.show', $pedido)->with('success', 'Pedido creado correctamente.');
         } catch (StockInsuficienteException|PagoRechazadoException $exception) {

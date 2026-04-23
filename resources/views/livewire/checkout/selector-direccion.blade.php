@@ -59,6 +59,8 @@
                             name="direccion_id"
                             value="{{ $direccion->id }}"
                             wire:click="seleccionarDireccion({{ $direccion->id }})"
+                            wire:loading.attr="disabled"
+                            wire:target="seleccionarDireccion({{ $direccion->id }})"
                             @checked($direccionId === $direccion->id)
                             class="mt-1 border-atlantia-rose text-atlantia-wine focus:ring-atlantia-rose"
                         >
@@ -95,8 +97,11 @@
                             type="button"
                             class="mt-3 text-sm font-semibold text-atlantia-wine hover:underline"
                             wire:click.prevent="marcarPrincipal({{ $direccion->id }})"
+                            wire:loading.attr="disabled"
+                            wire:target="marcarPrincipal({{ $direccion->id }})"
                         >
-                            Usar como principal
+                            <span wire:loading.remove wire:target="marcarPrincipal({{ $direccion->id }})">Usar como principal</span>
+                            <span wire:loading wire:target="marcarPrincipal({{ $direccion->id }})">Actualizando...</span>
                         </button>
                     @endif
                 </label>

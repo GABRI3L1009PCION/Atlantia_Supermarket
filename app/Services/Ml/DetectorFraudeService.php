@@ -2,6 +2,7 @@
 
 namespace App\Services\Ml;
 
+use App\Contracts\MlServiceContract;
 use App\Models\Ml\FraudAlert;
 use App\Models\Pedido;
 use App\Services\Antifraude\DeteccionPatronesService;
@@ -15,7 +16,7 @@ class DetectorFraudeService
      * Crea una instancia del servicio.
      */
     public function __construct(
-        private readonly MlServiceClient $mlClient,
+        private readonly MlServiceContract $mlClient,
         private readonly DeteccionPatronesService $deteccionPatronesService
     ) {
     }
@@ -29,7 +30,7 @@ class DetectorFraudeService
     public function evaluar(Pedido $pedido): ?FraudAlert
     {
         try {
-            $resultado = $this->mlClient->post('/fraud/order', [
+            $resultado = $this->mlClient->detectarFraude([
                 'pedido_id' => $pedido->id,
                 'cliente_id' => $pedido->cliente_id,
                 'total' => (float) $pedido->total,

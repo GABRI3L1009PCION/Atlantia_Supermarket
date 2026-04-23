@@ -22,6 +22,7 @@
         ],
         'Finanzas y control' => [
             ['label' => 'Comisiones', 'route' => route('admin.comisiones.index'), 'active' => request()->routeIs('admin.comisiones.*')],
+            ['label' => 'Cupones', 'route' => route('admin.cupones.index'), 'active' => request()->routeIs('admin.cupones.*')],
             ['label' => 'DTE y FEL', 'route' => route('admin.dte.index'), 'active' => request()->routeIs('admin.dte.*')],
             ['label' => 'Resenas', 'route' => route('admin.resenas.index'), 'active' => request()->routeIs('admin.resenas.*')],
             ['label' => 'Devoluciones', 'route' => route('admin.devoluciones.index'), 'active' => request()->routeIs('admin.devoluciones.*')],
@@ -35,7 +36,7 @@
 @endphp
 
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -132,6 +133,7 @@
             </header>
 
             <main id="super-admin-content" class="super-admin-surface px-4 py-6 sm:px-6 lg:px-8" tabindex="-1">
+                @include('layouts.partials.impersonation-banner')
                 @include('layouts.partials.flash')
 
                 {{ $slot ?? '' }}
@@ -141,6 +143,18 @@
     </div>
 
     @livewireScripts(['nonce' => request()->attributes->get('csp_nonce')])
+    <x-toast />
+    <div
+        id="livewire-global-overlay"
+        class="pointer-events-none fixed inset-0 z-[94] hidden items-center justify-center bg-slate-950/35 backdrop-blur-[1px]"
+        role="status"
+        aria-live="polite"
+        aria-label="Cargando contenido"
+    >
+        <div class="rounded-xl bg-[#1d1d24] px-5 py-4 text-sm font-bold text-[#f4a7c5] shadow-xl">
+            Cargando...
+        </div>
+    </div>
     @include('layouts.partials.protect-submit')
     @stack('scripts')
 </body>

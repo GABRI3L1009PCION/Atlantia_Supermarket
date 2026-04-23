@@ -17,6 +17,14 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolePermissionSeeder::class,
             UserSeeder::class,
+            CategoriaSeeder::class,
+            DeliveryZoneSeeder::class,
         ]);
+
+        if (app()->environment('local')) {
+            $this->call([
+                DevelopmentSeeder::class,
+            ]);
+        }
     }
 }

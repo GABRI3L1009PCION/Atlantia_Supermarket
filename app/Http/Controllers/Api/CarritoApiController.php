@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\DTOs\CarritoItemDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\CarritoApiRequest;
 use App\Services\Carrito\CarritoService;
@@ -33,7 +34,12 @@ class CarritoApiController extends Controller
      */
     public function sync(CarritoApiRequest $request): JsonResponse
     {
-        $carrito = $this->carritoService->sync($request, $request->validated());
+        $data = $request->validated();
+        $data['items'] = collect($data['items'] ?? [])
+            ->map(fn (array $item): CarritoItemDTO => CarritoItemDTO::fromArray($item))
+            ->all();
+
+        $carrito = $this->carritoService->sync($request, $data);
 
         return response()->json(['message' => 'Carrito sincronizado.', 'data' => $carrito]);
     }

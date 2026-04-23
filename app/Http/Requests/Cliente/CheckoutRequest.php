@@ -39,6 +39,7 @@ class CheckoutRequest extends FormRequest
             'card_token' => ['required_if:metodo_pago,tarjeta', 'nullable', 'string', 'max:180'],
             'referencia_bancaria' => ['required_if:metodo_pago,transferencia', 'nullable', 'string', 'max:120'],
             'comprobante_path' => ['nullable', 'string', 'max:500'],
+            'coupon_code' => ['nullable', 'string', 'max:60'],
             'acepta_terminos_checkout' => ['accepted'],
         ];
     }
@@ -60,6 +61,7 @@ class CheckoutRequest extends FormRequest
             'notas.max' => 'Las notas no deben superar :max caracteres.',
             'card_token.required_if' => 'No se recibio el token seguro de tarjeta.',
             'referencia_bancaria.required_if' => 'Ingresa la referencia de la transferencia bancaria.',
+            'coupon_code.max' => 'El codigo del cupon no debe superar :max caracteres.',
             'acepta_terminos_checkout.accepted' => 'Debes aceptar las condiciones de compra.',
         ];
     }
@@ -79,6 +81,7 @@ class CheckoutRequest extends FormRequest
             'card_token' => 'token de tarjeta',
             'referencia_bancaria' => 'referencia bancaria',
             'comprobante_path' => 'comprobante de transferencia',
+            'coupon_code' => 'codigo de cupon',
             'acepta_terminos_checkout' => 'aceptacion de condiciones de compra',
         ];
     }
@@ -95,6 +98,7 @@ class CheckoutRequest extends FormRequest
             'envio' => $this->input('envio') === null ? 0 : str_replace(',', '.', (string) $this->input('envio')),
             'notas' => $this->blankToNull($this->input('notas')),
             'referencia_bancaria' => $this->blankToNull($this->input('referencia_bancaria')),
+            'coupon_code' => $this->blankToNull($this->input('coupon_code')),
         ]);
     }
 

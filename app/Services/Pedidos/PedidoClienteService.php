@@ -37,6 +37,7 @@ class PedidoClienteService
             'pedidosHijos.dteFacturas',
             'payments',
             'estados.usuario',
+            'historialEstados.usuario',
             'deliveryRoute',
         ]);
     }

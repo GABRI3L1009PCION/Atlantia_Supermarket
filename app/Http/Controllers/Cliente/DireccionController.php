@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Cliente;
 
+use App\DTOs\DireccionDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cliente\StoreDireccionRequest;
 use App\Http\Requests\Cliente\Direccion\UpdateDireccionRequest;
@@ -37,7 +38,7 @@ class DireccionController extends Controller
     public function store(StoreDireccionRequest $request): RedirectResponse
     {
         $this->authorize('create', Direccion::class);
-        $this->direccionService->create($request->user(), $request->validated());
+        $this->direccionService->create($request->user(), DireccionDTO::fromArray($request->validated()));
 
         return back()->with('success', 'Direccion guardada correctamente.');
     }
@@ -48,7 +49,7 @@ class DireccionController extends Controller
     public function update(UpdateDireccionRequest $request, Direccion $direccion): RedirectResponse
     {
         $this->authorize('update', $direccion);
-        $this->direccionService->update($direccion, $request->validated());
+        $this->direccionService->update($direccion, DireccionDTO::fromArray($request->validated()));
 
         return back()->with('success', 'Direccion actualizada correctamente.');
     }

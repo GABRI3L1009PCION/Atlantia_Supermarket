@@ -2,6 +2,9 @@
 
 namespace App\Services\Pagos;
 
+use App\Contracts\PasarelaPagoContract;
+use App\DTOs\PagoResultado;
+use App\DTOs\PedidoDTO;
 use App\Enums\EstadoPago;
 use App\Enums\MetodoPago;
 use App\Exceptions\PagoRechazadoException;
@@ -14,7 +17,7 @@ use Illuminate\Support\Str;
 /**
  * Servicio de pagos con contrato intercambiable de pasarela.
  */
-class PasarelaPagoService
+class PasarelaPagoService implements PasarelaPagoContract
 {
     /**
      * Crea una instancia del servicio.
@@ -27,37 +30,56 @@ class PasarelaPagoService
      * Registra el pago del checkout.
      *
      * @param Pedido $pedido
-     * @param array<string, mixed> $data
+     * @param PedidoDTO $pedidoDTO
      * @return Payment
      *
      * @throws PagoRechazadoException
      */
-    public function registrarPagoCheckout(Pedido $pedido, array $data): Payment
+    public function registrarPagoCheckout(Pedido $pedido, PedidoDTO $pedidoDTO): Payment
     {
-        return DB::transaction(function () use ($pedido, $data): Payment {
-            $metodo = $data['metodo_pago'] instanceof MetodoPago
-                ? $data['metodo_pago']->value
-                : (string) $data['metodo_pago'];
-            $payload = $this->procesarSegunMetodo($pedido, $metodo, $data);
+        return DB::transaction(function () use ($pedido, $pedidoDTO): Payment {
+            $metodo = $pedidoDTO->metodoPago->value;
+            $resultado = $this->procesar([
+                'pedido' => $pedido,
+                'pedido_dto' => $pedidoDTO,
+            ]);
 
             $payment = Payment::query()->create([
                 'uuid' => (string) Str::uuid(),
                 'pedido_id' => $pedido->id,
                 'metodo' => $metodo,
                 'monto' => $pedido->total,
-                'estado' => $payload['estado'] instanceof EstadoPago ? $payload['estado']->value : $payload['estado'],
-                'transaccion_id_pasarela' => $payload['transaccion_id_pasarela'] ?? null,
-                'hmac_validado' => $payload['hmac_validado'] ?? false,
-                'referencia_bancaria' => $payload['referencia_bancaria'] ?? null,
+                'estado' => $resultado->estado->value,
+                'transaccion_id_pasarela' => $resultado->transaccionIdPasarela,
+                'hmac_validado' => $resultado->hmacValidado,
+                'referencia_bancaria' => $resultado->referenciaBancaria,
                 'validado_por' => null,
-                'validado_at' => $payload['validado_at'] ?? null,
-                'pasarela_payload' => $payload,
+                'validado_at' => $resultado->validadoAt,
+                'pasarela_payload' => $resultado->toArray(),
             ]);
 
             $pedido->update(['estado_pago' => $this->estadoPedidoPago($payment->estado)->value]);
 
             return $payment;
         });
+    }
+
+    /**
+     * Procesa un pago segun el contrato intercambiable.
+     *
+     * @param array<string, mixed> $datos
+     * @return PagoResultado
+     */
+    public function procesar(array $datos): PagoResultado
+    {
+        $pedido = $datos['pedido'] ?? null;
+        $pedidoDTO = $datos['pedido_dto'] ?? null;
+
+        if (! $pedido instanceof Pedido || ! $pedidoDTO instanceof PedidoDTO) {
+            throw new PagoRechazadoException('No se recibio el contexto requerido para procesar el pago.');
+        }
+
+        return $this->procesarSegunMetodo($pedido, $pedidoDTO->metodoPago->value, $pedidoDTO);
     }
 
     /**
@@ -106,20 +128,20 @@ class PasarelaPagoService
      *
      * @param Pedido $pedido
      * @param string $metodo
-     * @param array<string, mixed> $data
+     * @param PedidoDTO $pedidoDTO
      * @return array<string, mixed>
      *
      * @throws PagoRechazadoException
      */
-    private function procesarSegunMetodo(Pedido $pedido, string $metodo, array $data): array
+    private function procesarSegunMetodo(Pedido $pedido, string $metodo, PedidoDTO $pedidoDTO): PagoResultado
     {
         return match ($metodo) {
-            MetodoPago::Tarjeta->value => $this->procesarTarjetaStripe($pedido, $data),
-            MetodoPago::Transferencia->value => [
-                'estado' => EstadoPago::Validando,
-                'referencia_bancaria' => $data['referencia_bancaria'] ?? null,
-            ],
-            MetodoPago::Efectivo->value => ['estado' => EstadoPago::Pendiente],
+            MetodoPago::Tarjeta->value => $this->procesarTarjetaStripe($pedido, $pedidoDTO),
+            MetodoPago::Transferencia->value => new PagoResultado(
+                estado: EstadoPago::Validando,
+                referenciaBancaria: $pedidoDTO->referenciaBancaria,
+            ),
+            MetodoPago::Efectivo->value => new PagoResultado(estado: EstadoPago::Pendiente),
             default => throw new PagoRechazadoException('Metodo de pago no soportado.'),
         };
     }
@@ -128,12 +150,12 @@ class PasarelaPagoService
      * Procesa tarjeta con Stripe Payment Intents.
      *
      * @param Pedido $pedido
-     * @param array<string, mixed> $data
+     * @param PedidoDTO $pedidoDTO
      * @return array<string, mixed>
      *
      * @throws PagoRechazadoException
      */
-    private function procesarTarjetaStripe(Pedido $pedido, array $data): array
+    private function procesarTarjetaStripe(Pedido $pedido, PedidoDTO $pedidoDTO): PagoResultado
     {
         $secret = (string) config('services.stripe.secret_key');
 
@@ -141,7 +163,7 @@ class PasarelaPagoService
             throw new PagoRechazadoException('Stripe no esta configurado para procesar tarjetas.');
         }
 
-        $paymentMethod = (string) ($data['card_token'] ?? '');
+        $paymentMethod = (string) ($pedidoDTO->cardToken ?? '');
 
         if ($paymentMethod === '') {
             throw new PagoRechazadoException('No se recibio el metodo de pago seguro de Stripe.');
@@ -174,18 +196,20 @@ class PasarelaPagoService
             throw new PagoRechazadoException('Stripe no aprobo el pago de la tarjeta.');
         }
 
-        return [
-            'estado' => EstadoPago::Aprobado,
-            'transaccion_id_pasarela' => $payload['id'] ?? null,
-            'hmac_validado' => true,
-            'validado_at' => now(),
-            'gateway' => 'stripe',
-            'authorization' => $status,
-            'amount' => (float) $pedido->total,
-            'currency' => 'GTQ',
-            'stripe_payment_intent' => $payload['id'] ?? null,
-            'stripe_status' => $status,
-        ];
+        return new PagoResultado(
+            estado: EstadoPago::Aprobado,
+            transaccionIdPasarela: $payload['id'] ?? null,
+            hmacValidado: true,
+            validadoAt: now(),
+            payload: [
+                'gateway' => 'stripe',
+                'authorization' => $status,
+                'amount' => (float) $pedido->total,
+                'currency' => 'GTQ',
+                'stripe_payment_intent' => $payload['id'] ?? null,
+                'stripe_status' => $status,
+            ],
+        );
     }
 
     /**

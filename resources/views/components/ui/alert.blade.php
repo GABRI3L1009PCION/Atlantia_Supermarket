@@ -12,6 +12,6 @@
     ][$type] ?? 'border-slate-200 bg-slate-50 text-slate-900';
 @endphp
 
-<div {{ $attributes->merge(['class' => 'mb-4 rounded-lg border px-4 py-3 text-sm ' . $classes]) }} role="status">
+<div {{ $attributes->merge(['class' => 'mb-4 rounded-lg border px-4 py-3 text-sm ' . $classes]) }} role="alert">
     {{ $message ?? $slot }}
 </div>

@@ -2,21 +2,27 @@
 
 namespace App\Services\Pedidos;
 
+use App\Contracts\PasarelaPagoContract;
+use App\DTOs\PedidoDTO;
 use App\Enums\EstadoPago;
 use App\Enums\EstadoPedido;
+use App\Exceptions\DireccionFueraDeZonaException;
 use App\Exceptions\StockInsuficienteException;
 use App\Exceptions\PagoRechazadoException;
 use App\Exceptions\TransaccionFallidaException;
 use App\Jobs\AnalizarFraudeOrden;
 use App\Models\Carrito;
 use App\Models\Cliente\Direccion;
+use App\Models\DeliveryZone;
 use App\Models\Pedido;
 use App\Models\User;
 use App\Services\Inventario\StockService;
-use App\Services\Pagos\PasarelaPagoService;
+use App\Services\Promociones\CuponService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Throwable;
+use App\ValueObjects\Dinero;
 
 /**
  * Servicio de finalizacion de compra.
@@ -29,8 +35,9 @@ class CheckoutService
     public function __construct(
         private readonly StockService $stockService,
         private readonly SplitMultivendedorService $splitMultivendedorService,
-        private readonly PasarelaPagoService $pasarelaPagoService,
-        private readonly EstadoPedidoService $estadoPedidoService
+        private readonly PasarelaPagoContract $pasarelaPagoService,
+        private readonly EstadoPedidoService $estadoPedidoService,
+        private readonly CuponService $cuponService
     ) {
     }
 
@@ -54,34 +61,49 @@ class CheckoutService
      * Ejecuta checkout con validacion server-side de precios y stock.
      *
      * @param User $cliente
-     * @param array<string, mixed> $data
+     * @param PedidoDTO $pedidoDTO
      * @return Pedido
      *
      * @throws StockInsuficienteException
      * @throws TransaccionFallidaException
      */
-    public function checkout(User $cliente, array $data): Pedido
+    public function checkout(User $cliente, PedidoDTO $pedidoDTO): Pedido
     {
         $rejectedPayment = null;
 
         try {
-            $pedido = DB::transaction(function () use ($cliente, $data, &$rejectedPayment): Pedido {
+            $pedido = DB::transaction(function () use ($cliente, $pedidoDTO, &$rejectedPayment): Pedido {
                 $carrito = $this->lockedCartFor($cliente);
-                $direccion = $this->direccionFor($cliente, (int) $data['direccion_id']);
+                $direccion = $this->direccionFor($cliente, $pedidoDTO->direccionId);
                 $items = $carrito->items()->with(['producto.vendor', 'producto.inventario'])->lockForUpdate()->get();
 
                 if ($items->isEmpty()) {
                     throw new TransaccionFallidaException('El carrito no tiene productos para finalizar la compra.');
                 }
 
+                $this->assertDireccionDentroDeCobertura($direccion);
                 $this->stockService->assertAvailableForItems($items);
                 $this->stockService->reserveForItems($items);
 
-                $totals = $this->calculateTotals($items, (float) ($data['envio'] ?? 0));
-                $pedido = $this->splitMultivendedorService->crearPedidoDesdeCarrito($cliente, $direccion, $items, $totals, $data);
+                $totals = $this->calculateTotals($items, $pedidoDTO->envio, $cliente, $pedidoDTO->cuponCodigo);
+                $pedido = $this->splitMultivendedorService->crearPedidoDesdeCarrito(
+                    $cliente,
+                    $direccion,
+                    $items,
+                    $totals,
+                    [
+                        ...$pedidoDTO->toPaymentPayload(),
+                        'direccion_id' => $pedidoDTO->direccionId,
+                        'coupon_code' => $pedidoDTO->cuponCodigo,
+                    ]
+                );
+
+                if (($totals['cupon'] ?? null) !== null) {
+                    $this->cuponService->registrarUso($totals['cupon'], $cliente, $pedido);
+                }
 
                 try {
-                    $payment = $this->pasarelaPagoService->registrarPagoCheckout($pedido, $data);
+                    $payment = $this->pasarelaPagoService->registrarPagoCheckout($pedido, $pedidoDTO);
                 } catch (PagoRechazadoException $exception) {
                     $this->stockService->releaseForPedido($pedido);
                     $this->estadoPedidoService->registrar(
@@ -119,10 +141,38 @@ class CheckoutService
 
             return $pedido;
         } catch (StockInsuficienteException|TransaccionFallidaException $exception) {
+            Log::warning('Checkout business rule failed', [
+                'user_id' => $cliente->id,
+                'direccion_id' => $pedidoDTO->direccionId,
+                'metodo_pago' => $pedidoDTO->metodoPago->value,
+                'coupon_code' => $pedidoDTO->cuponCodigo,
+                'error' => $exception->getMessage(),
+                'exception' => $exception::class,
+            ]);
+
             throw $exception;
         } catch (PagoRechazadoException $exception) {
+            Log::warning('Checkout payment rejected', [
+                'user_id' => $cliente->id,
+                'direccion_id' => $pedidoDTO->direccionId,
+                'metodo_pago' => $pedidoDTO->metodoPago->value,
+                'coupon_code' => $pedidoDTO->cuponCodigo,
+                'error' => $exception->getMessage(),
+                'exception' => $exception::class,
+            ]);
+
             throw $exception;
         } catch (Throwable $exception) {
+            Log::error('Checkout failed unexpectedly', [
+                'user_id' => $cliente->id,
+                'direccion_id' => $pedidoDTO->direccionId,
+                'metodo_pago' => $pedidoDTO->metodoPago->value,
+                'coupon_code' => $pedidoDTO->cuponCodigo,
+                'error' => $exception->getMessage(),
+                'trace' => $exception->getTraceAsString(),
+                'exception' => $exception::class,
+            ]);
+
             throw new TransaccionFallidaException('No fue posible completar el checkout.', previous: $exception);
         }
     }
@@ -174,29 +224,65 @@ class CheckoutService
     }
 
     /**
+     * Verifica que la direccion pertenezca a una zona operativa activa.
+     *
+     * @throws DireccionFueraDeZonaException
+     */
+    private function assertDireccionDentroDeCobertura(Direccion $direccion): void
+    {
+        $municipio = trim((string) $direccion->municipio);
+
+        $coberturaActiva = DeliveryZone::query()
+            ->active()
+            ->where(function ($query) use ($municipio): void {
+                $query->where('municipio', $municipio);
+
+                if ($municipio === 'Santo Tomas') {
+                    $query->orWhere('municipio', 'Santo Tomás');
+                }
+
+                if ($municipio === 'Santo Tomás') {
+                    $query->orWhere('municipio', 'Santo Tomas');
+                }
+            })
+            ->exists();
+
+        if (! $coberturaActiva) {
+            throw new DireccionFueraDeZonaException(
+                'La direccion seleccionada esta fuera de nuestra zona de entrega activa.'
+            );
+        }
+    }
+
+    /**
      * Calcula totales confiando solo en precios actuales del servidor.
      *
      * @param iterable<int, mixed> $items
-     * @param float $envio
-     * @return array<string, float>
+     * @param Dinero $envio
+     * @return array<string, mixed>
      */
-    private function calculateTotals(iterable $items, float $envio): array
+    private function calculateTotals(iterable $items, Dinero $envio, User $cliente, ?string $cuponCodigo = null): array
     {
-        $subtotal = 0.0;
+        $subtotal = Dinero::zero();
 
         foreach ($items as $item) {
-            $precio = (float) ($item->producto->precio_oferta ?? $item->producto->precio_base);
-            $subtotal += $precio * (int) $item->cantidad;
+            $precio = Dinero::from($item->producto->precio_oferta ?? $item->producto->precio_base);
+            $subtotal = $subtotal->add($precio->multiply((int) $item->cantidad));
         }
 
-        $impuestos = round($subtotal * 0.12, 2);
+        $respuestaCupon = $this->cuponService->resolver($cliente, $cuponCodigo, (float) $subtotal->toDecimal());
+        $descuento = Dinero::from((float) ($respuestaCupon['descuento'] ?? 0));
+        $baseImponible = $subtotal->subtract($descuento);
+        $impuestos = $baseImponible->percentage(12);
+        $total = $baseImponible->add($envio)->add($impuestos);
 
         return [
-            'subtotal' => round($subtotal, 2),
-            'envio' => round($envio, 2),
-            'impuestos' => $impuestos,
-            'descuento' => 0.0,
-            'total' => round($subtotal + $envio + $impuestos, 2),
+            'subtotal' => (float) $subtotal->toDecimal(),
+            'envio' => (float) $envio->toDecimal(),
+            'impuestos' => (float) $impuestos->toDecimal(),
+            'descuento' => (float) $descuento->toDecimal(),
+            'total' => (float) $total->toDecimal(),
+            'cupon' => $respuestaCupon['valido'] ? $respuestaCupon['cupon'] : null,
         ];
     }
 }
