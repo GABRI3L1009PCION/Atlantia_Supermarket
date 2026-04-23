@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Scout\Searchable;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * Producto vendido por un vendedor local.
@@ -248,5 +249,30 @@ class Producto extends Model implements HasMedia
             'is_active' => $this->is_active,
             'visible_catalogo' => $this->visible_catalogo,
         ];
+    }
+
+    /**
+     * Registra conversiones WebP para catalogo responsive.
+     *
+     * @param Media|null $media
+     * @return void
+     */
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumbnail')
+            ->width(300)
+            ->height(300)
+            ->sharpen(10)
+            ->format('webp')
+            ->nonQueued();
+
+        $this->addMediaConversion('card')
+            ->width(600)
+            ->height(400)
+            ->format('webp');
+
+        $this->addMediaConversion('full')
+            ->width(1200)
+            ->format('webp');
     }
 }

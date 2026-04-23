@@ -25,7 +25,7 @@ class ProductoAdminService
     public function paginate(array $filters = []): LengthAwarePaginator
     {
         return Producto::query()
-            ->with(['vendor', 'categoria', 'inventario'])
+            ->with(['vendor', 'categoria', 'inventario', 'media'])
             ->when($filters['estado'] ?? null, fn ($query, $estado) => $query->where('is_active', $estado === 'activo'))
             ->when($filters['q'] ?? null, function ($query, string $q): void {
                 $query->where(fn ($builder) => $builder
@@ -43,7 +43,7 @@ class ProductoAdminService
      */
     public function detail(Producto $producto): Producto
     {
-        return $producto->load(['vendor.fiscalProfile', 'categoria', 'inventario', 'imagenes', 'resenas']);
+        return $producto->load(['vendor.fiscalProfile', 'categoria', 'inventario', 'imagenes', 'media', 'resenas']);
     }
 
     /**
@@ -250,6 +250,13 @@ class ProductoAdminService
 
         foreach ($imagenes as $index => $imagen) {
             $path = $imagen->store('productos/' . $producto->uuid, $disk);
+
+            $producto
+                ->addMediaFromDisk($path, $disk)
+                ->preservingOriginal()
+                ->usingName($producto->nombre)
+                ->usingFileName(basename($path))
+                ->toMediaCollection('productos', $disk);
 
             $producto->imagenes()->create([
                 'path' => $path,

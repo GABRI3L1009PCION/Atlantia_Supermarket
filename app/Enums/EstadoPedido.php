@@ -9,6 +9,7 @@ enum EstadoPedido: string
 {
     case Pendiente = 'pendiente';
     case Confirmado = 'confirmado';
+    case EnRevision = 'en_revision';
     case EnPreparacion = 'preparando';
     case ListoParaEntrega = 'listo_para_entrega';
     case EnRuta = 'en_ruta';

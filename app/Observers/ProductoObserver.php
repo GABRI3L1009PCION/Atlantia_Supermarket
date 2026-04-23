@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\Producto;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 /**
@@ -31,6 +32,8 @@ class ProductoObserver
      */
     public function saved(Producto $producto): void
     {
+        $this->bumpSearchVersion();
+
         if ($producto->is_active && $producto->visible_catalogo && $producto->publicado_at !== null) {
             $producto->searchable();
 
@@ -48,6 +51,21 @@ class ProductoObserver
      */
     public function deleted(Producto $producto): void
     {
+        $this->bumpSearchVersion();
         $producto->unsearchable();
+    }
+
+    /**
+     * Incrementa version de cache de busqueda sin depender de flush global.
+     *
+     * @return void
+     */
+    private function bumpSearchVersion(): void
+    {
+        if (! Cache::has('search:version')) {
+            Cache::forever('search:version', 1);
+        }
+
+        Cache::increment('search:version');
     }
 }

@@ -55,7 +55,7 @@ class MlServiceClient implements MlServiceClientInterface
                 return $this->logSuccess($endpoint, $payload, $this->mock($endpoint, $payload), $inicio);
             }
 
-            $response = Http::timeout(20)
+            $response = Http::timeout((int) config('services.ml.timeout', env('ML_TIMEOUT_SECONDS', 10)))
                 ->acceptJson()
                 ->withToken((string) config('services.ml.token', env('ML_SERVICE_TOKEN')))
                 ->{$method}($this->baseUrl() . '/' . ltrim($endpoint, '/'), $payload);

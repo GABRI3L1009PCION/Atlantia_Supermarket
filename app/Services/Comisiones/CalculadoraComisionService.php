@@ -10,6 +10,7 @@ use App\Models\VendorCommission;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -74,6 +75,25 @@ class CalculadoraComisionService
             ->where('vendor_id', $user->vendor?->id)
             ->latest()
             ->paginate(25);
+    }
+
+    /**
+     * Devuelve la comision activa reciente del vendedor con cache corto.
+     *
+     * @param Vendor $vendor
+     * @return VendorCommission|null
+     */
+    public function activeForVendorCached(Vendor $vendor): ?VendorCommission
+    {
+        return Cache::remember(
+            "vendor_commissions:active:{$vendor->id}",
+            now()->addMinutes(15),
+            fn (): ?VendorCommission => VendorCommission::query()
+                ->where('vendor_id', $vendor->id)
+                ->whereIn('estado', ['pendiente', 'facturada', 'vencida'])
+                ->latest('fecha_emision')
+                ->first()
+        );
     }
 
     /**

@@ -5,7 +5,6 @@ namespace App\Observers;
 use App\Enums\EstadoPedido;
 use App\Events\PedidoCreado;
 use App\Events\PedidoEntregado;
-use App\Jobs\Ml\DetectarFraudeEnPedido;
 use App\Models\Pedido;
 use Illuminate\Support\Str;
 
@@ -41,7 +40,6 @@ class PedidoObserver
     {
         if ($pedido->pedido_padre_id === null) {
             PedidoCreado::dispatch($pedido);
-            DetectarFraudeEnPedido::dispatch($pedido->id);
         }
     }
 

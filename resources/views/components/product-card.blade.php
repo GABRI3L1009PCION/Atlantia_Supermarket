@@ -2,14 +2,26 @@
     'producto',
 ])
 
+@php
+    $cardImage = $producto->getFirstMediaUrl('productos', 'card');
+    $fullImage = $producto->getFirstMediaUrl('productos', 'full');
+    $legacyImage = $producto->imagenPrincipal?->path ? asset('storage/' . $producto->imagenPrincipal->path) : null;
+    $imageUrl = $cardImage ?: $legacyImage;
+@endphp
+
 <article {{ $attributes->merge(['class' => 'rounded-lg border border-atlantia-rose/30 bg-white shadow-sm']) }}>
     <a href="{{ route('productos.show', $producto) }}" class="block">
         <div class="aspect-[4/3] overflow-hidden rounded-t-lg bg-atlantia-blush">
-            @if ($producto->imagenPrincipal?->path)
+            @if ($imageUrl)
                 <img
-                    src="{{ asset('storage/' . $producto->imagenPrincipal->path) }}"
+                    src="{{ $imageUrl }}"
+                    @if ($cardImage && $fullImage)
+                        srcset="{{ $cardImage }} 600w, {{ $fullImage }} 1200w"
+                        sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                    @endif
                     alt="{{ $producto->nombre }}"
                     class="h-full w-full object-cover"
+                    loading="lazy"
                 >
             @else
                 <div class="flex h-full items-center justify-center text-sm text-atlantia-ink/60">

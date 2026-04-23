@@ -25,9 +25,12 @@ use App\Events\DevolucionAprobada;
 use App\Listeners\EnviarEmailDevolucionAprobada;
 use App\Policies\AuditLogPolicy;
 use App\Observers\PedidoObserver;
+use App\Observers\CategoriaObserver;
+use App\Observers\DeliveryZoneObserver;
 use App\Observers\ProductoObserver;
 use App\Observers\ResenaObserver;
 use App\Observers\UserObserver;
+use App\Observers\VendorCommissionObserver;
 use App\Policies\CarritoItemPolicy;
 use App\Policies\CategoriaPolicy;
 use App\Policies\DeliveryRoutePolicy;
@@ -155,6 +158,9 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(DevolucionAprobada::class, EnviarEmailDevolucionAprobada::class);
 
         Producto::observe(ProductoObserver::class);
+        Categoria::observe(CategoriaObserver::class);
+        DeliveryZone::observe(DeliveryZoneObserver::class);
+        VendorCommission::observe(VendorCommissionObserver::class);
         Pedido::observe(PedidoObserver::class);
         User::observe(UserObserver::class);
         Resena::observe(ResenaObserver::class);

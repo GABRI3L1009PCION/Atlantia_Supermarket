@@ -32,6 +32,15 @@ Luego llena los valores reales en `.env`. Usa nombres de secretos dedicados:
 - `ATLANTIA_MAIL_APP_PASSWORD` para la contrasena de aplicacion del correo SMTP.
 - `ATLANTIA_MAPBOX_TOKEN` para el token publico de Mapbox.
 
+Para rendimiento, sesiones, cache y colas usan Redis:
+
+- `SESSION_DRIVER=redis`
+- `SESSION_CONNECTION=session`
+- `CACHE_STORE=redis`
+- `QUEUE_CONNECTION=redis`
+- `REDIS_CLIENT=predis`
+- `REDIS_HOST=127.0.0.1`
+
 En produccion:
 
 - `APP_ENV=production`

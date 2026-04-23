@@ -159,6 +159,7 @@
                                         src="{{ asset('storage/' . $imagen->path) }}"
                                         alt="{{ $imagen->alt_text ?? $producto->nombre }}"
                                         class="h-24 w-full object-cover"
+                                        loading="lazy"
                                     >
                                     @if ($imagen->es_principal)
                                         <p class="px-2 py-1 text-xs font-bold text-atlantia-wine">Principal</p>

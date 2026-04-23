@@ -19,10 +19,11 @@ class PedidoVendedorService
     public function paginate(User $user): LengthAwarePaginator
     {
         return Pedido::query()
-            ->with(['cliente', 'direccion'])
+            ->with(['cliente.direcciones', 'direccion', 'items.producto', 'payments'])
             ->where('vendor_id', $user->vendor?->id)
             ->latest()
-            ->paginate(25);
+            ->paginate(25)
+            ->withQueryString();
     }
 
     /**

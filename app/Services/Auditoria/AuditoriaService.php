@@ -38,7 +38,7 @@ class AuditoriaService
                 });
             })
             ->latest()
-            ->paginate(25)
+            ->paginate(50)
             ->withQueryString();
     }
 

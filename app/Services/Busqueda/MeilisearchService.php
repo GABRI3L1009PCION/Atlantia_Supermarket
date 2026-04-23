@@ -6,6 +6,7 @@ use App\Models\Producto;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Throwable;
 
 /**
@@ -23,21 +24,26 @@ class MeilisearchService
     {
         $perPage = min(50, max(12, (int) ($filters['per_page'] ?? 24)));
         $query = trim((string) ($filters['q'] ?? ''));
+        $page = (int) ($filters['page'] ?? request('page', 1));
+        $cacheVersion = Cache::get('search:version', 1);
+        $cacheKey = 'search:' . $cacheVersion . ':' . sha1(json_encode($this->normalizeFilters($filters)) . ":{$page}:{$perPage}");
 
-        $results = $query !== ''
-            ? $this->searchWithScout($query, $filters, $perPage)
-            : $this->searchWithEloquent($filters, $perPage);
+        return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($query, $filters, $perPage): array {
+            $results = $query !== ''
+                ? $this->searchWithScout($query, $filters, $perPage)
+                : $this->searchWithEloquent($filters, $perPage);
 
-        return [
-            'items' => $results->items(),
-            'pagination' => [
-                'current_page' => $results->currentPage(),
-                'per_page' => $results->perPage(),
-                'total' => $results->total(),
-                'last_page' => $results->lastPage(),
-            ],
-            'filters' => $this->normalizeFilters($filters),
-        ];
+            return [
+                'items' => $results->items(),
+                'pagination' => [
+                    'current_page' => $results->currentPage(),
+                    'per_page' => $results->perPage(),
+                    'total' => $results->total(),
+                    'last_page' => $results->lastPage(),
+                ],
+                'filters' => $this->normalizeFilters($filters),
+            ];
+        });
     }
 
     /**

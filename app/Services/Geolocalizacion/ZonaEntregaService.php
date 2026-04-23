@@ -4,6 +4,8 @@ namespace App\Services\Geolocalizacion;
 
 use App\Models\DeliveryZone;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 /**
@@ -32,6 +34,22 @@ class ZonaEntregaService
             ->orderBy('nombre')
             ->paginate(25)
             ->withQueryString();
+    }
+
+    /**
+     * Devuelve zonas activas cacheadas para checkout y calculo de cobertura.
+     *
+     * @return Collection<int, DeliveryZone>
+     */
+    public function activeCached(): Collection
+    {
+        return Cache::remember('delivery_zones:active', now()->addHour(), function (): Collection {
+            return DeliveryZone::query()
+                ->where('activa', true)
+                ->orderBy('municipio')
+                ->orderBy('nombre')
+                ->get();
+        });
     }
 
     /**

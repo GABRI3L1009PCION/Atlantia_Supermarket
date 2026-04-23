@@ -33,6 +33,7 @@
                                         src="{{ asset('storage/' . $item->producto->imagenPrincipal->path) }}"
                                         alt="{{ $item->producto->nombre }}"
                                         class="h-full w-full object-cover"
+                                        loading="lazy"
                                     >
                                 @else
                                     <div class="flex h-full items-center justify-center text-xs text-atlantia-ink/55">

@@ -19,7 +19,7 @@ class ProductoVendedorService
     public function paginate(User $user): LengthAwarePaginator
     {
         return Producto::query()
-            ->with(['categoria', 'inventario', 'imagenPrincipal'])
+            ->with(['categoria', 'inventario', 'imagenPrincipal', 'media'])
             ->where('vendor_id', $user->vendor?->id)
             ->latest()
             ->paginate(20);
@@ -113,6 +113,13 @@ class ProductoVendedorService
 
         foreach ($imagenes as $index => $imagen) {
             $path = $imagen->store('productos/' . $producto->uuid, $disk);
+
+            $producto
+                ->addMediaFromDisk($path, $disk)
+                ->preservingOriginal()
+                ->usingName($producto->nombre)
+                ->usingFileName(basename($path))
+                ->toMediaCollection('productos', $disk);
 
             $producto->imagenes()->create([
                 'path' => $path,

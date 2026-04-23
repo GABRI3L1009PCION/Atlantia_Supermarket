@@ -10,7 +10,7 @@ class ProductoCatalogoService
     {
         $relations = [];
 
-        foreach (['imagenPrincipal', 'imagenes', 'categoria', 'vendedor', 'resenas'] as $relation) {
+        foreach (['imagenPrincipal', 'imagenes', 'media', 'categoria', 'vendor', 'resenas'] as $relation) {
             if (method_exists($producto, $relation)) {
                 $relations[] = $relation;
             }

@@ -7,6 +7,7 @@ use App\Enums\EstadoPedido;
 use App\Exceptions\StockInsuficienteException;
 use App\Exceptions\PagoRechazadoException;
 use App\Exceptions\TransaccionFallidaException;
+use App\Jobs\AnalizarFraudeOrden;
 use App\Models\Carrito;
 use App\Models\Cliente\Direccion;
 use App\Models\Pedido;
@@ -113,6 +114,8 @@ class CheckoutService
             if ($rejectedPayment instanceof PagoRechazadoException) {
                 throw $rejectedPayment;
             }
+
+            AnalizarFraudeOrden::dispatch($pedido->id);
 
             return $pedido;
         } catch (StockInsuficienteException|TransaccionFallidaException $exception) {

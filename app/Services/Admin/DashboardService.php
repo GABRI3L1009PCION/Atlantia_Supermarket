@@ -12,6 +12,7 @@ use App\Models\Producto;
 use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Servicio de metricas consolidadas para administracion.
@@ -27,22 +28,24 @@ class DashboardService
     {
         $fraudAlerts = FraudAlert::query()->where('resuelta', false)->count();
         $dteRejected = DteFactura::query()->where('estado', 'rechazado')->count();
+        $pedidoMetrics = $this->pedidoMetrics();
+        $vendorMetrics = $this->vendorMetrics();
 
         return [
             'overview' => [
-                'pedidos_hoy' => Pedido::query()->whereDate('created_at', today())->count(),
-                'ventas_hoy' => (float) Pedido::query()->whereDate('created_at', today())->sum('total'),
-                'ticket_promedio' => (float) Pedido::query()->padres()->avg('total'),
-                'tasa_entrega' => $this->deliveryRate(),
+                'pedidos_hoy' => $pedidoMetrics['pedidos_hoy'],
+                'ventas_hoy' => $pedidoMetrics['ventas_hoy'],
+                'ticket_promedio' => $pedidoMetrics['ticket_promedio'],
+                'tasa_entrega' => $pedidoMetrics['tasa_entrega'],
             ],
             'operacion' => [
-                'ventas_hoy' => (float) Pedido::query()->whereDate('created_at', today())->sum('total'),
-                'pedidos_hoy' => Pedido::query()->whereDate('created_at', today())->count(),
-                'pedidos_pendientes' => Pedido::query()->whereIn('estado', ['pendiente', 'confirmado'])->count(),
-                'vendedores_pendientes' => Vendor::query()->pending()->count(),
-                'vendedores_activos' => Vendor::query()->approved()->count(),
-                'dte_rechazados' => DteFactura::query()->where('estado', 'rechazado')->count(),
-                'alertas_fraude_abiertas' => FraudAlert::query()->where('resuelta', false)->count(),
+                'ventas_hoy' => $pedidoMetrics['ventas_hoy'],
+                'pedidos_hoy' => $pedidoMetrics['pedidos_hoy'],
+                'pedidos_pendientes' => $pedidoMetrics['pedidos_pendientes'],
+                'vendedores_pendientes' => $vendorMetrics['pending'],
+                'vendedores_activos' => $vendorMetrics['approved'],
+                'dte_rechazados' => $dteRejected,
+                'alertas_fraude_abiertas' => $fraudAlerts,
             ],
             'alerts' => [
                 'total' => $fraudAlerts + $dteRejected,
@@ -51,7 +54,7 @@ class DashboardService
                 'stock_low' => Producto::query()->whereHas('inventario', function ($query): void {
                     $query->whereColumn('stock_actual', '<=', 'stock_minimo');
                 })->count(),
-                'vendors_pending' => Vendor::query()->pending()->count(),
+                'vendors_pending' => $vendorMetrics['pending'],
                 'ml_status' => 'OK',
             ],
             'recent_orders' => $this->recentOrders(),
@@ -69,8 +72,7 @@ class DashboardService
      */
     public function superAdminMetrics(User $user): array
     {
-        $admins = User::query()->role('admin')->count();
-        $superAdmins = User::query()->role('super_admin')->count();
+        $roleCounts = $this->roleCounts();
         $vendors = Vendor::query()->count();
         $products = Producto::query()->count();
 
@@ -78,8 +80,8 @@ class DashboardService
             'platform' => [
                 'environment' => app()->environment(),
                 'users' => User::query()->count(),
-                'admins' => $admins,
-                'super_admins' => $superAdmins,
+                'admins' => $roleCounts['admin'],
+                'super_admins' => $roleCounts['super_admin'],
                 'vendors' => $vendors,
                 'products' => $products,
             ],
@@ -110,11 +112,76 @@ class DashboardService
             'training_jobs' => MlTrainingJob::query()->latest()->limit(3)->get(),
             'counts' => [
                 'users' => User::query()->count(),
-                'admins' => User::query()->role('admin')->count(),
+                'admins' => $roleCounts['admin'],
                 'vendors' => Vendor::query()->count(),
                 'products' => Producto::query()->count(),
             ],
         ];
+    }
+
+    /**
+     * Agrupa metricas frecuentes de pedidos en una sola consulta.
+     *
+     * @return array<string, float|int>
+     */
+    private function pedidoMetrics(): array
+    {
+        $today = today()->toDateString();
+        $row = Pedido::query()
+            ->selectRaw('SUM(CASE WHEN DATE(created_at) = ? THEN 1 ELSE 0 END) as pedidos_hoy', [$today])
+            ->selectRaw('SUM(CASE WHEN DATE(created_at) = ? THEN total ELSE 0 END) as ventas_hoy', [$today])
+            ->selectRaw('AVG(CASE WHEN pedido_padre_id IS NULL THEN total ELSE NULL END) as ticket_promedio')
+            ->selectRaw("SUM(CASE WHEN estado IN ('pendiente', 'confirmado') THEN 1 ELSE 0 END) as pedidos_pendientes")
+            ->selectRaw("SUM(CASE WHEN estado IN ('entregado', 'cancelado') THEN 1 ELSE 0 END) as pedidos_cerrados")
+            ->selectRaw("SUM(CASE WHEN estado = 'entregado' THEN 1 ELSE 0 END) as pedidos_entregados")
+            ->first();
+
+        $cerrados = (int) ($row?->pedidos_cerrados ?? 0);
+
+        return [
+            'pedidos_hoy' => (int) ($row?->pedidos_hoy ?? 0),
+            'ventas_hoy' => round((float) ($row?->ventas_hoy ?? 0), 2),
+            'ticket_promedio' => round((float) ($row?->ticket_promedio ?? 0), 2),
+            'pedidos_pendientes' => (int) ($row?->pedidos_pendientes ?? 0),
+            'tasa_entrega' => $cerrados === 0
+                ? 0.0
+                : round(((int) ($row?->pedidos_entregados ?? 0) / $cerrados) * 100, 2),
+        ];
+    }
+
+    /**
+     * Agrupa vendedores por estado para evitar conteos repetidos.
+     *
+     * @return array<string, int>
+     */
+    private function vendorMetrics(): array
+    {
+        return Vendor::query()
+            ->select('status', DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->map(fn (mixed $value): int => (int) $value)
+            ->union(['pending' => 0, 'approved' => 0])
+            ->all();
+    }
+
+    /**
+     * Agrupa conteos de roles administrativos en una sola consulta.
+     *
+     * @return array<string, int>
+     */
+    private function roleCounts(): array
+    {
+        return DB::table('model_has_roles')
+            ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+            ->selectRaw('roles.name, COUNT(*) as total')
+            ->where('model_type', User::class)
+            ->whereIn('roles.name', ['admin', 'super_admin'])
+            ->groupBy('roles.name')
+            ->pluck('total', 'roles.name')
+            ->map(fn (mixed $value): int => (int) $value)
+            ->union(['admin' => 0, 'super_admin' => 0])
+            ->all();
     }
 
     /**
@@ -180,20 +247,6 @@ class DashboardService
                     'fecha' => optional($pedido->created_at)->format('d/m/Y H:i'),
                 ];
             });
-    }
-
-    /**
-     * Calcula tasa de entrega sobre pedidos cerrados.
-     */
-    private function deliveryRate(): float
-    {
-        $total = Pedido::query()->whereIn('estado', ['entregado', 'cancelado'])->count();
-
-        if ($total === 0) {
-            return 0.0;
-        }
-
-        return round((Pedido::query()->where('estado', 'entregado')->count() / $total) * 100, 2);
     }
 
     /**

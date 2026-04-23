@@ -20,7 +20,7 @@ class CatalogoService
     public function catalogo(array $filtros = []): LengthAwarePaginator
     {
         $query = Producto::query()
-            ->with(['imagenPrincipal', 'categoria', 'vendor', 'inventario'])
+            ->with(['imagenPrincipal', 'media', 'categoria', 'vendor', 'inventario'])
             ->publicados();
 
         $busqueda = trim((string)($filtros['q'] ?? $filtros['buscar'] ?? ''));

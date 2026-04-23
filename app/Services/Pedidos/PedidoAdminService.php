@@ -28,7 +28,7 @@ class PedidoAdminService
     public function paginate(array $filters = []): LengthAwarePaginator
     {
         return Pedido::query()
-            ->with(['cliente', 'vendor', 'deliveryRoute.repartidor'])
+            ->with(['cliente', 'vendor', 'items.producto', 'deliveryRoute.repartidor', 'payments'])
             ->when($filters['q'] ?? null, function ($query, string $search): void {
                 $query->where(function ($builder) use ($search): void {
                     $builder->where('numero_pedido', 'like', '%' . $search . '%')

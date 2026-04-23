@@ -4,6 +4,7 @@ namespace App\Services\Catalogo;
 
 use App\Models\Categoria;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 /**
@@ -19,11 +20,13 @@ class CategoriaService
      */
     public function tree(array $filters = []): Collection
     {
-        return Categoria::query()
-            ->with('children')
-            ->root()
-            ->ordered()
-            ->get();
+        return Cache::rememberForever('categorias', function (): Collection {
+            return Categoria::query()
+                ->with('children')
+                ->root()
+                ->ordered()
+                ->get();
+        });
     }
 
     /**
@@ -62,4 +65,3 @@ class CategoriaService
         $categoria->update(['is_active' => false]);
     }
 }
-
