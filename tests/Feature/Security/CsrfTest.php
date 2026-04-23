@@ -36,7 +36,8 @@ class CsrfTest extends TestCase
     {
         $this->get(route('register'))
             ->assertOk()
-            ->assertSee('name="_token"', false);
+            ->assertSee('meta name="csrf-token"', false)
+            ->assertSee('data-csrf=', false);
     }
 
     public function testFormularioCheckoutIncluyeTokenCsrf(): void
