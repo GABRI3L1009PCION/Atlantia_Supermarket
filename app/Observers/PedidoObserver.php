@@ -38,7 +38,7 @@ class PedidoObserver
      */
     public function created(Pedido $pedido): void
     {
-        if ($pedido->pedido_padre_id === null) {
+        if ($pedido->vendor_id !== null) {
             PedidoCreado::dispatch($pedido);
         }
     }

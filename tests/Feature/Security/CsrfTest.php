@@ -5,7 +5,6 @@ namespace Tests\Feature\Security;
 use App\Models\User;
 use App\Models\Vendor;
 use Database\Seeders\RolePermissionSeeder;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -24,7 +23,7 @@ class CsrfTest extends TestCase
         parent::setUp();
 
         $this->seed(RolePermissionSeeder::class);
-        $this->withMiddleware(VerifyCsrfToken::class);
+        $this->withMiddleware();
     }
 
     /**

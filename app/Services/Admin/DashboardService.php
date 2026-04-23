@@ -256,8 +256,12 @@ class DashboardService
      */
     private function monthlySales(): Collection
     {
+        $periodExpression = DB::getDriverName() === 'sqlite'
+            ? "strftime('%Y-%m', created_at)"
+            : "DATE_FORMAT(created_at, '%Y-%m')";
+
         $rows = Pedido::query()
-            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as periodo")
+            ->selectRaw("{$periodExpression} as periodo")
             ->selectRaw('SUM(total) as total')
             ->padres()
             ->where('created_at', '>=', now()->subMonths(5)->startOfMonth())

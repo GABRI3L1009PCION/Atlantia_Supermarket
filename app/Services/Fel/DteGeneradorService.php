@@ -37,11 +37,12 @@ class DteGeneradorService
         try {
             return DB::transaction(function () use ($pedido): DteFactura {
                 $pedido->loadMissing(['vendor.fiscalProfile', 'items.producto', 'cliente']);
-                $this->validarPedidoFacturable($pedido);
 
                 if ($pedido->dte_id !== null) {
                     return DteFactura::query()->findOrFail($pedido->dte_id);
                 }
+
+                $this->validarPedidoFacturable($pedido);
 
                 $dte = DteFactura::query()->create([
                     'uuid' => (string) Str::uuid(),

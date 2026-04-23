@@ -45,8 +45,10 @@ class StoreProductoRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $nombre = trim((string) $this->input('nombre'));
+        $ownerType = (string) $this->input('owner_type', $this->filled('vendor_id') ? 'vendor' : 'atlantia');
 
         $this->merge([
+            'owner_type' => $ownerType,
             'nombre' => $nombre,
             'sku' => Str::upper(trim((string) $this->input('sku'))),
             'slug' => $this->input('slug') ? Str::slug((string) $this->input('slug')) : Str::slug($nombre),

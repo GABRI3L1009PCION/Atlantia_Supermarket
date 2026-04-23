@@ -141,7 +141,7 @@ class CheckoutServiceTest extends TestCase
      */
     public function testCheckoutConDireccionFueraDeZonaRetornaError(): void
     {
-        [$cliente, $direccion] = $this->createClienteConDireccion('Coban');
+        [$cliente, $direccion] = $this->createClienteConDireccion('Livingston');
         $producto = $this->createProductoConInventario(3);
         $this->createCarritoActivo($cliente, $producto, 1);
         $this->fakePasarelaAprobada();

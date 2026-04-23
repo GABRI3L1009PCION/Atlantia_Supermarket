@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\User;
 use App\Models\Vendor;
+use App\Models\VendorFiscalProfile;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -20,6 +21,33 @@ class VendorFactory extends Factory
      * @var class-string<Vendor>
      */
     protected $model = Vendor::class;
+
+    /**
+     * Configura callbacks posteriores a la creacion.
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (Vendor $vendor): void {
+            if (! $vendor->is_approved) {
+                return;
+            }
+
+            VendorFiscalProfile::query()->firstOrCreate(
+                ['vendor_id' => $vendor->id],
+                [
+                    'nit' => 'CF-' . str_pad((string) $vendor->id, 6, '0', STR_PAD_LEFT),
+                    'razon_social' => $vendor->business_name,
+                    'nombre_comercial_sat' => $vendor->business_name,
+                    'direccion_fiscal' => $vendor->direccion_comercial,
+                    'regimen_sat' => 'general',
+                    'codigo_establecimiento' => 'EST-' . str_pad((string) $vendor->id, 3, '0', STR_PAD_LEFT),
+                    'afiliacion_iva' => 'GEN',
+                    'certificador_fel' => 'infile',
+                    'fel_activo' => true,
+                ]
+            );
+        });
+    }
 
     /**
      * Define el estado base del modelo.
