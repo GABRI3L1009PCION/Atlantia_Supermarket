@@ -20,13 +20,13 @@ class CategoriaService
      */
     public function tree(array $filters = []): Collection
     {
-        return Cache::rememberForever('categorias', function (): Collection {
-            return Categoria::query()
-                ->with('children')
-                ->root()
-                ->ordered()
-                ->get();
-        });
+        Cache::forget('categorias');
+
+        return Categoria::query()
+            ->with('children')
+            ->root()
+            ->ordered()
+            ->get();
     }
 
     /**
@@ -38,7 +38,10 @@ class CategoriaService
     {
         $data['slug'] = $data['slug'] ?? Str::slug((string) $data['nombre']);
 
-        return Categoria::query()->create($data);
+        $categoria = Categoria::query()->create($data);
+        Cache::forget('categorias');
+
+        return $categoria;
     }
 
     /**
@@ -53,6 +56,7 @@ class CategoriaService
         }
 
         $categoria->update($data);
+        Cache::forget('categorias');
 
         return $categoria->refresh();
     }
@@ -63,5 +67,6 @@ class CategoriaService
     public function delete(Categoria $categoria): void
     {
         $categoria->update(['is_active' => false]);
+        Cache::forget('categorias');
     }
 }
