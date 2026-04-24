@@ -57,6 +57,7 @@ class CatalogoController extends Controller
 
                 return [
                     'id' => $categoria->id,
+                    'slug' => $categoria->slug,
                     'nombre' => $categoria->nombre,
                     'href' => route('catalogo.index', ['categoria' => $categoria->id]) . '#productos',
                     'image' => $fallback,
