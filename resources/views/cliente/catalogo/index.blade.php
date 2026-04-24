@@ -146,6 +146,55 @@
     <section class="mx-auto min-h-[313px] w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <livewire:catalogo.lista-productos :search="(string) request('q', '')" />
     </section>
+
+    <section id="contacto" class="border-t border-atlantia-rose/15 bg-atlantia-blush/35 py-16 scroll-mt-6">
+        <div class="mx-auto grid w-full max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8">
+            <div class="space-y-4">
+                <p class="text-sm font-extrabold uppercase tracking-[0.18em] text-atlantia-wine">Contacto Atlantia</p>
+                <h2 class="text-3xl font-black text-atlantia-ink sm:text-4xl">
+                    Estamos aqui para ayudarte con tus pedidos y cobertura actual.
+                </h2>
+                <p class="max-w-2xl text-base leading-7 text-atlantia-ink/75">
+                    En esta primera etapa atendemos compras y entregas en Puerto Barrios y Santo Tomas de Castilla.
+                    Si necesitas orientacion sobre disponibilidad, acceso a tu cuenta o seguimiento de tu compra,
+                    puedes hacerlo directamente desde Atlantia.
+                </p>
+
+                <div class="flex flex-wrap gap-3 pt-2">
+                    <a
+                        href="{{ route('login') }}"
+                        class="rounded-md bg-atlantia-wine px-5 py-3 text-sm font-bold text-white transition hover:bg-atlantia-wine-700"
+                    >
+                        Iniciar sesion
+                    </a>
+                    <a
+                        href="{{ route('catalogo.index') }}"
+                        class="rounded-md border border-atlantia-rose/30 bg-white px-5 py-3 text-sm font-bold text-atlantia-wine transition hover:bg-atlantia-blush"
+                    >
+                        Seguir comprando
+                    </a>
+                </div>
+            </div>
+
+            <div class="grid gap-4">
+                <article class="rounded-2xl border border-atlantia-rose/20 bg-white p-5 shadow-sm">
+                    <p class="text-sm font-extrabold uppercase tracking-[0.14em] text-atlantia-wine">Cobertura actual</p>
+                    <p class="mt-3 text-lg font-bold text-atlantia-ink">Puerto Barrios y Santo Tomas de Castilla</p>
+                    <p class="mt-2 text-sm leading-6 text-atlantia-ink/70">
+                        Seguimos creciendo paso a paso para ampliar Atlantia al resto de Izabal en futuras actualizaciones.
+                    </p>
+                </article>
+
+                <article class="rounded-2xl border border-atlantia-rose/20 bg-white p-5 shadow-sm">
+                    <p class="text-sm font-extrabold uppercase tracking-[0.14em] text-atlantia-wine">Soporte en plataforma</p>
+                    <p class="mt-3 text-lg font-bold text-atlantia-ink">Accede a tu cuenta para revisar pedidos, direcciones y avisos</p>
+                    <p class="mt-2 text-sm leading-6 text-atlantia-ink/70">
+                        Desde tu sesion puedes dar seguimiento a tus compras y mantener tus datos de entrega siempre al dia.
+                    </p>
+                </article>
+            </div>
+        </div>
+    </section>
 @endsection
 
 @push('scripts')

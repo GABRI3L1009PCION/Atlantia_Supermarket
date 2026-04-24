@@ -1,4 +1,4 @@
-<footer id="contacto" class="bg-atlantia-wine text-white">
+<footer class="bg-atlantia-wine text-white">
     <div class="mx-auto flex w-full max-w-7xl flex-col items-center justify-center gap-1 px-4 py-6 text-sm sm:px-6 lg:px-8">
         <p>
             <span class="font-bold">Supermercado Atlantia</span>
