@@ -5,18 +5,11 @@
                 Productos disponibles
             </h1>
             <p class="mt-1 text-sm text-slate-600">
-                Compra a vendedores locales verificados de Izabal.
+                Compra a vendedores locales verificados de Puerto Barrios y Santo Tomas de Castilla.
             </p>
         </div>
 
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <x-ui.select label="Municipio" name="municipio" wire:model.live="municipio">
-                <option value="">Todos</option>
-                @foreach ($municipios as $municipioOption)
-                    <option value="{{ $municipioOption }}">{{ $municipioOption }}</option>
-                @endforeach
-            </x-ui.select>
-
+        <div class="grid gap-3 sm:grid-cols-2">
             <x-ui.select label="Vendedor" name="vendor" wire:model.live="vendorId">
                 <option value="">Todos</option>
                 @foreach ($vendors as $vendor)
@@ -88,7 +81,7 @@
         </div>
     </div>
 
-    @if ($search || $categoriaId || ! empty($categorias) || $municipio || $vendorId || $soloEnStock || $ratingMin || $precioMin > 0 || $precioMax < 9999)
+    @if ($search || $categoriaId || ! empty($categorias) || $vendorId || $soloEnStock || $ratingMin || $precioMin > 0 || $precioMax < 9999)
         <div class="flex flex-wrap items-center gap-2">
             @if ($search)
                 <x-ui.badge variant="info">Busqueda: {{ $search }}</x-ui.badge>
@@ -96,10 +89,6 @@
 
             @if (! empty($categorias))
                 <x-ui.badge variant="info">Categorias aplicadas</x-ui.badge>
-            @endif
-
-            @if ($municipio)
-                <x-ui.badge variant="info">{{ $municipio }}</x-ui.badge>
             @endif
 
             @if ($vendorId)
@@ -131,7 +120,7 @@
     @if ($productos->isEmpty())
         <x-ui.empty-state
             title="No encontramos productos con esos filtros"
-            message="Prueba otra categoria, municipio o busqueda para continuar comprando."
+            message="Prueba otra categoria, vendedor o busqueda para continuar comprando."
         />
     @else
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
