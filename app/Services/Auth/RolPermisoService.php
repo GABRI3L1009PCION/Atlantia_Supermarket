@@ -28,7 +28,7 @@ class RolPermisoService
     public function matrix(array $filters = []): array
     {
         return [
-            'roles' => Role::query()->with('permissions')->orderBy('name')->get(),
+            'roles' => Role::query()->with('permissions')->withCount('users')->orderBy('name')->get(),
             'permissions' => Permission::query()->orderBy('name')->get(),
         ];
     }
