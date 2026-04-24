@@ -15,6 +15,13 @@
         };
     @endphp
 
+    <div
+        class="hidden"
+        data-hero-banner="{{ $heroBanner['name'] }}"
+        data-hero-banner-fallback="{{ $heroBanner['is_fallback'] ? '1' : '0' }}"
+        data-hero-banner-image="{{ $heroBanner['desktop_image'] }}"
+    ></div>
+
     <section class="bg-atlantia-blush py-4 shadow-inner">
         <form method="GET" class="mx-auto grid w-full max-w-xl grid-cols-[1fr_auto] px-4 sm:px-0">
             <label for="q" class="sr-only">Buscar productos</label>
