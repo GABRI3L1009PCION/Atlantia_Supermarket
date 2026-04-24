@@ -25,11 +25,20 @@ class CampanillaNotificaciones extends Component
     }
 
     /**
+     * Cierra el dropdown de notificaciones.
+     */
+    public function close(): void
+    {
+        $this->open = false;
+    }
+
+    /**
      * Marca una notificacion especifica como leida.
      */
     public function markAsRead(string $id): void
     {
         app(NotificationService::class)->markAsRead(auth()->user(), [$id]);
+        $this->open = false;
     }
 
     /**
@@ -38,6 +47,7 @@ class CampanillaNotificaciones extends Component
     public function markAllAsRead(): void
     {
         app(NotificationService::class)->markAllAsRead(auth()->user());
+        $this->open = false;
     }
 
     /**

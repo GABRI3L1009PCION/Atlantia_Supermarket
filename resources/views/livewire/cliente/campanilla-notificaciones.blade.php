@@ -1,11 +1,11 @@
 <div
-    x-data="{ open: false }"
+    x-data="{ open: $wire.entangle('open') }"
     class="relative"
     @keydown.escape.window="open = false"
 >
     <button
         type="button"
-        @click.stop="open = !open"
+        wire:click="toggle"
         class="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-atlantia-rose/30 bg-white text-atlantia-wine transition hover:bg-atlantia-blush"
         aria-label="Abrir notificaciones"
         :aria-expanded="open ? 'true' : 'false'"
@@ -44,7 +44,6 @@
                     <button
                         type="button"
                         wire:click="markAllAsRead"
-                        @click="open = false"
                         class="text-xs font-bold text-atlantia-wine hover:underline"
                     >
                         Marcar todas
@@ -53,7 +52,7 @@
 
                 <button
                     type="button"
-                    @click="open = false"
+                    wire:click="close"
                     class="rounded-full p-1 text-atlantia-ink/45 transition hover:bg-atlantia-blush hover:text-atlantia-wine"
                     aria-label="Cerrar notificaciones"
                 >
@@ -71,7 +70,6 @@
                 <button
                     type="button"
                     wire:click="markAsRead('{{ $notificacion->id }}')"
-                    @click="open = false"
                     class="w-full rounded-xl border border-atlantia-rose/20 p-3 text-left transition hover:bg-atlantia-blush"
                 >
                     <div class="flex items-start justify-between gap-3">
