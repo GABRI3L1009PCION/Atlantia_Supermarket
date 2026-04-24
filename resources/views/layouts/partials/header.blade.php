@@ -3,6 +3,7 @@
     $navItems = [
         ['label' => 'Inicio', 'href' => route('home'), 'active' => request()->routeIs('home')],
         ['label' => 'Categorias', 'href' => route('catalogo.index') . '#categorias', 'active' => request()->routeIs('catalogo.*')],
+        ['label' => 'Contacto', 'href' => route('home') . '#contacto', 'active' => false],
     ];
 @endphp
 
@@ -41,7 +42,7 @@
                 Categorias
             </a>
             <a
-                href="#contacto"
+                href="{{ route('home') }}#contacto"
                 class="rounded-md px-4 py-2 text-atlantia-ink hover:bg-atlantia-blush hover:text-atlantia-wine"
             >
                 Contacto
