@@ -1,14 +1,14 @@
 <div
-    x-data="{ open: $wire.entangle('open') }"
+    x-data
     class="relative"
-    @keydown.escape.window="open = false"
+    @keydown.escape.window="$wire.close()"
 >
     <button
         type="button"
         wire:click="toggle"
         class="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-atlantia-rose/30 bg-white text-atlantia-wine transition hover:bg-atlantia-blush"
         aria-label="Abrir notificaciones"
-        :aria-expanded="open ? 'true' : 'false'"
+        aria-expanded="{{ $open ? 'true' : 'false' }}"
         aria-controls="panel-notificaciones"
     >
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -23,75 +23,80 @@
         @endif
     </button>
 
-    <div
-        id="panel-notificaciones"
-        x-show="open"
-        x-cloak
-        x-transition.opacity.scale.origin.top.right
-        @click.outside="open = false"
-        class="absolute right-0 z-30 mt-3 w-[22rem] rounded-2xl border border-atlantia-rose/20 bg-white p-4 shadow-2xl"
-        role="dialog"
-        aria-modal="true"
-    >
-        <div class="flex items-center justify-between gap-3">
-            <div>
-                <h3 class="font-black text-atlantia-ink">Notificaciones</h3>
-                <p class="text-xs text-atlantia-ink/55">Ultimas 10 novedades de tu cuenta.</p>
-            </div>
+    @if ($open)
+        <button
+            type="button"
+            wire:click="close"
+            class="fixed inset-0 z-40 cursor-default bg-transparent"
+            aria-label="Cerrar notificaciones"
+        ></button>
 
-            <div class="flex items-center gap-2">
-                @if ($noLeidas > 0)
+        <div
+            id="panel-notificaciones"
+            class="absolute right-0 z-50 mt-3 w-[22rem] rounded-2xl border border-atlantia-rose/20 bg-white p-4 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+        >
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <h3 class="font-black text-atlantia-ink">Notificaciones</h3>
+                    <p class="text-xs text-atlantia-ink/55">Ultimas 10 novedades de tu cuenta.</p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    @if ($noLeidas > 0)
+                        <button
+                            type="button"
+                            wire:click="markAllAsRead"
+                            class="text-xs font-bold text-atlantia-wine hover:underline"
+                        >
+                            Marcar todas
+                        </button>
+                    @endif
+
                     <button
                         type="button"
-                        wire:click="markAllAsRead"
-                        class="text-xs font-bold text-atlantia-wine hover:underline"
+                        wire:click="close"
+                        class="rounded-full p-1 text-atlantia-ink/45 transition hover:bg-atlantia-blush hover:text-atlantia-wine"
+                        aria-label="Cerrar notificaciones"
                     >
-                        Marcar todas
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
                     </button>
-                @endif
+                </div>
+            </div>
 
-                <button
-                    type="button"
-                    wire:click="close"
-                    class="rounded-full p-1 text-atlantia-ink/45 transition hover:bg-atlantia-blush hover:text-atlantia-wine"
-                    aria-label="Cerrar notificaciones"
-                >
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        <path d="M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                </button>
+            <div class="mt-4 max-h-96 space-y-3 overflow-y-auto">
+                @forelse ($notificaciones as $notificacion)
+                    @php($data = is_array($notificacion->data ?? null) ? $notificacion->data : [])
+                    <button
+                        type="button"
+                        wire:click="markAsRead('{{ $notificacion->id }}')"
+                        class="w-full rounded-xl border border-atlantia-rose/20 p-3 text-left transition hover:bg-atlantia-blush"
+                    >
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <p class="font-bold text-atlantia-ink">{{ $data['title'] ?? $data['titulo'] ?? 'Notificacion' }}</p>
+                                <p class="mt-1 text-sm leading-6 text-atlantia-ink/70">
+                                    {{ $data['message'] ?? $data['mensaje'] ?? 'Tienes una nueva actualizacion.' }}
+                                </p>
+                            </div>
+                            @if ($notificacion->read_at === null)
+                                <span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500"></span>
+                            @endif
+                        </div>
+                        <p class="mt-2 text-xs text-atlantia-ink/45">
+                            {{ \Illuminate\Support\Carbon::parse($notificacion->created_at)->diffForHumans() }}
+                        </p>
+                    </button>
+                @empty
+                    <div class="rounded-xl bg-atlantia-blush p-4 text-sm text-atlantia-ink/70">
+                        No tienes notificaciones recientes.
+                    </div>
+                @endforelse
             </div>
         </div>
-
-        <div class="mt-4 max-h-96 space-y-3 overflow-y-auto">
-            @forelse ($notificaciones as $notificacion)
-                @php($data = is_array($notificacion->data ?? null) ? $notificacion->data : [])
-                <button
-                    type="button"
-                    wire:click="markAsRead('{{ $notificacion->id }}')"
-                    class="w-full rounded-xl border border-atlantia-rose/20 p-3 text-left transition hover:bg-atlantia-blush"
-                >
-                    <div class="flex items-start justify-between gap-3">
-                        <div>
-                            <p class="font-bold text-atlantia-ink">{{ $data['title'] ?? $data['titulo'] ?? 'Notificacion' }}</p>
-                            <p class="mt-1 text-sm leading-6 text-atlantia-ink/70">
-                                {{ $data['message'] ?? $data['mensaje'] ?? 'Tienes una nueva actualizacion.' }}
-                            </p>
-                        </div>
-                        @if ($notificacion->read_at === null)
-                            <span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500"></span>
-                        @endif
-                    </div>
-                    <p class="mt-2 text-xs text-atlantia-ink/45">
-                        {{ \Illuminate\Support\Carbon::parse($notificacion->created_at)->diffForHumans() }}
-                    </p>
-                </button>
-            @empty
-                <div class="rounded-xl bg-atlantia-blush p-4 text-sm text-atlantia-ink/70">
-                    No tienes notificaciones recientes.
-                </div>
-            @endforelse
-        </div>
-    </div>
+    @endif
 </div>
