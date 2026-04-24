@@ -2,6 +2,7 @@
 
 namespace App\Services\Admin;
 
+use BackedEnum;
 use App\Models\AuditLog;
 use App\Models\Dte\DteFactura;
 use App\Models\Ml\FraudAlert;
@@ -243,7 +244,9 @@ class DashboardService
                     'numero' => $pedido->numero_pedido,
                     'cliente' => $pedido->cliente?->name ?? 'Cliente no disponible',
                     'total' => (float) $pedido->total,
-                    'estado' => $pedido->estado,
+                    'estado' => $pedido->estado instanceof BackedEnum
+                        ? $pedido->estado->value
+                        : (string) $pedido->estado,
                     'fecha' => optional($pedido->created_at)->format('d/m/Y H:i'),
                 ];
             });
