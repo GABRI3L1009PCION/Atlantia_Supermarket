@@ -1,86 +1,70 @@
 @extends('layouts.marketplace')
 
 @section('content')
-    <section
-        class="relative overflow-hidden pt-4"
-        data-hero-banner="{{ $heroBanner['name'] }}"
-        data-hero-banner-fallback="{{ $heroBanner['is_fallback'] ? '1' : '0' }}"
-    >
-        <div class="absolute inset-0">
-            <img src="{{ $heroBanner['mobile_image'] }}" alt="Banner principal Atlantia Supermarket" class="h-full w-full object-cover md:hidden">
-            <img src="{{ $heroBanner['desktop_image'] }}" alt="Banner principal Atlantia Supermarket" class="hidden h-full w-full object-cover md:block">
-            <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(249,254,255,0.86),rgba(239,250,255,0.70),rgba(233,247,252,0.44))]"></div>
-            <div class="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.75),transparent_24%),radial-gradient(circle_at_72%_24%,rgba(115,232,244,0.22),transparent_25%)]"></div>
-        </div>
+    @php
+        $categoriasRapidas = [
+            ['label' => 'Todas las categorias', 'href' => route('catalogo.index')],
+            ['label' => 'Alimentos frescos', 'href' => route('catalogo.index', ['q' => 'frescos'])],
+            ['label' => 'Abarrotes', 'href' => route('catalogo.index', ['q' => 'abarrotes'])],
+            ['label' => 'Limpieza', 'href' => route('catalogo.index', ['q' => 'limpieza'])],
+            ['label' => 'Bebidas', 'href' => route('catalogo.index', ['q' => 'bebidas'])],
+        ];
+    @endphp
 
-        <div class="relative mx-auto grid min-h-[280px] w-full max-w-7xl items-center gap-4 px-4 py-8 sm:px-6 lg:min-h-[320px] lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)] lg:px-8 lg:py-10">
-            <div class="max-w-xl pl-2 sm:pl-6">
-                <h1 class="max-w-[14ch] text-3xl font-medium leading-tight text-black/85 sm:text-4xl lg:text-[3.35rem]">
-                    Tu supermercado local, listo para comprar sin perder tiempo.
-                </h1>
-
-                <form action="{{ route('catalogo.index') }}" method="GET" class="mt-5 max-w-md rounded-full border border-atlantia-cyan/60 bg-white/72 p-1.5 shadow-[0_8px_22px_rgba(18,51,66,0.08)] backdrop-blur-sm">
-                    <div class="flex items-center gap-2 rounded-full">
-                        <input
-                            type="search"
-                            name="q"
-                            value="{{ request('q', '') }}"
-                            placeholder="Busca frutas, abarrotes, limpieza o tu marca favorita"
-                            class="h-8 w-full rounded-full border-0 bg-transparent px-3 text-[11px] text-atlantia-deep placeholder:text-atlantia-deep/45 focus:outline-none focus:ring-0 sm:text-xs"
-                        >
-                        <button type="submit" class="sr-only">Buscar</button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="hidden lg:block"></div>
-        </div>
+    <section class="bg-atlantia-blush py-4 shadow-inner">
+        <form method="GET" class="mx-auto grid w-full max-w-xl grid-cols-[1fr_auto] px-4 sm:px-0">
+            <label for="q" class="sr-only">Buscar productos</label>
+            <input
+                id="q"
+                type="search"
+                name="q"
+                value="{{ request('q') }}"
+                placeholder="Buscar en todo el supermercado..."
+                class="h-12 rounded-l-lg border-0 bg-white px-4 text-base text-atlantia-ink placeholder:text-atlantia-ink/55 shadow-sm focus:outline-none focus:ring-2 focus:ring-atlantia-rose"
+            >
+            <button
+                type="submit"
+                class="h-12 rounded-r-lg bg-atlantia-wine px-6 text-base font-bold text-white shadow-sm hover:bg-atlantia-wine-700 focus:outline-none focus:ring-2 focus:ring-atlantia-rose focus:ring-offset-2"
+            >
+                <span class="inline-flex items-center gap-2">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M11 19C15.4 19 19 15.4 19 11C19 6.6 15.4 3 11 3C6.6 3 3 6.6 3 11C3 15.4 6.6 19 11 19Z" stroke="currentColor" stroke-width="2"/>
+                        <path d="M20.5 20.5L16.7 16.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Buscar
+                </span>
+            </button>
+        </form>
     </section>
 
-    <section id="categorias" class="border-b border-atlantia-cyan/10 bg-white/88">
-        <div class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-            <div class="mb-5">
-                <h2 class="text-2xl font-medium tracking-tight text-black/85">Explora por Categoria</h2>
-            </div>
-
-            <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                @foreach ($categoriasDestacadas as $categoria)
-                    <a href="{{ $categoria['href'] }}" class="group text-center">
-                        <div class="mx-auto flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-atlantia-cyan/18 bg-[radial-gradient(circle,rgba(255,255,255,0.98),rgba(232,251,255,0.86))] shadow-[0_10px_24px_rgba(18,51,66,0.10)] ring-1 ring-atlantia-cyan/16 transition group-hover:-translate-y-1 group-hover:shadow-[0_16px_30px_rgba(18,51,66,0.12)]">
-                            <img src="{{ $categoria['image'] }}" alt="{{ $categoria['nombre'] }}" class="h-12 w-12 object-cover opacity-80 mix-blend-multiply">
-                        </div>
-                        <p class="mx-auto mt-3 max-w-[13ch] text-sm font-medium uppercase leading-5 text-black/75">
-                            {{ $categoria['nombre'] }}
-                        </p>
-                    </a>
-                @endforeach
-            </div>
+    <section id="categorias" class="relative border-b border-atlantia-rose/20 bg-white py-4 shadow-sm">
+        <a
+            href="{{ route('catalogo.index') }}"
+            class="absolute left-4 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-atlantia-wine text-2xl font-bold text-white shadow-md sm:flex"
+            aria-label="Categoria anterior"
+        >
+            &lsaquo;
+        </a>
+        <div class="mx-auto flex w-full max-w-4xl items-center justify-center gap-2 overflow-x-auto px-4">
+            @foreach ($categoriasRapidas as $categoria)
+                <a
+                    href="{{ $categoria['href'] }}"
+                    class="whitespace-nowrap rounded-md px-5 py-3 text-sm font-bold {{ $loop->first ? 'bg-atlantia-wine text-white' : 'bg-atlantia-blush text-atlantia-wine hover:bg-atlantia-rose/25' }}"
+                >
+                    {{ $categoria['label'] }}
+                </a>
+            @endforeach
         </div>
+        <a
+            href="{{ route('catalogo.index', ['page' => 2]) }}"
+            class="absolute right-4 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-atlantia-wine text-2xl font-bold text-white shadow-md sm:flex"
+            aria-label="Categoria siguiente"
+        >
+            &rsaquo;
+        </a>
     </section>
 
-    @if ($destacados->isNotEmpty())
-        <section class="bg-transparent">
-            <div class="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-                <div class="mb-6 flex items-end justify-between gap-4">
-                    <div>
-                        <p class="text-sm font-black uppercase tracking-[0.22em] text-atlantia-cyan-700">Selecciones del dia</p>
-                        <h2 class="mt-2 text-3xl font-black tracking-tight text-atlantia-deep">Destacados para comprar rapido</h2>
-                    </div>
-                    <a href="#productos" class="hidden text-sm font-bold text-atlantia-cyan-700 transition hover:text-atlantia-deep sm:inline-flex">
-                        Ver todo el catalogo
-                    </a>
-                </div>
-
-                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                    @foreach ($destacados as $producto)
-                        <x-product-card :producto="$producto" />
-                    @endforeach
-                </div>
-            </div>
-        </section>
-    @endif
-
-    <section id="productos" class="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
+    <section class="mx-auto min-h-[313px] w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <livewire:catalogo.lista-productos :search="(string) request('q', '')" />
     </section>
 @endsection

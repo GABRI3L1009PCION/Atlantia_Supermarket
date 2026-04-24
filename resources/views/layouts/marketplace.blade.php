@@ -30,7 +30,7 @@
         aria-live="polite"
         aria-label="Cargando contenido"
     >
-        <div class="rounded-[8px] bg-white/90 px-5 py-4 text-sm font-bold text-atlantia-cyan-700 shadow-xl backdrop-blur-sm">
+        <div class="rounded-xl bg-white px-5 py-4 text-sm font-bold text-atlantia-wine shadow-xl">
             Cargando...
         </div>
     </div>
