@@ -73,8 +73,8 @@
         </div>
     @endif
 
-    <div wire:loading.delay class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-hidden="true">
-        @for ($i = 0; $i < 6; $i++)
+    <div wire:loading.delay class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-hidden="true">
+        @for ($i = 0; $i < 8; $i++)
             <div class="animate-pulse rounded-lg border border-atlantia-rose/20 bg-white p-4 shadow-sm">
                 <div class="mb-4 h-48 rounded-lg bg-slate-200"></div>
                 <div class="mb-2 h-4 w-3/4 rounded bg-slate-200"></div>
@@ -91,26 +91,9 @@
             message="Prueba otra categoria, vendedor o busqueda para continuar comprando."
         />
     @else
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 @foreach ($productos as $producto)
-                    <div wire:key="producto-{{ $producto->id }}" class="space-y-3">
-                        <x-product-card :producto="$producto" />
-
-                        <x-ui.button
-                            type="button"
-                            class="w-full"
-                            wire:click="agregarAlCarrito({{ $producto->id }})"
-                            wire:loading.attr="disabled"
-                            wire:target="agregarAlCarrito({{ $producto->id }})"
-                        >
-                            <span wire:loading.remove wire:target="agregarAlCarrito({{ $producto->id }})">
-                                Agregar al carrito
-                            </span>
-                            <span wire:loading wire:target="agregarAlCarrito({{ $producto->id }})">
-                                Procesando...
-                            </span>
-                        </x-ui.button>
-                    </div>
+                    <x-product-card :producto="$producto" wire:key="producto-{{ $producto->id }}" />
                 @endforeach
             </div>
 
