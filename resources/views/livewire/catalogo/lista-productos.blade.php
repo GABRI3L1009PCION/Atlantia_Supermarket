@@ -9,14 +9,7 @@
             </p>
         </div>
 
-        <div class="grid gap-3 sm:grid-cols-2">
-            <x-ui.select label="Vendedor" name="vendor" wire:model.live="vendorId">
-                <option value="">Todos</option>
-                @foreach ($vendors as $vendor)
-                    <option value="{{ $vendor->id }}">{{ $vendor->business_name }}</option>
-                @endforeach
-            </x-ui.select>
-
+        <div class="grid gap-3 sm:grid-cols-[220px_auto] sm:items-end">
             <x-ui.select label="Ordenar" name="orden" wire:model.live="orden">
                 <option value="relevancia">Relevancia</option>
                 <option value="precio_asc">Precio menor</option>
@@ -25,63 +18,42 @@
                 <option value="mas_vendido">Mas vendido</option>
                 <option value="mas_nuevo">Mas nuevo</option>
             </x-ui.select>
+
+            <label class="inline-flex h-11 items-center gap-3 rounded-md border border-atlantia-rose/20 bg-white px-4 text-sm font-semibold text-atlantia-ink shadow-sm">
+                <input type="checkbox" wire:model.live="soloEnStock" class="rounded border-atlantia-rose text-atlantia-wine">
+                Solo disponibles
+            </label>
         </div>
     </header>
 
-    <div class="grid gap-4 rounded-2xl border border-atlantia-rose/20 bg-white p-4 lg:grid-cols-5">
-        <div class="lg:col-span-2">
+    <div class="rounded-2xl border border-atlantia-rose/20 bg-white p-4 shadow-sm">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p class="text-sm font-bold text-atlantia-ink">Categorias</p>
-            <div class="mt-3 flex flex-wrap gap-2">
-                @foreach ($categorias as $categoria)
-                    @php($seleccionada = in_array($categoria->id, $this->categoriaIds(), true))
-                    <label class="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm {{ $seleccionada ? 'border-atlantia-wine bg-atlantia-blush text-atlantia-wine' : 'border-slate-200 bg-white text-atlantia-ink' }}">
-                        <input
-                            type="checkbox"
-                            value="{{ $categoria->id }}"
-                            wire:model.live="categorias"
-                            class="rounded border-atlantia-rose text-atlantia-wine"
-                        >
-                        {{ $categoria->nombre }}
-                    </label>
-                @endforeach
-            </div>
+
+            @if ($search || $categoriaId || ! empty($categorias) || $soloEnStock || $orden !== 'relevancia')
+                <button type="button" class="text-sm font-semibold text-atlantia-wine hover:underline sm:text-right" wire:click="limpiarFiltros">
+                    Limpiar filtros
+                </button>
+            @endif
         </div>
 
-        <div>
-            <label class="text-sm font-bold text-atlantia-ink">Precio minimo</label>
-            <input type="range" min="0" max="500" step="5" wire:model.live="precioMin" class="mt-3 w-full">
-            <p class="mt-2 text-sm text-atlantia-ink/70">Desde Q {{ number_format($precioMin, 0) }}</p>
-        </div>
-
-        <div>
-            <label class="text-sm font-bold text-atlantia-ink">Precio maximo</label>
-            <input type="range" min="50" max="1500" step="10" wire:model.live="precioMax" class="mt-3 w-full">
-            <p class="mt-2 text-sm text-atlantia-ink/70">Hasta Q {{ number_format($precioMax, 0) }}</p>
-        </div>
-
-        <div class="space-y-4">
-            <div>
-                <label class="text-sm font-bold text-atlantia-ink">Rating minimo</label>
-                <select
-                    name="rating"
-                    wire:model.live="ratingMin"
-                    class="mt-3 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 text-sm
-                        focus:border-atlantia-wine focus:ring-atlantia-rose"
-                >
-                    <option value="0">Todos</option>
-                    <option value="3">3 estrellas</option>
-                    <option value="4">4 estrellas</option>
-                    <option value="5">5 estrellas</option>
-                </select>
-            </div>
-            <label class="flex items-center gap-3 text-sm font-semibold text-atlantia-ink">
-                <input type="checkbox" wire:model.live="soloEnStock" class="rounded border-atlantia-rose text-atlantia-wine">
-                Solo productos en stock
-            </label>
+        <div class="mt-3 flex flex-wrap gap-2">
+            @foreach ($categorias as $categoria)
+                @php($seleccionada = in_array($categoria->id, $this->categoriaIds(), true))
+                <label class="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm {{ $seleccionada ? 'border-atlantia-wine bg-atlantia-blush text-atlantia-wine' : 'border-slate-200 bg-white text-atlantia-ink hover:border-atlantia-rose/35' }}">
+                    <input
+                        type="checkbox"
+                        value="{{ $categoria->id }}"
+                        wire:model.live="categorias"
+                        class="hidden"
+                    >
+                    {{ $categoria->nombre }}
+                </label>
+            @endforeach
         </div>
     </div>
 
-    @if ($search || $categoriaId || ! empty($categorias) || $vendorId || $soloEnStock || $ratingMin || $precioMin > 0 || $precioMax < 9999)
+    @if ($search || $categoriaId || ! empty($categorias) || $soloEnStock || $orden !== 'relevancia')
         <div class="flex flex-wrap items-center gap-2">
             @if ($search)
                 <x-ui.badge variant="info">Busqueda: {{ $search }}</x-ui.badge>
@@ -91,17 +63,13 @@
                 <x-ui.badge variant="info">Categorias aplicadas</x-ui.badge>
             @endif
 
-            @if ($vendorId)
-                <x-ui.badge variant="info">Vendedor filtrado</x-ui.badge>
-            @endif
-
             @if ($soloEnStock)
                 <x-ui.badge variant="success">Solo en stock</x-ui.badge>
             @endif
 
-            <button type="button" class="text-sm font-semibold text-emerald-800" wire:click="limpiarFiltros">
-                Limpiar filtros
-            </button>
+            @if ($orden !== 'relevancia')
+                <x-ui.badge variant="info">Orden personalizado</x-ui.badge>
+            @endif
         </div>
     @endif
 
