@@ -60,12 +60,17 @@
                     href="{{ route('catalogo.index') }}#productos"
                     class="group flex min-w-[132px] snap-start flex-col items-center text-center"
                 >
-                    <span class="flex h-24 w-24 items-center justify-center rounded-full border border-atlantia-rose/20 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.98)_0%,_rgba(248,234,239,0.95)_68%,_rgba(244,214,223,0.92)_100%)] shadow-[0_12px_30px_rgba(135,22,61,0.10)] transition duration-200 group-hover:-translate-y-1 group-hover:shadow-[0_16px_36px_rgba(135,22,61,0.16)]">
-                        <span class="rounded-full bg-white/85 px-3 py-2 text-[11px] font-extrabold uppercase tracking-[0.18em] text-atlantia-wine">
-                            Todo
+                    <span class="flex h-28 w-28 items-center justify-center rounded-full border-[3px] border-atlantia-wine bg-white shadow-[0_14px_30px_rgba(135,22,61,0.08)] transition duration-200 group-hover:-translate-y-1 group-hover:shadow-[0_18px_34px_rgba(135,22,61,0.14)]">
+                        <span class="flex h-[102px] w-[102px] items-center justify-center rounded-full border border-atlantia-wine/80 text-atlantia-wine">
+                            <svg class="h-12 w-12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M12 4V20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                <path d="M4 12H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                <path d="M6.5 6.5L17.5 17.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.55"/>
+                                <path d="M17.5 6.5L6.5 17.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.55"/>
+                            </svg>
                         </span>
                     </span>
-                    <span class="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-atlantia-ink">
+                    <span class="mt-3 font-serif text-[13px] font-semibold uppercase tracking-[0.12em] text-atlantia-wine">
                         Todas las categorias
                     </span>
                 </a>
@@ -74,56 +79,54 @@
                         href="{{ $categoria['href'] }}"
                         class="group flex min-w-[132px] snap-start flex-col items-center text-center"
                     >
-                        <span class="flex h-24 w-24 items-center justify-center rounded-full border border-sky-100 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.98)_0%,_rgba(235,250,252,0.96)_70%,_rgba(215,244,247,0.92)_100%)] shadow-[0_14px_30px_rgba(72,203,218,0.15)] ring-1 ring-sky-100/80 transition duration-200 group-hover:-translate-y-1 group-hover:shadow-[0_18px_38px_rgba(72,203,218,0.24)]">
-                            <span class="flex h-20 w-20 items-center justify-center rounded-full bg-white/90 text-atlantia-wine">
+                        <span class="flex h-28 w-28 items-center justify-center rounded-full border-[3px] border-atlantia-wine bg-white shadow-[0_14px_30px_rgba(135,22,61,0.08)] transition duration-200 group-hover:-translate-y-1 group-hover:shadow-[0_18px_34px_rgba(135,22,61,0.14)]">
+                            <span class="relative flex h-[102px] w-[102px] items-center justify-center rounded-full border border-atlantia-wine/80 bg-white text-atlantia-wine">
+                                <span class="absolute top-3 h-2 w-2 rounded-full bg-atlantia-wine"></span>
+                                <span class="absolute bottom-4 h-px w-8 bg-amber-500/70"></span>
+                                <span class="absolute bottom-[15px] h-2 w-2 rotate-45 border border-amber-500/80 bg-white"></span>
                                 @switch($iconoCategoria($categoria['slug'] ?? null))
                                     @case('produce')
-                                        <svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                            <path d="M13 4C14.8 4 16 2.9 16.5 1.5C14.5 1.5 12.9 2.3 12 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                                            <path d="M12 7C8.1 7 5 10 5 13.8C5 17.8 8 21 12 21C16 21 19 17.8 19 13.8C19 10 15.9 7 12 7Z" stroke="currentColor" stroke-width="1.8"/>
-                                            <path d="M8.5 12.5C9.4 11.6 10.5 11 12 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                        <svg class="h-12 w-12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
+                                            <path d="M33.6 12.5c4.4-3.9 9.3-5.2 13.7-4.2-1 4.8-3.8 8.6-8.8 10.8-1.2-2.2-2.8-4.5-4.9-6.6Z"/>
+                                            <path d="M31.5 20.2c10.2 0 18.8 7.5 18.8 18.4 0 11.2-8.5 18.9-18.8 18.9-10.6 0-17.8-7.8-17.8-18.3 0-10.8 7.9-19 17.8-19Zm-6.8 12.7c0 6.3 4.9 10.2 10.4 10.2 3 0 5.7-.7 8.5-2.3-1.7 5.3-6.3 9.1-12.1 9.1-7 0-12.3-5.2-12.3-12.5 0-5.4 2.4-9.2 5.5-11.8-.1 2-.1 4.3 0 7.3Z"/>
                                         </svg>
                                         @break
                                     @case('meat')
-                                        <svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                            <path d="M14.5 6C17.8 6 20 8.1 20 11C20 14.9 16.8 18 12.8 18H10.2C7.3 18 5 15.7 5 12.8C5 9.8 7.4 7.5 10.4 7.5C11 5.8 12.5 6 14.5 6Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                                            <circle cx="14.5" cy="11" r="1.6" stroke="currentColor" stroke-width="1.8"/>
+                                        <svg class="h-12 w-12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
+                                            <path d="M24.1 16.8c11.5 0 18.5 4.3 18.5 12.9 0 2.1-.5 3.7-1.4 5.2 4.7.6 9 4.7 9 10.3 0 8.2-6.8 14-15.5 14H21.6c-9.1 0-15.2-6.4-15.2-14.1 0-6.2 4.2-10.8 9.9-11.8.3-9.6 7.3-16.5 17.8-16.5Zm-1 9.2c-4.6 0-8 2.6-8.9 6.4 4.6.1 10.1 1.5 15.7 4.5 3.7-2.8 7.2-5.2 10.8-6.3-1.4-3.1-6.2-4.6-17.6-4.6Zm16.4 16.1c-3.7 0-7.9 1.8-12.5 5.2-5.3-3.1-10.2-4.7-13.8-4.7-2.3 0-4 1.3-4 3.5 0 3.7 4.1 6.5 11.3 6.5H35c7.7 0 11.7-2.4 11.7-6.5 0-2.3-1.8-4-7.2-4Z"/>
                                         </svg>
                                         @break
                                     @case('pantry')
-                                        <svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                            <path d="M7 8.5C7 7.1 8.1 6 9.5 6H14.5C15.9 6 17 7.1 17 8.5V18H7V8.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                                            <path d="M10 6V4.8C10 4.1 10.6 3.5 11.3 3.5H12.7C13.4 3.5 14 4.1 14 4.8V6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                                            <path d="M9.5 10H14.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                        <svg class="h-12 w-12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
+                                            <path d="M17 21.5c0-3.4 2.7-6.1 6.1-6.1h3.3v-2.8c0-2.8 2.3-5.1 5.1-5.1h1c2.8 0 5.1 2.3 5.1 5.1v2.8h3.3c3.4 0 6.1 2.7 6.1 6.1v29H17v-29Zm5.8.3v23.2h18.4V21.8H22.8Zm8.1-6.4h2.1v-2.5c0-.7-.6-1.3-1.3-1.3h-.5c-.7 0-1.3.6-1.3 1.3v2.5Z"/>
+                                            <path d="M26.5 27.8h11v3h-11z"/>
                                         </svg>
                                         @break
                                     @case('bread')
-                                        <svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                            <path d="M7 18H17C18.7 18 20 16.7 20 15C20 13.8 19.3 12.7 18.2 12.2C18.4 11.8 18.5 11.4 18.5 11C18.5 9.3 17.2 8 15.5 8C14.8 8 14.2 8.2 13.6 8.6C13 7.6 11.9 7 10.7 7C8.7 7 7 8.7 7 10.7C7 11 7 11.2 7.1 11.5C5.8 12 5 13.2 5 14.6C5 16.5 6.3 18 7 18Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                                        <svg class="h-12 w-12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
+                                            <path d="M17.6 46.7h28.8c4.1 0 7.4-3.1 7.4-7 0-2.8-1.6-5.1-4.2-6.2.6-1.2.9-2.4.9-3.7 0-4.8-4-8.7-8.9-8.7-1.7 0-3.4.5-4.8 1.3-2.3-2.9-5.6-4.5-9.7-4.5-6.8 0-12.3 5.1-12.3 11.6 0 .8.1 1.6.2 2.4-3.7 1.2-6 4.4-6 8.6 0 3.7 3.4 6.2 8.6 6.2Zm7.5-12.1c.7-3.8 3.2-6.4 7.2-7.7 2.7-.9 5.8-.8 8.9.5-3.5 1.1-7.4 4.2-11.5 9.3-1.8-.8-3.4-1.4-4.6-2.1Z"/>
                                         </svg>
                                         @break
                                     @case('dairy')
-                                        <svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                            <path d="M8 8L10 5H14L16 8V19H8V8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                                            <path d="M10 12H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                                            <path d="M5 10.5C5 9.1 6.1 8 7.5 8H8V19H7.5C6.1 19 5 17.9 5 16.5V10.5Z" stroke="currentColor" stroke-width="1.8"/>
+                                        <svg class="h-12 w-12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
+                                            <path d="M20 20.2 25.1 12h13.8l5.1 8.2v31H20v-31Zm5.9 2.6v22.5h12.2V22.8H25.9Zm3.2 8.4h6.1v3.2h-6.1z"/>
+                                            <path d="M12 24.8c0-3.4 2.8-6.2 6.2-6.2H20v32.6h-1.8c-3.4 0-6.2-2.8-6.2-6.2V24.8Z"/>
                                         </svg>
                                         @break
                                     @case('drinks')
-                                        <svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                            <path d="M8 5.5C8 4.7 8.7 4 9.5 4H14.5C15.3 4 16 4.7 16 5.5V7L15 9V19H9V9L8 7V5.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                                            <path d="M10 12H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                        <svg class="h-12 w-12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
+                                            <path d="M22.3 13.5c0-2.3 1.9-4.2 4.2-4.2h11c2.3 0 4.2 1.9 4.2 4.2v3.4l-2.9 5.1v29.2H25.2V22l-2.9-5.1v-3.4Zm5.6 2v3.7l2.2 3.9v22h5.8v-22l2.2-3.9v-3.7H27.9Zm2.3 12.3h5.6v3.2h-5.6Z"/>
                                         </svg>
                                         @break
                                     @default
-                                        <svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                            <path d="M7 9H17L16 19H8L7 9Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                                            <path d="M9.5 9V7.8C9.5 6.3 10.7 5 12.2 5H11.8C13.3 5 14.5 6.3 14.5 7.8V9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                        <svg class="h-12 w-12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
+                                            <path d="M20 23h24l-2.5 27.2H22.5L20 23Zm4.6 4.8 1.6 17.6h11.6l1.6-17.6H24.6Z"/>
+                                            <path d="M25 22.8v-2.5c0-4.2 3.4-7.6 7.6-7.6h.8c4.2 0 7.6 3.4 7.6 7.6v2.5h-4v-2.2c0-2-1.6-3.6-3.6-3.6h-.8c-2 0-3.6 1.6-3.6 3.6v2.2h-4Z"/>
                                         </svg>
                                 @endswitch
                             </span>
                         </span>
-                        <span class="mt-3 text-xs font-semibold uppercase tracking-[0.1em] text-atlantia-ink">
+                        <span class="mt-3 font-serif text-[13px] font-semibold uppercase tracking-[0.12em] text-atlantia-wine">
                             {{ $categoria['nombre'] }}
                         </span>
                     </a>
