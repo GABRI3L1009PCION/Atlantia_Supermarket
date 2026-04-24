@@ -400,7 +400,7 @@
 @endsection
 
 @push('scripts')
-    <script>
+    <script nonce="{{ request()->attributes->get('csp_nonce') }}">
         document.addEventListener('DOMContentLoaded', () => {
             const search = document.querySelector('[data-role-filter-search]');
             const filterButtons = document.querySelectorAll('[data-role-filter]');

@@ -198,7 +198,7 @@
 @endsection
 
 @push('scripts')
-    <script>
+    <script nonce="{{ request()->attributes->get('csp_nonce') }}">
         document.addEventListener('DOMContentLoaded', () => {
             const track = document.querySelector('[data-categorias-track]');
             const previous = document.querySelector('[data-categorias-prev]');
