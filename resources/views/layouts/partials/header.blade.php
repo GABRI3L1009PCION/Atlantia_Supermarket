@@ -3,7 +3,6 @@
     $navItems = [
         ['label' => 'Inicio', 'href' => route('home'), 'active' => request()->routeIs('home')],
         ['label' => 'Categorias', 'href' => route('catalogo.index') . '#categorias', 'active' => request()->routeIs('catalogo.*')],
-        ['label' => 'Contacto', 'href' => route('home') . '#contacto', 'active' => false],
     ];
 @endphp
 
@@ -25,7 +24,7 @@
                 >
             </a>
 
-            <x-nav-mobile :items="$navItems" />
+            <x-nav-mobile :items="$navItems" :contact-href="route('home') . '#contacto'" />
         </div>
 
         <nav class="hidden items-center gap-2 text-sm font-semibold text-atlantia-ink md:flex sm:gap-4" aria-label="Navegacion principal">
