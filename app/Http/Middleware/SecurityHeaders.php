@@ -63,11 +63,21 @@ class SecurityHeaders
             "'self'",
             "'nonce-{$nonce}'",
             'https://api.mapbox.com',
+            'https://js.stripe.com',
+            'https://*.js.stripe.com',
         ];
         $connectSrc = [
             "'self'",
             'https://api.mapbox.com',
             'https://events.mapbox.com',
+            'https://api.stripe.com',
+            'https://maps.googleapis.com',
+        ];
+        $frameSrc = [
+            "'self'",
+            'https://js.stripe.com',
+            'https://*.js.stripe.com',
+            'https://hooks.stripe.com',
         ];
 
         if (app()->environment('local')) {
@@ -92,6 +102,7 @@ class SecurityHeaders
             "style-src 'self' 'nonce-{$nonce}' https://api.mapbox.com",
             'script-src ' . implode(' ', $scriptSrc),
             'connect-src ' . implode(' ', $connectSrc),
+            'frame-src ' . implode(' ', $frameSrc),
             "worker-src 'self' blob:",
             "manifest-src 'self'",
         ]);

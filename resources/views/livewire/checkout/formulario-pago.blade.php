@@ -72,105 +72,40 @@
     </div>
 
     @if ($metodoPago === 'tarjeta')
-        <div class="mt-5 rounded-lg border border-atlantia-rose/25 bg-atlantia-cream p-5">
-            <input type="hidden" name="card_token" value="tok_mock_aprobada">
+        <div class="mt-5 rounded-lg border border-atlantia-rose/25 bg-atlantia-cream p-5" data-stripe-card-panel>
+            <input type="hidden" name="card_token" data-stripe-payment-method>
 
             <div class="grid gap-4">
                 <div>
-                    <label for="card_number_preview" class="text-sm font-bold text-atlantia-ink">
-                        Numero de tarjeta
+                    <label for="card_holder_name" class="text-sm font-bold text-atlantia-ink">
+                        Nombre en la tarjeta
                     </label>
-                    <div class="relative">
-                        <input
-                            id="card_number_preview"
-                            type="text"
-                            inputmode="numeric"
-                            autocomplete="cc-number"
-                            wire:model.live.debounce.250ms="cardNumberPreview"
-                            placeholder="1234 5678 9012 3456"
-                            class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 pr-11 text-sm
-                                focus:border-atlantia-wine focus:ring-atlantia-rose"
-                        >
-                        <span class="absolute inset-y-0 right-3 top-2 flex items-center {{ $fieldIcon('cardNumberPreview') }}" aria-hidden="true">
-                            {!! $this->fieldState('cardNumberPreview') === 'valid' ? '&#10003;' : ($this->fieldState('cardNumberPreview') === 'invalid' ? '&#10005;' : '&bull;') !!}
-                        </span>
-                    </div>
-                    @error('cardNumberPreview')
-                        <p class="mt-2 text-sm font-semibold text-red-700">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <div>
-                        <label for="card_exp_preview" class="text-sm font-bold text-atlantia-ink">Vencimiento</label>
-                        <div class="relative">
-                            <input
-                                id="card_exp_preview"
-                                type="text"
-                                inputmode="numeric"
-                                autocomplete="cc-exp"
-                                wire:model.blur="cardExpPreview"
-                                placeholder="MM / AA"
-                                class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 pr-11 text-sm
-                                    focus:border-atlantia-wine focus:ring-atlantia-rose"
-                            >
-                            <span class="absolute inset-y-0 right-3 top-2 flex items-center {{ $fieldIcon('cardExpPreview') }}" aria-hidden="true">
-                                {!! $this->fieldState('cardExpPreview') === 'valid' ? '&#10003;' : ($this->fieldState('cardExpPreview') === 'invalid' ? '&#10005;' : '&bull;') !!}
-                            </span>
-                        </div>
-                        @error('cardExpPreview')
-                            <p class="mt-2 text-sm font-semibold text-red-700">{{ $message }}</p>
-                        @enderror
-                    </div>
-                    <div>
-                        <label for="card_cvv_preview" class="text-sm font-bold text-atlantia-ink">CVV</label>
-                        <div class="relative">
-                            <input
-                                id="card_cvv_preview"
-                                type="text"
-                                inputmode="numeric"
-                                autocomplete="cc-csc"
-                                wire:model.live.debounce.250ms="cardCvvPreview"
-                                placeholder="123"
-                                class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 pr-11 text-sm
-                                    focus:border-atlantia-wine focus:ring-atlantia-rose"
-                            >
-                            <span class="absolute inset-y-0 right-3 top-2 flex items-center {{ $fieldIcon('cardCvvPreview') }}" aria-hidden="true">
-                                {!! $this->fieldState('cardCvvPreview') === 'valid' ? '&#10003;' : ($this->fieldState('cardCvvPreview') === 'invalid' ? '&#10005;' : '&bull;') !!}
-                            </span>
-                        </div>
-                        @error('cardCvvPreview')
-                            <p class="mt-2 text-sm font-semibold text-red-700">{{ $message }}</p>
-                        @enderror
-                    </div>
+                    <input
+                        id="card_holder_name"
+                        type="text"
+                        autocomplete="cc-name"
+                        data-stripe-cardholder-name
+                        placeholder="Como aparece en tu tarjeta"
+                        class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 text-sm
+                            focus:border-atlantia-wine focus:ring-atlantia-rose"
+                    >
                 </div>
 
                 <div>
-                    <label for="card_name_preview" class="text-sm font-bold text-atlantia-ink">
-                        Nombre en la tarjeta
+                    <label for="stripe-card-element" class="text-sm font-bold text-atlantia-ink">
+                        Datos de la tarjeta
                     </label>
-                    <div class="relative">
-                        <input
-                            id="card_name_preview"
-                            type="text"
-                            autocomplete="cc-name"
-                            wire:model.blur="cardNamePreview"
-                            placeholder="Como aparece en tu tarjeta"
-                            class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 pr-11 text-sm
-                                focus:border-atlantia-wine focus:ring-atlantia-rose"
-                        >
-                        <span class="absolute inset-y-0 right-3 top-2 flex items-center {{ $fieldIcon('cardNamePreview') }}" aria-hidden="true">
-                            {!! $this->fieldState('cardNamePreview') === 'valid' ? '&#10003;' : ($this->fieldState('cardNamePreview') === 'invalid' ? '&#10005;' : '&bull;') !!}
-                        </span>
-                    </div>
-                    @error('cardNamePreview')
-                        <p class="mt-2 text-sm font-semibold text-red-700">{{ $message }}</p>
-                    @enderror
+                    <div
+                        id="stripe-card-element"
+                        data-stripe-card-element
+                        class="mt-2 rounded-md border border-atlantia-rose/30 bg-white px-4 py-3 shadow-sm"
+                    ></div>
+                    <p class="mt-2 hidden text-sm font-semibold text-red-700" data-stripe-card-errors></p>
                 </div>
             </div>
 
             <p class="mt-4 text-xs text-atlantia-ink/60">
-                En esta fase se usa tokenizacion mock compatible con la pasarela definida para Atlantia.
+                Los datos de tarjeta se tokenizan directamente con Stripe antes de enviar el pedido.
             </p>
 
             @error('card_token')
