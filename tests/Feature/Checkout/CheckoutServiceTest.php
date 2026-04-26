@@ -15,6 +15,7 @@ use App\Models\Carrito;
 use App\Models\CarritoItem;
 use App\Models\Categoria;
 use App\Models\Cliente\Direccion;
+use App\Models\Cupon;
 use App\Models\DeliveryZone;
 use App\Models\Inventario;
 use App\Models\Payment;
@@ -111,6 +112,58 @@ class CheckoutServiceTest extends TestCase
             $pedido = Pedido::query()->latest('id')->first();
             $this->assertNotNull($pedido);
             $this->assertSame(EstadoPedido::Cancelado, $pedido->estado);
+        }
+    }
+
+    /**
+     * Si el pago falla, el cupon no debe quedar consumido.
+     */
+    public function testSiElPagoFallaElCuponNoSeRegistraComoUsado(): void
+    {
+        [$cliente, $direccion] = $this->createClienteConDireccion();
+        $producto = $this->createProductoConInventario(2);
+        $this->createCarritoActivo($cliente, $producto, 1);
+
+        $cupon = Cupon::query()->create([
+            'codigo' => 'FALLA10',
+            'tipo' => 'monto_fijo',
+            'valor' => 10,
+            'minimo_compra' => 0,
+            'maximo_descuento' => null,
+            'usos_maximos' => null,
+            'usos_actuales' => 0,
+            'fecha_inicio' => now()->subDay(),
+            'fecha_fin' => now()->addDay(),
+            'activo' => true,
+            'solo_primera_compra' => false,
+            'descripcion' => 'Cupon de prueba para pago rechazado.',
+        ]);
+
+        $this->fakePasarelaRechazada();
+
+        $this->expectException(PagoRechazadoException::class);
+
+        try {
+            app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+                $cliente,
+                PedidoDTO::fromCheckoutArray([
+                    'direccion_id' => $direccion->id,
+                    'metodo_pago' => MetodoPago::Tarjeta->value,
+                    'card_token' => 'pm_test_checkout',
+                    'envio' => 10,
+                    'coupon_code' => 'FALLA10',
+                ])
+            );
+        } finally {
+            $this->assertDatabaseMissing('cupon_uso', [
+                'cupon_id' => $cupon->id,
+                'user_id' => $cliente->id,
+            ]);
+
+            $this->assertDatabaseHas('cupones', [
+                'id' => $cupon->id,
+                'usos_actuales' => 0,
+            ]);
         }
     }
 

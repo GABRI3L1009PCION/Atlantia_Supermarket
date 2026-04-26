@@ -98,10 +98,6 @@ class CheckoutService
                     ]
                 );
 
-                if (($totals['cupon'] ?? null) !== null) {
-                    $this->cuponService->registrarUso($totals['cupon'], $cliente, $pedido);
-                }
-
                 try {
                     $payment = $this->pasarelaPagoService->registrarPagoCheckout($pedido, $pedidoDTO);
                 } catch (PagoRechazadoException $exception) {
@@ -115,6 +111,10 @@ class CheckoutService
                 $this->splitMultivendedorService->crearSplitsDePago($payment, $pedido);
 
                 if ($payment->estado !== EstadoPago::Rechazado) {
+                    if (($totals['cupon'] ?? null) !== null) {
+                        $this->cuponService->registrarUso($totals['cupon'], $cliente, $pedido);
+                    }
+
                     $this->estadoPedidoService->registrar(
                         $pedido,
                         EstadoPedido::Confirmado,
