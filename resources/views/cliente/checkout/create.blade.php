@@ -40,7 +40,14 @@
             </li>
         </ol>
 
-        <form method="POST" action="{{ route('cliente.checkout.store') }}" class="grid gap-6 lg:grid-cols-[1fr_380px]" data-protect-submit>
+        <form
+            method="POST"
+            action="{{ route('cliente.checkout.store') }}"
+            class="grid gap-6 lg:grid-cols-[1fr_380px]"
+            data-disable-submit-guard
+            data-stripe-checkout
+            data-stripe-publishable-key="{{ config('services.stripe.publishable_key') }}"
+        >
             @csrf
 
             <div class="space-y-6">
@@ -219,3 +226,7 @@
         </form>
     </section>
 @endsection
+
+@push('scripts')
+    <script src="https://js.stripe.com/v3/" @nonce></script>
+@endpush
