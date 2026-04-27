@@ -3,7 +3,8 @@
 @section('content')
     @php
         $filters = $reportes['filters'] ?? [];
-        $estadoLabel = fn ($value) => ucfirst(str_replace('_', ' ', (string) $value));
+        $enumValue = fn ($value) => $value instanceof \BackedEnum ? $value->value : (string) $value;
+        $estadoLabel = fn ($value) => ucfirst(str_replace('_', ' ', $enumValue($value)));
         $money = fn ($value) => 'Q ' . number_format((float) $value, 2);
         $ventasTotal = max(1, (float) ($reportes['ventas_total'] ?? 0));
         $pedidosTotal = max(1, (int) ($reportes['pedidos_total'] ?? 0));
