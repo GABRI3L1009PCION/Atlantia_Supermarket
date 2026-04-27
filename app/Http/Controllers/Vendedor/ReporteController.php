@@ -26,6 +26,8 @@ class ReporteController extends Controller
     {
         $this->authorize('viewVendorReports', $request->user());
 
-        return view('vendedor.reportes.index', ['reportes' => $this->reporteVendedorService->summary($request->user())]);
+        return view('vendedor.reportes.index', [
+            'reportes' => $this->reporteVendedorService->summary($request->user(), $request->all()),
+        ]);
     }
 }
