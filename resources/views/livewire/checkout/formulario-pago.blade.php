@@ -71,48 +71,50 @@
         @endforeach
     </div>
 
-    @if ($metodoPago === 'tarjeta')
-        <div class="mt-5 rounded-lg border border-atlantia-rose/25 bg-atlantia-cream p-5" data-stripe-card-panel>
-            <input type="hidden" name="card_token" data-stripe-payment-method>
+    <div
+        class="mt-5 rounded-lg border border-atlantia-rose/25 bg-atlantia-cream p-5 {{ $metodoPago === 'tarjeta' ? '' : 'hidden' }}"
+        data-stripe-card-panel
+    >
+        <input type="hidden" name="card_token" data-stripe-payment-method>
 
-            <div class="grid gap-4">
-                <div>
-                    <label for="card_holder_name" class="text-sm font-bold text-atlantia-ink">
-                        Nombre en la tarjeta
-                    </label>
-                    <input
-                        id="card_holder_name"
-                        type="text"
-                        autocomplete="cc-name"
-                        data-stripe-cardholder-name
-                        placeholder="Como aparece en tu tarjeta"
-                        class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 text-sm
-                            focus:border-atlantia-wine focus:ring-atlantia-rose"
-                    >
-                </div>
-
-                <div>
-                    <label for="stripe-card-element" class="text-sm font-bold text-atlantia-ink">
-                        Datos de la tarjeta
-                    </label>
-                    <div
-                        id="stripe-card-element"
-                        data-stripe-card-element
-                        class="mt-2 rounded-md border border-atlantia-rose/30 bg-white px-4 py-3 shadow-sm"
-                    ></div>
-                    <p class="mt-2 hidden text-sm font-semibold text-red-700" data-stripe-card-errors></p>
-                </div>
+        <div class="grid gap-4">
+            <div>
+                <label for="card_holder_name" class="text-sm font-bold text-atlantia-ink">
+                    Nombre en la tarjeta
+                </label>
+                <input
+                    id="card_holder_name"
+                    type="text"
+                    autocomplete="cc-name"
+                    data-stripe-cardholder-name
+                    placeholder="Como aparece en tu tarjeta"
+                    class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 text-sm
+                        focus:border-atlantia-wine focus:ring-atlantia-rose"
+                >
             </div>
 
-            <p class="mt-4 text-xs text-atlantia-ink/60">
-                Los datos de tarjeta se tokenizan directamente con Stripe antes de enviar el pedido.
-            </p>
-
-            @error('card_token')
-                <p class="mt-3 text-sm font-semibold text-red-700">{{ $message }}</p>
-            @enderror
+            <div>
+                <label for="stripe-card-element" class="text-sm font-bold text-atlantia-ink">
+                    Datos de la tarjeta
+                </label>
+                <div
+                    id="stripe-card-element"
+                    data-stripe-card-element
+                    wire:ignore
+                    class="mt-2 rounded-md border border-atlantia-rose/30 bg-white px-4 py-3 shadow-sm"
+                ></div>
+                <p class="mt-2 hidden text-sm font-semibold text-red-700" data-stripe-card-errors></p>
+            </div>
         </div>
-    @endif
+
+        <p class="mt-4 text-xs text-atlantia-ink/60">
+            Los datos de tarjeta se tokenizan directamente con Stripe antes de enviar el pedido.
+        </p>
+
+        @error('card_token')
+            <p class="mt-3 text-sm font-semibold text-red-700">{{ $message }}</p>
+        @enderror
+    </div>
 
     @if ($metodoPago === 'transferencia')
         <div class="mt-4">

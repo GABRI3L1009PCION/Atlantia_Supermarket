@@ -114,6 +114,12 @@ const stripeCheckoutState = {
 };
 
 function checkoutUsesCard(form) {
+    const checkedMethod = form.querySelector('input[type="radio"][name="metodo_pago"]:checked')?.value;
+
+    if (checkedMethod) {
+        return checkedMethod === 'tarjeta';
+    }
+
     return new FormData(form).getAll('metodo_pago').includes('tarjeta');
 }
 
@@ -141,6 +147,28 @@ function clearStripeError(form) {
 
     error.textContent = '';
     error.classList.add('hidden');
+}
+
+function syncCheckoutPaymentMethod(form) {
+    const checkedMethod = form.querySelector('input[type="radio"][name="metodo_pago"]:checked')?.value;
+
+    if (!checkedMethod) {
+        return;
+    }
+
+    form.querySelectorAll('input[type="hidden"][name="metodo_pago"]').forEach((input) => {
+        input.value = checkedMethod;
+    });
+}
+
+function syncStripeCardPanel(form) {
+    const panel = form.querySelector('[data-stripe-card-panel]');
+
+    if (!panel) {
+        return;
+    }
+
+    panel.classList.toggle('hidden', !checkoutUsesCard(form));
 }
 
 function setStripeCheckoutSubmitting(form, submitting) {
@@ -227,11 +255,35 @@ async function mountStripeCard(form) {
 
 function initializeStripeCheckout() {
     document.querySelectorAll('[data-stripe-checkout]').forEach((form) => {
+        syncCheckoutPaymentMethod(form);
+        syncStripeCardPanel(form);
+
         if (checkoutUsesCard(form)) {
             mountStripeCard(form).catch((error) => showStripeError(form, error.message));
         }
     });
 }
+
+document.addEventListener('change', (event) => {
+    const method = event.target.closest('input[name="metodo_pago"]');
+
+    if (!method) {
+        return;
+    }
+
+    const form = method.closest('[data-stripe-checkout]');
+
+    if (!form) {
+        return;
+    }
+
+    syncCheckoutPaymentMethod(form);
+    syncStripeCardPanel(form);
+
+    if (checkoutUsesCard(form)) {
+        mountStripeCard(form).catch((error) => showStripeError(form, error.message));
+    }
+});
 
 document.addEventListener('submit', async (event) => {
     const form = event.target.closest('[data-stripe-checkout]');
@@ -239,6 +291,9 @@ document.addEventListener('submit', async (event) => {
     if (!form) {
         return;
     }
+
+    syncCheckoutPaymentMethod(form);
+    syncStripeCardPanel(form);
 
     if (!checkoutUsesCard(form)) {
         if (form.dataset.stripeSubmitting === 'true') {
