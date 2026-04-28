@@ -159,6 +159,65 @@ class CheckoutServiceTest extends TestCase
     }
 
     /**
+     * Rechaza municipios futuros aunque tengan zona creada hasta activar la fase operativa.
+     */
+    public function testCheckoutRechazaMunicipioFueraDeFaseAunqueTengaZonaActiva(): void
+    {
+        [$cliente, $direccion] = $this->createClienteConDireccion('Livingston');
+        DeliveryZone::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'nombre' => 'Livingston futuro',
+            'slug' => 'livingston-futuro',
+            'descripcion' => 'Zona futura aun no disponible para checkout.',
+            'municipio' => 'Livingston',
+            'costo_base' => 45,
+            'latitude_centro' => 15.82830000,
+            'longitude_centro' => -88.75060000,
+            'activa' => true,
+        ]);
+        $producto = $this->createProductoConInventario(3);
+        $this->createCarritoActivo($cliente, $producto, 1);
+        $this->fakePasarelaAprobada();
+
+        $this->expectException(DireccionFueraDeZonaException::class);
+
+        app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+            $cliente,
+            PedidoDTO::fromCheckoutArray([
+                'direccion_id' => $direccion->id,
+                'metodo_pago' => MetodoPago::Efectivo->value,
+                'envio' => 15,
+            ])
+        );
+    }
+
+    /**
+     * Rechaza direcciones sin coordenadas GPS aunque el municipio este cubierto.
+     */
+    public function testCheckoutRechazaDireccionSinUbicacionExacta(): void
+    {
+        [$cliente, $direccion] = $this->createClienteConDireccion();
+        $direccion->update([
+            'latitude' => null,
+            'longitude' => null,
+        ]);
+        $producto = $this->createProductoConInventario(3);
+        $this->createCarritoActivo($cliente, $producto, 1);
+        $this->fakePasarelaAprobada();
+
+        $this->expectException(DireccionFueraDeZonaException::class);
+
+        app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+            $cliente,
+            PedidoDTO::fromCheckoutArray([
+                'direccion_id' => $direccion->id,
+                'metodo_pago' => MetodoPago::Efectivo->value,
+                'envio' => 15,
+            ])
+        );
+    }
+
+    /**
      * Simula dos compras compitiendo por el ultimo item.
      */
     public function testSoloUnUsuarioLograComprarElUltimoItemDisponible(): void
@@ -204,7 +263,7 @@ class CheckoutServiceTest extends TestCase
         $cliente = User::factory()->cliente()->create();
         $cliente->assignRole('cliente');
 
-        if (in_array($municipio, ['Puerto Barrios', 'Santo Tomas', 'Santo Tomás'], true)) {
+        if (in_array($municipio, ['Puerto Barrios', 'Santo Tomas'], true)) {
             DeliveryZone::query()->firstOrCreate(
                 ['slug' => Str::slug($municipio)],
                 [

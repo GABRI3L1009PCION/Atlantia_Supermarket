@@ -48,6 +48,20 @@ class AdminPanelAuthorizationTest extends TestCase
     }
 
     /**
+     * Permite abrir la pantalla de zonas de entrega sin errores de vista.
+     */
+    public function testAdminCanAccessDeliveryZonesPage(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('admin');
+
+        $response = $this->actingAs($admin)->get(route('admin.zonas-entrega.index'));
+
+        $response->assertOk();
+        $response->assertSee('Zonas de entrega');
+    }
+
+    /**
      * Bloquea acceso al dashboard administrativo para clientes.
      */
     public function testClienteCannotAccessAdminDashboard(): void

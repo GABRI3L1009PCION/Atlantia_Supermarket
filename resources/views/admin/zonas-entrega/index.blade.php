@@ -7,6 +7,15 @@
         $averageCost = $collection->avg(fn ($zona) => (float) $zona->costo_base) ?? 0;
         $coverage = max(0, $activeZones * 31.75);
         $ordersInZones = $activeZones * 61;
+        $municipiosOperativos = ['Puerto Barrios', 'Santo Tomas'];
+        $municipiosActivosCheckout = ($zonasActivas ?? $collection->where('activa', true))
+            ->pluck('municipio')
+            ->map(fn ($municipio) => $municipio === 'Santo Tomás' ? 'Santo Tomas' : $municipio)
+            ->unique()
+            ->values();
+        $municipiosPendientesCheckout = collect($municipiosOperativos)
+            ->reject(fn ($municipio) => $municipiosActivosCheckout->contains($municipio))
+            ->values();
         $municipios = ['Puerto Barrios', 'Santo Tomas', 'Morales', 'Los Amates', 'Livingston', 'El Estor'];
         $dias = [
             'lun' => 'Lun',
@@ -103,6 +112,43 @@
                     <p class="mt-2 text-xs font-bold text-atlantia-ink/60">Por pedido</p>
                 </article>
             </div>
+
+            <section class="rounded-lg border border-atlantia-rose/20 bg-white p-5 shadow-sm">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <p class="text-sm font-black uppercase tracking-normal text-atlantia-wine">Cobertura de checkout</p>
+                        <h2 class="mt-1 text-2xl font-black text-atlantia-ink">Fase actual: Puerto Barrios y Santo Tomas</h2>
+                        <p class="mt-2 max-w-3xl text-sm leading-6 text-atlantia-ink/65">
+                            El cliente solo podra finalizar compras en municipios con una zona activa. Los demas municipios
+                            quedan listos para administracion futura, pero no pasan checkout todavia.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+                        @foreach ($municipiosOperativos as $municipio)
+                            @php
+                                $activoCheckout = $municipiosActivosCheckout->contains($municipio);
+                            @endphp
+                            <span
+                                @class([
+                                    'rounded-md px-4 py-2 text-sm font-black',
+                                    'bg-emerald-100 text-emerald-800' => $activoCheckout,
+                                    'bg-red-50 text-red-700' => ! $activoCheckout,
+                                ])
+                            >
+                                {{ $municipio }}: {{ $activoCheckout ? 'Activo' : 'Pendiente' }}
+                            </span>
+                        @endforeach
+                    </div>
+                </div>
+
+                @if ($municipiosPendientesCheckout->isNotEmpty())
+                    <div class="mt-4 rounded-md border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                        Falta crear o activar zona para:
+                        {{ $municipiosPendientesCheckout->join(', ', ' y ') }}.
+                    </div>
+                @endif
+            </section>
 
             <div class="grid gap-6 xl:grid-cols-[minmax(480px,0.95fr)_1.05fr]">
                 <form

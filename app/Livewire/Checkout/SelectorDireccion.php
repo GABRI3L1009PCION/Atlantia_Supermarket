@@ -3,6 +3,7 @@
 namespace App\Livewire\Checkout;
 
 use App\Models\Cliente\Direccion;
+use App\Services\Geolocalizacion\DeliveryCoverageService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -25,8 +26,11 @@ class SelectorDireccion extends Component
      */
     public function mount(): void
     {
-        $this->direccionId = $this->direcciones()->firstWhere('es_principal', true)?->id
-            ?? $this->direcciones()->first()?->id;
+        $coverageService = app(DeliveryCoverageService::class);
+        $direccion = $this->direcciones()
+            ->first(fn (Direccion $direccion): bool => $coverageService->coverageStateFor($direccion)['covered']);
+
+        $this->direccionId = $direccion?->id;
 
         if ($this->direccionId) {
             $this->dispatch('checkout.direccion-actualizada', direccionId: $this->direccionId);
@@ -42,6 +46,11 @@ class SelectorDireccion extends Component
     public function seleccionarDireccion(int $direccionId): void
     {
         $direccion = $this->direccionDelCliente($direccionId);
+
+        if (! app(DeliveryCoverageService::class)->coverageStateFor($direccion)['covered']) {
+            return;
+        }
+
         $this->direccionId = $direccion->id;
 
         $this->dispatch('checkout.direccion-actualizada', direccionId: $direccion->id);
@@ -76,8 +85,15 @@ class SelectorDireccion extends Component
      */
     public function render(): View
     {
+        $direcciones = $this->direcciones();
+        $coverageService = app(DeliveryCoverageService::class);
+        $coverageStates = $direcciones->mapWithKeys(fn (Direccion $direccion): array => [
+            $direccion->id => $coverageService->coverageStateFor($direccion),
+        ]);
+
         return view('livewire.checkout.selector-direccion', [
-            'direcciones' => $this->direcciones(),
+            'direcciones' => $direcciones,
+            'coverageStates' => $coverageStates,
         ]);
     }
 

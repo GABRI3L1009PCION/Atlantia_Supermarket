@@ -30,7 +30,10 @@ class ZonaEntregaController extends Controller
     {
         $this->authorize('viewAny', DeliveryZone::class);
 
-        return view('admin.zonas-entrega.index', ['zonas' => $this->zonaEntregaService->paginate($request->all())]);
+        return view('admin.zonas-entrega.index', [
+            'zonas' => $this->zonaEntregaService->paginate($request->all()),
+            'zonasActivas' => $this->zonaEntregaService->activeCached(),
+        ]);
     }
 
     /**

@@ -28,7 +28,7 @@ class DeliveryZoneSeeder extends Seeder
             [
                 'nombre' => 'Santo Tomas de Castilla',
                 'slug' => 'santo-tomas-de-castilla',
-                'municipio' => 'Santo Tomás',
+                'municipio' => 'Santo Tomas',
                 'costo_base' => 20.00,
                 'latitude_centro' => 15.69690000,
                 'longitude_centro' => -88.62060000,

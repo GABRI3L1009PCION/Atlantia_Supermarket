@@ -5,7 +5,7 @@ namespace App\Livewire\Checkout;
 use App\Models\Carrito;
 use App\Models\CarritoItem;
 use App\Models\Cliente\Direccion;
-use App\Models\DeliveryZone;
+use App\Services\Geolocalizacion\DeliveryCoverageService;
 use App\Services\Fidelizacion\PuntosService;
 use App\Services\Promociones\CuponService;
 use Illuminate\Contracts\View\View;
@@ -249,10 +249,6 @@ class ResumenMultivendedor extends Component
             return 0.0;
         }
 
-        return (float) (DeliveryZone::query()
-            ->active()
-            ->municipio($direccion->municipio)
-            ->orderBy('costo_base')
-            ->value('costo_base') ?? 0);
+        return app(DeliveryCoverageService::class)->deliveryCostFor($direccion) ?? 0.0;
     }
 }

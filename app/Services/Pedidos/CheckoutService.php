@@ -13,9 +13,9 @@ use App\Exceptions\TransaccionFallidaException;
 use App\Jobs\AnalizarFraudeOrden;
 use App\Models\Carrito;
 use App\Models\Cliente\Direccion;
-use App\Models\DeliveryZone;
 use App\Models\Pedido;
 use App\Models\User;
+use App\Services\Geolocalizacion\DeliveryCoverageService;
 use App\Services\Inventario\StockService;
 use App\Services\Promociones\CuponService;
 use Illuminate\Http\Request;
@@ -37,7 +37,8 @@ class CheckoutService
         private readonly SplitMultivendedorService $splitMultivendedorService,
         private readonly PasarelaPagoContract $pasarelaPagoService,
         private readonly EstadoPedidoService $estadoPedidoService,
-        private readonly CuponService $cuponService
+        private readonly CuponService $cuponService,
+        private readonly DeliveryCoverageService $deliveryCoverageService
     ) {
     }
 
@@ -225,24 +226,7 @@ class CheckoutService
      */
     private function assertDireccionDentroDeCobertura(Direccion $direccion): void
     {
-        $municipio = trim((string) $direccion->municipio);
-
-        $coberturaActiva = DeliveryZone::query()
-            ->active()
-            ->where(function ($query) use ($municipio): void {
-                $query->where('municipio', $municipio);
-
-                if ($municipio === 'Santo Tomas') {
-                    $query->orWhere('municipio', 'Santo Tomás');
-                }
-
-                if ($municipio === 'Santo Tomás') {
-                    $query->orWhere('municipio', 'Santo Tomas');
-                }
-            })
-            ->exists();
-
-        if (! $coberturaActiva) {
+        if ($this->deliveryCoverageService->findActiveZoneFor($direccion) === null) {
             throw new DireccionFueraDeZonaException(
                 'La direccion seleccionada esta fuera de nuestra zona de entrega activa.'
             );

@@ -45,8 +45,8 @@ class StoreDireccionRequest extends FormRequest
             'direccion_linea_1' => ['required', 'string', 'min:8', 'max:500'],
             'direccion_linea_2' => ['nullable', 'string', 'max:500'],
             'referencia' => ['nullable', 'string', 'max:600'],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
             'mapbox_place_id' => ['nullable', 'string', 'max:255'],
             'es_principal' => ['sometimes', 'boolean'],
         ];
@@ -67,6 +67,8 @@ class StoreDireccionRequest extends FormRequest
             'municipio.in' => 'El municipio seleccionado no esta dentro de la cobertura configurada.',
             'direccion_linea_1.required' => 'Ingresa la direccion principal.',
             'direccion_linea_1.min' => 'La direccion debe tener al menos :min caracteres.',
+            'latitude.required' => 'Usa tu ubicacion actual para guardar la direccion exacta.',
+            'longitude.required' => 'Usa tu ubicacion actual para guardar la direccion exacta.',
             'latitude.between' => 'La latitud no es valida.',
             'longitude.between' => 'La longitud no es valida.',
         ];

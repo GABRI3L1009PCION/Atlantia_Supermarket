@@ -45,10 +45,15 @@
 
         <div class="mt-5 grid gap-3">
             @foreach ($direcciones as $direccion)
+                @php
+                    $coverage = $coverageStates[$direccion->id] ?? ['covered' => false, 'message' => 'Sin cobertura activa.'];
+                @endphp
                 <label
                     wire:key="checkout-direccion-{{ $direccion->id }}"
-                    class="relative cursor-pointer rounded-lg border-2 p-5 transition hover:border-atlantia-wine/60"
+                    class="relative rounded-lg border-2 p-5 transition hover:border-atlantia-wine/60"
                     @class([
+                        'cursor-pointer' => $coverage['covered'],
+                        'cursor-not-allowed opacity-75' => ! $coverage['covered'],
                         'border-atlantia-wine bg-atlantia-blush' => $direccionId === $direccion->id,
                         'border-slate-200 bg-white' => $direccionId !== $direccion->id,
                     ])
@@ -61,6 +66,7 @@
                             wire:click="seleccionarDireccion({{ $direccion->id }})"
                             wire:loading.attr="disabled"
                             wire:target="seleccionarDireccion({{ $direccion->id }})"
+                            @disabled(! $coverage['covered'])
                             @checked($direccionId === $direccion->id)
                             class="mt-1 border-atlantia-rose text-atlantia-wine focus:ring-atlantia-rose"
                         >
@@ -73,6 +79,18 @@
                                 @if ($direccion->es_principal)
                                     <span class="rounded bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-800">
                                         Principal
+                                    </span>
+                                @endif
+                                @if ($coverage['covered'])
+                                    <span class="rounded bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-800">
+                                        En zona
+                                    </span>
+                                    <span class="rounded bg-cyan-50 px-2 py-1 text-xs font-bold text-cyan-800">
+                                        GPS exacto
+                                    </span>
+                                @else
+                                    <span class="rounded bg-red-50 px-2 py-1 text-xs font-bold text-red-700">
+                                        Fuera de zona
                                     </span>
                                 @endif
                             </div>
@@ -88,6 +106,15 @@
                                 @if ($direccion->telefono_contacto)
                                     - {{ $direccion->telefono_contacto }}
                                 @endif
+                            </p>
+                            <p
+                                @class([
+                                    'mt-3 rounded-md px-3 py-2 text-xs font-bold',
+                                    'bg-emerald-50 text-emerald-800' => $coverage['covered'],
+                                    'bg-red-50 text-red-700' => ! $coverage['covered'],
+                                ])
+                            >
+                                {{ $coverage['message'] }}
                             </p>
                         </div>
                     </div>
