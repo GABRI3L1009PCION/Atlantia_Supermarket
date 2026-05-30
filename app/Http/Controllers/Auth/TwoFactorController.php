@@ -29,9 +29,11 @@ class TwoFactorController extends Controller
      *
      * @return View
      */
-    public function challenge(): View
+    public function challenge(Request $request): View
     {
-        return view('auth.two-factor-challenge');
+        return view('auth.two-factor-challenge', [
+            'challenge' => $this->twoFactorService->challengeData($request),
+        ]);
     }
 
     /**
@@ -62,7 +64,7 @@ class TwoFactorController extends Controller
         $this->authorize('update', $request->user());
         $this->twoFactorService->enable($request->user());
 
-        return back()->with('success', 'Autenticacion de dos factores activada.');
+        return back()->with('success', 'Segundo factor preparado. Abre tu app autenticadora y confirma el codigo para terminar la activacion.');
     }
 
     /**

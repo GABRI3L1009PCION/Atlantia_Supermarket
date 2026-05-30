@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Cliente;
 
-use App\Models\Wishlist;
+use App\Support\WishlistStore;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
@@ -35,29 +35,14 @@ class WishlistButton extends Component
      */
     public function toggle(): void
     {
-        if (! auth()->check()) {
-            $this->dispatch('toast', type: 'info', message: 'Inicia sesion para guardar productos en tu lista.');
-
-            return;
-        }
-
-        $registro = Wishlist::query()->where('user_id', auth()->id())->where('producto_id', $this->productoId)->first();
-
-        if ($registro) {
-            $registro->delete();
-            $this->guardado = false;
-            $this->dispatch('toast', type: 'info', message: 'Producto retirado de tu lista de deseos.');
-
-            return;
-        }
-
-        Wishlist::query()->create([
-            'user_id' => auth()->id(),
-            'producto_id' => $this->productoId,
-        ]);
-
-        $this->guardado = true;
-        $this->dispatch('toast', type: 'success', message: 'Producto agregado a tu lista de deseos.');
+        $this->guardado = WishlistStore::toggle(request(), $this->productoId, auth()->user());
+        $this->dispatch(
+            'toast',
+            type: $this->guardado ? 'success' : 'info',
+            message: $this->guardado
+                ? 'Producto agregado a tus favoritos.'
+                : 'Producto retirado de tus favoritos.'
+        );
     }
 
     /**
@@ -73,13 +58,6 @@ class WishlistButton extends Component
      */
     private function resolverGuardado(): bool
     {
-        if (! auth()->check()) {
-            return false;
-        }
-
-        return Wishlist::query()
-            ->where('user_id', auth()->id())
-            ->where('producto_id', $this->productoId)
-            ->exists();
+        return WishlistStore::contains(request(), $this->productoId, auth()->user());
     }
 }

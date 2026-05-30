@@ -32,6 +32,7 @@ class Categoria extends Model
         'slug',
         'descripcion',
         'icon',
+        'imagen',
         'orden',
         'is_active',
     ];
@@ -47,6 +48,7 @@ class Categoria extends Model
             'orden' => 'integer',
             'is_active' => 'boolean',
             'deleted_at' => 'datetime',
+            'imagen' => 'string',
         ];
     }
 

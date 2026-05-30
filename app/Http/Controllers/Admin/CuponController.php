@@ -22,6 +22,12 @@ class CuponController extends Controller
     {
         return view('admin.cupones.index', [
             'cupones' => Cupon::query()->latest()->paginate(20),
+            'cuponMetrics' => [
+                'activos' => Cupon::query()->where('activo', true)->count(),
+                'usos' => (int) Cupon::query()->sum('usos_actuales'),
+                'primera_compra' => Cupon::query()->where('solo_primera_compra', true)->count(),
+                'vigentes' => Cupon::query()->vigentes()->count(),
+            ],
         ]);
     }
 

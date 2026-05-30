@@ -50,7 +50,7 @@ class CheckoutService
      */
     public function summary(Request $request): array
     {
-        $carrito = $this->activeCartFor($request->user());
+        $carrito = $this->activeCartFor($request->user(), $request->session()->getId());
 
         return [
             'carrito' => $carrito,
@@ -179,10 +179,10 @@ class CheckoutService
      * @param User|null $user
      * @return Carrito|null
      */
-    private function activeCartFor(?User $user): ?Carrito
+    private function activeCartFor(?User $user, ?string $sessionId = null): ?Carrito
     {
         return $user === null
-            ? null
+            ? Carrito::query()->where('session_id', $sessionId)->where('estado', 'activo')->first()
             : Carrito::query()->where('user_id', $user->id)->where('estado', 'activo')->first();
     }
 

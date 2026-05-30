@@ -23,6 +23,11 @@ class LoginService
     private const MAX_ATTEMPTS = 5;
 
     /**
+     * Segundos de bloqueo tras exceder los intentos permitidos.
+     */
+    private const LOCKOUT_SECONDS = 10;
+
+    /**
      * Crea una instancia del servicio.
      */
     public function __construct(private readonly CarritoService $carritoService)
@@ -47,7 +52,7 @@ class LoginService
         }
 
         if (! Auth::validate($this->onlyCredentials($credentials))) {
-            RateLimiter::hit($key, 900);
+            RateLimiter::hit($key, self::LOCKOUT_SECONDS);
             $this->recordAttempt($credentials['email'] ?? '', $request, false, 'invalid_credentials');
             throw new RuntimeException('Credenciales invalidas.');
         }
@@ -197,7 +202,7 @@ class LoginService
             $user->isAdministrator() => 'admin.dashboard',
             $user->hasRole('vendedor') => 'vendedor.dashboard',
             $user->hasRole('repartidor') => 'repartidor.dashboard',
-            $user->hasRole('empleado') => 'empleado.dashboard',
+            $user->hasAnyRole(['empleado', 'bodeguero', 'soporte', 'contabilidad_finanzas', 'supervisor_logistica']) => 'empleado.dashboard',
             default => 'catalogo.index',
         };
     }

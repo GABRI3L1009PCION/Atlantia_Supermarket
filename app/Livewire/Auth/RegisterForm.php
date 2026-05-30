@@ -40,7 +40,7 @@ class RegisterForm extends Component
     {
         return [
             'name' => ['required', 'string', 'min:3', 'max:160'],
-            'email' => ['required', 'string', 'email:rfc,dns', 'max:190', 'unique:users,email'],
+            'email' => ['required', 'string', 'email:rfc', 'max:190', 'unique:users,email'],
             'phone' => ['required', 'string', 'min:8', 'max:15', 'regex:/^\+?[1-9][0-9]{7,14}$/'],
             'password' => ['required', Password::min(12)->letters()->numbers()->symbols()],
             'password_confirmation' => ['required', 'same:password'],

@@ -17,6 +17,7 @@ use App\Models\HeroBanner;
 use App\Models\Inventario;
 use App\Models\Ml\FraudAlert;
 use App\Models\Ml\RestockSuggestion;
+use App\Models\Nomina;
 use App\Models\Payment;
 use App\Models\Pedido;
 use App\Models\Producto;
@@ -25,8 +26,12 @@ use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorCommission;
 use App\Models\AuditLog;
+use App\Events\DteEmitido;
 use App\Events\DevolucionAprobada;
+use App\Events\PedidoCreado;
 use App\Listeners\EnviarEmailDevolucionAprobada;
+use App\Listeners\EnviarFacturaDteAlCliente;
+use App\Listeners\EmitirDteTrasPedido;
 use App\Policies\AuditLogPolicy;
 use App\Observers\PedidoObserver;
 use App\Observers\CategoriaObserver;
@@ -46,6 +51,7 @@ use App\Policies\EmpleadoPolicy;
 use App\Policies\FraudAlertPolicy;
 use App\Policies\HeroBannerPolicy;
 use App\Policies\InventarioPolicy;
+use App\Policies\NominaPolicy;
 use App\Policies\PedidoPolicy;
 use App\Policies\PaymentPolicy;
 use App\Policies\ProductoPolicy;
@@ -129,6 +135,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(DeliveryRoute::class, DeliveryRoutePolicy::class);
         Gate::policy(Devolucion::class, DevolucionPolicy::class);
         Gate::policy(Inventario::class, InventarioPolicy::class);
+        Gate::policy(Nomina::class, NominaPolicy::class);
         Gate::policy(VendorCommission::class, VendorCommissionPolicy::class);
         Gate::policy(FraudAlert::class, FraudAlertPolicy::class);
         Gate::policy(RestockSuggestion::class, RestockSuggestionPolicy::class);
@@ -159,13 +166,21 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('viewVendorReports', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
         Gate::define('viewVendorReviews', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
         Gate::define('manageVendorZones', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
-        Gate::define('viewEmployeeDashboard', fn (User $user): bool => $user->hasRole('empleado'));
+        Gate::define('viewEmployeeDashboard', fn (User $user): bool => $user->hasAnyRole([
+            'empleado',
+            'bodeguero',
+            'soporte',
+            'contabilidad_finanzas',
+            'supervisor_logistica',
+        ]));
         Gate::define('viewCourierDashboard', fn (User $user): bool => $user->hasRole('repartidor'));
         Gate::define('sendLocation', fn (User $user): bool => $user->hasRole('repartidor'));
         Gate::define('viewRepartidores', fn (User $user): bool => $user->isAdministrator());
         Gate::define('viewRepartidor', fn (User $user, User $repartidor): bool => $user->isAdministrator()
             && $repartidor->hasRole('repartidor'));
 
+        Event::listen(PedidoCreado::class, EmitirDteTrasPedido::class);
+        Event::listen(DteEmitido::class, EnviarFacturaDteAlCliente::class);
         Event::listen(DevolucionAprobada::class, EnviarEmailDevolucionAprobada::class);
 
         Producto::observe(ProductoObserver::class);

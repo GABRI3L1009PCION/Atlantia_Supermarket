@@ -3,6 +3,7 @@
 namespace Tests\Browser;
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
@@ -10,8 +11,10 @@ use Tests\TestCase;
  */
 class ClienteCheckoutFlowTest extends TestCase
 {
+    use RefreshDatabase;
+
     /**
-     * El flujo principal conserva rutas publicas por UUID y rutas protegidas.
+     * El flujo principal permite checkout publico y conserva pedidos autenticados.
      */
     public function testClienteFlowRoutesAreRegisteredWithExpectedMiddleware(): void
     {
@@ -20,16 +23,16 @@ class ClienteCheckoutFlowTest extends TestCase
 
         $this->assertNotNull($checkout);
         $this->assertNotNull($pedido);
-        $this->assertContains('auth', $checkout->gatherMiddleware());
-        $this->assertContains('role:cliente', $checkout->gatherMiddleware());
+        $this->assertNotContains('auth', $checkout->gatherMiddleware());
+        $this->assertNotContains('role:cliente', $checkout->gatherMiddleware());
         $this->assertSame('cliente/pedidos/{pedido}', $pedido->uri());
     }
 
     /**
-     * Un visitante no autenticado es enviado al login antes de checkout.
+     * Un visitante no autenticado puede entrar al checkout como invitado.
      */
-    public function testGuestCannotReachCheckout(): void
+    public function testGuestCanReachCheckout(): void
     {
-        $this->get(route('cliente.checkout.create'))->assertRedirect();
+        $this->get(route('cliente.checkout.create'))->assertOk();
     }
 }

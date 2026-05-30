@@ -43,7 +43,7 @@ Artisan::command('atlantia:create-super-admin {--name=} {--email=} {--phone=}', 
             'status' => 'active',
             'is_system_user' => true,
             'two_factor_enabled' => true,
-            'two_factor_confirmed_at' => now(),
+            'two_factor_confirmed_at' => null,
         ]
     );
 

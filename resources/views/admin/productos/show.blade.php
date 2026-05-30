@@ -1,6 +1,10 @@
 @extends(auth()->user()?->isSuperAdmin() && request()->routeIs('admin.*') ? 'layouts.super-admin' : 'layouts.app')
 
 @section('content')
+    @php
+        $selectedOwnerType = old('owner_type', $producto->vendor?->slug === 'atlantia-supermarket' ? 'atlantia' : 'vendor');
+    @endphp
+
     <section class="mx-auto max-w-5xl py-2">
         <div class="rounded-2xl border border-atlantia-rose/20 bg-white p-6 shadow-sm">
             <x-page-header title="Gestionar producto" subtitle="Edita datos del producto, inventario y visibilidad en catalogo." />
@@ -18,22 +22,26 @@
                     <div class="grid gap-4 md:grid-cols-2">
                         <div>
                             <label class="text-sm font-semibold text-atlantia-ink">Quien vende este producto</label>
-                            <select name="owner_type" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
-                                <option value="atlantia" @selected($producto->vendor?->slug === 'atlantia-supermarket')>
+                            <select name="owner_type" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required data-product-owner-type>
+                                <option value="atlantia" @selected($selectedOwnerType === 'atlantia')>
                                     Atlantia Supermarket - producto propio
                                 </option>
-                                <option value="vendor" @selected($producto->vendor?->slug !== 'atlantia-supermarket')>
+                                <option value="vendor" @selected($selectedOwnerType === 'vendor')>
                                     Vendedor local externo
                                 </option>
                             </select>
                         </div>
-                        <div>
+                        <div @class(['hidden' => $selectedOwnerType !== 'vendor']) data-product-vendor-field>
                             <label class="text-sm font-semibold text-atlantia-ink">Vendedor local</label>
-                            <select name="vendor_id" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2">
-                                <option value="">No aplica si el producto es de Atlantia</option>
-                                @foreach ($vendors as $vendor)
-                                    <option value="{{ $vendor->id }}" @selected($producto->vendor_id === $vendor->id)>{{ $vendor->business_name }}</option>
-                                @endforeach
+                            <select name="vendor_id" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2 disabled:bg-atlantia-cream disabled:text-atlantia-ink/45" @disabled($selectedOwnerType !== 'vendor') data-product-vendor-select>
+                                @if ($vendors->isEmpty())
+                                    <option value="">No hay vendedores locales aprobados</option>
+                                @else
+                                    <option value="">Selecciona un vendedor local</option>
+                                    @foreach ($vendors as $vendor)
+                                        <option value="{{ $vendor->id }}" @selected((int) old('vendor_id', $producto->vendor_id) === $vendor->id)>{{ $vendor->business_name }}</option>
+                                    @endforeach
+                                @endif
                             </select>
                         </div>
                         <div>
@@ -146,6 +154,8 @@
                         <p class="text-xs font-semibold uppercase text-atlantia-rose">Referencia</p>
                         <p class="mt-2 text-sm text-atlantia-ink/70">UUID publico</p>
                         <p class="text-sm font-semibold text-atlantia-ink">{{ $producto->uuid }}</p>
+                        <p class="mt-3 text-sm text-atlantia-ink/70">Codigo de barras</p>
+                        <p class="font-mono text-sm font-black tracking-wide text-atlantia-ink">{{ $producto->codigo_barras ?: 'Pendiente de asignar' }}</p>
                         <p class="mt-3 text-sm text-atlantia-ink/70">Publicado</p>
                         <p class="text-sm font-semibold text-atlantia-ink">{{ optional($producto->publicado_at)->format('d/m/Y H:i') ?: 'No publicado' }}</p>
                     </div>
@@ -156,7 +166,7 @@
                             @forelse ($producto->imagenes as $imagen)
                                 <div class="overflow-hidden rounded-lg border border-atlantia-rose/20 bg-white">
                                     <img
-                                        src="{{ asset('storage/' . $imagen->path) }}"
+                                        src="{{ str_starts_with($imagen->path, 'http') ? $imagen->path : asset('storage/' . $imagen->path) }}"
                                         alt="{{ $imagen->alt_text ?? $producto->nombre }}"
                                         class="h-24 w-full object-cover"
                                         loading="lazy"
@@ -187,3 +197,46 @@
         </div>
     </section>
 @endsection
+
+@push('scripts')
+    <script nonce="{{ request()->attributes->get('csp_nonce') }}">
+        (() => {
+            const initializeProductOwnerFields = () => {
+                document.querySelectorAll('[data-product-owner-type]').forEach((ownerType) => {
+                    const form = ownerType.closest('form');
+
+                    if (!form || form.dataset.productOwnerFieldsReady === 'true') {
+                        return;
+                    }
+
+                    form.dataset.productOwnerFieldsReady = 'true';
+
+                    const vendorField = form.querySelector('[data-product-vendor-field]');
+                    const vendorSelect = form.querySelector('[data-product-vendor-select]');
+
+                    if (!vendorField || !vendorSelect) {
+                        return;
+                    }
+
+                    const syncVendorField = () => {
+                        const usesExternalVendor = ownerType.value === 'vendor';
+
+                        vendorField.classList.toggle('hidden', !usesExternalVendor);
+                        vendorSelect.disabled = !usesExternalVendor;
+
+                        if (!usesExternalVendor) {
+                            vendorSelect.value = '';
+                        }
+                    };
+
+                    ownerType.addEventListener('change', syncVendorField);
+                    syncVendorField();
+                });
+            };
+
+            document.addEventListener('DOMContentLoaded', initializeProductOwnerFields);
+            document.addEventListener('livewire:navigated', initializeProductOwnerFields);
+            window.addEventListener('pageshow', initializeProductOwnerFields);
+        })();
+    </script>
+@endpush

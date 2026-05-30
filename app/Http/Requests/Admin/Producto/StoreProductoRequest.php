@@ -21,9 +21,17 @@ class StoreProductoRequest extends FormRequest
     {
         return [
             'owner_type' => ['required', Rule::in(['atlantia', 'vendor'])],
-            'vendor_id' => ['nullable', 'required_if:owner_type,vendor', 'integer', 'exists:vendors,id'],
+            'vendor_id' => [
+                'nullable',
+                'required_if:owner_type,vendor',
+                'integer',
+                Rule::exists('vendors', 'id')
+                    ->where('is_approved', true)
+                    ->where('status', 'approved')
+                    ->whereNot('slug', 'atlantia-supermarket'),
+            ],
             'categoria_id' => ['required', 'integer', Rule::exists('categorias', 'id')->where('is_active', true)],
-            'sku' => ['required', 'string', 'max:80', Rule::unique('productos', 'sku')->where('vendor_id', $this->resolvedVendorId())],
+            'sku' => ['nullable', 'string', 'max:80'],
             'nombre' => ['required', 'string', 'min:3', 'max:180'],
             'slug' => ['nullable', 'string', 'max:190', Rule::unique('productos', 'slug')->where('vendor_id', $this->resolvedVendorId())],
             'descripcion' => ['nullable', 'string', 'max:5000'],
@@ -49,11 +57,12 @@ class StoreProductoRequest extends FormRequest
 
         $this->merge([
             'owner_type' => $ownerType,
+            'vendor_id' => $ownerType === 'vendor' ? $this->input('vendor_id') : null,
             'nombre' => $nombre,
-            'sku' => Str::upper(trim((string) $this->input('sku'))),
+            'sku' => $this->blankToNull(Str::upper(trim((string) $this->input('sku')))),
             'slug' => $this->input('slug') ? Str::slug((string) $this->input('slug')) : Str::slug($nombre),
             'precio_base' => $this->normalizeDecimal($this->input('precio_base')),
-            'precio_oferta' => $this->blankToNull($this->normalizeDecimal($this->input('precio_oferta'))),
+            'precio_oferta' => $this->optionalOfferToNull($this->normalizeDecimal($this->input('precio_oferta'))),
             'requiere_refrigeracion' => filter_var($this->input('requiere_refrigeracion', false), FILTER_VALIDATE_BOOLEAN),
             'is_active' => filter_var($this->input('is_active', true), FILTER_VALIDATE_BOOLEAN),
             'visible_catalogo' => filter_var($this->input('visible_catalogo', true), FILTER_VALIDATE_BOOLEAN),
@@ -83,6 +92,14 @@ class StoreProductoRequest extends FormRequest
 
         return $value === '' ? null : $value;
     }
+
+    private function optionalOfferToNull(mixed $value): ?string
+    {
+        $value = $this->blankToNull($value);
+
+        return $value !== null && is_numeric($value) && (float) $value === 0.0 ? null : $value;
+    }
+
     /**
      * Mensajes personalizados de validacion.
      *

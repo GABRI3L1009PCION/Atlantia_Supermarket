@@ -72,7 +72,7 @@ class ImpersonationService
             $user->isAdministrator() => 'admin.dashboard',
             $user->hasRole('vendedor') => 'vendedor.dashboard',
             $user->hasRole('repartidor') => 'repartidor.dashboard',
-            $user->hasRole('empleado') => 'empleado.dashboard',
+            $user->hasAnyRole(['empleado', 'bodeguero', 'soporte', 'contabilidad_finanzas', 'supervisor_logistica']) => 'empleado.dashboard',
             default => 'catalogo.index',
         };
     }

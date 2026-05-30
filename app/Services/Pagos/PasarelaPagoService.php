@@ -163,25 +163,35 @@ class PasarelaPagoService implements PasarelaPagoContract
             throw new PagoRechazadoException('Stripe no esta configurado para procesar tarjetas.');
         }
 
-        $paymentMethod = (string) ($pedidoDTO->cardToken ?? '');
+        $stripeCredential = (string) ($pedidoDTO->cardToken ?? '');
 
-        if ($paymentMethod === '') {
+        if ($stripeCredential === '') {
             throw new PagoRechazadoException('No se recibio el metodo de pago seguro de Stripe.');
+        }
+
+        $usesConfirmationToken = ! str_starts_with($stripeCredential, 'pm_');
+        $payload = [
+            'amount' => (int) round(((float) $pedido->total) * 100),
+            'currency' => strtolower((string) config('services.stripe.currency', 'gtq')),
+            'confirm' => 'true',
+            'description' => 'Atlantia Supermarket pedido ' . $pedido->numero_pedido,
+            'metadata[pedido_uuid]' => $pedido->uuid,
+            'metadata[numero_pedido]' => $pedido->numero_pedido,
+        ];
+
+        if ($usesConfirmationToken) {
+            $payload['confirmation_token'] = $stripeCredential;
+            $payload['automatic_payment_methods[enabled]'] = 'true';
+        } else {
+            $payload['payment_method'] = $stripeCredential;
+            $payload['payment_method_types[]'] = 'card';
         }
 
         $response = Http::asForm()
             ->withToken($secret)
             ->withHeaders(['Idempotency-Key' => 'pedido-' . $pedido->uuid])
             ->timeout(20)
-            ->post('https://api.stripe.com/v1/payment_intents', [
-                'amount' => (int) round(((float) $pedido->total) * 100),
-                'currency' => strtolower((string) config('services.stripe.currency', 'gtq')),
-                'payment_method' => $paymentMethod,
-                'confirm' => 'true',
-                'description' => 'Atlantia Supermarket pedido ' . $pedido->numero_pedido,
-                'metadata[pedido_uuid]' => $pedido->uuid,
-                'metadata[numero_pedido]' => $pedido->numero_pedido,
-            ]);
+            ->post('https://api.stripe.com/v1/payment_intents', $payload);
 
         if (! $response->successful()) {
             throw new PagoRechazadoException(

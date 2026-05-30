@@ -31,7 +31,10 @@ class PedidoController extends Controller
     {
         $this->authorize('viewAny', Pedido::class);
 
-        return view('admin.pedidos.index', ['pedidos' => $this->pedidoAdminService->paginate($request->all())]);
+        return view('admin.pedidos.index', [
+            'pedidos' => $this->pedidoAdminService->paginate($request->all()),
+            'pedidoMetrics' => $this->pedidoAdminService->metrics(),
+        ]);
     }
 
     /**

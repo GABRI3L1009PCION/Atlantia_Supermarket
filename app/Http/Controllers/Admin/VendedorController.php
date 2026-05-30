@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AprobarVendedorRequest;
 use App\Http\Requests\Admin\SuspenderVendedorRequest;
 use App\Models\Vendor;
+use App\Services\Reportes\VendorReportPdf;
 use App\Services\Vendedores\VendorAdminService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 /**
@@ -41,6 +43,21 @@ class VendedorController extends Controller
         $this->authorize('view', $vendor);
 
         return view('admin.vendedores.show', ['vendor' => $this->vendorAdminService->detail($vendor)]);
+    }
+
+    /**
+     * Descarga el reporte administrativo de vendedores en PDF.
+     */
+    public function reportPdf(Request $request, VendorReportPdf $reportPdf): Response
+    {
+        $this->authorize('viewAny', Vendor::class);
+
+        $filename = 'reporte-vendedores-' . now()->format('Y-m-d-His') . '.pdf';
+
+        return response($reportPdf->make($this->vendorAdminService->report()), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
     }
 
     /**

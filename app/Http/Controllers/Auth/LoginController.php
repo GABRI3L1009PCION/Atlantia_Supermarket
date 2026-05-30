@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Services\Auth\LoginService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use RuntimeException;
 use Illuminate\View\View;
 use Throwable;
 
@@ -46,7 +47,11 @@ class LoginController extends Controller
             $redirectRoute = $this->loginService->authenticate($request->validated(), $request);
 
             return redirect()->route($redirectRoute)->with('success', 'Sesion iniciada correctamente.');
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            if ($exception instanceof RuntimeException && $exception->getMessage() === 'Demasiados intentos de inicio de sesion.') {
+                abort(429, $exception->getMessage());
+            }
+
             return back()->withInput($request->only('email'))->with('error', 'No fue posible iniciar sesion.');
         }
     }

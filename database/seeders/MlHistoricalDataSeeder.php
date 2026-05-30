@@ -199,7 +199,9 @@ class MlHistoricalDataSeeder extends Seeder
      */
     private function productRecommendations(MlModelVersion $model): void
     {
-        $clienteId = User::query()->where('email', 'cliente@atlantia.test')->value('id');
+        $clienteId = User::query()
+            ->whereHas('roles', fn ($q) => $q->where('name', 'cliente'))
+            ->value('id');
 
         if ($clienteId === null) {
             return;
@@ -295,8 +297,13 @@ class MlHistoricalDataSeeder extends Seeder
      */
     private function fraudAlerts(MlModelVersion $model): void
     {
-        $pedido = Pedido::query()->where('numero_pedido', 'ATL-20260418-0001')->first();
-        $clienteId = User::query()->where('email', 'cliente@atlantia.test')->value('id');
+        $pedido = Pedido::query()->first();
+        $clienteId = User::query()
+            ->whereHas('roles', fn ($q) => $q->where('name', 'cliente'))
+            ->value('id');
+        $adminId = User::query()
+            ->whereHas('roles', fn ($q) => $q->whereIn('name', ['admin', 'super_admin']))
+            ->value('id');
 
         FraudAlert::query()->updateOrCreate(
             ['uuid' => '00000000-0000-4000-8000-000000000301'],
@@ -311,7 +318,7 @@ class MlHistoricalDataSeeder extends Seeder
                 ],
                 'revisada' => true,
                 'resuelta' => true,
-                'revisada_por' => User::query()->where('email', 'empleado@atlantia.test')->value('id'),
+                'revisada_por' => $adminId,
                 'revisada_at' => now()->subDay(),
                 'modelo_version_id' => $model->id,
             ]
@@ -337,7 +344,7 @@ class MlHistoricalDataSeeder extends Seeder
                 'score_sospecha' => 0.180000,
                 'revisada' => true,
                 'accion_tomada' => 'aprobada',
-                'revisada_por' => User::query()->where('email', 'empleado@atlantia.test')->value('id'),
+                'revisada_por' => User::query()->whereHas('roles', fn ($q) => $q->whereIn('name', ['admin', 'super_admin']))->value('id'),
                 'revisada_at' => now()->subDay(),
                 'modelo_version_id' => $model->id,
             ]

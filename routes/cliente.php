@@ -35,17 +35,23 @@ Route::prefix('cliente')
         Route::post('/carrito/items', [CarritoController::class, 'store'])->name('carrito.items.store');
         Route::put('/carrito/items/{item}', [CarritoController::class, 'update'])->name('carrito.items.update');
         Route::delete('/carrito/items/{item}', [CarritoController::class, 'destroy'])->name('carrito.items.destroy');
+
+        Route::get('/checkout', [CheckoutController::class, 'create'])->name('checkout.create');
+        Route::post('/checkout', [CheckoutController::class, 'store'])
+            ->middleware(['checkout.rate', 'throttle:checkout'])
+            ->name('checkout.store');
+        Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+        Route::post('/wishlist/{producto:uuid}/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
+        Route::post('/wishlist/agregar-todo', [WishlistController::class, 'addAllToCart'])->name('wishlist.add-all');
+
+        Route::get('/pedidos/{pedido:uuid}/confirmacion', [PedidoController::class, 'guestShow'])
+            ->name('pedidos.guest-show');
     });
 
 Route::prefix('cliente')
     ->as('cliente.')
     ->middleware(['auth', 'verified', 'role:cliente', 'throttle:120,1'])
     ->group(function (): void {
-        Route::get('/checkout', [CheckoutController::class, 'create'])->name('checkout.create');
-        Route::post('/checkout', [CheckoutController::class, 'store'])
-            ->middleware(['checkout.rate', 'throttle:checkout'])
-            ->name('checkout.store');
-
         Route::get('/pedidos', [PedidoController::class, 'index'])->name('pedidos.index');
         Route::get('/pedidos/{pedido:uuid}', [PedidoController::class, 'show'])->name('pedidos.show');
         Route::get('/pedidos/{pedido:uuid}/devolucion', [DevolucionController::class, 'create'])
@@ -68,9 +74,6 @@ Route::prefix('cliente')
         Route::delete('/resenas/{resena:uuid}', [ResenaController::class, 'destroy'])->name('resenas.destroy');
 
         Route::get('/recomendaciones', [RecomendacionController::class, 'index'])->name('recomendaciones.index');
-        Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
-        Route::post('/wishlist/{producto:uuid}/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
-        Route::post('/wishlist/agregar-todo', [WishlistController::class, 'addAllToCart'])->name('wishlist.add-all');
 
         Route::get('/perfil', [PerfilController::class, 'edit'])->name('perfil.edit');
         Route::put('/perfil', [PerfilController::class, 'update'])->name('perfil.update');

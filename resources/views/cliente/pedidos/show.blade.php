@@ -2,7 +2,8 @@
 
 @section('content')
     @php
-        $clienteNombre = explode(' ', trim(auth()->user()?->name ?? 'cliente'))[0] ?: 'cliente';
+        $clienteNombre = explode(' ', trim(auth()->user()?->name ?? $pedido->direccion?->nombre_contacto ?? 'cliente'))[0] ?: 'cliente';
+        $contactEmail = $guestContactEmail ?? auth()->user()?->email ?? $pedido->cliente?->email;
         $payment = $pedido->payments->first();
         $fechaPedido = ($pedido->confirmado_at ?? $pedido->created_at)->format('d/m/Y h:i a');
         $estado = $pedido->estadoValor();
@@ -34,7 +35,7 @@
                     </h1>
                     <p class="mt-4 max-w-2xl text-base leading-7 text-atlantia-ink/70">
                         Te enviamos un correo a
-                        <span class="font-bold text-atlantia-ink">{{ auth()->user()?->email }}</span>
+                        <span class="font-bold text-atlantia-ink">{{ $contactEmail }}</span>
                         con los detalles y tus facturas electronicas FEL cuando esten certificadas.
                     </p>
 
@@ -84,13 +85,15 @@
                             <p class="text-xs font-black uppercase tracking-normal text-sky-700">Entrega estimada</p>
                             <p class="mt-2 text-2xl font-black text-atlantia-ink">Hoy entre 45 y 60 min</p>
                         </div>
-                        <a
-                            href="{{ route('cliente.pedidos.seguimiento', $pedido) }}"
-                            class="mt-4 inline-flex rounded-md bg-atlantia-wine px-5 py-3 text-sm font-bold text-white
-                                hover:bg-atlantia-wine-700 sm:mt-0"
-                        >
-                            Ver en mapa
-                        </a>
+                        @auth
+                            <a
+                                href="{{ route('cliente.pedidos.seguimiento', $pedido) }}"
+                                class="mt-4 inline-flex rounded-md bg-atlantia-wine px-5 py-3 text-sm font-bold text-white
+                                    hover:bg-atlantia-wine-700 sm:mt-0"
+                            >
+                                Ver en mapa
+                            </a>
+                        @endauth
                     </div>
 
                     <div class="mt-8 rounded-lg border border-atlantia-rose/20 bg-white p-5">
@@ -291,13 +294,15 @@
                     </span>
 
                     <div class="mt-6 grid gap-3">
-                        <a
-                            href="{{ route('cliente.pedidos.seguimiento', $pedido) }}"
-                            class="rounded-md bg-atlantia-wine px-5 py-3 text-center text-sm font-black text-white
-                                hover:bg-atlantia-wine-700"
-                        >
-                            Seguir mi pedido
-                        </a>
+                        @auth
+                            <a
+                                href="{{ route('cliente.pedidos.seguimiento', $pedido) }}"
+                                class="rounded-md bg-atlantia-wine px-5 py-3 text-center text-sm font-black text-white
+                                    hover:bg-atlantia-wine-700"
+                            >
+                                Seguir mi pedido
+                            </a>
+                        @endauth
                         <a
                             href="{{ route('catalogo.index') }}"
                             class="rounded-md border border-atlantia-rose/40 px-5 py-3 text-center text-sm font-black

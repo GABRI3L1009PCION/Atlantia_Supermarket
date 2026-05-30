@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\HeroBannerController;
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\MlMonitorController;
 use App\Http\Controllers\Admin\MlReentrenamientoController;
+use App\Http\Controllers\Admin\NominaController;
 use App\Http\Controllers\Admin\PedidoController;
 use App\Http\Controllers\Admin\ProductoController;
 use App\Http\Controllers\Admin\RepartidorController;
@@ -41,6 +42,7 @@ Route::prefix('admin')
         Route::get('/', DashboardController::class)->name('dashboard');
 
         Route::get('/vendedores', [VendedorController::class, 'index'])->name('vendedores.index');
+        Route::get('/vendedores/reporte/pdf', [VendedorController::class, 'reportPdf'])->name('vendedores.report.pdf');
         Route::get('/vendedores/{vendor:uuid}', [VendedorController::class, 'show'])->name('vendedores.show');
         Route::patch('/vendedores/{vendor:uuid}/aprobar', [VendedorController::class, 'approve'])
             ->name('vendedores.approve');
@@ -87,8 +89,16 @@ Route::prefix('admin')
         Route::put('/empleados/{empleado:uuid}', [EmpleadoController::class, 'update'])->name('empleados.update');
         Route::delete('/empleados/{empleado:uuid}', [EmpleadoController::class, 'destroy'])->name('empleados.destroy');
 
+        Route::get('/nominas', [NominaController::class, 'index'])->name('nominas.index');
+        Route::post('/nominas', [NominaController::class, 'store'])->name('nominas.store');
+        Route::get('/nominas/{nomina:uuid}', [NominaController::class, 'show'])->name('nominas.show');
+        Route::put('/nominas/{nomina:uuid}/detalles/{detalle}', [NominaController::class, 'updateDetail'])
+            ->name('nominas.detalles.update');
+        Route::patch('/nominas/{nomina:uuid}/pagar', [NominaController::class, 'pay'])->name('nominas.pay');
+
         Route::get('/usuarios', [UsuarioController::class, 'index'])->name('usuarios.index');
         Route::post('/usuarios', [UsuarioController::class, 'store'])->name('usuarios.store');
+        Route::post('/usuarios/lote', [UsuarioController::class, 'batch'])->name('usuarios.batch');
         Route::get('/usuarios/{usuario:uuid}', [UsuarioController::class, 'show'])->name('usuarios.show');
         Route::put('/usuarios/{usuario:uuid}', [UsuarioController::class, 'update'])->name('usuarios.update');
         Route::delete('/usuarios/{usuario:uuid}', [UsuarioController::class, 'destroy'])->name('usuarios.destroy');
@@ -136,6 +146,9 @@ Route::prefix('admin')
         Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
 
         Route::get('/ml/monitor', [MlMonitorController::class, 'index'])->name('ml.monitor');
+        Route::post('/ml/activar', [MlMonitorController::class, 'activate'])
+            ->middleware('throttle:5,1')
+            ->name('ml.activate');
         Route::get('/ml/reentrenamiento', [MlReentrenamientoController::class, 'index'])
             ->name('ml.reentrenamiento.index');
         Route::post('/ml/reentrenamiento', [MlReentrenamientoController::class, 'store'])

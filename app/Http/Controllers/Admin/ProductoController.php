@@ -10,6 +10,7 @@ use App\Models\Categoria;
 use App\Models\Producto;
 use App\Models\Vendor;
 use App\Services\Catalogo\ProductoAdminService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -36,7 +37,7 @@ class ProductoController extends Controller
         return view('admin.productos.index', [
             'productos' => $this->productoAdminService->paginate($request->all()),
             'categorias' => Categoria::query()->where('is_active', true)->orderBy('nombre')->get(),
-            'vendors' => Vendor::query()->approved()->orderBy('business_name')->get(),
+            'vendors' => $this->externalVendors(),
         ]);
     }
 
@@ -61,8 +62,23 @@ class ProductoController extends Controller
         return view('admin.productos.show', [
             'producto' => $this->productoAdminService->detail($producto),
             'categorias' => Categoria::query()->where('is_active', true)->orderBy('nombre')->get(),
-            'vendors' => Vendor::query()->approved()->orderBy('business_name')->get(),
+            'vendors' => $this->externalVendors(),
         ]);
+    }
+
+    /**
+     * Lista vendedores externos disponibles para asignar productos.
+     *
+     * @return Collection<int, Vendor>
+     */
+    private function externalVendors(): Collection
+    {
+        return Vendor::query()
+            ->approved()
+            ->where('slug', '!=', 'atlantia-supermarket')
+            ->whereHas('user', fn ($query) => $query->where('is_system_user', false))
+            ->orderBy('business_name')
+            ->get();
     }
 
     /**

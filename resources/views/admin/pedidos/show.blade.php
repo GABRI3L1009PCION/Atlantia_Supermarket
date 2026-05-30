@@ -2,7 +2,7 @@
 
 @section('content')
     <section class="mx-auto max-w-full py-2">
-        <div class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <div class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
             <div class="space-y-6">
                 <div class="rounded-2xl border border-atlantia-rose/20 bg-white p-6 shadow-sm">
                     <x-page-header
@@ -10,7 +10,7 @@
                         :subtitle="'Control administrativo del flujo comercial y logistico.'"
                     />
 
-                    <div class="mt-6 grid gap-4 md:grid-cols-4">
+                    <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
                         <div class="rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-4">
                             <p class="text-sm text-atlantia-ink/55">Cliente</p>
                             <p class="mt-2 font-semibold text-atlantia-ink">{{ $pedido->cliente?->name }}</p>
@@ -48,23 +48,33 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-atlantia-rose/15">
-                                @foreach ($pedido->items as $item)
+                                @forelse ($pedido->items as $item)
                                     <tr>
                                         <td class="py-3">
-                                            <p class="font-semibold text-atlantia-ink">{{ $item->producto?->nombre }}</p>
-                                            <p class="text-xs text-atlantia-ink/55">{{ $item->producto?->sku }}</p>
+                                            <p class="font-semibold text-atlantia-ink">
+                                                {{ $item->producto_nombre_snapshot ?: $item->producto?->nombre ?? 'Producto eliminado' }}
+                                            </p>
+                                            <p class="text-xs text-atlantia-ink/55">
+                                                {{ $item->producto_sku_snapshot ?: $item->producto?->sku }}
+                                            </p>
                                         </td>
                                         <td class="py-3 text-atlantia-ink/70">{{ $item->cantidad }}</td>
                                         <td class="py-3 text-atlantia-ink/70">Q{{ number_format((float) $item->precio_unitario_snapshot, 2) }}</td>
                                         <td class="py-3 font-semibold text-atlantia-ink">Q{{ number_format((float) $item->subtotal, 2) }}</td>
                                     </tr>
-                                @endforeach
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="py-4 text-center text-sm text-atlantia-ink/55">
+                                            Sin items registrados en este pedido.
+                                        </td>
+                                    </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                <div class="grid gap-6 lg:grid-cols-2">
+                <div class="grid gap-6 md:grid-cols-2">
                     <div class="rounded-2xl border border-atlantia-rose/20 bg-white p-6 shadow-sm">
                         <h2 class="text-lg font-bold text-atlantia-wine">Pagos y split</h2>
                         <div class="mt-4 space-y-3">
@@ -128,8 +138,16 @@
                         <div>
                             <label class="text-sm font-semibold text-atlantia-ink">Estado del pedido</label>
                             <select name="estado" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
-                                @foreach (['pendiente', 'confirmado', 'preparando', 'en_ruta', 'entregado', 'cancelado'] as $estado)
-                                    <option value="{{ $estado }}" @selected($pedido->estadoValor() === $estado)>{{ ucfirst(str_replace('_', ' ', $estado)) }}</option>
+                                @foreach ([
+                                    'pendiente'          => 'Pendiente',
+                                    'confirmado'         => 'Confirmado',
+                                    'preparando'         => 'Preparando',
+                                    'listo_para_entrega' => 'Listo para recoger',
+                                    'en_ruta'            => 'En ruta',
+                                    'entregado'          => 'Entregado',
+                                    'cancelado'          => 'Cancelado',
+                                ] as $valor => $etiqueta)
+                                    <option value="{{ $valor }}" @selected($pedido->estadoValor() === $valor)>{{ $etiqueta }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -172,6 +190,12 @@
                             <dt class="text-atlantia-ink/55">Direccion</dt>
                             <dd class="font-semibold text-atlantia-ink">{{ $pedido->direccion?->direccion_linea_1 ?? 'Sin direccion registrada' }}</dd>
                         </div>
+                        @if ($pedido->direccion?->referencia)
+                            <div>
+                                <dt class="text-atlantia-ink/55">Referencia</dt>
+                                <dd class="font-semibold text-atlantia-ink">{{ $pedido->direccion->referencia }}</dd>
+                            </div>
+                        @endif
                         <div>
                             <dt class="text-atlantia-ink/55">Municipio</dt>
                             <dd class="font-semibold text-atlantia-ink">{{ $pedido->direccion?->municipio ?? 'Sin municipio' }}</dd>
@@ -181,6 +205,51 @@
                             <dd class="font-semibold text-atlantia-ink">{{ $pedido->deliveryRoute?->tiempo_estimado_min ? $pedido->deliveryRoute->tiempo_estimado_min . ' min' : 'Pendiente' }}</dd>
                         </div>
                     </dl>
+
+                    @if ($pedido->deliveryRoute)
+                        @php $ruta = $pedido->deliveryRoute; @endphp
+                        <div class="mt-5 border-t border-atlantia-rose/15 pt-4">
+                            <p class="text-xs font-bold uppercase tracking-wider text-atlantia-ink/45">Seguimiento del repartidor</p>
+                            <div class="mt-3 space-y-2">
+                                <div class="flex items-center justify-between rounded-lg px-3 py-2
+                                    {{ $ruta->asignada_at ? 'bg-emerald-50' : 'bg-slate-50' }}">
+                                    <span class="text-xs font-bold {{ $ruta->asignada_at ? 'text-emerald-800' : 'text-slate-500' }}">
+                                        Asignado
+                                    </span>
+                                    <span class="text-xs {{ $ruta->asignada_at ? 'text-emerald-700' : 'text-slate-400' }}">
+                                        {{ $ruta->asignada_at?->format('d/m H:i') ?? '—' }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center justify-between rounded-lg px-3 py-2
+                                    {{ $ruta->aceptada_at ? 'bg-emerald-50' : 'bg-slate-50' }}">
+                                    <span class="text-xs font-bold {{ $ruta->aceptada_at ? 'text-emerald-800' : 'text-slate-500' }}">
+                                        Repartidor acepto
+                                    </span>
+                                    <span class="text-xs {{ $ruta->aceptada_at ? 'text-emerald-700' : 'text-slate-400' }}">
+                                        {{ $ruta->aceptada_at?->format('d/m H:i') ?? 'Pendiente' }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center justify-between rounded-lg px-3 py-2
+                                    {{ $ruta->iniciada_at ? 'bg-emerald-50' : 'bg-slate-50' }}">
+                                    <span class="text-xs font-bold {{ $ruta->iniciada_at ? 'text-emerald-800' : 'text-slate-500' }}">
+                                        En camino
+                                    </span>
+                                    <span class="text-xs {{ $ruta->iniciada_at ? 'text-emerald-700' : 'text-slate-400' }}">
+                                        {{ $ruta->iniciada_at?->format('d/m H:i') ?? 'Pendiente' }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center justify-between rounded-lg px-3 py-2
+                                    {{ $ruta->completada_at ? 'bg-emerald-50' : 'bg-slate-50' }}">
+                                    <span class="text-xs font-bold {{ $ruta->completada_at ? 'text-emerald-800' : 'text-slate-500' }}">
+                                        Entregado
+                                    </span>
+                                    <span class="text-xs {{ $ruta->completada_at ? 'text-emerald-700' : 'text-slate-400' }}">
+                                        {{ $ruta->completada_at?->format('d/m H:i') ?? 'Pendiente' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="rounded-2xl border border-atlantia-rose/20 bg-white p-6 shadow-sm">

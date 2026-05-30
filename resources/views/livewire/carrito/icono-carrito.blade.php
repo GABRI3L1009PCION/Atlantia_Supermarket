@@ -1,9 +1,9 @@
 <a
     href="{{ route('cliente.carrito.index') }}"
-    class="relative flex h-10 w-10 items-center justify-center rounded-md text-atlantia-wine hover:bg-atlantia-blush"
+    class="relative flex h-9 w-9 items-center justify-center rounded-md text-atlantia-wine hover:bg-atlantia-blush sm:h-10 sm:w-10"
     aria-label="Carrito con {{ $cantidad }} productos"
 >
-    <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg class="h-6 w-6 sm:h-7 sm:w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path
             d="M4 5H6L8.1 15.2C8.3 16.2 9.2 17 10.3 17H17.8C18.8 17 19.6 16.4 19.9 15.5L21 9H7"
             stroke="currentColor"
@@ -21,7 +21,7 @@
         />
     </svg>
     <span
-        class="absolute -right-1 -top-1 min-w-5 rounded-full bg-atlantia-wine px-1 text-center text-xs font-bold text-white"
+        class="absolute -right-1 -top-1 min-w-4 rounded-full bg-atlantia-wine px-1 text-center text-[11px] font-bold leading-4 text-white sm:min-w-5 sm:text-xs sm:leading-5"
     >
         {{ $cantidad }}
     </span>

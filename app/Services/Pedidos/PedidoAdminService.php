@@ -58,6 +58,21 @@ class PedidoAdminService
     }
 
     /**
+     * Metricas reales para la bandeja administrativa de pedidos.
+     *
+     * @return array<string, int>
+     */
+    public function metrics(): array
+    {
+        return [
+            'today' => Pedido::query()->whereDate('created_at', today())->count(),
+            'pending' => Pedido::query()->whereIn('estado', ['pendiente', 'confirmado', 'preparando', 'en_ruta'])->count(),
+            'delivered' => Pedido::query()->where('estado', 'entregado')->count(),
+            'paid' => Pedido::query()->where('estado_pago', 'pagado')->count(),
+        ];
+    }
+
+    /**
      * Detalle de pedido.
      */
     public function detail(Pedido $pedido): Pedido

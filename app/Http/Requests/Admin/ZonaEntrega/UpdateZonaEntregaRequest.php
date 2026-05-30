@@ -36,6 +36,7 @@ class UpdateZonaEntregaRequest extends FormRequest
             'latitude_centro' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude_centro' => ['nullable', 'numeric', 'between:-180,180'],
             'poligono_geojson' => ['nullable', 'array'],
+            'poligono_features' => ['nullable', 'string', 'max:65535'],
             'activa' => ['sometimes', 'boolean'],
         ];
     }

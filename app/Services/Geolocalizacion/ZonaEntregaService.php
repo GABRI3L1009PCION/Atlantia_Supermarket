@@ -43,13 +43,32 @@ class ZonaEntregaService
      */
     public function activeCached(): Collection
     {
-        return Cache::remember('delivery_zones:active', now()->addHour(), function (): Collection {
-            return DeliveryZone::query()
-                ->where('activa', true)
-                ->orderBy('municipio')
-                ->orderBy('nombre')
-                ->get();
-        });
+        $cached = Cache::get('delivery_zones:active');
+
+        if ($cached instanceof Collection) {
+            return $cached;
+        }
+
+        Cache::forget('delivery_zones:active');
+
+        $zones = $this->active();
+        Cache::put('delivery_zones:active', $zones, now()->addHour());
+
+        return $zones;
+    }
+
+    /**
+     * Devuelve todas las zonas disponibles para busqueda y visualizacion interna.
+     *
+     * @return Collection<int, DeliveryZone>
+     */
+    public function searchable(): Collection
+    {
+        return DeliveryZone::query()
+            ->orderByDesc('activa')
+            ->orderBy('municipio')
+            ->orderBy('nombre')
+            ->get();
     }
 
     /**
@@ -61,10 +80,29 @@ class ZonaEntregaService
     {
         $zoneData = $this->preparePersistenceData($data);
 
-        return DeliveryZone::query()->create([
+        $zone = DeliveryZone::onlyTrashed()
+            ->where(function ($query) use ($zoneData): void {
+                $query->where('nombre', $zoneData['nombre'])
+                    ->orWhere('slug', $zoneData['slug']);
+            })
+            ->first();
+
+        if ($zone !== null) {
+            $zone->fill($zoneData);
+            $zone->restore();
+            Cache::forget('delivery_zones:active');
+
+            return $zone->refresh();
+        }
+
+        $zone = DeliveryZone::query()->create([
             'uuid' => (string) Str::uuid(),
             ...$zoneData,
         ]);
+
+        Cache::forget('delivery_zones:active');
+
+        return $zone;
     }
 
     /**
@@ -75,6 +113,7 @@ class ZonaEntregaService
     public function update(DeliveryZone $zone, array $data): DeliveryZone
     {
         $zone->update($this->preparePersistenceData($data));
+        Cache::forget('delivery_zones:active');
 
         return $zone->refresh();
     }
@@ -85,6 +124,21 @@ class ZonaEntregaService
     public function delete(DeliveryZone $zone): void
     {
         $zone->delete();
+        Cache::forget('delivery_zones:active');
+    }
+
+    /**
+     * Consulta zonas activas desde base de datos.
+     *
+     * @return Collection<int, DeliveryZone>
+     */
+    private function active(): Collection
+    {
+        return DeliveryZone::query()
+            ->where('activa', true)
+            ->orderBy('municipio')
+            ->orderBy('nombre')
+            ->get();
     }
 
     /**
@@ -107,6 +161,16 @@ class ZonaEntregaService
             'cobro_peso_volumen' => (bool) ($data['cobro_peso_volumen'] ?? false),
         ];
 
+        $features = [];
+        if (! empty($data['poligono_features'])) {
+            $raw = is_string($data['poligono_features'])
+                ? json_decode($data['poligono_features'], true)
+                : $data['poligono_features'];
+            if (is_array($raw)) {
+                $features = $raw;
+            }
+        }
+
         return [
             'nombre' => $data['nombre'],
             'slug' => $data['slug'] ?? Str::slug((string) $data['nombre']),
@@ -117,7 +181,7 @@ class ZonaEntregaService
             'longitude_centro' => $data['longitude_centro'] ?? null,
             'poligono_geojson' => [
                 'type' => 'FeatureCollection',
-                'features' => [],
+                'features' => $features,
                 'metadata' => $metadata,
             ],
             'activa' => (bool) ($data['activa'] ?? false),

@@ -14,7 +14,7 @@ class UpdatePedidoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'estado' => ['required', 'in:pendiente,confirmado,preparando,en_ruta,entregado,cancelado'],
+            'estado' => ['required', 'in:pendiente,confirmado,en_revision,preparando,listo_para_entrega,en_ruta,entregado,cancelado,rechazado'],
             'estado_pago' => ['required', 'in:pendiente,validando,pagado,rechazado,reembolsado'],
             'repartidor_id' => ['nullable', 'integer', 'exists:users,id'],
             'notas' => ['nullable', 'string', 'max:1000'],

@@ -33,6 +33,7 @@ class Empleado extends Model
         'codigo_empleado',
         'departamento',
         'puesto',
+        'salario_base',
         'telefono_interno',
         'fecha_contratacion',
         'status',
@@ -49,6 +50,7 @@ class Empleado extends Model
     {
         return [
             'fecha_contratacion' => 'date',
+            'salario_base' => 'decimal:2',
             'permisos_operativos' => 'array',
             'deleted_at' => 'datetime',
         ];
@@ -82,6 +84,14 @@ class Empleado extends Model
     public function supervisados(): HasMany
     {
         return $this->hasMany(self::class, 'supervisor_id');
+    }
+
+    /**
+     * Pagos historicos incluidos en planillas.
+     */
+    public function nominaDetalles(): HasMany
+    {
+        return $this->hasMany(NominaDetalle::class);
     }
 
     /**

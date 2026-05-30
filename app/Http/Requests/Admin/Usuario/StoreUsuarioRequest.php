@@ -30,7 +30,8 @@ class StoreUsuarioRequest extends FormRequest
             'name' => ['required', 'string', 'min:3', 'max:160'],
             'email' => ['required', 'string', 'email:rfc', 'max:190', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:30'],
-            'password' => ['required', 'confirmed', Password::min(12)->letters()->numbers()->symbols()],
+            'department' => ['nullable', 'string', Rule::in(['operaciones', 'ventas', 'logistica', 'bodega', 'compras', 'soporte', 'contabilidad', 'finanzas', 'tecnologia'])],
+            'password' => ['required', 'confirmed', Password::min(8)->mixedCase()->symbols()],
             'status' => ['required', Rule::in(['active', 'inactive', 'suspended'])],
             'role' => ['required', 'string', 'exists:roles,name', ...$this->allowedRoleRules()],
         ];
@@ -51,15 +52,15 @@ class StoreUsuarioRequest extends FormRequest
             'email.unique' => 'Ya existe una cuenta con ese correo.',
             'password.required' => 'Ingresa una contrasena temporal para el usuario.',
             'password.confirmed' => 'La confirmacion de contrasena no coincide.',
-            'password.min' => 'La contrasena debe tener al menos 12 caracteres.',
-            'password.letters' => 'La contrasena debe incluir letras.',
-            'password.numbers' => 'La contrasena debe incluir numeros.',
+            'password.min' => 'La contrasena debe tener al menos 8 caracteres.',
+            'password.mixed' => 'La contrasena debe incluir al menos una mayuscula y una minuscula.',
             'password.symbols' => 'La contrasena debe incluir al menos un simbolo.',
             'status.required' => 'Selecciona el estado inicial del usuario.',
             'status.in' => 'El estado seleccionado no es valido.',
             'role.required' => 'Selecciona el rol del usuario.',
             'role.exists' => 'El rol seleccionado no existe.',
             'role.not_in' => 'No tienes permiso para crear usuarios con ese rol.',
+            'department.in' => 'Selecciona un departamento valido.',
         ];
     }
 
@@ -74,6 +75,7 @@ class StoreUsuarioRequest extends FormRequest
             'name' => 'nombre completo',
             'email' => 'correo electronico',
             'phone' => 'telefono',
+            'department' => 'departamento',
             'password' => 'contrasena',
             'password_confirmation' => 'confirmacion de contrasena',
             'status' => 'estado',

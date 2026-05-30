@@ -24,7 +24,9 @@ class RegistroService
      */
     public function register(array $data): User
     {
-        return DB::transaction(function () use ($data): User {
+        // La transaccion solo crea registros en BD — el envio de correo va fuera
+        // para que un fallo de SMTP no revierta el registro completo.
+        $user = DB::transaction(function () use ($data): User {
             $user = User::query()->create([
                 'uuid' => (string) Str::uuid(),
                 'name' => $data['name'],
@@ -48,12 +50,22 @@ class RegistroService
 
             $this->audit($user, 'auth.registered', ['role' => $role]);
 
+            return $user;
+        });
+
+        // Envio de verificacion fuera de la transaccion: si falla el SMTP
+        // el usuario ya esta creado y puede iniciar sesion sin problema.
+        try {
             if (method_exists($user, 'sendEmailVerificationNotification')) {
                 $user->sendEmailVerificationNotification();
             }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Email de verificacion no enviado: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+            ]);
+        }
 
-            return $user;
-        });
+        return $user;
     }
 
     /**

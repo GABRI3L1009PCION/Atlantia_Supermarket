@@ -102,19 +102,19 @@ class DteGeneradorService
     public function generarXml(DteFactura $dte): string
     {
         $dte->loadMissing(['vendor.fiscalProfile', 'pedido.cliente', 'items']);
-        $profile = $dte->vendor->fiscalProfile;
+        $profile = $dte->vendor?->fiscalProfile;
         $xml = new SimpleXMLElement('<DTE/>');
         $datos = $xml->addChild('DatosEmision');
 
         $emisor = $datos->addChild('Emisor');
-        $emisor->addChild('NITEmisor', htmlspecialchars((string) $profile->nit));
-        $emisor->addChild('NombreEmisor', htmlspecialchars($profile->razon_social));
-        $emisor->addChild('CodigoEstablecimiento', htmlspecialchars($profile->codigo_establecimiento));
-        $emisor->addChild('AfiliacionIVA', htmlspecialchars($profile->afiliacion_iva));
+        $emisor->addChild('NITEmisor', htmlspecialchars((string) ($profile?->nit ?? 'CF')));
+        $emisor->addChild('NombreEmisor', htmlspecialchars((string) ($profile?->razon_social ?? $dte->vendor?->business_name ?? 'Atlantia Supermarket')));
+        $emisor->addChild('CodigoEstablecimiento', htmlspecialchars((string) ($profile?->codigo_establecimiento ?? '1')));
+        $emisor->addChild('AfiliacionIVA', htmlspecialchars((string) ($profile?->afiliacion_iva ?? 'GEN')));
 
         $receptor = $datos->addChild('Receptor');
-        $receptor->addChild('NombreReceptor', htmlspecialchars($dte->pedido->cliente->name));
-        $receptor->addChild('CorreoReceptor', htmlspecialchars($dte->pedido->cliente->email));
+        $receptor->addChild('NombreReceptor', htmlspecialchars((string) ($dte->pedido?->cliente?->name ?? 'Consumidor final')));
+        $receptor->addChild('CorreoReceptor', htmlspecialchars((string) ($dte->pedido?->cliente?->email ?? 'sin-correo@atlantia.local')));
 
         $items = $datos->addChild('Items');
         foreach ($dte->items as $index => $item) {
@@ -146,11 +146,15 @@ class DteGeneradorService
      */
     private function validarPedidoFacturable(Pedido $pedido): void
     {
-        if ($pedido->vendor_id === null || $pedido->vendor?->fiscalProfile === null) {
+        if ($pedido->vendor_id === null) {
+            throw new DteCertificadorException('El pedido no tiene vendedor asociado.');
+        }
+
+        if (! $this->usarMockFel() && $pedido->vendor?->fiscalProfile === null) {
             throw new DteCertificadorException('El pedido no tiene vendedor con perfil fiscal FEL.');
         }
 
-        if (! $pedido->vendor->fiscalProfile->fel_activo) {
+        if (! $this->usarMockFel() && ! $pedido->vendor->fiscalProfile->fel_activo) {
             throw new DteCertificadorException('El perfil FEL del vendedor no esta activo.');
         }
 
@@ -168,5 +172,13 @@ class DteGeneradorService
     private function numeroInterno(Pedido $pedido): string
     {
         return 'DTE-' . now()->format('Ymd') . '-' . str_pad((string) $pedido->id, 8, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Indica si el flujo FEL usa certificacion local emulada.
+     */
+    private function usarMockFel(): bool
+    {
+        return (bool) config('services.infile.mock', app()->environment(['local', 'testing']));
     }
 }

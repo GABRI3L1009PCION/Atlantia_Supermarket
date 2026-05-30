@@ -28,9 +28,9 @@ class HealthController extends Controller
             'ml_service' => $this->checkMlService(),
         ];
 
-        $failed = collect($checks)->first(fn (string $status): bool => $status !== 'ok');
-        $status = $failed === false ? 'ok' : 'degraded';
-        $code = $failed === false ? 200 : 503;
+        $hasFailures = collect($checks)->contains(fn (string $status): bool => $status !== 'ok');
+        $status = $hasFailures ? 'degraded' : 'ok';
+        $code = $hasFailures ? 503 : 200;
 
         return response()->json([
             'status' => $status,
@@ -72,8 +72,9 @@ class HealthController extends Controller
     {
         try {
             $response = Redis::connection('cache')->ping();
+            $responseText = is_bool($response) ? $response : strtoupper((string) $response);
 
-            return in_array($response, [true, '+PONG', 'PONG'], true) ? 'ok' : 'error';
+            return in_array($responseText, [true, '+PONG', 'PONG'], true) ? 'ok' : 'error';
         } catch (Throwable $exception) {
             Log::warning('Health check redis failed', [
                 'service' => 'redis',

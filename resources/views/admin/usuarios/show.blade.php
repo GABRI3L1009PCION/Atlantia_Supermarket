@@ -5,6 +5,20 @@
         $availableRoles = auth()->user()?->isSuperAdmin()
             ? $roles
             : $roles->reject(fn ($role) => in_array($role->name, ['admin', 'super_admin'], true));
+        $roleLabels = [
+            'cliente' => 'Cliente',
+            'vendedor' => 'Emprendedor',
+            'bodeguero' => 'Bodeguero',
+            'proveedor' => 'Proveedor',
+            'soporte' => 'Soporte',
+            'contabilidad_finanzas' => 'Contabilidad y finanzas',
+            'supervisor_logistica' => 'Supervisor de logistica',
+            'empleado' => 'Empleado',
+            'repartidor' => 'Repartidor',
+            'admin' => 'Admin',
+            'super_admin' => 'Super admin',
+        ];
+        $isOwnAccount = (int) auth()->id() === (int) $usuario->id;
     @endphp
 
     <section class="mx-auto max-w-5xl py-2">
@@ -23,7 +37,14 @@
                         </div>
                         <div>
                             <label class="text-sm font-semibold text-atlantia-ink">Correo electronico</label>
-                            <input name="email" type="email" value="{{ old('email', $usuario->email) }}" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
+                            <input
+                                name="email"
+                                type="email"
+                                value="{{ old('email', $usuario->email) }}"
+                                class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2 {{ $isOwnAccount ? 'bg-atlantia-cream/70 text-atlantia-ink/65' : '' }}"
+                                @readonly($isOwnAccount)
+                                required
+                            >
                         </div>
                         <div>
                             <label class="text-sm font-semibold text-atlantia-ink">Telefono</label>
@@ -39,34 +60,46 @@
                         </div>
                     </div>
 
-                    <div>
-                        <label class="text-sm font-semibold text-atlantia-ink">Roles</label>
-                        <div class="mt-2 grid gap-2 rounded-lg border border-atlantia-rose/20 p-4 md:grid-cols-2">
-                            @foreach ($availableRoles as $role)
-                                <label class="flex items-center gap-2 text-sm text-atlantia-ink">
-                                    <input
-                                        type="checkbox"
-                                        name="roles[]"
-                                        value="{{ $role->name }}"
-                                        @checked(collect(old('roles', $usuario->roles->pluck('name')->all()))->contains($role->name))
-                                        class="rounded border-atlantia-rose text-atlantia-wine focus:ring-atlantia-rose"
-                                    >
-                                    <span>{{ $role->name }}</span>
-                                </label>
-                            @endforeach
+                    @if (! $isOwnAccount)
+                        <div>
+                            <label class="text-sm font-semibold text-atlantia-ink">Roles</label>
+                            <div class="mt-2 grid gap-2 rounded-lg border border-atlantia-rose/20 p-4 md:grid-cols-2">
+                                @foreach ($availableRoles as $role)
+                                    <label class="flex items-center gap-2 text-sm text-atlantia-ink">
+                                        <input
+                                            type="checkbox"
+                                            name="roles[]"
+                                            value="{{ $role->name }}"
+                                            @checked(collect(old('roles', $usuario->roles->pluck('name')->all()))->contains($role->name))
+                                            class="rounded border-atlantia-rose text-atlantia-wine focus:ring-atlantia-rose"
+                                        >
+                                        <span>{{ $roleLabels[$role->name] ?? $role->name }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
                         </div>
-                    </div>
+                    @else
+                        @foreach ($usuario->roles->pluck('name') as $roleName)
+                            <input type="hidden" name="roles[]" value="{{ $roleName }}">
+                        @endforeach
+                    @endif
 
-                    <div class="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label class="text-sm font-semibold text-atlantia-ink">Nueva contrasena</label>
-                            <input name="password" type="password" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2">
+                    @if (! $isOwnAccount)
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label class="text-sm font-semibold text-atlantia-ink">Nueva contrasena</label>
+                                <input name="password" type="password" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="text-sm font-semibold text-atlantia-ink">Confirmar contrasena</label>
+                                <input name="password_confirmation" type="password" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2">
+                            </div>
                         </div>
-                        <div>
-                            <label class="text-sm font-semibold text-atlantia-ink">Confirmar contrasena</label>
-                            <input name="password_confirmation" type="password" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2">
+                    @else
+                        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+                            Por seguridad, no puedes cambiar tu correo, roles ni contrasena desde tu propia cuenta administrativa.
                         </div>
-                    </div>
+                    @endif
 
                     <div class="flex flex-wrap gap-3">
                         <x-ui.button type="submit">Guardar cambios</x-ui.button>

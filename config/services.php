@@ -40,6 +40,14 @@ return [
         'base_url' => env('MAPBOX_BASE_URL', 'https://api.mapbox.com'),
     ],
 
+    'google_maps' => [
+        'api_key' => env('GOOGLE_MAPS_API_KEY'),
+        'map_id' => env('GOOGLE_MAPS_MAP_ID'),
+        'default_lat' => (float) env('GOOGLE_MAPS_DEFAULT_LAT', 15.7309),
+        'default_lng' => (float) env('GOOGLE_MAPS_DEFAULT_LNG', -88.5944),
+        'default_zoom' => (int) env('GOOGLE_MAPS_DEFAULT_ZOOM', 13),
+    ],
+
     'infile' => [
         'base_url' => env('INFILE_BASE_URL'),
         'username' => env('INFILE_USERNAME'),

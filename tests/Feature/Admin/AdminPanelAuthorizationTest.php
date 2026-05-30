@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\DeliveryZone;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -54,11 +56,93 @@ class AdminPanelAuthorizationTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
+        config()->set('services.google_maps.api_key', 'test-key');
 
         $response = $this->actingAs($admin)->get(route('admin.zonas-entrega.index'));
 
         $response->assertOk();
         $response->assertSee('Zonas de entrega');
+        $response->assertSee('Cobertura definida por colonia o barrio');
+        $response->assertDontSee('delivery-zone-picker-map');
+        $response->assertDontSee('create-zone-location-search');
+    }
+
+    /**
+     * Mantiene disponibles para el mapa las zonas que quedan fuera de la pagina actual.
+     */
+    public function testDeliveryZoneMapSearchIncludesZonesOutsidePaginatedList(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('admin');
+        config()->set('services.google_maps.api_key', 'test-key');
+
+        foreach (range(1, 25) as $index) {
+            DeliveryZone::query()->create([
+                'uuid' => (string) Str::uuid(),
+                'nombre' => sprintf('Zona %02d', $index),
+                'slug' => sprintf('zona-%02d', $index),
+                'municipio' => 'Puerto Barrios',
+                'costo_base' => 15,
+                'activa' => true,
+            ]);
+        }
+
+        DeliveryZone::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'nombre' => 'ZZZ BANVI I',
+            'slug' => 'stc-banvi-i',
+            'municipio' => 'Puerto Barrios',
+            'costo_base' => 20,
+            'activa' => true,
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.zonas-entrega.index'));
+
+        $response->assertOk();
+        $response->assertSee('Buscar zona guardada');
+        $response->assertSee('stc-banvi-i');
+        $response->assertSee('No se encontró ninguna zona con ese nombre');
+    }
+
+    /**
+     * Permite reutilizar una zona eliminada sin dejar nombres bloqueados invisibles.
+     */
+    public function testAdminCanRecreateDeletedDeliveryZone(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('admin');
+
+        $deletedZone = DeliveryZone::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'nombre' => 'Colonia El Inde',
+            'slug' => 'colonia-el-inde',
+            'municipio' => 'Puerto Barrios',
+            'costo_base' => 12,
+            'activa' => false,
+        ]);
+        $deletedZone->delete();
+
+        $response = $this->actingAs($admin)->post(route('admin.zonas-entrega.store'), [
+            'nombre' => 'Colonia El Inde',
+            'slug' => 'colonia-el-inde',
+            'descripcion' => 'Cobertura residencial actualizada.',
+            'municipio' => 'Puerto Barrios',
+            'costo_base' => 15,
+            'tiempo_estimado_min' => 45,
+            'capacidad_diaria' => 80,
+            'activa' => true,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('delivery_zones', 1);
+        $this->assertDatabaseHas('delivery_zones', [
+            'id' => $deletedZone->id,
+            'nombre' => 'Colonia El Inde',
+            'costo_base' => 15,
+            'activa' => true,
+            'deleted_at' => null,
+        ]);
     }
 
     /**

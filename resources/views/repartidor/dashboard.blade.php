@@ -1,426 +1,287 @@
 @extends('layouts.app')
 
-@php
-    $preloadMapboxToken = config('services.mapbox.token') ?: env('MAPBOX_TOKEN');
-@endphp
-
-@if ($preloadMapboxToken)
-    @push('styles')
-        <link href="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.css" rel="stylesheet">
-    @endpush
-@endif
-
 @section('content')
     @php
+        $user = auth()->user();
         $overview = $metrics['overview'];
         $rutaActual = $metrics['ruta_actual'];
         $pedidoActual = $rutaActual?->pedido;
         $proximas = $metrics['proximas_entregas']->reject(fn ($ruta) => $rutaActual && $ruta->id === $rutaActual->id);
-        $mapboxToken = config('services.mapbox.token') ?: env('MAPBOX_TOKEN');
         $direccion = $pedidoActual?->direccion;
         $telefono = $direccion?->telefono_contacto;
         $telefonoWhatsApp = $telefono ? preg_replace('/\D+/', '', $telefono) : null;
         $items = $pedidoActual?->items ?? collect();
-        $total = (float) ($pedidoActual?->total ?? 0);
-        $cambioSugerido = max(0, 20 - $total);
-        $destino = $direccion && $direccion->latitude && $direccion->longitude
-            ? ['latitude' => (float) $direccion->latitude, 'longitude' => (float) $direccion->longitude]
-            : null;
-        $geometry = $rutaActual?->ruta_planificada['geometry'] ?? null;
+        $entregasHoy = (int) ($overview['entregas_hoy'] ?? 0);
+        $gananciaEstimada = $entregasHoy * 25;
+        $kmActuales = (float) ($rutaActual?->distancia_km ?? 0);
+        $totalPedido = (float) ($pedidoActual?->total ?? 0);
+        $saludo = now()->hour < 12 ? 'Buenos dias' : (now()->hour < 18 ? 'Buenas tardes' : 'Buenas noches');
+        $initials = collect(preg_split('/\s+/', trim($user->name)) ?: [])
+            ->filter()
+            ->take(2)
+            ->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))
+            ->join('') ?: 'R';
         $accepted = $rutaActual?->aceptada_at !== null;
         $readyToPickup = $pedidoActual?->estadoValor() === 'listo_para_entrega';
         $inRoute = $pedidoActual?->estadoValor() === 'en_ruta';
-        $pendingPickup = $accepted && ! $readyToPickup && ! $inRoute;
-        $statusBadge = match (true) {
-            $inRoute => ['label' => 'EN CAMINO', 'class' => 'bg-atlantia-wine text-white'],
-            $readyToPickup => ['label' => 'LISTO PARA RECOGER', 'class' => 'bg-emerald-600 text-white'],
-            $accepted => ['label' => 'ACEPTADO', 'class' => 'bg-amber-100 text-amber-800'],
-            default => ['label' => 'ASIGNADO', 'class' => 'bg-atlantia-blush text-atlantia-wine'],
-        };
     @endphp
 
-    <section class="mx-auto max-w-[470px] pb-24 xl:max-w-6xl">
-        <div class="overflow-hidden rounded-none bg-[#fbf7f9] shadow-sm xl:rounded-2xl xl:border xl:border-atlantia-rose/20">
-            <header class="bg-atlantia-wine px-5 pb-6 pt-5 text-white xl:px-8">
-                <div class="flex items-center justify-between gap-4">
+    <section class="repartidor-dashboard -mx-4 -my-6 min-h-[calc(100vh-4rem)] bg-[#fbf7f9] px-4 py-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+        <div class="mx-auto max-w-7xl space-y-3">
+            <article class="overflow-hidden rounded-lg bg-gradient-to-br from-[#941846] via-[#83163f] to-[#651030] p-4 text-white shadow-[0_14px_32px_rgba(86,15,44,0.22)]">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div class="flex items-center gap-3">
-                        <div class="grid h-12 w-12 place-items-center rounded-full bg-white text-lg font-black text-atlantia-wine">
-                            {{ Str::of(auth()->user()->name)->substr(0, 1)->upper() }}
-                        </div>
+                        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-atlantia-wine shadow-lg">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M12 3V5M12 19V21M5 12H3M21 12H19M6.3 6.3L4.9 4.9M19.1 19.1L17.7 17.7M17.7 6.3L19.1 4.9M4.9 19.1L6.3 17.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/>
+                            </svg>
+                        </span>
                         <div>
-                            <p class="text-xs font-black uppercase tracking-[0.18em] text-white/70">
-                                Buenas {{ now()->hour < 12 ? 'dias' : (now()->hour < 18 ? 'tardes' : 'noches') }}
-                            </p>
-                            <h1 class="text-lg font-black leading-tight">{{ auth()->user()->name }}</h1>
+                            <p class="text-base font-black leading-tight">{{ $saludo }}</p>
+                            <h1 class="text-2xl font-black leading-tight">{{ $user->name }}</h1>
                         </div>
                     </div>
 
-                    <span class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-black">
-                        <span class="h-3 w-3 rounded-full bg-emerald-400"></span>
+                    <span class="inline-flex w-fit items-center gap-2 rounded-full border border-white/22 bg-white/10 px-4 py-1.5 text-xs font-black">
+                        <span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
                         En linea
                     </span>
                 </div>
 
-                <div class="mt-5 grid grid-cols-3 gap-3">
-                    <div class="rounded-lg border border-white/20 bg-white/10 p-3 text-center">
-                        <p class="text-xs font-black uppercase tracking-widest text-white/70">Entregas</p>
-                        <p class="mt-1 text-3xl font-black">{{ number_format($overview['entregas_hoy']) }}</p>
-                        <p class="text-[11px] text-white/70">hoy</p>
+                <div class="mt-4 grid gap-3 lg:grid-cols-3">
+                    <div class="rounded-lg border border-white/16 bg-white/10 p-3 backdrop-blur">
+                        <div class="flex items-center gap-3">
+                            <span class="grid h-11 w-11 place-items-center rounded-lg bg-white/12">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M7 7V5C7 4 8 3 9 3H15C16 3 17 4 17 5V7M5 7H19C20.1 7 21 7.9 21 9V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V9C3 7.9 3.9 7 5 7Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                    <path d="M9 12H15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                </svg>
+                            </span>
+                            <div>
+                                <p class="text-xs font-semibold text-white/78">Entregas hoy</p>
+                                <p class="text-3xl font-black leading-none">{{ number_format($entregasHoy) }}</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="rounded-lg border border-white/20 bg-white/10 p-3 text-center">
-                        <p class="text-xs font-black uppercase tracking-widest text-white/70">Ganancia</p>
-                        <p class="mt-1 text-3xl font-black">Q {{ number_format($overview['entregas_hoy'] * 25, 2) }}</p>
-                        <p class="text-[11px] text-white/70">estimada</p>
+
+                    <div class="rounded-lg border border-white/16 bg-white/10 p-3 backdrop-blur">
+                        <div class="flex items-center gap-3">
+                            <span class="grid h-11 w-11 place-items-center rounded-lg bg-white/12">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M12 2V22M17 6.5C16.2 5.6 14.7 5 12.8 5C10.3 5 8.5 6.2 8.5 8.1C8.5 12.2 17.5 10 17.5 15.8C17.5 17.7 15.7 19 12.8 19C10.8 19 9.1 18.4 7.9 17.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                </svg>
+                            </span>
+                            <div>
+                                <p class="text-xs font-semibold text-white/78">Ganancia estimada</p>
+                                <p class="text-3xl font-black leading-none">Q {{ number_format($gananciaEstimada, 2) }}</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="rounded-lg border border-white/20 bg-white/10 p-3 text-center">
-                        <p class="text-xs font-black uppercase tracking-widest text-white/70">Km</p>
-                        <p class="mt-1 text-3xl font-black">
-                            {{ number_format((float) ($rutaActual?->distancia_km ?? 0), 1) }}
-                        </p>
-                        <p class="text-[11px] text-white/70">actuales</p>
+
+                    <div class="rounded-lg border border-white/16 bg-white/10 p-3 backdrop-blur">
+                        <div class="flex items-center gap-3">
+                            <span class="grid h-11 w-11 place-items-center rounded-lg bg-white/12">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M12 21S19 14.8 19 8.8C19 4.9 15.9 2 12 2S5 4.9 5 8.8C5 14.8 12 21 12 21Z" stroke="currentColor" stroke-width="1.8"/>
+                                    <circle cx="12" cy="9" r="2.5" stroke="currentColor" stroke-width="1.8"/>
+                                </svg>
+                            </span>
+                            <div>
+                                <p class="text-xs font-semibold text-white/78">KM actuales</p>
+                                <p class="text-3xl font-black leading-none">{{ number_format($kmActuales, 1) }}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </header>
+            </article>
 
-            <div class="space-y-6 px-5 py-5 xl:grid xl:grid-cols-[1.1fr_0.9fr] xl:gap-6 xl:space-y-0 xl:px-8">
-                <div class="space-y-6">
-                    <article class="rounded-xl bg-emerald-600 p-4 text-white shadow-sm">
-                        <div class="flex items-center justify-between gap-4">
-                            <div>
-                                <p class="text-xs font-black uppercase tracking-[0.16em] text-white/75">Efectivo acumulado</p>
-                                <p class="mt-1 text-3xl font-black">Q {{ number_format($overview['entregas_hoy'] * 25, 2) }}</p>
-                            </div>
-                            <button class="rounded-lg border border-white/30 px-4 py-2 text-xs font-black" type="button">
-                                Depositar
-                            </button>
+            <article class="rounded-lg bg-gradient-to-r from-[#007d51] to-[#009765] p-3 text-white shadow-[0_10px_24px_rgba(0,112,74,0.18)]">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="grid h-10 w-10 place-items-center rounded-full bg-white text-emerald-700">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M4 8H20V19C20 20.1 19.1 21 18 21H6C4.9 21 4 20.1 4 19V8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                                <path d="M7 8V6C7 4.9 7.9 4 9 4H15C16.1 4 17 4.9 17 6V8" stroke="currentColor" stroke-width="1.8"/>
+                                <path d="M15 14H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <div>
+                            <p class="text-xs font-semibold text-white/78">Efectivo acumulado</p>
+                            <p class="text-3xl font-black leading-none">Q {{ number_format(0, 2) }}</p>
                         </div>
-                    </article>
+                    </div>
 
-                    <article class="rounded-xl border-2 border-atlantia-wine bg-white shadow-sm">
-                        <div class="flex items-start justify-between gap-4 border-b border-atlantia-rose/20 p-4">
-                            <div>
-                                <h2 class="text-2xl font-black text-atlantia-ink">Entrega actual</h2>
-                                <p class="mt-1 text-sm text-atlantia-ink/60">
-                                    {{ $pedidoActual ? 'Pedido activo asignado a tu ruta.' : 'No tienes entregas activas por ahora.' }}
-                                </p>
-                            </div>
-                            @if ($pedidoActual)
-                                <div class="text-right">
-                                    <span class="{{ $statusBadge['class'] }} rounded-full px-3 py-1 text-[11px] font-black">
-                                        {{ $statusBadge['label'] }}
-                                    </span>
-                                    <p class="mt-2 text-xs font-bold text-atlantia-ink/60">{{ $pedidoActual->numero_pedido }}</p>
+                    <button type="button" class="inline-flex min-h-9 w-fit items-center justify-center gap-2 rounded-full border border-white/45 px-5 text-xs font-black text-white">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M3 10L12 4L21 10M5 10V20H19V10M9 20V14H15V20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Depositar
+                    </button>
+                </div>
+            </article>
+
+            <div class="grid gap-4 xl:grid-cols-2">
+                <article class="min-h-[230px] rounded-lg border border-atlantia-rose/18 bg-white p-4 shadow-sm">
+                    <div class="flex items-start gap-3">
+                        <span class="grid h-10 w-10 place-items-center rounded-full bg-atlantia-blush text-atlantia-wine">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M7 7V5C7 4 8 3 9 3H15C16 3 17 4 17 5V7M5 7H19C20.1 7 21 7.9 21 9V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V9C3 7.9 3.9 7 5 7Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <div>
+                            <h2 class="text-xl font-black text-atlantia-ink">Entrega actual</h2>
+                            <p class="text-xs text-atlantia-ink/60">
+                                {{ $pedidoActual ? 'Pedido activo asignado a tu ruta.' : 'No tienes entregas activas por ahora.' }}
+                            </p>
+                        </div>
+                    </div>
+
+                    @if ($pedidoActual)
+                        <div class="mt-3 rounded-lg border border-atlantia-rose/15 bg-atlantia-cream/55 p-3">
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                    <p class="text-xs font-black uppercase tracking-wide text-atlantia-rose">{{ $pedidoActual->numero_pedido }}</p>
+                                    <h3 class="mt-1 text-lg font-black text-atlantia-ink">{{ $pedidoActual->cliente?->name ?? 'Cliente no disponible' }}</h3>
+                                    <p class="mt-1 text-xs leading-5 text-atlantia-ink/65">
+                                        {{ $direccion?->direccion_linea_1 ?? 'Direccion pendiente' }}
+                                        @if ($direccion?->municipio)
+                                            , {{ $direccion->municipio }}
+                                        @endif
+                                    </p>
                                 </div>
+                                <span class="rounded-full bg-white px-3 py-1 text-xs font-black text-atlantia-wine ring-1 ring-atlantia-rose/25">
+                                    {{ str_replace('_', ' ', $pedidoActual->estadoValor()) }}
+                                </span>
+                            </div>
+
+                            <div class="mt-3 grid gap-2 sm:grid-cols-3">
+                                <div class="rounded-md bg-white p-2.5">
+                                    <p class="text-xs text-atlantia-ink/50">Total</p>
+                                    <p class="text-base font-black text-atlantia-wine">Q {{ number_format($totalPedido, 2) }}</p>
+                                </div>
+                                <div class="rounded-md bg-white p-2.5">
+                                    <p class="text-xs text-atlantia-ink/50">Distancia</p>
+                                    <p class="text-base font-black text-atlantia-ink">{{ number_format($kmActuales, 1) }} km</p>
+                                </div>
+                                <div class="rounded-md bg-white p-2.5">
+                                    <p class="text-xs text-atlantia-ink/50">Telefono</p>
+                                    <p class="truncate text-base font-black text-atlantia-ink">{{ $telefono ?: 'Sin dato' }}</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 space-y-1.5">
+                                @foreach ($items->take(3) as $item)
+                                    <div class="flex items-center justify-between gap-3 rounded-md bg-white px-3 py-1.5 text-xs">
+                                        <span class="font-semibold text-atlantia-ink">{{ $item->cantidad }}x {{ $item->producto?->nombre }}</span>
+                                        <span class="font-black text-atlantia-wine">Q {{ number_format((float) $item->subtotal, 2) }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                                @if (! $accepted)
+                                    <form method="POST" action="{{ route('repartidor.pedidos.accept', $pedidoActual) }}">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="w-full rounded-md bg-atlantia-wine px-4 py-2.5 text-sm font-black text-white">Aceptar entrega</button>
+                                    </form>
+                                @elseif ($readyToPickup)
+                                    <form method="POST" action="{{ route('repartidor.pedidos.pickup', $pedidoActual) }}">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="w-full rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-black text-white">Marcar recogido</button>
+                                    </form>
+                                @elseif ($inRoute)
+                                    <form method="POST" action="{{ route('repartidor.pedidos.deliver', $pedidoActual) }}" enctype="multipart/form-data">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="w-full rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-black text-white">Marcar entregado</button>
+                                    </form>
+                                @else
+                                    <button type="button" disabled class="w-full rounded-md bg-slate-200 px-4 py-2.5 text-sm font-black text-slate-500">Esperando preparacion</button>
+                                @endif
+
+                                <a
+                                    href="{{ $direccion?->latitude && $direccion?->longitude ? 'https://www.google.com/maps/dir/?api=1&destination=' . $direccion->latitude . ',' . $direccion->longitude : route('repartidor.pedidos.show', $pedidoActual) }}"
+                                    target="{{ $direccion?->latitude && $direccion?->longitude ? '_blank' : '_self' }}"
+                                    class="inline-flex min-h-10 items-center justify-center rounded-md border border-atlantia-rose/30 px-4 text-sm font-black text-atlantia-wine"
+                                >
+                                    Ver ruta
+                                </a>
+                            </div>
+
+                            @if ($telefonoWhatsApp)
+                                <a href="https://wa.me/502{{ $telefonoWhatsApp }}" target="_blank" class="mt-3 inline-flex text-sm font-black text-emerald-700">
+                                    Contactar cliente por WhatsApp
+                                </a>
                             @endif
                         </div>
-
-                        @if ($pedidoActual)
-                            <div class="relative h-48 overflow-hidden bg-sky-50">
-                                @if ($mapboxToken && $destino)
-                                    <div
-                                        id="courier-current-map"
-                                        class="h-full w-full"
-                                        data-token="{{ $mapboxToken }}"
-                                        data-destino='@json($destino)'
-                                        data-geometry='@json($geometry)'
-                                    ></div>
-                                @else
-                                    <div class="absolute inset-0 bg-[linear-gradient(135deg,#e8f7ff_25%,#d8f0fb_25%,#d8f0fb_50%,#e8f7ff_50%,#e8f7ff_75%,#d8f0fb_75%,#d8f0fb_100%)] bg-[length:56px_56px]"></div>
-                                    <div class="absolute left-8 right-8 top-20 border-t-4 border-dashed border-atlantia-wine"></div>
-                                    <span class="absolute right-10 top-12 rounded-md bg-atlantia-wine px-4 py-2 text-xs font-black text-white">
-                                        Destino
-                                    </span>
-                                @endif
-
-                                <div class="absolute bottom-4 left-4 right-4 rounded-lg bg-white p-3 shadow">
-                                    <div class="flex items-center justify-between gap-3">
-                                        <div>
-                                            <p class="text-2xl font-black text-atlantia-wine">
-                                                {{ number_format((float) $rutaActual->distancia_km, 1) }}
-                                            </p>
-                                            <p class="text-xs font-bold text-atlantia-ink/60">
-                                                km · llegas en {{ $rutaActual->tiempo_estimado_min ?? 45 }} min
-                                            </p>
-                                        </div>
-                                        @if ($destino)
-                                            <a
-                                                href="https://www.google.com/maps/dir/?api=1&destination={{ $destino['latitude'] }},{{ $destino['longitude'] }}"
-                                                target="_blank"
-                                                class="rounded-lg bg-atlantia-wine px-5 py-3 text-sm font-black text-white"
-                                            >
-                                                Navegar
-                                            </a>
-                                        @endif
-                                    </div>
+                    @else
+                        <div class="grid min-h-[165px] place-items-center text-center">
+                            <div>
+                                <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-atlantia-blush text-atlantia-wine">
+                                    <svg class="h-11 w-11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path d="M4 16H16L18 12H21V16H19M6 16A2 2 0 1 0 6 20A2 2 0 0 0 6 16ZM17 16A2 2 0 1 0 17 20A2 2 0 0 0 17 16Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M4 16V9H13V16M7 12H10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                                        <path d="M14 6L16 8L20 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
                                 </div>
-                            </div>
-
-                            <div class="space-y-4 p-4">
-                                @if ($pendingPickup)
-                                    <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                                        Pedido aceptado. Espera la alerta de "listo para recoger" antes de pasar al punto de venta.
-                                    </div>
-                                @endif
-
-                                @if ($readyToPickup)
-                                    <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
-                                        El pedido ya esta listo. Pasa a recogerlo y marca "Recogido" al tenerlo contigo.
-                                    </div>
-                                @endif
-
-                                <div class="rounded-lg bg-atlantia-blush/60 p-4">
-                                    <p class="text-xs font-black uppercase tracking-[0.18em] text-atlantia-ink/50">Entregar a</p>
-                                    <h3 class="mt-2 text-lg font-black text-atlantia-ink">
-                                        {{ $direccion?->nombre_contacto ?: $pedidoActual->cliente?->name }}
-                                    </h3>
-                                    <p class="mt-1 text-sm leading-6 text-atlantia-ink/70">
-                                        {{ $direccion?->direccion_linea_1 }}
-                                        @if ($direccion?->direccion_linea_2)
-                                            , {{ $direccion->direccion_linea_2 }}
-                                        @endif
-                                        · {{ $direccion?->municipio }}
-                                    </p>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-3">
-                                    <a href="tel:{{ $telefono }}" class="rounded-lg border border-emerald-300 bg-white p-3 text-center">
-                                        <p class="text-xs font-black uppercase text-atlantia-ink/50">Llamar</p>
-                                        <p class="mt-1 font-black text-atlantia-ink">{{ $telefono ?: 'Sin telefono' }}</p>
-                                    </a>
-                                    <a
-                                        href="{{ $telefonoWhatsApp ? 'https://wa.me/502' . $telefonoWhatsApp : '#' }}"
-                                        target="_blank"
-                                        class="rounded-lg border border-emerald-300 bg-white p-3 text-center"
-                                    >
-                                        <p class="text-xs font-black uppercase text-atlantia-ink/50">WhatsApp</p>
-                                        <p class="mt-1 font-black text-atlantia-ink">Mensaje</p>
-                                    </a>
-                                </div>
-
-                                @if ($pedidoActual->notas)
-                                    <div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
-                                        <p class="text-sm font-bold text-amber-900">Nota del cliente: {{ $pedidoActual->notas }}</p>
-                                    </div>
-                                @endif
-
-                                <div class="rounded-lg bg-white p-4 shadow-sm">
-                                    <div class="flex items-center justify-between">
-                                        <p class="text-xs font-black uppercase tracking-[0.14em] text-atlantia-ink/55">
-                                            Contenido del pedido
-                                        </p>
-                                        <a href="{{ route('repartidor.pedidos.show', $pedidoActual) }}" class="text-xs font-black text-atlantia-wine">
-                                            Ver todo
-                                        </a>
-                                    </div>
-                                    <div class="mt-3 space-y-2">
-                                        @foreach ($items->take(4) as $item)
-                                            <div class="flex items-center justify-between gap-3 text-sm">
-                                                <span>{{ $item->cantidad }}x {{ $item->producto?->nombre }}</span>
-                                                <span class="font-black text-atlantia-ink">Q {{ number_format((float) $item->subtotal, 2) }}</span>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-
-                                <div class="rounded-xl bg-emerald-600 p-4 text-white">
-                                    <p class="text-xs font-black uppercase tracking-[0.16em] text-white/75">
-                                        {{ $pedidoActual->metodoPagoValor() === 'efectivo' ? 'Cobrar en efectivo' : 'Pago registrado' }}
-                                    </p>
-                                    <div class="mt-1 flex items-end justify-between gap-3">
-                                        <p class="text-4xl font-black">Q {{ number_format($total, 2) }}</p>
-                                        @if ($pedidoActual->metodoPagoValor() === 'efectivo')
-                                            <p class="text-right text-xs font-bold text-white/80">
-                                                Si paga con Q20.00<br>Cambio: Q {{ number_format($cambioSugerido, 2) }}
-                                            </p>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                <div class="grid grid-cols-4 gap-2 rounded-xl bg-atlantia-cream p-3 text-center text-[11px] font-black">
-                                    @foreach ([
-                                        ['label' => 'Asignado', 'done' => true],
-                                        ['label' => 'Aceptado', 'done' => $accepted],
-                                        ['label' => 'En camino', 'done' => $inRoute],
-                                        ['label' => 'Entregado', 'done' => false],
-                                    ] as $step)
-                                        <div class="space-y-2">
-                                            <span class="{{ $step['done'] ? 'bg-emerald-600 text-white' : 'bg-white text-atlantia-wine' }} mx-auto grid h-8 w-8 place-items-center rounded-full border border-atlantia-rose/20">
-                                                {{ $step['done'] ? '✓' : '·' }}
-                                            </span>
-                                            <p class="text-atlantia-ink/80">{{ $step['label'] }}</p>
-                                        </div>
-                                    @endforeach
-                                </div>
-
-                                <div class="grid gap-3">
-                                    @if (! $accepted)
-                                        <form method="POST" action="{{ route('repartidor.pedidos.accept', $pedidoActual) }}">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button class="w-full rounded-lg bg-atlantia-wine px-5 py-4 text-base font-black text-white" type="submit">
-                                                Aceptar pedido
-                                            </button>
-                                        </form>
-                                    @elseif ($readyToPickup)
-                                        <form method="POST" action="{{ route('repartidor.pedidos.pickup', $pedidoActual) }}">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button class="w-full rounded-lg bg-emerald-600 px-5 py-4 text-base font-black text-white" type="submit">
-                                                Marcar como recogido
-                                            </button>
-                                        </form>
-                                    @elseif ($inRoute)
-                                        <form method="POST" action="{{ route('repartidor.pedidos.deliver', $pedidoActual) }}" enctype="multipart/form-data">
-                                            @csrf
-                                            @method('PATCH')
-                                            <input class="mb-3 block w-full rounded-lg border border-atlantia-rose/25 bg-white p-3 text-sm" name="foto_entrega" type="file" accept="image/*">
-                                            <button class="w-full rounded-lg bg-emerald-600 px-5 py-4 text-base font-black text-white" type="submit">
-                                                Marcar como entregado
-                                            </button>
-                                        </form>
-                                    @else
-                                        <button class="w-full rounded-lg bg-slate-200 px-5 py-4 text-base font-black text-slate-500" disabled type="button">
-                                            Esperando preparacion
-                                        </button>
-                                    @endif
-
-                                    <form method="POST" action="{{ route('repartidor.incidencias.store', $pedidoActual) }}" class="grid gap-2 sm:grid-cols-[1fr_auto]">
-                                        @csrf
-                                        <input type="hidden" name="tipo" value="reparto">
-                                        <input
-                                            class="rounded-lg border border-atlantia-rose/25 bg-white px-4 py-3 text-sm"
-                                            name="descripcion"
-                                            placeholder="Reportar problema: cliente no responde, direccion confusa..."
-                                        >
-                                        <button class="rounded-lg border border-red-200 px-4 py-3 text-sm font-black text-red-600" type="submit">
-                                            Reportar
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        @else
-                            <div class="p-8 text-center">
-                                <p class="text-lg font-black text-atlantia-ink">Estas libre por ahora.</p>
-                                <p class="mt-2 text-sm text-atlantia-ink/60">
+                                <h3 class="mt-3 text-lg font-black text-atlantia-ink">Estas libre por ahora.</h3>
+                                <p class="mx-auto mt-1 max-w-md text-xs leading-5 text-atlantia-ink/60">
                                     Cuando administracion te asigne una entrega aparecera aqui y recibiras una notificacion interna.
                                 </p>
                             </div>
-                        @endif
-                    </article>
-                </div>
-
-                <aside class="space-y-6">
-                    <article class="rounded-xl border border-atlantia-rose/20 bg-white p-4 shadow-sm">
-                        <div class="flex items-center justify-between">
-                            <h2 class="text-2xl font-black text-atlantia-ink">Siguientes entregas</h2>
-                            <span class="text-sm font-bold text-atlantia-ink/60">{{ $proximas->count() }} pedidos</span>
                         </div>
+                    @endif
+                </article>
 
-                        <div class="mt-4 space-y-3">
-                            @forelse ($proximas as $index => $ruta)
-                                <a
-                                    href="{{ route('repartidor.pedidos.show', $ruta->pedido) }}"
-                                    class="block rounded-lg border border-atlantia-rose/15 bg-white p-4 shadow-sm transition hover:border-atlantia-wine"
-                                >
-                                    <div class="flex items-center justify-between gap-3">
-                                        <div class="flex items-center gap-3">
-                                            <span class="grid h-10 w-10 place-items-center rounded-lg bg-atlantia-blush font-black text-atlantia-wine">
-                                                {{ $index + 2 }}
-                                            </span>
-                                            <div>
-                                                <p class="font-black text-atlantia-ink">{{ $ruta->pedido?->cliente?->name }}</p>
-                                                <p class="text-xs text-atlantia-ink/55">
-                                                    {{ $ruta->pedido?->direccion?->zona_o_barrio ?: $ruta->pedido?->direccion?->municipio }}
-                                                    · {{ number_format((float) $ruta->distancia_km, 1) }} km
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div class="text-right">
-                                            <p class="font-black text-atlantia-wine">Q {{ number_format((float) $ruta->pedido?->total, 2) }}</p>
-                                            <p class="mt-1 rounded bg-sky-50 px-2 py-1 text-[10px] font-black uppercase text-sky-700">
-                                                {{ $ruta->pedido?->metodoPagoValor() }}
-                                            </p>
-                                        </div>
+                <article class="min-h-[230px] rounded-lg border border-atlantia-rose/18 bg-white p-4 shadow-sm">
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <span class="grid h-10 w-10 place-items-center rounded-full bg-atlantia-blush text-atlantia-wine">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M7 4V7M17 4V7M4.5 10H19.5M6 6H18C19.1 6 20 6.9 20 8V19C20 20.1 19.1 21 18 21H6C4.9 21 4 20.1 4 19V8C4 6.9 4.9 6 6 6Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                </svg>
+                            </span>
+                            <h2 class="text-xl font-black text-atlantia-ink">Siguientes entregas</h2>
+                        </div>
+                        <span class="text-sm font-black text-atlantia-wine">{{ $proximas->count() }} pedidos</span>
+                    </div>
+
+                    <div class="mt-3 space-y-2">
+                        @forelse ($proximas as $ruta)
+                            <a href="{{ route('repartidor.pedidos.show', $ruta->pedido) }}" class="block rounded-lg border border-atlantia-rose/15 bg-atlantia-cream/45 p-3 transition hover:border-atlantia-wine">
+                                <div class="flex items-center justify-between gap-4">
+                                    <div class="min-w-0">
+                                        <p class="truncate font-black text-atlantia-ink">{{ $ruta->pedido?->numero_pedido }}</p>
+                                        <p class="truncate text-sm text-atlantia-ink/60">{{ $ruta->pedido?->cliente?->name ?? 'Cliente no disponible' }}</p>
+                                        <p class="mt-1 truncate text-xs text-atlantia-ink/50">
+                                            {{ $ruta->pedido?->direccion?->municipio ?? 'Sin municipio' }} · {{ number_format((float) $ruta->distancia_km, 1) }} km
+                                        </p>
                                     </div>
-                                </a>
-                            @empty
-                                <div class="rounded-lg border border-dashed border-atlantia-rose/30 p-6 text-center text-sm text-atlantia-ink/60">
-                                    No hay mas entregas pendientes en tu cola.
+                                    <span class="shrink-0 rounded-md bg-white px-3 py-2 text-sm font-black text-atlantia-wine">
+                                        Q {{ number_format((float) $ruta->pedido?->total, 2) }}
+                                    </span>
                                 </div>
-                            @endforelse
-                        </div>
-                    </article>
-                </aside>
+                            </a>
+                        @empty
+                            <div class="grid min-h-[165px] place-items-center text-center">
+                                <div>
+                                    <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-atlantia-blush text-atlantia-wine/55">
+                                        <svg class="h-11 w-11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <path d="M9 4H15L16 7H8L9 4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                                            <path d="M6 7H18C19.1 7 20 7.9 20 9V20H4V9C4 7.9 4.9 7 6 7Z" stroke="currentColor" stroke-width="1.8"/>
+                                            <path d="M8 12H16M8 16H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                        </svg>
+                                    </div>
+                                    <h3 class="mt-3 text-lg font-black text-atlantia-ink">No hay mas entregas pendientes en tu cola.</h3>
+                                </div>
+                            </div>
+                        @endforelse
+                    </div>
+                </article>
             </div>
         </div>
-
-        <nav class="fixed inset-x-0 bottom-0 z-30 border-t border-atlantia-rose/15 bg-white px-4 py-2 shadow-[0_-8px_24px_rgba(42,16,24,0.08)] xl:hidden">
-            <div class="mx-auto grid max-w-[470px] grid-cols-4 text-center text-xs font-black">
-                <a href="{{ route('repartidor.dashboard') }}" class="rounded-lg px-2 py-2 text-atlantia-wine">Entregas</a>
-                <a href="{{ route('repartidor.rutas.index') }}" class="rounded-lg px-2 py-2 text-atlantia-ink/55">Ruta</a>
-                <a href="{{ route('repartidor.pedidos.index') }}" class="rounded-lg px-2 py-2 text-atlantia-ink/55">Pedidos</a>
-                <a href="#" class="rounded-lg px-2 py-2 text-atlantia-ink/55">Perfil</a>
-            </div>
-        </nav>
     </section>
-
-    @if ($mapboxToken && $destino)
-        @push('scripts')
-            <script @nonce src="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.js"></script>
-            <script @nonce>
-                (() => {
-                    const element = document.getElementById('courier-current-map');
-
-                    if (! element || ! window.mapboxgl) {
-                        return;
-                    }
-
-                    const destino = JSON.parse(element.dataset.destino);
-                    const geometry = JSON.parse(element.dataset.geometry || 'null');
-
-                    window.mapboxgl.accessToken = element.dataset.token;
-
-                    const map = new window.mapboxgl.Map({
-                        container: element,
-                        style: 'mapbox://styles/mapbox/satellite-streets-v12',
-                        center: [destino.longitude, destino.latitude],
-                        zoom: 14,
-                        pitch: 50,
-                        bearing: -20,
-                    });
-
-                    map.addControl(new window.mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
-
-                    map.on('load', () => {
-                        new window.mapboxgl.Marker({ color: '#7a1f3d' })
-                            .setLngLat([destino.longitude, destino.latitude])
-                            .setPopup(new window.mapboxgl.Popup().setHTML('<strong>Destino</strong>'))
-                            .addTo(map);
-
-                        if (geometry?.coordinates?.length) {
-                            map.addSource('route', {
-                                type: 'geojson',
-                                data: { type: 'Feature', geometry },
-                            });
-
-                            map.addLayer({
-                                id: 'route-line',
-                                type: 'line',
-                                source: 'route',
-                                paint: {
-                                    'line-color': '#7a1f3d',
-                                    'line-width': 5,
-                                    'line-opacity': 0.9,
-                                },
-                            });
-
-                            const bounds = new window.mapboxgl.LngLatBounds();
-                            geometry.coordinates.forEach((coordinate) => bounds.extend(coordinate));
-                            map.fitBounds(bounds, { padding: 48, maxZoom: 16 });
-                        }
-                    });
-                })();
-            </script>
-        @endpush
-    @endif
 @endsection

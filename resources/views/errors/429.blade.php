@@ -1,5 +1,6 @@
 @php
     $logoPath = file_exists(public_path('images/logo.png')) ? 'images/logo.png' : 'images/atlantia-logo.svg';
+    $retrySeconds = 10;
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -19,7 +20,12 @@
                 Espera un momento antes de volver a intentar la accion.
             </p>
             <p class="mt-6 text-sm font-semibold text-atlantia-ink/70">
-                Puedes reintentar en <span class="font-black text-atlantia-wine" data-retry-countdown="30">30 segundos</span>.
+                Puedes reintentar en <span
+                    class="font-black text-atlantia-wine"
+                    data-retry-countdown="{{ $retrySeconds }}"
+                    data-retry-key="atlantia-login-retry-until"
+                    data-retry-redirect="{{ route('login') }}"
+                >{{ $retrySeconds }} segundos</span>.
             </p>
         </section>
     </main>

@@ -176,16 +176,16 @@ class ResumenMultivendedor extends Component
     }
 
     /**
-     * Obtiene items actuales del carrito autenticado.
+     * Obtiene items actuales del carrito autenticado o visitante.
      *
      * @return Collection<int, CarritoItem>
      */
     private function items(): Collection
     {
-        $carrito = Carrito::query()
-            ->where('user_id', auth()->id())
-            ->active()
-            ->first();
+        $carritoQuery = Carrito::query()->active();
+        $carrito = auth()->check()
+            ? $carritoQuery->where('user_id', auth()->id())->first()
+            : $carritoQuery->where('session_id', session()->getId())->first();
 
         return $carrito?->items()
             ->with(['producto.vendor', 'producto.imagenPrincipal'])

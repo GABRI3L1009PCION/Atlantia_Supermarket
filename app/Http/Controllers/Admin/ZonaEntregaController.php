@@ -33,6 +33,7 @@ class ZonaEntregaController extends Controller
         return view('admin.zonas-entrega.index', [
             'zonas' => $this->zonaEntregaService->paginate($request->all()),
             'zonasActivas' => $this->zonaEntregaService->activeCached(),
+            'zonasBusqueda' => $this->zonaEntregaService->searchable(),
         ]);
     }
 

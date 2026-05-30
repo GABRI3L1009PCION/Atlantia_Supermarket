@@ -83,7 +83,7 @@ class ListaProductos extends Component
     /**
      * Cantidad de productos por pagina.
      */
-    public int $perPage = 12;
+    public int $perPage = 48;
 
     /**
      * Municipios cubiertos por Atlantia en Izabal.
@@ -310,7 +310,7 @@ class ListaProductos extends Component
         return view('livewire.catalogo.lista-productos', [
             'productos' => $this->ordenarProductos(collect($resultados['items'])),
             'pagination' => $resultados['pagination'],
-            'categorias' => Categoria::query()->active()->ordered()->get(),
+            'categoriasDisponibles' => Categoria::query()->active()->ordered()->get(),
             'vendors' => Vendor::query()->approved()->orderBy('business_name')->get(),
         ]);
     }
@@ -333,6 +333,7 @@ class ListaProductos extends Component
             'en_stock' => $this->soloEnStock,
             'vendor_id' => $this->vendorId,
             'per_page' => $this->perPage,
+            'page' => $this->getPage(),
             'orden' => $this->orden,
         ];
     }

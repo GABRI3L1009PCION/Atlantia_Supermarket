@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ $title ?? 'Atlantia Supermarket' }}</title>
@@ -10,7 +10,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles(['nonce' => request()->attributes->get('csp_nonce')])
 </head>
-<body class="flex min-h-screen flex-col bg-white text-atlantia-ink antialiased">
+<body class="flex min-h-screen flex-col overflow-x-hidden bg-white text-atlantia-ink antialiased">
     @include('layouts.partials.header')
 
     <main id="contenido-principal" class="flex-1" tabindex="-1">
@@ -33,10 +33,6 @@
         <div class="rounded-xl bg-white px-5 py-4 text-sm font-bold text-atlantia-wine shadow-xl">
             Cargando...
         </div>
-    </div>
-
-    <div class="fixed bottom-5 right-5 z-40 md:hidden">
-        <livewire:carrito.icono-carrito />
     </div>
 
     @livewireScripts(['nonce' => request()->attributes->get('csp_nonce')])

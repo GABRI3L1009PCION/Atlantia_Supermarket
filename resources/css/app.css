@@ -28,9 +28,30 @@
     }
 }
 
+/* ─── Safe-area utilities (iPhone notch / home-indicator) ─────────── */
+@layer utilities {
+    .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .pt-safe {
+        padding-top: env(safe-area-inset-top, 0px);
+    }
+    .bottom-safe {
+        bottom: env(safe-area-inset-bottom, 0px);
+    }
+}
+
 @layer components {
     .atlantia-focus {
         @apply outline-none ring-2 ring-atlantia-rose ring-offset-2;
+    }
+
+    .field-input {
+        @apply w-full rounded-md border border-atlantia-rose/35 bg-white px-4 py-3 text-sm text-atlantia-ink outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20 disabled:cursor-not-allowed disabled:bg-atlantia-cream disabled:text-atlantia-ink/45;
+    }
+
+    .file-input {
+        @apply w-full rounded-md border border-atlantia-rose/35 bg-white px-4 py-3 text-sm text-atlantia-ink file:mr-4 file:rounded-md file:border-0 file:bg-atlantia-blush file:px-3 file:py-2 file:text-sm file:font-black file:text-atlantia-wine hover:file:bg-atlantia-rose/20;
     }
 
     .checkout-choice {
@@ -47,6 +68,118 @@
 
     .checkout-window:has(input:checked) {
         @apply border-atlantia-wine bg-atlantia-blush text-atlantia-wine;
+    }
+
+    .checkout-compact .checkout-choice {
+        @apply rounded-lg border border-atlantia-rose/25 p-3;
+    }
+
+    .checkout-compact .checkout-window {
+        @apply px-3 py-2 text-xs;
+    }
+
+    .checkout-compact input,
+    .checkout-compact select,
+    .checkout-compact button {
+        min-height: 2rem;
+    }
+
+    .checkout-compact textarea {
+        min-height: 3.5rem;
+    }
+
+    .checkout-compact [data-checkout-step='0'] label {
+        line-height: 1.1;
+    }
+
+    .checkout-compact [data-field-error] {
+        margin-top: 0.125rem;
+    }
+
+    @media (min-width: 1024px) {
+        .catalog-products-track {
+            display: grid !important;
+            gap: 0.75rem !important;
+            grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+            overflow: visible !important;
+            scroll-snap-type: none !important;
+        }
+
+        .catalog-products-track > * {
+            flex: initial !important;
+            flex-basis: auto !important;
+            min-width: 0 !important;
+            scroll-snap-align: none !important;
+            width: 100% !important;
+        }
+
+        .product-card-root {
+            border-radius: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .product-card-media {
+            border-radius: 0.5rem 0.5rem 0 0;
+            aspect-ratio: 1 / 1.48;
+            background: #f8e7ee;
+        }
+
+        .product-card-image {
+            object-fit: contain;
+            padding: 0.5rem;
+        }
+
+        .product-card-body {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            padding: 0.55rem;
+        }
+
+        .product-card-vendor {
+            font-size: 0.58rem;
+            line-height: 0.85rem;
+        }
+
+        .product-card-title {
+            font-size: 0.78rem;
+            line-height: 1.05rem;
+        }
+
+        .product-card-price-row {
+            align-items: center;
+            flex-direction: row;
+            gap: 0.35rem;
+            margin-top: 0.45rem;
+        }
+
+        .product-card-price {
+            font-size: 0.86rem;
+        }
+
+        .product-card-price-row span:last-child {
+            border-radius: 0.35rem;
+            font-size: 0.62rem;
+            padding: 0.22rem 0.38rem;
+        }
+
+        .product-card-cart-form {
+            margin-top: auto;
+            padding-top: 0.55rem;
+        }
+
+        .product-card-cart-form button {
+            min-height: 2.15rem;
+            padding: 0.35rem 0.45rem;
+            width: 100%;
+        }
+
+        .product-card-empty {
+            font-size: 0.78rem;
+            text-align: center;
+        }
     }
 
     .tracking-marker {
@@ -130,5 +263,151 @@
     .super-admin-surface table tbody,
     .super-admin-surface .divide-y > :not([hidden]) ~ :not([hidden]) {
         border-color: rgb(255 255 255 / 0.10) !important;
+    }
+
+    .super-admin-surface .users-light-surface[class*="bg-white"],
+    .super-admin-surface .users-light-surface [class*="bg-white"] {
+        background-color: #ffffff !important;
+    }
+
+    .super-admin-surface .users-light-surface [class*="bg-atlantia-cream"],
+    .super-admin-surface .users-light-surface [class*="bg-atlantia-blush"],
+    .super-admin-surface .users-light-surface [data-filter-form],
+    .super-admin-surface .users-light-surface [data-table-loading] {
+        background-color: #fff7f9 !important;
+    }
+
+    .super-admin-surface .users-light-surface [data-user-row]:hover {
+        background-color: #fff7f9 !important;
+    }
+
+    .super-admin-surface .users-light-surface,
+    .super-admin-surface .users-light-surface .text-atlantia-ink,
+    .super-admin-surface .users-light-surface [class*="text-atlantia-ink"] {
+        color: #2a1018 !important;
+    }
+
+    .super-admin-surface .users-light-surface .text-atlantia-wine,
+    .super-admin-surface .users-light-surface [class*="text-atlantia-wine"] {
+        color: #7a1f3d !important;
+    }
+
+    .super-admin-surface .users-light-surface .text-atlantia-rose,
+    .super-admin-surface .users-light-surface [class*="text-atlantia-rose"] {
+        color: #c86f89 !important;
+    }
+
+    .super-admin-surface .users-light-surface .bg-atlantia-wine,
+    .super-admin-surface .users-light-surface [class*="bg-atlantia-wine"] {
+        background-color: #7a1f3d !important;
+        color: #ffffff !important;
+    }
+
+    .super-admin-surface .users-light-surface [class*="border-atlantia-rose"],
+    .super-admin-surface .users-light-surface [class*="divide-atlantia-rose"] > :not([hidden]) ~ :not([hidden]),
+    .super-admin-surface .users-light-surface table thead tr,
+    .super-admin-surface .users-light-surface table tbody {
+        border-color: rgb(200 111 137 / 0.26) !important;
+    }
+
+    .super-admin-surface .users-light-surface input,
+    .super-admin-surface .users-light-surface select,
+    .super-admin-surface .users-light-surface textarea {
+        background-color: #ffffff !important;
+        border-color: rgb(200 111 137 / 0.35) !important;
+        color: #2a1018 !important;
+    }
+
+    .super-admin-surface .users-light-surface input::placeholder,
+    .super-admin-surface .users-light-surface textarea::placeholder {
+        color: rgb(42 16 24 / 0.48) !important;
+    }
+
+    .super-admin-surface .rbac-light-surface,
+    .super-admin-surface .rbac-light-surface[class*="bg-white"],
+    .super-admin-surface .rbac-light-surface [class*="bg-white"] {
+        background-color: #ffffff !important;
+    }
+
+    .super-admin-surface .rbac-light-surface [class*="bg-atlantia-cream"],
+    .super-admin-surface .rbac-light-surface [class*="bg-atlantia-blush"] {
+        background-color: #fff7f9 !important;
+    }
+
+    .super-admin-surface .rbac-light-surface,
+    .super-admin-surface .rbac-light-surface .text-atlantia-ink,
+    .super-admin-surface .rbac-light-surface [class*="text-atlantia-ink"] {
+        color: #2a1018 !important;
+    }
+
+    .super-admin-surface .rbac-light-surface .text-atlantia-wine,
+    .super-admin-surface .rbac-light-surface [class*="text-atlantia-wine"] {
+        color: #7a1f3d !important;
+    }
+
+    .super-admin-surface .rbac-light-surface .text-atlantia-rose,
+    .super-admin-surface .rbac-light-surface [class*="text-atlantia-rose"] {
+        color: #c86f89 !important;
+    }
+
+    .super-admin-surface .rbac-light-surface .bg-atlantia-wine,
+    .super-admin-surface .rbac-light-surface [class*="bg-atlantia-wine"] {
+        background-color: #7a1f3d !important;
+        color: #ffffff !important;
+    }
+
+    .super-admin-surface .rbac-light-surface [class*="border-atlantia-rose"],
+    .super-admin-surface .rbac-light-surface [class*="divide-atlantia-rose"] > :not([hidden]) ~ :not([hidden]) {
+        border-color: rgb(200 111 137 / 0.26) !important;
+    }
+
+    .super-admin-surface .rbac-light-surface input,
+    .super-admin-surface .rbac-light-surface select,
+    .super-admin-surface .rbac-light-surface textarea {
+        background-color: #ffffff !important;
+        border-color: rgb(200 111 137 / 0.35) !important;
+        color: #2a1018 !important;
+    }
+
+    .super-admin-surface .vendors-light-surface,
+    .super-admin-surface .vendors-light-surface[class*="bg-white"],
+    .super-admin-surface .vendors-light-surface [class*="bg-white"] {
+        background-color: #ffffff !important;
+    }
+
+    .super-admin-surface .vendors-light-surface [class*="bg-atlantia-cream"],
+    .super-admin-surface .vendors-light-surface [class*="bg-atlantia-blush"] {
+        background-color: #fff7f9 !important;
+    }
+
+    .super-admin-surface .vendors-light-surface,
+    .super-admin-surface .vendors-light-surface [class*="text-atlantia-ink"] {
+        color: #2a1018 !important;
+    }
+
+    .super-admin-surface .vendors-light-surface [class*="text-atlantia-wine"] {
+        color: #7a1f3d !important;
+    }
+
+    .super-admin-surface .vendors-light-surface [class*="text-atlantia-rose"] {
+        color: #c86f89 !important;
+    }
+
+    .super-admin-surface .vendors-light-surface [class*="bg-atlantia-wine"] {
+        background-color: #7a1f3d !important;
+        color: #ffffff !important;
+    }
+
+    .super-admin-surface .vendors-light-surface [class*="border-atlantia-rose"],
+    .super-admin-surface .vendors-light-surface [class*="divide-atlantia-rose"] > :not([hidden]) ~ :not([hidden]) {
+        border-color: rgb(200 111 137 / 0.26) !important;
+    }
+
+    .super-admin-surface .vendors-light-surface input,
+    .super-admin-surface .vendors-light-surface select,
+    .super-admin-surface .vendors-light-surface textarea {
+        background-color: #ffffff !important;
+        border-color: rgb(200 111 137 / 0.35) !important;
+        color: #2a1018 !important;
     }
 }

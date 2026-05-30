@@ -16,6 +16,13 @@ class Cupon extends Model
     use HasFactory;
 
     /**
+     * Nombre real de la tabla en base de datos.
+     *
+     * @var string
+     */
+    protected $table = 'cupones';
+
+    /**
      * Atributos asignables masivamente.
      *
      * @var array<int, string>

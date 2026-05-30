@@ -31,6 +31,7 @@ class PedidoClienteService
     {
         return $pedido->load([
             'direccion',
+            'cliente',
             'items.producto.vendor',
             'pedidosHijos.vendor',
             'pedidosHijos.items.producto',

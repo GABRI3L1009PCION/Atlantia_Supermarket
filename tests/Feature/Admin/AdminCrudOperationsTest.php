@@ -108,6 +108,131 @@ class AdminCrudOperationsTest extends TestCase
     }
 
     /**
+     * Respeta la cantidad de productos por pagina seleccionada.
+     */
+    public function testAdminProductIndexHonorsAllowedPerPageOptions(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('admin');
+
+        Producto::factory()->count(50)->create();
+
+        foreach ([24, 48] as $perPage) {
+            $response = $this->actingAs($admin)->get(route('admin.productos.index', [
+                'per_page' => $perPage,
+            ]));
+
+            $response->assertOk();
+            $this->assertSame($perPage, $response->viewData('productos')->perPage());
+        }
+    }
+
+    /**
+     * Aplica el filtro de categoria del catalogo administrativo.
+     */
+    public function testAdminProductIndexFiltersByCategory(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('admin');
+
+        $pescado = Categoria::query()->create([
+            'nombre' => 'Pescado y mariscos',
+            'slug' => 'pescado-y-mariscos',
+            'descripcion' => 'Categoria de prueba',
+            'icon' => 'fish',
+            'orden' => 1,
+            'is_active' => true,
+        ]);
+        $abarrotes = Categoria::query()->create([
+            'nombre' => 'Abarrotes',
+            'slug' => 'abarrotes-test',
+            'descripcion' => 'Categoria de prueba',
+            'icon' => 'bag',
+            'orden' => 2,
+            'is_active' => true,
+        ]);
+
+        Producto::factory()->count(3)->create(['categoria_id' => $pescado->id]);
+        Producto::factory()->count(2)->create(['categoria_id' => $abarrotes->id]);
+
+        $response = $this->actingAs($admin)->get(route('admin.productos.index', [
+            'categoria_id' => $pescado->id,
+            'per_page' => 48,
+        ]));
+
+        $response->assertOk();
+        $productos = $response->viewData('productos');
+
+        $this->assertSame(3, $productos->total());
+        $this->assertSame(48, $productos->perPage());
+    }
+
+    /**
+     * El formulario solo ofrece vendedores externos aprobados.
+     */
+    public function testAdminProductFormDoesNotExposeInternalAtlantiaVendorAsLocalVendor(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('admin');
+
+        $systemUser = User::factory()->create(['is_system_user' => true]);
+        $internalVendor = Vendor::factory()->approved()->create([
+            'user_id' => $systemUser->id,
+            'business_name' => 'Atlantia Supermarket',
+            'slug' => 'atlantia-supermarket',
+        ]);
+        $externalVendor = Vendor::factory()->approved()->create([
+            'business_name' => 'Vendedor Externo',
+            'slug' => 'vendedor-externo',
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.productos.index'));
+
+        $response->assertOk();
+        $vendors = $response->viewData('vendors');
+
+        $this->assertFalse($vendors->contains('id', $internalVendor->id));
+        $this->assertTrue($vendors->contains('id', $externalVendor->id));
+    }
+
+    /**
+     * No permite asignar el vendedor interno como vendedor externo.
+     */
+    public function testAdminCannotUseInternalAtlantiaVendorAsExternalProductOwner(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('admin');
+
+        $systemUser = User::factory()->create(['is_system_user' => true]);
+        $internalVendor = Vendor::factory()->approved()->create([
+            'user_id' => $systemUser->id,
+            'business_name' => 'Atlantia Supermarket',
+            'slug' => 'atlantia-supermarket',
+        ]);
+        $categoria = Categoria::query()->create([
+            'nombre' => 'Abarrotes validacion',
+            'slug' => 'abarrotes-validacion',
+            'descripcion' => 'Categoria de prueba',
+            'icon' => 'bag',
+            'orden' => 3,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.productos.store'), [
+            'owner_type' => 'vendor',
+            'vendor_id' => $internalVendor->id,
+            'categoria_id' => $categoria->id,
+            'sku' => 'ATL-INVALIDO',
+            'nombre' => 'Producto invalido',
+            'precio_base' => '10.00',
+            'unidad_medida' => 'unidad',
+            'stock_actual' => 1,
+        ]);
+
+        $response->assertSessionHasErrors('vendor_id');
+    }
+
+    /**
      * Suspender un vendedor oculta su catalogo activo.
      */
     public function testSuspendingVendorDisablesVisibleProducts(): void

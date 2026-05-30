@@ -17,6 +17,7 @@ use App\Models\Vendor;
 use App\Models\VendorFiscalProfile;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
+use Database\Seeders\MlHistoricalDataSeeder;
 
 /**
  * Seeder de desarrollo con datos operativos para entorno local.
@@ -42,7 +43,9 @@ class DevelopmentSeeder extends Seeder
 
         $this->seedPedidos($clientes->all(), $vendors->all(), $repartidores->all());
 
-        $this->command?->info('DevelopmentSeeder completado: super admin, admins, vendedores, clientes y pedidos base listos.');
+        $this->call([MlHistoricalDataSeeder::class]);
+
+        $this->command?->info('DevelopmentSeeder completado: super admin, admins, vendedores, clientes, pedidos y datos ML listos.');
     }
 
     /**
@@ -61,7 +64,7 @@ class DevelopmentSeeder extends Seeder
                 'status' => 'active',
                 'is_system_user' => true,
                 'two_factor_enabled' => true,
-                'two_factor_confirmed_at' => now(),
+                'two_factor_confirmed_at' => null,
             ]
         );
 
@@ -94,7 +97,7 @@ class DevelopmentSeeder extends Seeder
                     'phone' => $row[2],
                     'status' => 'active',
                     'two_factor_enabled' => true,
-                    'two_factor_confirmed_at' => now(),
+                    'two_factor_confirmed_at' => null,
                 ]
             );
 

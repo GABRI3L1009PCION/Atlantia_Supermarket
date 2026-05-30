@@ -22,16 +22,16 @@ class MeilisearchService
      */
     public function search(array $filters): array
     {
-        $perPage = min(50, max(12, (int) ($filters['per_page'] ?? 24)));
+        $perPage = min(48, max(12, (int) ($filters['per_page'] ?? 48)));
         $query = trim((string) ($filters['q'] ?? ''));
-        $page = (int) ($filters['page'] ?? request('page', 1));
+        $page = max(1, (int) ($filters['page'] ?? request('page', 1)));
         $cacheVersion = Cache::get('search:version', 1);
         $cacheKey = 'search:' . $cacheVersion . ':' . sha1(json_encode($this->normalizeFilters($filters)) . ":{$page}:{$perPage}");
 
-        $payload = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($query, $filters, $perPage): array {
+        $payload = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($query, $filters, $perPage, $page): array {
             $results = $query !== ''
-                ? $this->searchWithScout($query, $filters, $perPage)
-                : $this->searchWithEloquent($filters, $perPage);
+                ? $this->searchWithScout($query, $filters, $perPage, $page)
+                : $this->searchWithEloquent($filters, $perPage, $page);
 
             return [
                 'product_ids' => collect($results->items())
@@ -138,7 +138,7 @@ class MeilisearchService
      * @param int $perPage
      * @return LengthAwarePaginator
      */
-    private function searchWithScout(string $query, array $filters, int $perPage): LengthAwarePaginator
+    private function searchWithScout(string $query, array $filters, int $perPage, int $page): LengthAwarePaginator
     {
         try {
             return Producto::search($query, function ($engine, string $query, array $options) use ($filters): mixed {
@@ -147,9 +147,9 @@ class MeilisearchService
                 return $engine->search($query, $options);
             })
                 ->query(fn (Builder $builder) => $this->applyEloquentFilters($builder, $filters))
-                ->paginate($perPage);
+                ->paginate($perPage, 'page', $page);
         } catch (Throwable) {
-            return $this->searchWithEloquent($filters + ['q' => $query], $perPage);
+            return $this->searchWithEloquent($filters + ['q' => $query], $perPage, $page);
         }
     }
 
@@ -160,7 +160,7 @@ class MeilisearchService
      * @param int $perPage
      * @return LengthAwarePaginator
      */
-    private function searchWithEloquent(array $filters, int $perPage): LengthAwarePaginator
+    private function searchWithEloquent(array $filters, int $perPage, int $page): LengthAwarePaginator
     {
         $builder = Producto::query()
             ->with(['categoria', 'vendor', 'inventario', 'imagenPrincipal', 'media'])
@@ -170,7 +170,7 @@ class MeilisearchService
         $this->applyEloquentFilters($builder, $filters);
         $this->applySort($builder, (string) ($filters['orden'] ?? 'relevancia'));
 
-        return $builder->paginate($perPage);
+        return $builder->paginate($perPage, ['*'], 'page', $page);
     }
 
     /**

@@ -3,12 +3,11 @@
 namespace App\Jobs;
 
 use App\Models\Dte\DteFactura;
+use App\Services\Fel\DteComprobantePdf;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Storage;
-use RuntimeException;
 
 /**
  * Genera PDF fiscal de un DTE certificado.
@@ -36,19 +35,10 @@ class GenerarPdfDte implements ShouldQueue
      *
      * @return void
      */
-    public function handle(): void
+    public function handle(DteComprobantePdf $pdf): void
     {
-        $dte = DteFactura::query()->with(['vendor', 'pedido', 'items.producto'])->findOrFail($this->dteId);
+        $dte = DteFactura::query()->with(['vendor.fiscalProfile', 'pedido.cliente', 'items.producto'])->findOrFail($this->dteId);
 
-        if (! app()->bound('dompdf.wrapper')) {
-            throw new RuntimeException('El generador PDF DomPDF no esta configurado.');
-        }
-
-        $html = view('pdf.dte.factura', ['dte' => $dte])->render();
-        $pdf = app('dompdf.wrapper')->loadHTML($html);
-        $path = 'dte/pdf/' . $dte->uuid . '.pdf';
-
-        Storage::disk(config('filesystems.default'))->put($path, $pdf->output());
-        $dte->update(['pdf_path' => $path]);
+        $pdf->store($dte);
     }
 }

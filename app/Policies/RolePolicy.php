@@ -48,6 +48,18 @@ class RolePolicy
     public function delete(User $user, Role $role): bool
     {
         return $user->can('roles.gestionar')
-            && ! in_array($role->name, ['super_admin', 'admin', 'cliente', 'vendedor', 'repartidor', 'empleado'], true);
+            && ! in_array($role->name, [
+                'super_admin',
+                'admin',
+                'cliente',
+                'vendedor',
+                'bodeguero',
+                'proveedor',
+                'soporte',
+                'contabilidad_finanzas',
+                'supervisor_logistica',
+                'repartidor',
+                'empleado',
+            ], true);
     }
 }

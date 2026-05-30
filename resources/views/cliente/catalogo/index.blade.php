@@ -2,50 +2,116 @@
 
 @section('content')
     @php
-        $iconoCategoria = static function (?string $slug): string {
-            return match ($slug) {
-                'frutas-y-verduras', 'verduras-frescas', 'hierbas-y-aromaticas', 'ensaladas-y-brotes' => 'produce',
-                'carnes-y-aves' => 'meat',
-                'abarrotes-secos', 'despensa', 'hogar' => 'pantry',
-                'panaderia' => 'bread',
-                'lacteos' => 'dairy',
-                'bebidas' => 'drinks',
-                default => 'bag',
-            };
-        };
+        $heroCards = collect($heroBanners)->values();
     @endphp
 
-    <div
-        class="hidden"
-        data-hero-banner="{{ $heroBanner['name'] }}"
-        data-hero-banner-fallback="{{ $heroBanner['is_fallback'] ? '1' : '0' }}"
-        data-hero-banner-image="{{ $heroBanner['desktop_image'] }}"
-    ></div>
+    <section class="border-b border-atlantia-rose/15 bg-atlantia-blush py-3">
+        <div class="mx-auto w-full px-4">
+            <livewire:catalogo.barra-busqueda :search="(string) request('q', '')" />
+        </div>
+    </section>
 
-    <section class="bg-atlantia-blush py-4 shadow-inner">
-        <form method="GET" class="mx-auto grid w-full max-w-xl grid-cols-[1fr_auto] px-4 sm:px-0">
-            <label for="q" class="sr-only">Buscar productos</label>
-            <input
-                id="q"
-                type="search"
-                name="q"
-                value="{{ request('q') }}"
-                placeholder="Buscar en todo el supermercado..."
-                class="h-12 rounded-l-lg border-0 bg-white px-4 text-base text-atlantia-ink placeholder:text-atlantia-ink/55 shadow-sm focus:outline-none focus:ring-2 focus:ring-atlantia-rose"
-            >
-            <button
-                type="submit"
-                class="h-12 rounded-r-lg bg-atlantia-wine px-6 text-base font-bold text-white shadow-sm hover:bg-atlantia-wine-700 focus:outline-none focus:ring-2 focus:ring-atlantia-rose focus:ring-offset-2"
-            >
-                <span class="inline-flex items-center gap-2">
-                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M11 19C15.4 19 19 15.4 19 11C19 6.6 15.4 3 11 3C6.6 3 3 6.6 3 11C3 15.4 6.6 19 11 19Z" stroke="currentColor" stroke-width="2"/>
-                        <path d="M20.5 20.5L16.7 16.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                    Buscar
-                </span>
-            </button>
-        </form>
+    <section
+        x-data="{
+            page: 0,
+            totalPages: 1,
+            itemsPerPage: 1,
+            timer: null,
+            setup() {
+                this.updateMetrics();
+                window.addEventListener('resize', () => this.updateMetrics());
+                this.start();
+            },
+            updateMetrics() {
+                this.itemsPerPage = window.innerWidth >= 1024 ? 3 : window.innerWidth >= 640 ? 2 : 1;
+                this.totalPages = Math.max(1, Math.ceil({{ $heroCards->count() }} / this.itemsPerPage));
+                if (this.page >= this.totalPages) this.page = this.totalPages - 1;
+            },
+            start() {
+                if (this.totalPages < 2) return;
+                this.stop();
+                this.timer = setInterval(() => this.next(), 5000);
+            },
+            stop() {
+                if (this.timer) clearInterval(this.timer);
+            },
+            next() {
+                this.page = (this.page + 1) % this.totalPages;
+            },
+            prev() {
+                this.page = (this.page - 1 + this.totalPages) % this.totalPages;
+            },
+            goTo(index) {
+                this.page = index;
+            }
+        }"
+        x-init="setup()"
+        @mouseenter="stop()"
+        @mouseleave="start()"
+        class="overflow-hidden bg-white px-4 py-4 sm:px-6 sm:py-5"
+    >
+        <div class="mx-auto flex w-full max-w-6xl flex-col justify-center">
+            <div class="grid w-full grid-cols-1 items-center sm:grid-cols-[auto_1fr_auto] sm:gap-3">
+                <button
+                    type="button"
+                    @click="prev()"
+                    class="hidden h-10 w-10 items-center justify-center rounded-full border border-[#e4c37d] bg-white text-[1.7rem] leading-none text-[#d6a94a] shadow-sm transition hover:bg-[#fff7e6] sm:flex"
+                    aria-label="Banner anterior"
+                >
+                    &lsaquo;
+                </button>
+
+                <div class="overflow-hidden">
+                    <div
+                        class="flex transition-transform duration-500 ease-out"
+                        :style="`transform: translateX(-${page * 100}%);`"
+                    >
+                        @foreach ($heroCards as $card)
+                            <div class="min-w-full sm:min-w-[50%] sm:px-1 lg:min-w-[33.333333%]">
+                                <article class="relative h-[142px] overflow-hidden rounded-[18px] border border-[#f1e5d7] bg-[#120d08] shadow-[0_16px_30px_rgba(30,16,9,0.18)] sm:h-[168px] sm:rounded-[20px] lg:h-[188px]">
+                                    <div class="absolute inset-0 flex items-center justify-center overflow-hidden">
+                                        <img
+                                            src="{{ $card['desktop_image'] }}"
+                                            alt="Banner promocional {{ $card['name'] }}"
+                                            class="hidden h-full w-full object-contain object-center md:block"
+                                        >
+                                        <img
+                                            src="{{ $card['mobile_image'] }}"
+                                            alt="Banner promocional {{ $card['name'] }}"
+                                            class="h-full w-full object-cover object-center md:hidden"
+                                        >
+                                    </div>
+                                    <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(0,0,0,0.06)_100%)]"></div>
+                                </article>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <button
+                    type="button"
+                    @click="next()"
+                    class="hidden h-10 w-10 items-center justify-center rounded-full border border-[#e4c37d] bg-white text-[1.7rem] leading-none text-[#d6a94a] shadow-sm transition hover:bg-[#fff7e6] sm:flex"
+                    aria-label="Siguiente banner"
+                >
+                    &rsaquo;
+                </button>
+            </div>
+
+            @if ($heroCards->count() > 1)
+                <div class="mt-4 flex items-center justify-center gap-2">
+                    <template x-for="index in totalPages" :key="index">
+                        <button
+                            type="button"
+                            @click="goTo(index - 1)"
+                            class="h-2.5 w-2.5 rounded-full transition"
+                            :class="page === index - 1 ? 'bg-[#e3b34d]' : 'bg-[#e6e1df]'"
+                            :aria-label="`Ir a la pagina ${index} del carrusel`"
+                        ></button>
+                    </template>
+                </div>
+            @endif
+        </div>
     </section>
 
     <section id="categorias" class="relative border-b border-atlantia-rose/15 bg-white py-6 shadow-sm">
@@ -87,50 +153,19 @@
                         class="group flex min-w-[132px] snap-start flex-col items-center text-center"
                     >
                         <span class="flex h-28 w-28 items-center justify-center rounded-full border-[3px] border-atlantia-wine bg-white shadow-[0_14px_30px_rgba(135,22,61,0.08)] transition duration-200 group-hover:-translate-y-1 group-hover:shadow-[0_18px_34px_rgba(135,22,61,0.14)]">
-                            <span class="relative flex h-[102px] w-[102px] items-center justify-center rounded-full border border-atlantia-wine/80 bg-white text-atlantia-wine">
-                                <span class="absolute top-3 h-2 w-2 rounded-full bg-atlantia-wine"></span>
-                                <span class="absolute bottom-4 h-px w-8 bg-amber-500/70"></span>
-                                <span class="absolute bottom-[15px] h-2 w-2 rotate-45 border border-amber-500/80 bg-white"></span>
-                                @switch($iconoCategoria($categoria['slug'] ?? null))
-                                    @case('produce')
-                                        <svg class="h-12 w-12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
-                                            <path d="M33.6 12.5c4.4-3.9 9.3-5.2 13.7-4.2-1 4.8-3.8 8.6-8.8 10.8-1.2-2.2-2.8-4.5-4.9-6.6Z"/>
-                                            <path d="M31.5 20.2c10.2 0 18.8 7.5 18.8 18.4 0 11.2-8.5 18.9-18.8 18.9-10.6 0-17.8-7.8-17.8-18.3 0-10.8 7.9-19 17.8-19Zm-6.8 12.7c0 6.3 4.9 10.2 10.4 10.2 3 0 5.7-.7 8.5-2.3-1.7 5.3-6.3 9.1-12.1 9.1-7 0-12.3-5.2-12.3-12.5 0-5.4 2.4-9.2 5.5-11.8-.1 2-.1 4.3 0 7.3Z"/>
-                                        </svg>
-                                        @break
-                                    @case('meat')
-                                        <svg class="h-12 w-12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
-                                            <path d="M24.1 16.8c11.5 0 18.5 4.3 18.5 12.9 0 2.1-.5 3.7-1.4 5.2 4.7.6 9 4.7 9 10.3 0 8.2-6.8 14-15.5 14H21.6c-9.1 0-15.2-6.4-15.2-14.1 0-6.2 4.2-10.8 9.9-11.8.3-9.6 7.3-16.5 17.8-16.5Zm-1 9.2c-4.6 0-8 2.6-8.9 6.4 4.6.1 10.1 1.5 15.7 4.5 3.7-2.8 7.2-5.2 10.8-6.3-1.4-3.1-6.2-4.6-17.6-4.6Zm16.4 16.1c-3.7 0-7.9 1.8-12.5 5.2-5.3-3.1-10.2-4.7-13.8-4.7-2.3 0-4 1.3-4 3.5 0 3.7 4.1 6.5 11.3 6.5H35c7.7 0 11.7-2.4 11.7-6.5 0-2.3-1.8-4-7.2-4Z"/>
-                                        </svg>
-                                        @break
-                                    @case('pantry')
-                                        <svg class="h-12 w-12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
-                                            <path d="M17 21.5c0-3.4 2.7-6.1 6.1-6.1h3.3v-2.8c0-2.8 2.3-5.1 5.1-5.1h1c2.8 0 5.1 2.3 5.1 5.1v2.8h3.3c3.4 0 6.1 2.7 6.1 6.1v29H17v-29Zm5.8.3v23.2h18.4V21.8H22.8Zm8.1-6.4h2.1v-2.5c0-.7-.6-1.3-1.3-1.3h-.5c-.7 0-1.3.6-1.3 1.3v2.5Z"/>
-                                            <path d="M26.5 27.8h11v3h-11z"/>
-                                        </svg>
-                                        @break
-                                    @case('bread')
-                                        <svg class="h-12 w-12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
-                                            <path d="M17.6 46.7h28.8c4.1 0 7.4-3.1 7.4-7 0-2.8-1.6-5.1-4.2-6.2.6-1.2.9-2.4.9-3.7 0-4.8-4-8.7-8.9-8.7-1.7 0-3.4.5-4.8 1.3-2.3-2.9-5.6-4.5-9.7-4.5-6.8 0-12.3 5.1-12.3 11.6 0 .8.1 1.6.2 2.4-3.7 1.2-6 4.4-6 8.6 0 3.7 3.4 6.2 8.6 6.2Zm7.5-12.1c.7-3.8 3.2-6.4 7.2-7.7 2.7-.9 5.8-.8 8.9.5-3.5 1.1-7.4 4.2-11.5 9.3-1.8-.8-3.4-1.4-4.6-2.1Z"/>
-                                        </svg>
-                                        @break
-                                    @case('dairy')
-                                        <svg class="h-12 w-12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
-                                            <path d="M20 20.2 25.1 12h13.8l5.1 8.2v31H20v-31Zm5.9 2.6v22.5h12.2V22.8H25.9Zm3.2 8.4h6.1v3.2h-6.1z"/>
-                                            <path d="M12 24.8c0-3.4 2.8-6.2 6.2-6.2H20v32.6h-1.8c-3.4 0-6.2-2.8-6.2-6.2V24.8Z"/>
-                                        </svg>
-                                        @break
-                                    @case('drinks')
-                                        <svg class="h-12 w-12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
-                                            <path d="M22.3 13.5c0-2.3 1.9-4.2 4.2-4.2h11c2.3 0 4.2 1.9 4.2 4.2v3.4l-2.9 5.1v29.2H25.2V22l-2.9-5.1v-3.4Zm5.6 2v3.7l2.2 3.9v22h5.8v-22l2.2-3.9v-3.7H27.9Zm2.3 12.3h5.6v3.2h-5.6Z"/>
-                                        </svg>
-                                        @break
-                                    @default
-                                        <svg class="h-12 w-12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
-                                            <path d="M20 23h24l-2.5 27.2H22.5L20 23Zm4.6 4.8 1.6 17.6h11.6l1.6-17.6H24.6Z"/>
-                                            <path d="M25 22.8v-2.5c0-4.2 3.4-7.6 7.6-7.6h.8c4.2 0 7.6 3.4 7.6 7.6v2.5h-4v-2.2c0-2-1.6-3.6-3.6-3.6h-.8c-2 0-3.6 1.6-3.6 3.6v2.2h-4Z"/>
-                                        </svg>
-                                @endswitch
+                            <span class="flex h-[102px] w-[102px] items-center justify-center overflow-hidden rounded-full border border-atlantia-wine/80 bg-white p-3 text-atlantia-wine">
+                                @if ($categoria['image'])
+                                    <img
+                                        src="{{ $categoria['image'] }}"
+                                        alt="{{ $categoria['nombre'] }}"
+                                        class="h-full w-full object-contain mix-blend-multiply"
+                                        loading="lazy"
+                                    >
+                                @else
+                                    <span class="text-2xl font-black">
+                                        {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($categoria['nombre'], 0, 2)) }}
+                                    </span>
+                                @endif
                             </span>
                         </span>
                         <span class="mt-3 font-serif text-[13px] font-semibold uppercase tracking-[0.12em] text-atlantia-wine">
@@ -150,9 +185,12 @@
         </button>
     </section>
 
-    <section class="mx-auto min-h-[313px] w-full max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+    <section class="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
         <livewire:catalogo.lista-productos :search="(string) request('q', '')" />
     </section>
+
+    <!-- Modal de detalle de producto -->
+    <livewire:catalogo.producto-modal-detalle />
 
     <section id="contacto" class="border-t border-atlantia-rose/15 bg-atlantia-blush/35 py-16 scroll-mt-6">
         <div class="mx-auto grid w-full max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8">

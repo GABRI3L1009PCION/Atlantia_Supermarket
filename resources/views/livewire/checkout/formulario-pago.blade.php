@@ -72,48 +72,98 @@
     </div>
 
     <div
-        class="mt-5 rounded-lg border border-atlantia-rose/25 bg-atlantia-cream p-5 {{ $metodoPago === 'tarjeta' ? '' : 'hidden' }}"
+        class="mt-5 overflow-hidden rounded-lg border border-atlantia-wine/20 bg-[#14100f] p-1 shadow-2xl shadow-atlantia-wine/15 {{ $metodoPago === 'tarjeta' ? '' : 'hidden' }}"
         data-stripe-card-panel
     >
         <input type="hidden" name="card_token" data-stripe-payment-method>
 
-        <div class="grid gap-4">
-            <div>
-                <label for="card_holder_name" class="text-sm font-bold text-atlantia-ink">
-                    Nombre en la tarjeta
-                </label>
-                <input
-                    id="card_holder_name"
-                    type="text"
-                    autocomplete="cc-name"
-                    data-stripe-cardholder-name
-                    placeholder="Como aparece en tu tarjeta"
-                    class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 text-sm
-                        focus:border-atlantia-wine focus:ring-atlantia-rose"
-                >
-            </div>
-
-            <div>
-                <label for="stripe-card-element" class="text-sm font-bold text-atlantia-ink">
-                    Datos de la tarjeta
-                </label>
+        <div class="rounded-md border border-white/10 bg-gradient-to-br from-[#fffaf3] via-white to-[#f7eee7] p-5 sm:p-6">
+            <div class="mb-5 flex items-start justify-between gap-4 border-b border-atlantia-wine/10 pb-4">
                 <div
-                    id="stripe-card-element"
-                    data-stripe-card-element
-                    wire:ignore
-                    class="mt-2 rounded-md border border-atlantia-rose/30 bg-white px-4 py-3 shadow-sm"
-                ></div>
-                <p class="mt-2 hidden text-sm font-semibold text-red-700" data-stripe-card-errors></p>
+                    class="flex h-10 w-10 items-center justify-center rounded-full border border-atlantia-wine/20 bg-atlantia-wine text-sm font-black text-white shadow-lg shadow-atlantia-wine/25"
+                    aria-hidden="true"
+                >
+                    S
+                </div>
+                <div class="min-w-0 flex-1">
+                    <p class="text-xs font-black uppercase tracking-[0.16em] text-atlantia-wine/70">Stripe</p>
+                    <h3 class="mt-1 text-lg font-black text-atlantia-ink">Pago seguro con tarjeta</h3>
+                </div>
+                <span class="rounded-full border border-emerald-600/20 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                    Seguro
+                </span>
             </div>
+
+            <div class="grid gap-4">
+                <div>
+                    <label for="card_holder_name" class="text-sm font-black text-atlantia-ink">
+                        Nombre del titular de la tarjeta
+                    </label>
+                    <input
+                        id="card_holder_name"
+                        type="text"
+                        autocomplete="cc-name"
+                        data-stripe-cardholder-name
+                        required
+                        placeholder="Como aparece en tu tarjeta"
+                        value="{{ old('razon_social', auth()->user()?->name) }}"
+                        class="mt-2 w-full rounded-md border border-atlantia-rose/30 bg-white px-4 py-3 text-sm font-semibold text-atlantia-ink shadow-lg shadow-atlantia-wine/5 focus:border-atlantia-wine focus:ring-atlantia-rose"
+                    >
+                </div>
+
+                <div
+                    class="grid gap-4"
+                    data-stripe-card-elements
+                >
+                    <div>
+                        <label for="stripe-card-number-element" class="text-sm font-black text-atlantia-ink">
+                            Numero de tarjeta
+                        </label>
+                        <div
+                            id="stripe-card-number-element"
+                            data-stripe-card-number-element
+                            wire:ignore
+                            class="mt-2 rounded-md border border-atlantia-rose/30 bg-white px-4 py-4 shadow-lg shadow-atlantia-wine/5"
+                        ></div>
+                    </div>
+
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label for="stripe-card-expiry-element" class="text-sm font-black text-atlantia-ink">
+                                Fecha de vencimiento
+                            </label>
+                            <div
+                                id="stripe-card-expiry-element"
+                                data-stripe-card-expiry-element
+                                wire:ignore
+                                class="mt-2 rounded-md border border-atlantia-rose/30 bg-white px-4 py-4 shadow-lg shadow-atlantia-wine/5"
+                            ></div>
+                        </div>
+
+                        <div>
+                            <label for="stripe-card-cvc-element" class="text-sm font-black text-atlantia-ink">
+                                Codigo CVC
+                            </label>
+                            <div
+                                id="stripe-card-cvc-element"
+                                data-stripe-card-cvc-element
+                                wire:ignore
+                                class="mt-2 rounded-md border border-atlantia-rose/30 bg-white px-4 py-4 shadow-lg shadow-atlantia-wine/5"
+                            ></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="mt-4 hidden rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" data-stripe-payment-errors></p>
+            <p class="mt-4 text-xs font-semibold text-atlantia-ink/55">
+                Tus datos se cifran y se validan directamente en Stripe antes de confirmar el pedido.
+            </p>
+
+            @error('card_token')
+                <p class="mt-3 text-sm font-semibold text-red-700">{{ $message }}</p>
+            @enderror
         </div>
-
-        <p class="mt-4 text-xs text-atlantia-ink/60">
-            Los datos de tarjeta se tokenizan directamente con Stripe antes de enviar el pedido.
-        </p>
-
-        @error('card_token')
-            <p class="mt-3 text-sm font-semibold text-red-700">{{ $message }}</p>
-        @enderror
     </div>
 
     @if ($metodoPago === 'transferencia')

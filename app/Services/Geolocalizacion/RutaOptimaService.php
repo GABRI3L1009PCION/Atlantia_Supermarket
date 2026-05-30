@@ -167,6 +167,11 @@ class RutaOptimaService
      */
     public function calcularEntrePuntos(array $origen, array $paradas): array
     {
+        $origen = $this->normalizarPunto($origen) ?? $this->puntoBase();
+        $paradas = array_values(array_filter(
+            array_map(fn (array $parada): ?array => $this->normalizarPunto($parada), $paradas)
+        ));
+
         $ordenadas = $this->tspOptimizadorService->ordenarParadas($origen, $paradas);
         $token = config('services.mapbox.token') ?: env('MAPBOX_TOKEN');
 
@@ -231,6 +236,41 @@ class RutaOptimaService
             'distancia_km' => round($distancia, 2),
             'tiempo_estimado_min' => $this->etaCalculadorService->etaMinutos($distancia, count($paradas)),
             'geometry' => ['type' => 'LineString', 'coordinates' => $geometry],
+        ];
+    }
+
+    /**
+     * Normaliza claves de coordenadas aceptando formatos internos y de mapas.
+     *
+     * @param array<string, mixed> $punto
+     * @return array<string, mixed>|null
+     */
+    private function normalizarPunto(array $punto): ?array
+    {
+        $latitude = $punto['latitude'] ?? $punto['lat'] ?? null;
+        $longitude = $punto['longitude'] ?? $punto['lng'] ?? $punto['lon'] ?? null;
+
+        if (! is_numeric($latitude) || ! is_numeric($longitude)) {
+            return null;
+        }
+
+        return [
+            ...$punto,
+            'latitude' => (float) $latitude,
+            'longitude' => (float) $longitude,
+        ];
+    }
+
+    /**
+     * Punto operativo por defecto cuando el job no recibe origen.
+     *
+     * @return array<string, float>
+     */
+    private function puntoBase(): array
+    {
+        return [
+            'latitude' => (float) config('services.google_maps.default_lat', 15.7309),
+            'longitude' => (float) config('services.google_maps.default_lng', -88.5944),
         ];
     }
 }

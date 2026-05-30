@@ -4,7 +4,9 @@ namespace App\Services\Catalogo;
 
 use App\Models\Categoria;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -38,6 +40,10 @@ class CategoriaService
     {
         $data['slug'] = $data['slug'] ?? Str::slug((string) $data['nombre']);
 
+        if (isset($data['imagen']) && $data['imagen'] instanceof UploadedFile) {
+            $data['imagen'] = $data['imagen']->store('categorias', 'public');
+        }
+
         $categoria = Categoria::query()->create($data);
         Cache::forget('categorias');
 
@@ -53,6 +59,15 @@ class CategoriaService
     {
         if (isset($data['nombre']) && empty($data['slug'])) {
             $data['slug'] = Str::slug((string) $data['nombre']);
+        }
+
+        if (isset($data['imagen']) && $data['imagen'] instanceof UploadedFile) {
+            if ($categoria->imagen) {
+                Storage::disk('public')->delete($categoria->imagen);
+            }
+            $data['imagen'] = $data['imagen']->store('categorias', 'public');
+        } else {
+            unset($data['imagen']);
         }
 
         $categoria->update($data);

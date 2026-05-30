@@ -158,6 +158,34 @@ class CarritoService
     }
 
     /**
+     * Devuelve a la sesion visitante un carrito que no logro completar checkout.
+     */
+    public function restoreUserCartToGuestSession(User $user, string $sessionId): void
+    {
+        DB::transaction(function () use ($user, $sessionId): void {
+            $userCart = Carrito::query()->where([
+                'user_id' => $user->id,
+                'estado' => 'activo',
+            ])->first();
+
+            if ($userCart === null) {
+                return;
+            }
+
+            Carrito::query()
+                ->where('session_id', $sessionId)
+                ->where('estado', 'activo')
+                ->whereKeyNot($userCart->id)
+                ->delete();
+
+            $userCart->update([
+                'user_id' => null,
+                'session_id' => $sessionId,
+            ]);
+        });
+    }
+
+    /**
      * Sincroniza el carrito desde API para clientes autenticados.
      *
      * @param Request $request

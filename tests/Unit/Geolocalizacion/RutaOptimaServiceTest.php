@@ -33,4 +33,29 @@ class RutaOptimaServiceTest extends TestCase
         $this->assertGreaterThan(0, $route['tiempo_estimado_min']);
         $this->assertSame('LineString', $route['geometry']['type']);
     }
+
+    /**
+     * Usa el centro operativo por defecto cuando un job antiguo no trae origen.
+     */
+    public function testUsesDefaultOriginWhenOriginIsMissing(): void
+    {
+        config([
+            'services.mapbox.token' => null,
+            'services.google_maps.default_lat' => 15.7309,
+            'services.google_maps.default_lng' => -88.5944,
+        ]);
+
+        $service = new RutaOptimaService(new EtaCalculadorService(), new TspOptimizadorService());
+
+        $route = $service->calcularEntrePuntos(
+            [],
+            [
+                ['lat' => 15.6969, 'lng' => -88.6206, 'label' => 'Santo Tomas'],
+            ],
+        );
+
+        $this->assertSame('local_haversine', $route['provider']);
+        $this->assertSame([-88.5944, 15.7309], $route['geometry']['coordinates'][0]);
+        $this->assertSame('Santo Tomas', $route['paradas'][0]['label']);
+    }
 }
