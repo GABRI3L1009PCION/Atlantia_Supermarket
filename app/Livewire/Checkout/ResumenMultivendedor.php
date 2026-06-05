@@ -249,6 +249,12 @@ class ResumenMultivendedor extends Component
             return 0.0;
         }
 
-        return app(DeliveryCoverageService::class)->deliveryCostFor($direccion) ?? 0.0;
+        $vendorIds = $this->items()
+            ->pluck('producto.vendor_id')
+            ->unique()
+            ->values()
+            ->all();
+
+        return app(DeliveryCoverageService::class)->deliveryCostForVendors($direccion, $vendorIds) ?? 0.0;
     }
 }

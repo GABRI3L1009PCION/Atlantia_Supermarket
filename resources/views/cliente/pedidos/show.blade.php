@@ -194,7 +194,7 @@
                                                 {{ $pedidoHijo->vendor?->business_name ?? 'Atlantia Supermarket' }}
                                             </h3>
                                             <p class="mt-1 text-sm text-atlantia-ink/60">
-                                                {{ $certificado ? 'FEL certificado' : 'DTE se emitira al despachar' }}
+                                                {{ $certificado ? 'FEL certificado' : ($pedidoHijo->metodoPagoValor() === 'tarjeta' ? 'Factura en proceso de envio' : 'DTE se emitira al despachar') }}
                                             </p>
                                         </div>
                                     </div>
@@ -248,7 +248,11 @@
                                     </div>
                                 @else
                                     <p class="mt-4 rounded-md bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
-                                        Este vendedor emitira FEL al momento de despachar. Te llegara por correo en unos minutos.
+                                        @if ($pedidoHijo->metodoPagoValor() === 'tarjeta')
+                                            Tu pago con tarjeta fue recibido. La factura FEL se enviara automaticamente por correo en unos minutos.
+                                        @else
+                                            Este vendedor emitira FEL al momento de despachar. Te llegara por correo en unos minutos.
+                                        @endif
                                     </p>
                                 @endif
                             </article>

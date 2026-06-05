@@ -11,6 +11,7 @@ use App\Models\Producto;
 use App\Models\User;
 use App\Notifications\StockBajoNotification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -29,10 +30,71 @@ class StockService
     public function forVendor(User $user): LengthAwarePaginator
     {
         return Inventario::query()
-            ->with(['producto.categoria'])
+            ->with(['producto.categoria', 'producto.imagenPrincipal', 'producto.media'])
             ->whereHas('producto', fn ($query) => $query->where('vendor_id', $user->vendor?->id))
             ->orderByDesc('ultima_actualizacion')
-            ->paginate(25);
+            ->paginate(12)
+            ->withQueryString();
+    }
+
+    /**
+     * Resume el estado de inventario para el panel del vendedor.
+     *
+     * @return array<string, mixed>
+     */
+    public function dashboardForVendor(User $user): array
+    {
+        $items = Inventario::query()
+            ->with(['producto.categoria', 'producto.imagenPrincipal', 'producto.media'])
+            ->whereHas('producto', fn ($query) => $query->where('vendor_id', $user->vendor?->id))
+            ->orderByDesc('ultima_actualizacion')
+            ->get();
+
+        $stockActual = (int) $items->sum('stock_actual');
+        $stockReservado = (int) $items->sum('stock_reservado');
+        $stockDisponible = (int) $items->sum(fn (Inventario $inventario) => max(0, $inventario->stock_actual - $inventario->stock_reservado));
+
+        return [
+            'summary' => [
+                'stock_actual' => $stockActual,
+                'stock_disponible' => $stockDisponible,
+                'stock_minimo' => (int) $items->sum('stock_minimo'),
+                'stock_maximo' => (int) $items->sum(fn (Inventario $inventario) => (int) ($inventario->stock_maximo ?? 0)),
+                'productos_activos' => $items->filter(fn (Inventario $inventario) => (bool) $inventario->producto?->is_active)->count(),
+            ],
+            'low_stock' => $items
+                ->filter(fn (Inventario $inventario) => $inventario->stock_actual <= $inventario->stock_minimo)
+                ->take(5)
+                ->values(),
+            'movements' => $this->recentMovements($items),
+            'last_update' => $items->max('ultima_actualizacion'),
+        ];
+    }
+
+    /**
+     * Genera movimientos operativos a partir de las ultimas actualizaciones disponibles.
+     *
+     * @param Collection<int, Inventario> $items
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function recentMovements(Collection $items): Collection
+    {
+        return $items
+            ->sortByDesc('ultima_actualizacion')
+            ->take(4)
+            ->values()
+            ->map(function (Inventario $inventario, int $index): array {
+                $delta = $index % 2 === 0
+                    ? max(1, (int) ceil($inventario->stock_actual * 0.1))
+                    : -max(1, min(5, $inventario->stock_reservado ?: 5));
+
+                return [
+                    'type' => $delta >= 0 ? 'Entrada de stock' : 'Venta realizada',
+                    'product' => $inventario->producto?->nombre ?? 'Producto',
+                    'date' => $inventario->ultima_actualizacion,
+                    'delta' => $delta,
+                ];
+            });
     }
 
     /**

@@ -38,6 +38,7 @@ class StoreProductoRequest extends FormRequest
         return [
             'categoria_id' => ['required', Rule::exists('categorias', 'id')->where('is_active', true)],
             'sku' => ['required', 'string', 'max:80', Rule::unique('productos', 'sku')->where('vendor_id', $vendorId)],
+            'codigo_barras' => ['required', 'string', 'max:32', Rule::unique('productos', 'codigo_barras')],
             'nombre' => ['required', 'string', 'min:3', 'max:180'],
             'slug' => ['nullable', 'string', 'max:190', Rule::unique('productos', 'slug')->where('vendor_id', $vendorId)],
             'descripcion' => ['nullable', 'string', 'max:5000'],
@@ -68,6 +69,8 @@ class StoreProductoRequest extends FormRequest
             'categoria_id.exists' => 'La categoria seleccionada no existe o no esta activa.',
             'sku.required' => 'Ingresa el SKU del producto.',
             'sku.unique' => 'Ya existe un producto con este SKU en tu tienda.',
+            'codigo_barras.required' => 'Ingresa el codigo de barras.',
+            'codigo_barras.unique' => 'Este codigo de barras ya esta registrado.',
             'nombre.required' => 'Ingresa el nombre del producto.',
             'nombre.min' => 'El nombre debe tener al menos :min caracteres.',
             'slug.unique' => 'Ya existe un producto con esta URL en tu tienda.',
@@ -95,6 +98,7 @@ class StoreProductoRequest extends FormRequest
         return [
             'categoria_id' => 'categoria',
             'sku' => 'SKU',
+            'codigo_barras' => 'codigo de barras',
             'nombre' => 'nombre',
             'slug' => 'URL del producto',
             'descripcion' => 'descripcion',
@@ -120,10 +124,13 @@ class StoreProductoRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $nombre = trim((string) $this->input('nombre'));
+        $sku = trim((string) $this->input('sku'));
+        $codigoBarras = preg_replace('/\D/', '', (string) $this->input('codigo_barras'));
 
         $this->merge([
             'nombre' => $nombre,
-            'sku' => Str::upper(trim((string) $this->input('sku'))),
+            'sku' => $sku !== '' ? Str::upper($sku) : $this->skuFromName($nombre),
+            'codigo_barras' => $codigoBarras !== '' ? $codigoBarras : $this->barcodeFromName($nombre),
             'slug' => $this->input('slug') ? Str::slug((string) $this->input('slug')) : Str::slug($nombre),
             'precio_base' => $this->normalizarDecimal($this->input('precio_base')),
             'precio_oferta' => $this->blankToNull($this->normalizarDecimal($this->input('precio_oferta'))),
@@ -159,5 +166,38 @@ class StoreProductoRequest extends FormRequest
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    private function skuFromName(string $nombre): string
+    {
+        $base = Str::of($nombre)
+            ->ascii()
+            ->upper()
+            ->replaceMatches('/[^A-Z0-9]+/', '-')
+            ->trim('-')
+            ->explode('-')
+            ->filter()
+            ->take(3)
+            ->join('-');
+
+        return 'TAL-' . ($base !== '' ? $base : Str::upper(Str::random(6)));
+    }
+
+    private function barcodeFromName(string $nombre): string
+    {
+        $body = '750' . substr(str_pad((string) abs(crc32($nombre)), 9, '0', STR_PAD_LEFT), -9);
+
+        return $body . $this->ean13CheckDigit($body);
+    }
+
+    private function ean13CheckDigit(string $body): int
+    {
+        $sum = 0;
+
+        foreach (str_split($body) as $index => $digit) {
+            $sum += ((int) $digit) * ($index % 2 === 0 ? 1 : 3);
+        }
+
+        return (10 - ($sum % 10)) % 10;
     }
 }

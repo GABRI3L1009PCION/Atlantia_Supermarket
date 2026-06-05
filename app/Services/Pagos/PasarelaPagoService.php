@@ -58,7 +58,7 @@ class PasarelaPagoService implements PasarelaPagoContract
                 'pasarela_payload' => $resultado->toArray(),
             ]);
 
-            $pedido->update(['estado_pago' => $this->estadoPedidoPago($payment->estado)->value]);
+            $this->syncPedidoTreeEstadoPago($pedido, $this->estadoPedidoPago($payment->estado));
 
             return $payment;
         });
@@ -117,7 +117,9 @@ class PasarelaPagoService implements PasarelaPagoContract
                 'validado_at' => now(),
                 'pasarela_payload' => $payload,
             ]);
-            $payment->pedido()->update(['estado_pago' => $this->estadoPedidoPago($payment->estado)->value]);
+            if ($payment->pedido !== null) {
+                $this->syncPedidoTreeEstadoPago($payment->pedido, $this->estadoPedidoPago($payment->estado));
+            }
 
             return $payment->refresh();
         });
@@ -259,10 +261,21 @@ class PasarelaPagoService implements PasarelaPagoContract
                 'estado' => EstadoPago::Reembolsado->value,
                 'pasarela_payload' => $payload,
             ]);
-            $payment->pedido()->update(['estado_pago' => EstadoPago::Reembolsado->value]);
+            if ($payment->pedido !== null) {
+                $this->syncPedidoTreeEstadoPago($payment->pedido, EstadoPago::Reembolsado);
+            }
 
             return $payment->refresh();
         });
+    }
+
+    /**
+     * Sincroniza el estado de pago del pedido padre y sus pedidos por vendedor.
+     */
+    private function syncPedidoTreeEstadoPago(Pedido $pedido, EstadoPago $estado): void
+    {
+        $pedido->update(['estado_pago' => $estado->value]);
+        $pedido->pedidosHijos()->update(['estado_pago' => $estado->value]);
     }
 
     /**

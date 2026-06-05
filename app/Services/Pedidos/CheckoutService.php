@@ -6,15 +6,20 @@ use App\Contracts\PasarelaPagoContract;
 use App\DTOs\PedidoDTO;
 use App\Enums\EstadoPago;
 use App\Enums\EstadoPedido;
+use App\Enums\MetodoPago;
 use App\Exceptions\DireccionFueraDeZonaException;
 use App\Exceptions\PagoRechazadoException;
 use App\Exceptions\StockInsuficienteException;
 use App\Exceptions\TransaccionFallidaException;
+use App\Jobs\EnviarCorreoFactura;
 use App\Jobs\AnalizarFraudeOrden;
 use App\Models\Carrito;
 use App\Models\Cliente\Direccion;
+use App\Models\Payment;
 use App\Models\Pedido;
 use App\Models\User;
+use App\Services\Fel\DteComprobantePdf;
+use App\Services\Fel\DteGeneradorService;
 use App\Services\Geolocalizacion\DeliveryCoverageService;
 use App\Services\Inventario\StockService;
 use App\Services\Promociones\CuponService;
@@ -71,9 +76,10 @@ class CheckoutService
     public function checkout(User $cliente, PedidoDTO $pedidoDTO): Pedido
     {
         $rejectedPayment = null;
+        $approvedPayment = null;
 
         try {
-            $pedido = DB::transaction(function () use ($cliente, $pedidoDTO, &$rejectedPayment): Pedido {
+            $pedido = DB::transaction(function () use ($cliente, $pedidoDTO, &$rejectedPayment, &$approvedPayment): Pedido {
                 $carrito = $this->lockedCartFor($cliente);
                 $direccion = $this->direccionFor($cliente, $pedidoDTO->direccionId);
                 $items = $carrito->items()->with(['producto.vendor', 'producto.inventario'])->lockForUpdate()->get();
@@ -86,7 +92,7 @@ class CheckoutService
                 $this->stockService->assertAvailableForItems($items);
                 $this->stockService->reserveForItems($items);
 
-                $totals = $this->calculateTotals($items, $pedidoDTO->envio, $cliente, $pedidoDTO->cuponCodigo);
+                $totals = $this->calculateTotals($items, $direccion, $cliente, $pedidoDTO->cuponCodigo);
                 $pedido = $this->splitMultivendedorService->crearPedidoDesdeCarrito(
                     $cliente,
                     $direccion,
@@ -114,6 +120,7 @@ class CheckoutService
                 }
 
                 $this->splitMultivendedorService->crearSplitsDePago($payment, $pedido);
+                $approvedPayment = $payment->refresh();
 
                 if ($payment->estado !== EstadoPago::Rechazado) {
                     $this->estadoPedidoService->registrar(
@@ -132,6 +139,8 @@ class CheckoutService
             if ($rejectedPayment instanceof PagoRechazadoException) {
                 throw $rejectedPayment;
             }
+
+            $this->emitirFacturaTarjetaPagada($pedido, $approvedPayment, $pedidoDTO);
 
             AnalizarFraudeOrden::dispatch($pedido->id);
 
@@ -226,10 +235,60 @@ class CheckoutService
      */
     private function assertDireccionDentroDeCobertura(Direccion $direccion): void
     {
+        if ($this->deliveryCoverageService->hasRealtimeLocation($direccion)) {
+            return;
+        }
+
         if ($this->deliveryCoverageService->findActiveZoneFor($direccion) === null) {
             throw new DireccionFueraDeZonaException(
-                'La direccion seleccionada esta fuera de nuestra zona de entrega activa.'
+                'Captura tu ubicacion exacta para validar la entrega del pedido.'
             );
+        }
+    }
+
+    /**
+     * Para pagos con tarjeta aprobados, genera el DTE y envia el PDF al correo fiscal
+     * en el mismo flujo, sin esperar a despacho ni a un worker de cola.
+     */
+    private function emitirFacturaTarjetaPagada(Pedido $pedido, ?Payment $payment, PedidoDTO $pedidoDTO): void
+    {
+        if ($pedidoDTO->metodoPago !== MetodoPago::Tarjeta || $payment === null) {
+            return;
+        }
+
+        $estado = $payment->estado instanceof EstadoPago
+            ? $payment->estado
+            : EstadoPago::tryFrom((string) $payment->estado);
+
+        if (! in_array($estado, [EstadoPago::Aprobado, EstadoPago::Pagado], true)) {
+            return;
+        }
+
+        $pedidosAFacturar = $pedido->pedidosHijos()
+            ->with(['vendor.fiscalProfile', 'cliente', 'direccion', 'items.producto'])
+            ->get();
+
+        if ($pedidosAFacturar->isEmpty() && $pedido->vendor_id !== null) {
+            $pedidosAFacturar = collect([$pedido->load(['vendor.fiscalProfile', 'cliente', 'direccion', 'items.producto'])]);
+        }
+
+        foreach ($pedidosAFacturar as $pedidoHijo) {
+            try {
+                if ($pedidoHijo->estado_pago !== EstadoPago::Pagado) {
+                    $pedidoHijo->update(['estado_pago' => EstadoPago::Pagado->value]);
+                }
+
+                $dte = app(DteGeneradorService::class)->emitirParaPedido($pedidoHijo->refresh());
+                $pdf = app(DteComprobantePdf::class);
+                $pdf->store($dte);
+                (new EnviarCorreoFactura($dte->id))->handle($pdf);
+            } catch (Throwable $exception) {
+                Log::warning('No fue posible enviar factura automatica tras pago con tarjeta.', [
+                    'pedido_id' => $pedidoHijo->id,
+                    'payment_id' => $payment->id,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
         }
     }
 
@@ -237,18 +296,22 @@ class CheckoutService
      * Calcula totales confiando solo en precios actuales del servidor.
      *
      * @param iterable<int, mixed> $items
-     * @param Dinero $envio
      * @return array<string, mixed>
      */
-    private function calculateTotals(iterable $items, Dinero $envio, User $cliente, ?string $cuponCodigo = null): array
+    private function calculateTotals(iterable $items, Direccion $direccion, User $cliente, ?string $cuponCodigo = null): array
     {
         $subtotal = Dinero::zero();
+        $items = collect($items);
 
         foreach ($items as $item) {
             $precio = Dinero::from($item->producto->precio_oferta ?? $item->producto->precio_base);
             $subtotal = $subtotal->add($precio->multiply((int) $item->cantidad));
         }
 
+        $envio = Dinero::from($this->deliveryCoverageService->deliveryCostForVendors(
+            $direccion,
+            $items->pluck('producto.vendor_id')->unique()->values()->all()
+        ) ?? 0);
         $respuestaCupon = $this->cuponService->resolver($cliente, $cuponCodigo, (float) $subtotal->toDecimal());
         $descuento = Dinero::from((float) ($respuestaCupon['descuento'] ?? 0));
         $baseImponible = $subtotal->subtract($descuento);

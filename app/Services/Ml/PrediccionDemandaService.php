@@ -9,6 +9,7 @@ use App\Models\Producto;
 use App\Models\User;
 use App\Services\Ml\Fallback\FallbackPrediccionService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -31,13 +32,61 @@ class PrediccionDemandaService
      * @param User $user
      * @return LengthAwarePaginator
      */
-    public function forVendor(User $user): LengthAwarePaginator
+    public function forVendor(User $user, array $filters = []): LengthAwarePaginator
     {
         return SalesPrediction::query()
-            ->with(['producto', 'modeloVersion'])
+            ->with(['producto.categoria', 'producto.inventario', 'producto.imagenPrincipal', 'modeloVersion'])
             ->where('vendor_id', $user->vendor?->id)
-            ->latest()
-            ->paginate(50);
+            ->when($filters['q'] ?? null, function ($query, string $term): void {
+                $query->whereHas('producto', fn ($query) => $query->where('nombre', 'like', "%{$term}%")->orWhere('sku', 'like', "%{$term}%"));
+            })
+            ->when($filters['horizonte'] ?? null, fn ($query, string $horizonte) => $query->where('horizonte_dias', (int) $horizonte))
+            ->when(($filters['orden'] ?? 'mayor_demanda') === 'menor_demanda', fn ($query) => $query->orderBy('valor_predicho'))
+            ->when(($filters['orden'] ?? 'mayor_demanda') === 'recientes', fn ($query) => $query->latest('fecha_prediccion'))
+            ->when(($filters['orden'] ?? 'mayor_demanda') === 'mayor_demanda', fn ($query) => $query->orderByDesc('valor_predicho'))
+            ->paginate(8)
+            ->withQueryString();
+    }
+
+    /**
+     * Resumen para el panel del vendedor.
+     *
+     * @return array<string, mixed>
+     */
+    public function dashboard(User $user, array $filters = []): array
+    {
+        $predictions = SalesPrediction::query()
+            ->with(['producto.inventario'])
+            ->where('vendor_id', $user->vendor?->id)
+            ->when($filters['horizonte'] ?? null, fn ($query, string $horizonte) => $query->where('horizonte_dias', (int) $horizonte))
+            ->get();
+
+        $total = (float) $predictions->sum('valor_predicho');
+        $average = $predictions->count() ? round($total / max(1, $predictions->count()), 1) : 0.0;
+        $highDemand = $predictions->filter(fn (SalesPrediction $prediction): bool => (float) $prediction->valor_predicho >= $average && $average > 0)->count();
+        $stockRisk = $this->stockRiskCount($predictions);
+
+        return [
+            'total_predicho' => round($total, 0),
+            'productos_evaluados' => $predictions->pluck('producto_id')->unique()->count(),
+            'demanda_alta' => $highDemand,
+            'riesgo_stock' => $stockRisk,
+            'promedio' => $average,
+            'horizonte_activo' => (int) ($filters['horizonte'] ?? ($predictions->first()?->horizonte_dias ?? 7)),
+            'max_prediccion' => max(1, (float) $predictions->max('valor_predicho')),
+        ];
+    }
+
+    /**
+     * @param Collection<int, SalesPrediction> $predictions
+     */
+    private function stockRiskCount(Collection $predictions): int
+    {
+        return $predictions->filter(function (SalesPrediction $prediction): bool {
+            $stock = (int) ($prediction->producto?->inventario?->stock_actual ?? 0);
+
+            return $stock > 0 && (float) $prediction->valor_predicho >= $stock;
+        })->count();
     }
 
     /**

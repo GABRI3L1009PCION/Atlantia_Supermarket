@@ -42,10 +42,12 @@ class EnviarCorreoFactura implements ShouldQueue
      */
     public function handle(DteComprobantePdf $pdf): void
     {
-        $dte = DteFactura::query()->with(['pedido.cliente', 'vendor.fiscalProfile', 'items.producto'])->findOrFail($this->dteId);
+        $dte = DteFactura::query()->with(['pedido.cliente', 'pedido.direccion', 'vendor.fiscalProfile', 'items.producto'])->findOrFail($this->dteId);
         $cliente = $dte->pedido?->cliente;
+        $recipientEmail = $dte->pedido?->facturacion_email ?: $cliente?->email;
+        $recipientName = $dte->pedido?->facturacion_nombre ?: $cliente?->name;
 
-        if (! $cliente) {
+        if (! $recipientEmail) {
             return;
         }
 
@@ -55,23 +57,23 @@ class EnviarCorreoFactura implements ShouldQueue
                 $dte->refresh();
             }
 
-            Mail::raw($this->body($dte), function ($message) use ($cliente, $dte): void {
-                $message->to($cliente->email, $cliente->name)
-                    ->subject('Comprobante Atlantia ' . $dte->numero_dte);
+            Mail::raw($this->body($dte), function ($message) use ($recipientEmail, $recipientName, $dte): void {
+                $message->to($recipientEmail, $recipientName)
+                    ->subject('Factura Atlantia ' . $dte->numero_dte);
 
                 if ($dte->pdf_path !== null) {
                     $message->attachFromStorageDisk(
                         'public',
                         $dte->pdf_path,
-                        'comprobante-atlantia-' . $dte->numero_dte . '.pdf',
+                        'factura-atlantia-' . $dte->numero_dte . '.pdf',
                         ['mime' => 'application/pdf']
                     );
                 }
             });
 
-            $this->registrar($cliente->email, $dte, 'sent');
+            $this->registrar($recipientEmail, $dte, 'sent');
         } catch (Throwable $exception) {
-            $this->registrar($cliente->email, $dte, 'failed', $exception->getMessage());
+            $this->registrar($recipientEmail, $dte, 'failed', $exception->getMessage());
 
             throw $exception;
         }
@@ -86,7 +88,7 @@ class EnviarCorreoFactura implements ShouldQueue
     private function body(DteFactura $dte): string
     {
         $mock = data_get($dte->certificador_respuesta, 'respuesta_original.mock', data_get($dte->certificador_respuesta, 'mock', false));
-        $tipo = $mock ? 'comprobante interno emulado' : 'factura FEL';
+        $tipo = $mock ? 'factura electronica FEL emulada' : 'factura FEL';
 
         return "Hola, adjuntamos tu {$tipo} {$dte->numero_dte} emitido por {$dte->vendor?->business_name}. "
             . "Total: Q {$dte->monto_total}. "
@@ -108,7 +110,7 @@ class EnviarCorreoFactura implements ShouldQueue
             'uuid' => (string) Str::uuid(),
             'user_id' => $dte->pedido?->cliente_id,
             'to' => $email,
-            'subject' => 'Comprobante Atlantia ' . $dte->numero_dte,
+            'subject' => 'Factura Atlantia ' . $dte->numero_dte,
             'template' => 'emails.dte.factura',
             'status' => $status,
             'error' => $error,

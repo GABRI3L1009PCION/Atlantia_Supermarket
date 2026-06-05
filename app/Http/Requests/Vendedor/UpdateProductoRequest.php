@@ -46,6 +46,13 @@ class UpdateProductoRequest extends FormRequest
                 'max:80',
                 Rule::unique('productos', 'sku')->where('vendor_id', $vendorId)->ignore($producto?->id),
             ],
+            'codigo_barras' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:32',
+                Rule::unique('productos', 'codigo_barras')->ignore($producto?->id),
+            ],
             'nombre' => ['sometimes', 'required', 'string', 'min:3', 'max:180'],
             'slug' => [
                 'nullable',
@@ -69,6 +76,9 @@ class UpdateProductoRequest extends FormRequest
             'requiere_refrigeracion' => ['sometimes', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],
             'visible_catalogo' => ['sometimes', 'boolean'],
+            'stock_actual' => ['nullable', 'integer', 'min:0'],
+            'stock_minimo' => ['nullable', 'integer', 'min:0'],
+            'stock_maximo' => ['nullable', 'integer', 'min:0'],
             'imagenes' => ['nullable', 'array', 'max:8'],
             'imagenes.*' => ['file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ];
@@ -84,6 +94,7 @@ class UpdateProductoRequest extends FormRequest
         return [
             'categoria_id.exists' => 'La categoria seleccionada no existe o no esta activa.',
             'sku.unique' => 'Ya existe otro producto con este SKU en tu tienda.',
+            'codigo_barras.unique' => 'Este codigo de barras ya esta registrado.',
             'nombre.min' => 'El nombre debe tener al menos :min caracteres.',
             'slug.unique' => 'Ya existe otro producto con esta URL en tu tienda.',
             'precio_base.min' => 'El precio base debe ser mayor a cero.',
@@ -105,6 +116,7 @@ class UpdateProductoRequest extends FormRequest
         return [
             'categoria_id' => 'categoria',
             'sku' => 'SKU',
+            'codigo_barras' => 'codigo de barras',
             'nombre' => 'nombre',
             'slug' => 'URL del producto',
             'descripcion' => 'descripcion',
@@ -115,6 +127,9 @@ class UpdateProductoRequest extends FormRequest
             'requiere_refrigeracion' => 'requiere refrigeracion',
             'is_active' => 'producto activo',
             'visible_catalogo' => 'visible en catalogo',
+            'stock_actual' => 'stock actual',
+            'stock_minimo' => 'stock minimo',
+            'stock_maximo' => 'stock maximo',
             'imagenes' => 'imagenes',
         ];
     }
@@ -131,6 +146,7 @@ class UpdateProductoRequest extends FormRequest
         $this->merge([
             'nombre' => $nombre,
             'sku' => $this->input('sku') === null ? null : Str::upper(trim((string) $this->input('sku'))),
+            'codigo_barras' => $this->input('codigo_barras') === null ? null : preg_replace('/\D/', '', (string) $this->input('codigo_barras')),
             'slug' => $this->input('slug') ? Str::slug((string) $this->input('slug')) : null,
             'precio_base' => $this->normalizarDecimal($this->input('precio_base')),
             'precio_oferta' => $this->blankToNull($this->normalizarDecimal($this->input('precio_oferta'))),

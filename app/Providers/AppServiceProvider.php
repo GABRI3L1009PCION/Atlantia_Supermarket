@@ -29,9 +29,11 @@ use App\Models\AuditLog;
 use App\Events\DteEmitido;
 use App\Events\DevolucionAprobada;
 use App\Events\PedidoCreado;
+use App\Events\PrediccionGenerada;
 use App\Listeners\EnviarEmailDevolucionAprobada;
 use App\Listeners\EnviarFacturaDteAlCliente;
 use App\Listeners\EmitirDteTrasPedido;
+use App\Listeners\NotificarVendedorPrediccionMl;
 use App\Policies\AuditLogPolicy;
 use App\Observers\PedidoObserver;
 use App\Observers\CategoriaObserver;
@@ -182,6 +184,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(PedidoCreado::class, EmitirDteTrasPedido::class);
         Event::listen(DteEmitido::class, EnviarFacturaDteAlCliente::class);
         Event::listen(DevolucionAprobada::class, EnviarEmailDevolucionAprobada::class);
+        Event::listen(PrediccionGenerada::class, NotificarVendedorPrediccionMl::class);
 
         Producto::observe(ProductoObserver::class);
         Categoria::observe(CategoriaObserver::class);

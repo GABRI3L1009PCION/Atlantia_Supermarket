@@ -5,6 +5,8 @@ namespace App\Services\Notificaciones;
 use App\Contracts\NotificacionContract;
 use App\Models\Ml\RestockSuggestion;
 use App\Models\SentEmail;
+use Illuminate\Support\Facades\Mail;
+use Throwable;
 use Illuminate\Support\Str;
 
 /**
@@ -45,7 +47,11 @@ class NotificadorSugerenciaMlService
 
         $this->notificationService->enviar($user, 'ml.sugerencia_reabasto', $data);
 
-        SentEmail::query()->create([
+        if ($this->wasRecentlySent($user->id, (string) $suggestion->producto->uuid)) {
+            return;
+        }
+
+        $email = SentEmail::query()->create([
             'uuid' => (string) Str::uuid(),
             'user_id' => $user->id,
             'to' => $user->email,
@@ -54,6 +60,18 @@ class NotificadorSugerenciaMlService
             'status' => 'queued',
             'metadata' => $data,
         ]);
+
+        try {
+            Mail::raw($this->emailBody($suggestion), function ($message) use ($user): void {
+                $message
+                    ->to($user->email, $user->name)
+                    ->subject('Atlantia ML: reabastece un producto en riesgo');
+            });
+
+            $email->update(['status' => 'sent', 'sent_at' => now()]);
+        } catch (Throwable $exception) {
+            $email->update(['status' => 'failed', 'error' => $exception->getMessage()]);
+        }
     }
 
     /**
@@ -72,5 +90,33 @@ class NotificadorSugerenciaMlService
         }
 
         return $enviadas;
+    }
+
+    private function wasRecentlySent(int $userId, string $productoUuid): bool
+    {
+        return SentEmail::query()
+            ->where('user_id', $userId)
+            ->where('template', 'ml.sugerencia_reabasto')
+            ->where('metadata', 'like', '%' . $productoUuid . '%')
+            ->where('created_at', '>=', now()->subHours(12))
+            ->exists();
+    }
+
+    private function emailBody(RestockSuggestion $suggestion): string
+    {
+        $producto = $suggestion->producto;
+
+        return implode("\n", [
+            'Atlantia Supermarket - Alerta ML de reabasto',
+            '',
+            "Producto: {$producto->nombre}",
+            "Urgencia: {$suggestion->urgencia}",
+            "Stock actual: {$suggestion->stock_actual}",
+            "Cantidad sugerida: {$suggestion->stock_sugerido}",
+            'Dias estimados hasta quiebre: ' . ($suggestion->dias_hasta_quiebre ?? 'sin dato'),
+            '',
+            'Recomendacion: revisa este producto en Reabasto ML y confirma la reposicion para evitar quiebres de stock.',
+            route('vendedor.reabasto.index'),
+        ]);
     }
 }

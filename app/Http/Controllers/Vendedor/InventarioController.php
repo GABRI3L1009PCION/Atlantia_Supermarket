@@ -30,7 +30,11 @@ class InventarioController extends Controller
     {
         $this->authorize('viewOwnInventory', Inventario::class);
 
-        return view('vendedor.inventario.index', ['inventario' => $this->stockService->forVendor($request->user())]);
+        return view('vendedor.inventario.index', [
+            'inventario' => $this->stockService->forVendor($request->user()),
+            'dashboard' => $this->stockService->dashboardForVendor($request->user()),
+            'vendor' => $request->user()->vendor,
+        ]);
     }
 
     /**

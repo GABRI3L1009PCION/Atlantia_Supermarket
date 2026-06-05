@@ -113,8 +113,9 @@ class DteGeneradorService
         $emisor->addChild('AfiliacionIVA', htmlspecialchars((string) ($profile?->afiliacion_iva ?? 'GEN')));
 
         $receptor = $datos->addChild('Receptor');
-        $receptor->addChild('NombreReceptor', htmlspecialchars((string) ($dte->pedido?->cliente?->name ?? 'Consumidor final')));
-        $receptor->addChild('CorreoReceptor', htmlspecialchars((string) ($dte->pedido?->cliente?->email ?? 'sin-correo@atlantia.local')));
+        $receptor->addChild('NombreReceptor', htmlspecialchars((string) ($dte->pedido?->facturacion_nombre ?? $dte->pedido?->cliente?->name ?? 'Consumidor final')));
+        $receptor->addChild('NitReceptor', htmlspecialchars((string) ($dte->pedido?->facturacion_nit ?? 'CF')));
+        $receptor->addChild('CorreoReceptor', htmlspecialchars((string) ($dte->pedido?->facturacion_email ?? $dte->pedido?->cliente?->email ?? 'sin-correo@atlantia.local')));
 
         $items = $datos->addChild('Items');
         foreach ($dte->items as $index => $item) {

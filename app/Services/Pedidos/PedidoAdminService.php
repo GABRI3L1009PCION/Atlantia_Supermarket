@@ -81,7 +81,7 @@ class PedidoAdminService
             'cliente',
             'vendor',
             'direccion',
-            'items.producto',
+            'items.producto.imagenPrincipal',
             'payments.splits.vendor',
             'estados.usuario',
             'historialEstados.usuario',

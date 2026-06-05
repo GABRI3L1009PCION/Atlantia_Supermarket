@@ -4,6 +4,7 @@ namespace App\Services\Geolocalizacion;
 
 use App\Models\Cliente\Direccion;
 use App\Models\DeliveryZone;
+use App\Models\VendorDeliveryZone;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -60,12 +61,17 @@ class DeliveryCoverageService
         $zonesWithPolygons = $zones->filter(fn (DeliveryZone $zone): bool => $this->hasUsablePolygon($zone));
 
         if ($zonesWithPolygons->isNotEmpty()) {
-            return $zonesWithPolygons->first(
+            $polygonZone = $zonesWithPolygons->first(
                 fn (DeliveryZone $zone): bool => $this->pointInsideZone($latitude, $longitude, $zone)
             );
+
+            if ($polygonZone !== null) {
+                return $polygonZone;
+            }
         }
 
-        return $this->nearestZoneByCenter($zones, $latitude, $longitude);
+        return $this->nearestZoneByCenter($zones, $latitude, $longitude)
+            ?? $this->zoneByAddressText($zones, $direccion);
     }
 
     /**
@@ -76,6 +82,57 @@ class DeliveryCoverageService
         $zone = $this->findActiveZoneFor($direccion);
 
         return $zone === null ? null : (float) $zone->costo_base;
+    }
+
+    /**
+     * Devuelve el costo de envio de un vendedor para una direccion cubierta.
+     */
+    public function deliveryCostForVendor(Direccion $direccion, ?int $vendorId): ?float
+    {
+        $zone = $this->findActiveZoneFor($direccion);
+
+        if ($zone === null) {
+            return null;
+        }
+
+        if ($vendorId === null || $vendorId <= 0) {
+            return (float) $zone->costo_base;
+        }
+
+        $vendorZone = VendorDeliveryZone::query()
+            ->where('vendor_id', $vendorId)
+            ->where('delivery_zone_id', $zone->id)
+            ->where('activa', true)
+            ->first();
+
+        return $vendorZone?->costo_override !== null
+            ? (float) $vendorZone->costo_override
+            : (float) $zone->costo_base;
+    }
+
+    /**
+     * Suma el envio por vendedor para carritos multivendedor.
+     *
+     * @param iterable<int, int|null> $vendorIds
+     */
+    public function deliveryCostForVendors(Direccion $direccion, iterable $vendorIds): ?float
+    {
+        $zone = $this->findActiveZoneFor($direccion);
+
+        if ($zone === null) {
+            return null;
+        }
+
+        $ids = collect($vendorIds)
+            ->map(fn (mixed $vendorId): ?int => $vendorId === null ? null : (int) $vendorId)
+            ->unique()
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return (float) $zone->costo_base;
+        }
+
+        return (float) $ids->sum(fn (?int $vendorId): float => $this->deliveryCostForVendor($direccion, $vendorId) ?? 0.0);
     }
 
     /**
@@ -92,6 +149,14 @@ class DeliveryCoverageService
                 'covered' => true,
                 'zone' => $zone,
                 'message' => "Disponible en {$zone->nombre}.",
+            ];
+        }
+
+        if ($this->hasRealtimeLocation($direccion)) {
+            return [
+                'covered' => true,
+                'zone' => null,
+                'message' => 'Ubicacion exacta capturada. El pedido puede continuar.',
             ];
         }
 
@@ -116,6 +181,14 @@ class DeliveryCoverageService
         $canonical = $this->canonicalMunicipio($municipio);
 
         return $canonical !== null && array_key_exists($canonical, self::SUPPORTED_MUNICIPIOS);
+    }
+
+    /**
+     * Permite checkout cuando el cliente compartio su ubicacion GPS real.
+     */
+    public function hasRealtimeLocation(Direccion $direccion): bool
+    {
+        return $this->hasCoordinates($direccion);
     }
 
     /**
@@ -236,6 +309,65 @@ class DeliveryCoverageService
         }
 
         return $inside;
+    }
+
+    /**
+     * Cuando una zona se administra sin mapa, valida por colonia/barrio/codigo
+     * manteniendo la ubicacion GPS exacta de la direccion para reparto.
+     *
+     * @param Collection<int, DeliveryZone> $zones
+     */
+    private function zoneByAddressText(Collection $zones, Direccion $direccion): ?DeliveryZone
+    {
+        $addressText = $this->normalize(implode(' ', array_filter([
+            $direccion->zona_o_barrio,
+            $direccion->direccion_linea_1,
+            $direccion->direccion_linea_2,
+            $direccion->referencia,
+            $direccion->alias,
+        ])));
+
+        if ($addressText === '') {
+            return null;
+        }
+
+        return $zones->first(function (DeliveryZone $zone) use ($addressText): bool {
+            foreach ($this->zoneSearchTerms($zone) as $term) {
+                if ($term !== '' && (str_contains($addressText, $term) || str_contains($term, $addressText))) {
+                    return true;
+                }
+            }
+
+            return false;
+        });
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function zoneSearchTerms(DeliveryZone $zone): array
+    {
+        $barrios = $zone->poligono_geojson['metadata']['barrios'] ?? [];
+        $terms = [
+            $zone->nombre,
+            $zone->slug,
+            $zone->descripcion,
+            ...$barrios,
+        ];
+
+        return collect($terms)
+            ->map(fn (mixed $term): string => $this->stripAreaPrefix($this->normalize($term)))
+            ->filter(fn (string $term): bool => strlen($term) >= 3)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function stripAreaPrefix(string $value): string
+    {
+        return (string) Str::of($value)
+            ->replaceMatches('/\b(colonia|barrio|zona|residencial|sector|aldea|caserio|lotificacion)\b/', ' ')
+            ->squish();
     }
 
     private function coordinate(mixed $value): ?float

@@ -16,13 +16,51 @@ class ProductoVendedorService
     /**
      * Pagina productos del vendedor autenticado.
      */
-    public function paginate(User $user): LengthAwarePaginator
+    public function paginate(User $user, array $filters = []): LengthAwarePaginator
     {
         return Producto::query()
-            ->with(['categoria', 'inventario', 'imagenPrincipal', 'media'])
+            ->with(['categoria', 'inventario', 'imagenPrincipal', 'imagenes', 'media'])
             ->where('vendor_id', $user->vendor?->id)
-            ->latest()
-            ->paginate(20);
+            ->when($filters['q'] ?? null, function ($query, string $term): void {
+                $query->where(function ($query) use ($term): void {
+                    $query
+                        ->where('nombre', 'like', "%{$term}%")
+                        ->orWhere('sku', 'like', "%{$term}%")
+                        ->orWhere('codigo_barras', 'like', "%{$term}%");
+                });
+            })
+            ->when($filters['categoria_id'] ?? null, fn ($query, $categoriaId) => $query->where('categoria_id', $categoriaId))
+            ->when($filters['estado'] ?? null, function ($query, string $estado): void {
+                match ($estado) {
+                    'activo' => $query->where('is_active', true),
+                    'inactivo' => $query->where('is_active', false),
+                    'visible' => $query->where('visible_catalogo', true),
+                    'oculto' => $query->where('visible_catalogo', false),
+                    default => null,
+                };
+            })
+            ->when($filters['stock'] ?? null, function ($query, string $stock): void {
+                match ($stock) {
+                    'disponible' => $query->whereHas('inventario', fn ($query) => $query->where('stock_actual', '>', 0)),
+                    'bajo' => $query->whereHas('inventario', fn ($query) => $query->whereColumn('stock_actual', '<=', 'stock_minimo')->where('stock_actual', '>', 0)),
+                    'agotado' => $query->whereHas('inventario', fn ($query) => $query->where('stock_actual', '<=', 0)),
+                    default => null,
+                };
+            })
+            ->when(($filters['orden'] ?? 'recientes') !== 'recientes', function ($query) use ($filters): void {
+                match ($filters['orden']) {
+                    'nombre' => $query->orderBy('nombre'),
+                    'precio_asc' => $query->orderBy('precio_base'),
+                    'precio_desc' => $query->orderByDesc('precio_base'),
+                    'stock_asc' => $query
+                        ->join('inventarios', 'inventarios.producto_id', '=', 'productos.id')
+                        ->orderBy('inventarios.stock_actual')
+                        ->select('productos.*'),
+                    default => $query->latest(),
+                };
+            }, fn ($query) => $query->latest())
+            ->paginate((int) ($filters['per_page'] ?? 12))
+            ->withQueryString();
     }
 
     /**
@@ -37,6 +75,7 @@ class ProductoVendedorService
                 ...collect($data)->only([
                     'categoria_id',
                     'sku',
+                    'codigo_barras',
                     'nombre',
                     'descripcion',
                     'precio_base',
@@ -82,7 +121,22 @@ class ProductoVendedorService
             $data['publicado_at'] = now();
         }
 
-        $producto->update($data);
+        $producto->update(collect($data)->except(['stock_actual', 'stock_minimo', 'stock_maximo', 'imagenes'])->all());
+
+        if (array_key_exists('stock_actual', $data) || array_key_exists('stock_minimo', $data) || array_key_exists('stock_maximo', $data)) {
+            $producto->inventario()->updateOrCreate(
+                ['producto_id' => $producto->id],
+                [
+                    'stock_actual' => (int) ($data['stock_actual'] ?? $producto->inventario?->stock_actual ?? 0),
+                    'stock_minimo' => (int) ($data['stock_minimo'] ?? $producto->inventario?->stock_minimo ?? 5),
+                    'stock_maximo' => (int) ($data['stock_maximo'] ?? $producto->inventario?->stock_maximo ?? 100),
+                    'stock_reservado' => (int) ($producto->inventario?->stock_reservado ?? 0),
+                    'ultima_actualizacion' => now(),
+                ]
+            );
+        }
+
+        $this->storeImages($producto, $data['imagenes'] ?? []);
 
         return $producto->refresh();
     }

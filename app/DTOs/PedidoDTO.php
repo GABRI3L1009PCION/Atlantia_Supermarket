@@ -24,6 +24,10 @@ final readonly class PedidoDTO
      * @param string|null $referenciaBancaria
      * @param string|null $comprobantePath
      * @param string|null $cuponCodigo
+     * @param string $facturacionTipo
+     * @param string|null $facturacionNombre
+     * @param string|null $facturacionNit
+     * @param string|null $facturacionEmail
      */
     public function __construct(
         public ?int $pedidoId,
@@ -37,7 +41,11 @@ final readonly class PedidoDTO
         public ?string $cardToken,
         public ?string $referenciaBancaria,
         public ?string $comprobantePath,
-        public ?string $cuponCodigo
+        public ?string $cuponCodigo,
+        public string $facturacionTipo = 'cf',
+        public ?string $facturacionNombre = null,
+        public ?string $facturacionNit = null,
+        public ?string $facturacionEmail = null
     ) {
     }
 
@@ -62,6 +70,10 @@ final readonly class PedidoDTO
             referenciaBancaria: isset($data['referencia_bancaria']) ? (string) $data['referencia_bancaria'] : null,
             comprobantePath: isset($data['comprobante_path']) ? (string) $data['comprobante_path'] : null,
             cuponCodigo: isset($data['coupon_code']) ? (string) $data['coupon_code'] : null,
+            facturacionTipo: (string) ($data['facturacion_tipo'] ?? 'cf'),
+            facturacionNombre: isset($data['razon_social']) ? (string) $data['razon_social'] : null,
+            facturacionNit: isset($data['nit_facturacion']) ? (string) $data['nit_facturacion'] : null,
+            facturacionEmail: isset($data['correo_facturacion']) ? (string) $data['correo_facturacion'] : null,
         );
     }
 
@@ -86,6 +98,10 @@ final readonly class PedidoDTO
             referenciaBancaria: null,
             comprobantePath: null,
             cuponCodigo: null,
+            facturacionTipo: (string) ($pedido->facturacion_tipo ?? 'cf'),
+            facturacionNombre: $pedido->facturacion_nombre,
+            facturacionNit: $pedido->facturacion_nit,
+            facturacionEmail: $pedido->facturacion_email,
         );
     }
 
@@ -103,6 +119,10 @@ final readonly class PedidoDTO
             'card_token' => $this->cardToken,
             'referencia_bancaria' => $this->referenciaBancaria,
             'comprobante_path' => $this->comprobantePath,
+            'facturacion_tipo' => $this->facturacionTipo,
+            'facturacion_nombre' => $this->facturacionNombre,
+            'facturacion_nit' => $this->facturacionNit,
+            'facturacion_email' => $this->facturacionEmail,
         ];
     }
 }

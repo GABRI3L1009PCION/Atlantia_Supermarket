@@ -7,6 +7,7 @@ use App\Models\Ml\RestockSuggestion;
 use App\Models\Producto;
 use App\Models\Vendor;
 use App\Services\Ml\Fallback\ReglaSimpleReabastoService;
+use App\Services\Notificaciones\NotificadorSugerenciaMlService;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
@@ -75,7 +76,7 @@ class SugerenciaReabastoService
             return null;
         }
 
-        return RestockSuggestion::query()->updateOrCreate(
+        $suggestion = RestockSuggestion::query()->updateOrCreate(
             ['producto_id' => $producto->id, 'vendor_id' => $producto->vendor_id, 'aceptada' => false],
             [
                 'stock_actual' => $producto->inventario->stock_actual,
@@ -85,5 +86,11 @@ class SugerenciaReabastoService
                 'modelo_version_id' => $resultado['modelo_version_id'] ?? null,
             ]
         );
+
+        if (in_array($suggestion->urgencia, ['alta', 'critica'], true)) {
+            app(NotificadorSugerenciaMlService::class)->sugerenciaReabasto($suggestion);
+        }
+
+        return $suggestion;
     }
 }

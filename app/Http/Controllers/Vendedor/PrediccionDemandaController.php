@@ -27,7 +27,8 @@ class PrediccionDemandaController extends Controller
         $this->authorize('viewOwnPredictions', $request->user());
 
         return view('vendedor.predicciones.index', [
-            'predicciones' => $this->prediccionDemandaService->forVendor($request->user()),
+            'predicciones' => $this->prediccionDemandaService->forVendor($request->user(), $request->all()),
+            'dashboard' => $this->prediccionDemandaService->dashboard($request->user(), $request->all()),
         ]);
     }
 }

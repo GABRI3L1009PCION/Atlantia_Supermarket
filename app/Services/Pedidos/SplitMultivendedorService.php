@@ -8,6 +8,7 @@ use App\Models\PaymentSplit;
 use App\Models\Pedido;
 use App\Models\PedidoItem;
 use App\Models\User;
+use App\Services\Geolocalizacion\DeliveryCoverageService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -37,9 +38,13 @@ class SplitMultivendedorService
         $pedidoPadre = $this->crearPedidoBase($cliente, $direccion, null, null, $totals, $data);
 
         foreach ($items->groupBy('producto.vendor_id') as $vendorId => $vendorItems) {
+            $envioVendedor = app(DeliveryCoverageService::class)->deliveryCostForVendor(
+                $direccion,
+                $vendorId === '' ? null : (int) $vendorId
+            ) ?? ((float) $totals['envio'] / max(1, $vendorIds->count()));
             $vendorTotals = $this->totalsForItems(
                 $vendorItems,
-                (float) $totals['envio'] / max(1, $vendorIds->count()),
+                $envioVendedor,
                 (float) ($totals['descuento'] ?? 0),
                 (float) ($totals['subtotal'] ?? 0)
             );
@@ -110,6 +115,10 @@ class SplitMultivendedorService
             'estado' => 'pendiente',
             'metodo_pago' => $data['metodo_pago'],
             'estado_pago' => 'pendiente',
+            'facturacion_tipo' => $data['facturacion_tipo'] ?? 'cf',
+            'facturacion_nombre' => $data['facturacion_nombre'] ?? null,
+            'facturacion_nit' => $data['facturacion_nit'] ?? null,
+            'facturacion_email' => $data['facturacion_email'] ?? null,
             'notas' => $data['notas'] ?? null,
         ]);
     }

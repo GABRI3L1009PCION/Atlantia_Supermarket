@@ -30,7 +30,8 @@ class SugerenciaReabastoController extends Controller
         $this->authorize('viewOwnRestockSuggestions', RestockSuggestion::class);
 
         return view('vendedor.reabasto.index', [
-            'sugerencias' => $this->reabastoInteligenteService->forVendor($request->user()),
+            'sugerencias' => $this->reabastoInteligenteService->forVendor($request->user(), $request->all()),
+            'dashboard' => $this->reabastoInteligenteService->dashboard($request->user()),
         ]);
     }
 

@@ -68,6 +68,10 @@ class CheckoutRequest extends FormRequest
             'referencia_bancaria' => ['required_if:metodo_pago,transferencia', 'nullable', 'string', 'max:120'],
             'comprobante_path' => ['nullable', 'string', 'max:500'],
             'coupon_code' => ['nullable', 'string', 'max:60'],
+            'facturacion_tipo' => ['required', Rule::in(['datos', 'cf'])],
+            'nit_facturacion' => ['nullable', 'string', 'max:40'],
+            'razon_social' => ['nullable', 'string', 'max:180'],
+            'correo_facturacion' => ['required', 'email', 'max:190'],
             'acepta_terminos_checkout' => ['accepted'],
         ];
     }
@@ -109,6 +113,8 @@ class CheckoutRequest extends FormRequest
             'card_token.required_if' => 'No se recibio el token seguro de tarjeta.',
             'referencia_bancaria.required_if' => 'Ingresa la referencia de la transferencia bancaria.',
             'coupon_code.max' => 'El codigo del cupon no debe superar :max caracteres.',
+            'correo_facturacion.required' => 'Ingresa el correo donde enviaremos la factura o comprobante.',
+            'correo_facturacion.email' => 'Ingresa un correo de facturacion valido.',
             'acepta_terminos_checkout.accepted' => 'Debes aceptar las condiciones de compra.',
         ];
     }
@@ -141,6 +147,10 @@ class CheckoutRequest extends FormRequest
             'referencia_bancaria' => 'referencia bancaria',
             'comprobante_path' => 'comprobante de transferencia',
             'coupon_code' => 'codigo de cupon',
+            'facturacion_tipo' => 'tipo de facturacion',
+            'nit_facturacion' => 'NIT',
+            'razon_social' => 'nombre o razon social',
+            'correo_facturacion' => 'correo de facturacion',
             'acepta_terminos_checkout' => 'aceptacion de condiciones de compra',
         ];
     }
@@ -152,6 +162,8 @@ class CheckoutRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
+        $facturacionTipo = $this->input('facturacion_tipo') === 'datos' ? 'datos' : 'cf';
+
         $this->merge([
             'metodo_pago' => trim((string) $this->input('metodo_pago')),
             'tipo_entrega' => trim((string) $this->input('tipo_entrega', 'domicilio')),
@@ -169,6 +181,10 @@ class CheckoutRequest extends FormRequest
             'guest_referencia' => $this->blankToNull($this->input('guest_referencia')),
             'referencia_bancaria' => $this->blankToNull($this->input('referencia_bancaria')),
             'coupon_code' => $this->blankToNull($this->input('coupon_code')),
+            'facturacion_tipo' => $facturacionTipo,
+            'nit_facturacion' => $this->blankToNull($facturacionTipo === 'cf' ? 'CF' : $this->input('nit_facturacion')),
+            'razon_social' => $this->billingName($facturacionTipo),
+            'correo_facturacion' => $this->billingEmail(),
         ]);
     }
 
@@ -183,5 +199,29 @@ class CheckoutRequest extends FormRequest
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * Resuelve el correo real para enviar el PDF fiscal.
+     */
+    private function billingEmail(): ?string
+    {
+        return $this->blankToNull($this->input('correo_facturacion'))
+            ?? $this->blankToNull($this->input('guest_email'))
+            ?? $this->user()?->email;
+    }
+
+    /**
+     * Resuelve el nombre fiscal visible en el PDF.
+     */
+    private function billingName(string $facturacionTipo): ?string
+    {
+        if ($facturacionTipo === 'cf') {
+            return 'Consumidor final';
+        }
+
+        return $this->blankToNull($this->input('razon_social'))
+            ?? $this->blankToNull($this->input('guest_nombre'))
+            ?? $this->user()?->name;
     }
 }

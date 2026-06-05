@@ -18,9 +18,42 @@ class VendorZonaEntregaService
      */
     public function forVendor(User $user): array
     {
+        $vendor = $user->vendor;
+        $disponibles = DeliveryZone::query()->active()->orderBy('nombre')->get();
+        $seleccionadas = $vendor?->deliveryZones()->get() ?? new Collection();
+        $configuradas = $seleccionadas->keyBy('id');
+        $zonas = $disponibles->map(function (DeliveryZone $zone) use ($configuradas): array {
+            $selected = $configuradas->get($zone->id);
+            $cost = $selected?->pivot?->costo_override ?? $zone->costo_base;
+            $time = $selected?->pivot?->tiempo_estimado_min ?? 30;
+            $active = (bool) ($selected?->pivot?->activa ?? false);
+
+            return [
+                'id' => $zone->id,
+                'nombre' => $zone->nombre,
+                'municipio' => $zone->municipio,
+                'descripcion' => $zone->descripcion,
+                'costo_base' => (float) $zone->costo_base,
+                'costo_envio' => (float) $cost,
+                'tiempo_estimado_min' => (int) $time,
+                'activa' => $active,
+                'configurada' => $selected !== null,
+                'radio_km' => $this->radiusKm($zone),
+            ];
+        });
+
+        $activeCount = $zonas->where('activa', true)->count();
+        $total = max(1, $zonas->count());
+
         return [
-            'disponibles' => DeliveryZone::query()->active()->orderBy('nombre')->get(),
-            'seleccionadas' => $user->vendor?->deliveryZones()->get() ?? new Collection(),
+            'disponibles' => $disponibles,
+            'seleccionadas' => $seleccionadas,
+            'zonas' => $zonas,
+            'resumen' => [
+                'disponibles' => $zonas->count(),
+                'activas' => $activeCount,
+                'cobertura' => (int) round(($activeCount / $total) * 100),
+            ],
         ];
     }
 
@@ -43,5 +76,11 @@ class VendorZonaEntregaService
 
         $user->vendor?->deliveryZones()->sync($sync);
     }
-}
 
+    private function radiusKm(DeliveryZone $zone): float
+    {
+        $radius = $zone->poligono_geojson['metadata']['radio_km'] ?? null;
+
+        return is_numeric($radius) && (float) $radius > 0 ? (float) $radius : 3.5;
+    }
+}

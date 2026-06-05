@@ -33,43 +33,55 @@ class ReporteVendedorService
             ->where('vendor_id', $vendorId)
             ->whereBetween('created_at', [$desde->copy()->startOfDay(), $hasta->copy()->endOfDay()]);
 
+        $ventasPorPeriodo = (clone $pedidosBase)
+            ->selectRaw($periodo . ' as periodo, COUNT(*) as pedidos, COALESCE(SUM(total), 0) as total')
+            ->groupBy(DB::raw($periodo))
+            ->orderBy('periodo')
+            ->get();
+        $topProductos = PedidoItem::query()
+            ->join('pedidos', 'pedido_items.pedido_id', '=', 'pedidos.id')
+            ->where('pedidos.vendor_id', $vendorId)
+            ->whereNull('pedidos.deleted_at')
+            ->whereBetween('pedidos.created_at', [$desde->copy()->startOfDay(), $hasta->copy()->endOfDay()])
+            ->select(
+                'pedido_items.producto_id',
+                DB::raw('MAX(pedido_items.producto_nombre_snapshot) as nombre'),
+                DB::raw('SUM(pedido_items.cantidad) as unidades'),
+                DB::raw('COALESCE(SUM(pedido_items.subtotal), 0) as total')
+            )
+            ->groupBy('pedido_items.producto_id')
+            ->orderByDesc('unidades')
+            ->limit(8)
+            ->get();
+        $ventasTotal = round((float) (clone $pedidosBase)->sum('total'), 2);
+        $pedidosTotal = (clone $pedidosBase)->count();
+        $mejorDia = $ventasPorPeriodo->sortByDesc('total')->first();
+
         return [
             'filters' => [
                 'fecha_desde' => $desde->toDateString(),
                 'fecha_hasta' => $hasta->toDateString(),
                 'agrupacion' => $agrupacion,
             ],
-            'ventas_total' => round((float) (clone $pedidosBase)->sum('total'), 2),
-            'pedidos_total' => (clone $pedidosBase)->count(),
-            'ventas_mes' => round((float) (clone $pedidosBase)->sum('total'), 2),
-            'pedidos_mes' => (clone $pedidosBase)->count(),
+            'ventas_total' => $ventasTotal,
+            'pedidos_total' => $pedidosTotal,
+            'ventas_mes' => $ventasTotal,
+            'pedidos_mes' => $pedidosTotal,
             'pendientes' => (clone $pedidosBase)->whereIn('estado', ['pendiente', 'confirmado'])->count(),
             'ticket_promedio' => round((float) (clone $pedidosBase)->avg('total'), 2),
-            'ventas_por_periodo' => (clone $pedidosBase)
-                ->selectRaw($periodo . ' as periodo, COUNT(*) as pedidos, COALESCE(SUM(total), 0) as total')
-                ->groupBy(DB::raw($periodo))
-                ->orderBy('periodo')
-                ->get(),
+            'productos_vendidos' => (int) $topProductos->sum('unidades'),
+            'promedio_diario' => $ventasPorPeriodo->count() ? round($ventasTotal / max(1, $ventasPorPeriodo->count()), 2) : 0.0,
+            'mejor_dia' => [
+                'periodo' => $mejorDia?->periodo,
+                'total' => round((float) ($mejorDia?->total ?? 0), 2),
+            ],
+            'ventas_por_periodo' => $ventasPorPeriodo,
             'pedidos_por_estado' => (clone $pedidosBase)
                 ->select('estado', DB::raw('COUNT(*) as pedidos'), DB::raw('COALESCE(SUM(total), 0) as total'))
                 ->groupBy('estado')
                 ->orderByDesc('pedidos')
                 ->get(),
-            'top_productos' => PedidoItem::query()
-                ->join('pedidos', 'pedido_items.pedido_id', '=', 'pedidos.id')
-                ->where('pedidos.vendor_id', $vendorId)
-                ->whereNull('pedidos.deleted_at')
-                ->whereBetween('pedidos.created_at', [$desde->copy()->startOfDay(), $hasta->copy()->endOfDay()])
-                ->select(
-                    'pedido_items.producto_id',
-                    DB::raw('MAX(pedido_items.producto_nombre_snapshot) as nombre'),
-                    DB::raw('SUM(pedido_items.cantidad) as unidades'),
-                    DB::raw('COALESCE(SUM(pedido_items.subtotal), 0) as total')
-                )
-                ->groupBy('pedido_items.producto_id')
-                ->orderByDesc('unidades')
-                ->limit(8)
-                ->get(),
+            'top_productos' => $topProductos,
             'stock_bajo' => Producto::query()
                 ->forVendor($vendorId)
                 ->with('inventario')
@@ -94,6 +106,9 @@ class ReporteVendedorService
             'pedidos_mes' => 0,
             'pendientes' => 0,
             'ticket_promedio' => 0.0,
+            'productos_vendidos' => 0,
+            'promedio_diario' => 0.0,
+            'mejor_dia' => ['periodo' => null, 'total' => 0.0],
             'ventas_por_periodo' => collect(),
             'pedidos_por_estado' => collect(),
             'top_productos' => collect(),

@@ -24,6 +24,8 @@ use App\Models\User;
 use App\Models\Vendor;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -76,6 +78,47 @@ class CheckoutServiceTest extends TestCase
         $this->assertDatabaseHas('inventarios', [
             'producto_id' => $producto->id,
             'stock_reservado' => 2,
+        ]);
+    }
+
+    /**
+     * Cuando Stripe aprueba la tarjeta, los pedidos por vendedor quedan pagados
+     * y la factura PDF se genera/envia automaticamente.
+     */
+    public function testPagoConTarjetaEmiteFacturaAutomaticamente(): void
+    {
+        Mail::fake();
+        Storage::fake('public');
+
+        [$cliente, $direccion] = $this->createClienteConDireccion();
+        $producto = $this->createProductoConInventario(2);
+        $this->createCarritoActivo($cliente, $producto, 1);
+        $this->fakePasarelaAprobada();
+
+        $pedido = app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+            $cliente,
+            PedidoDTO::fromCheckoutArray([
+                'direccion_id' => $direccion->id,
+                'metodo_pago' => MetodoPago::Tarjeta->value,
+                'card_token' => 'pm_test_checkout',
+                'envio' => 15,
+                'facturacion_tipo' => 'cf',
+                'razon_social' => 'Consumidor final',
+                'nit_facturacion' => 'CF',
+                'correo_facturacion' => 'cliente.factura@example.com',
+            ])
+        );
+
+        $pedidoHijo = $pedido->pedidosHijos()->with('dte')->firstOrFail();
+
+        $this->assertSame(EstadoPago::Pagado, $pedidoHijo->estado_pago);
+        $this->assertNotNull($pedidoHijo->dte_id);
+        $this->assertSame('certificado', $pedidoHijo->dte->estado);
+        Storage::disk('public')->assertExists($pedidoHijo->dte->pdf_path);
+        $this->assertDatabaseHas('sent_emails', [
+            'to' => 'cliente.factura@example.com',
+            'subject' => 'Factura Atlantia ' . $pedidoHijo->dte->numero_dte,
+            'status' => 'sent',
         ]);
     }
 
@@ -137,18 +180,16 @@ class CheckoutServiceTest extends TestCase
     }
 
     /**
-     * No permite checkout si la direccion esta fuera de cobertura activa.
+     * Permite checkout con ubicacion GPS real aunque aun no exista zona configurada.
      */
-    public function testCheckoutConDireccionFueraDeZonaRetornaError(): void
+    public function testCheckoutAceptaUbicacionGpsRealAunqueNoExistaZona(): void
     {
         [$cliente, $direccion] = $this->createClienteConDireccion('Livingston');
         $producto = $this->createProductoConInventario(3);
         $this->createCarritoActivo($cliente, $producto, 1);
         $this->fakePasarelaAprobada();
 
-        $this->expectException(DireccionFueraDeZonaException::class);
-
-        app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+        $pedido = app(\App\Services\Pedidos\CheckoutService::class)->checkout(
             $cliente,
             PedidoDTO::fromCheckoutArray([
                 'direccion_id' => $direccion->id,
@@ -156,12 +197,14 @@ class CheckoutServiceTest extends TestCase
                 'envio' => 10,
             ])
         );
+
+        $this->assertSame(EstadoPedido::Confirmado, $pedido->fresh()->estado);
     }
 
     /**
-     * Rechaza municipios futuros aunque tengan zona creada hasta activar la fase operativa.
+     * Permite checkout en municipios futuros cuando el cliente comparte GPS real.
      */
-    public function testCheckoutRechazaMunicipioFueraDeFaseAunqueTengaZonaActiva(): void
+    public function testCheckoutAceptaMunicipioFuturoConGpsReal(): void
     {
         [$cliente, $direccion] = $this->createClienteConDireccion('Livingston');
         DeliveryZone::query()->create([
@@ -179,9 +222,7 @@ class CheckoutServiceTest extends TestCase
         $this->createCarritoActivo($cliente, $producto, 1);
         $this->fakePasarelaAprobada();
 
-        $this->expectException(DireccionFueraDeZonaException::class);
-
-        app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+        $pedido = app(\App\Services\Pedidos\CheckoutService::class)->checkout(
             $cliente,
             PedidoDTO::fromCheckoutArray([
                 'direccion_id' => $direccion->id,
@@ -189,6 +230,93 @@ class CheckoutServiceTest extends TestCase
                 'envio' => 15,
             ])
         );
+
+        $this->assertSame(EstadoPedido::Confirmado, $pedido->fresh()->estado);
+    }
+
+    /**
+     * Acepta zonas operativas creadas sin mapa cuando la direccion tiene GPS exacto
+     * y coincide con la colonia configurada.
+     */
+    public function testCheckoutAceptaZonaSinMapaPorColoniaConGpsExacto(): void
+    {
+        $cliente = User::factory()->cliente()->create();
+        $cliente->assignRole('cliente');
+        $direccion = Direccion::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'user_id' => $cliente->id,
+            'alias' => 'Casa',
+            'nombre_contacto' => $cliente->name,
+            'telefono_contacto' => '+502 5512-3344',
+            'municipio' => 'Santo Tomas',
+            'zona_o_barrio' => 'Colonia Coviemport',
+            'direccion_linea_1' => 'Interior de Coviemport',
+            'direccion_linea_2' => null,
+            'referencia' => 'Ubicacion GPS tomada en tiempo real.',
+            'latitude' => 15.69060000,
+            'longitude' => -88.62290000,
+            'mapbox_place_id' => null,
+            'es_principal' => true,
+            'activa' => true,
+        ]);
+        DeliveryZone::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'nombre' => 'Zona con poligono ajeno',
+            'slug' => 'zona-poligono-ajeno',
+            'descripcion' => 'Cobertura dibujada que no contiene Coviemport.',
+            'municipio' => 'Santo Tomas',
+            'costo_base' => 20,
+            'latitude_centro' => 15.73090000,
+            'longitude_centro' => -88.59440000,
+            'poligono_geojson' => [
+                'type' => 'FeatureCollection',
+                'features' => [[
+                    'type' => 'Feature',
+                    'geometry' => [
+                        'type' => 'Polygon',
+                        'coordinates' => [[
+                            [-88.6000, 15.7200],
+                            [-88.5900, 15.7200],
+                            [-88.5900, 15.7300],
+                            [-88.6000, 15.7300],
+                            [-88.6000, 15.7200],
+                        ]],
+                    ],
+                ]],
+                'metadata' => ['barrios' => []],
+            ],
+            'activa' => true,
+        ]);
+        DeliveryZone::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'nombre' => 'Colonia Coviemport',
+            'slug' => 'stc-coviemport',
+            'descripcion' => 'Zona operativa creada sin mapa para Coviemport.',
+            'municipio' => 'Santo Tomas',
+            'costo_base' => 15,
+            'latitude_centro' => null,
+            'longitude_centro' => null,
+            'poligono_geojson' => [
+                'type' => 'FeatureCollection',
+                'features' => [],
+                'metadata' => ['barrios' => ['Coviemport']],
+            ],
+            'activa' => true,
+        ]);
+        $producto = $this->createProductoConInventario(2);
+        $this->createCarritoActivo($cliente, $producto, 1);
+        $this->fakePasarelaAprobada();
+
+        $pedido = app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+            $cliente,
+            PedidoDTO::fromCheckoutArray([
+                'direccion_id' => $direccion->id,
+                'metodo_pago' => MetodoPago::Efectivo->value,
+                'envio' => 15,
+            ])
+        );
+
+        $this->assertSame(EstadoPedido::Confirmado, $pedido->fresh()->estado);
     }
 
     /**

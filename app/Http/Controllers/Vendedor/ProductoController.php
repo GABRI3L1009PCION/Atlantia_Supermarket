@@ -32,7 +32,7 @@ class ProductoController extends Controller
         $this->authorize('viewOwnProducts', Producto::class);
 
         return view('vendedor.productos.index', [
-            'productos' => $this->productoVendedorService->paginate($request->user()),
+            'productos' => $this->productoVendedorService->paginate($request->user(), $request->all()),
             'categorias' => Categoria::query()->active()->ordered()->get(),
             'vendor' => $request->user()->vendor,
         ]);
