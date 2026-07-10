@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Repartidor;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Repartidor\Pedido\UpdateEntregaEstadoRequest;
+use App\Http\Requests\Repartidor\RejectDeliveryOfferRequest;
 use App\Models\Pedido;
 use App\Services\Pedidos\PedidoRepartidorService;
 use Illuminate\Http\RedirectResponse;
@@ -18,9 +19,7 @@ class PedidoController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly PedidoRepartidorService $pedidoRepartidorService)
-    {
-    }
+    public function __construct(private readonly PedidoRepartidorService $pedidoRepartidorService) {}
 
     /**
      * Lista pedidos asignados.
@@ -65,14 +64,62 @@ class PedidoController extends Controller
     }
 
     /**
-     * Marca el pedido como recogido.
+     * Rechaza una entrega asignada.
      */
-    public function pickup(Pedido $pedido, Request $request): RedirectResponse
+    public function reject(RejectDeliveryOfferRequest $request, Pedido $pedido): RedirectResponse
     {
         $this->authorize('updateDeliveryStatus', $pedido);
-        $this->pedidoRepartidorService->pickup($pedido, $request->user());
+        $this->pedidoRepartidorService->reject($pedido, $request->validated(), $request->user());
+
+        return redirect()->route('repartidor.dashboard')->with('success', 'Entrega rechazada correctamente.');
+    }
+
+    /**
+     * Marca llegada al establecimiento.
+     */
+    public function arrivedPickup(Pedido $pedido, Request $request): RedirectResponse
+    {
+        $this->authorize('updateDeliveryStatus', $pedido);
+        $this->pedidoRepartidorService->arrivedPickup($pedido, $request->user());
+
+        return back()->with('success', 'Llegada al establecimiento registrada.');
+    }
+
+    /**
+     * Reporta que el pedido no esta listo.
+     */
+    public function pickupNotReady(UpdateEntregaEstadoRequest $request, Pedido $pedido): RedirectResponse
+    {
+        $this->authorize('updateDeliveryStatus', $pedido);
+        $this->pedidoRepartidorService->pickupNotReady(
+            $pedido,
+            $request->user(),
+            $request->validated('pickup_issue_reason')
+        );
+
+        return back()->with('success', 'Reporte enviado. Soporte y operacion podran verlo.');
+    }
+
+    /**
+     * Marca el pedido como recogido.
+     */
+    public function pickup(Pedido $pedido, UpdateEntregaEstadoRequest $request): RedirectResponse
+    {
+        $this->authorize('updateDeliveryStatus', $pedido);
+        $this->pedidoRepartidorService->pickup($pedido, $request->user(), $request->validated());
 
         return back()->with('success', 'Pedido recogido. Ya puedes iniciar la entrega al cliente.');
+    }
+
+    /**
+     * Marca llegada al cliente.
+     */
+    public function arrivedCustomer(Pedido $pedido, Request $request): RedirectResponse
+    {
+        $this->authorize('updateDeliveryStatus', $pedido);
+        $this->pedidoRepartidorService->arrivedCustomer($pedido, $request->user());
+
+        return back()->with('success', 'Llegada al cliente registrada.');
     }
 
     /**

@@ -146,6 +146,23 @@
                     </div>
                 </section>
 
+                @if ($ruta?->confirmation_code && $pedido->estadoValor() === 'en_ruta' && ! $ruta->delivered_code_confirmed_at)
+                    <section class="rounded-lg border border-atlantia-rose/20 bg-white p-5 shadow-sm">
+                        <p class="text-xs font-black uppercase tracking-normal text-atlantia-wine">Codigo de entrega</p>
+                        <h2 class="mt-1 text-xl font-black text-atlantia-ink">Comparte este codigo al recibir</h2>
+                        <div class="mt-4 grid grid-cols-4 gap-2">
+                            @foreach (str_split((string) $ruta->confirmation_code) as $digit)
+                                <span class="grid h-16 place-items-center rounded-lg border border-atlantia-rose/25 bg-atlantia-blush text-3xl font-black text-atlantia-wine">
+                                    {{ $digit }}
+                                </span>
+                            @endforeach
+                        </div>
+                        <p class="mt-4 rounded-lg bg-amber-50 p-3 text-sm font-bold leading-6 text-amber-800">
+                            Entrega este codigo solo cuando tengas tu pedido en mano.
+                        </p>
+                    </section>
+                @endif
+
                 <section class="rounded-lg border border-atlantia-rose/20 bg-white p-5 shadow-sm">
                     <h2 class="text-xl font-black text-atlantia-ink">Entrega</h2>
                     <dl class="mt-4 space-y-4 text-sm">

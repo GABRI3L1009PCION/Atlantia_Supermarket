@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DevolucionController;
 use App\Http\Controllers\Admin\DteController;
 use App\Http\Controllers\Admin\EmpleadoController;
+use App\Http\Controllers\Admin\ExternalDeliveryOrderController;
 use App\Http\Controllers\Admin\HeroBannerController;
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\MlMonitorController;
@@ -43,6 +44,8 @@ Route::prefix('admin')
 
         Route::get('/vendedores', [VendedorController::class, 'index'])->name('vendedores.index');
         Route::get('/vendedores/reporte/pdf', [VendedorController::class, 'reportPdf'])->name('vendedores.report.pdf');
+        Route::get('/vendedores/{vendor:uuid}/documentos/{document}', [VendedorController::class, 'document'])
+            ->name('vendedores.documents.show');
         Route::get('/vendedores/{vendor:uuid}', [VendedorController::class, 'show'])->name('vendedores.show');
         Route::patch('/vendedores/{vendor:uuid}/aprobar', [VendedorController::class, 'approve'])
             ->name('vendedores.approve');
@@ -74,6 +77,11 @@ Route::prefix('admin')
         Route::get('/pedidos/{pedido:uuid}', [PedidoController::class, 'show'])->name('pedidos.show');
         Route::put('/pedidos/{pedido:uuid}', [PedidoController::class, 'update'])->name('pedidos.update');
 
+        Route::get('/entregas-externas', [ExternalDeliveryOrderController::class, 'index'])->name('entregas-externas.index');
+        Route::post('/entregas-externas', [ExternalDeliveryOrderController::class, 'store'])->name('entregas-externas.store');
+        Route::get('/entregas-externas/{externalDeliveryOrder:uuid}', [ExternalDeliveryOrderController::class, 'show'])->name('entregas-externas.show');
+        Route::patch('/entregas-externas/{externalDeliveryOrder:uuid}/asignar', [ExternalDeliveryOrderController::class, 'assign'])->name('entregas-externas.assign');
+
         Route::get('/repartidores', [RepartidorController::class, 'index'])->name('repartidores.index');
         Route::post('/repartidores', [RepartidorController::class, 'store'])->name('repartidores.store');
         Route::get('/repartidores/{repartidor:uuid}', [RepartidorController::class, 'show'])
@@ -102,7 +110,7 @@ Route::prefix('admin')
         Route::get('/usuarios/{usuario:uuid}', [UsuarioController::class, 'show'])->name('usuarios.show');
         Route::put('/usuarios/{usuario:uuid}', [UsuarioController::class, 'update'])->name('usuarios.update');
         Route::delete('/usuarios/{usuario:uuid}', [UsuarioController::class, 'destroy'])->name('usuarios.destroy');
-        Route::get('/impersonar/{usuario:uuid}', [ImpersonationController::class, 'start'])
+        Route::post('/impersonar/{usuario:uuid}', [ImpersonationController::class, 'start'])
             ->name('impersonation.start');
 
         Route::get('/roles-permisos', [RolPermisoController::class, 'index'])->name('roles-permisos.index');

@@ -86,8 +86,6 @@ class Pedido extends Model
 
     /**
      * Usa UUID para rutas publicas del pedido.
-     *
-     * @return string
      */
     public function getRouteKeyName(): string
     {
@@ -225,6 +223,26 @@ class Pedido extends Model
     }
 
     /**
+     * Ofertas de entrega emitidas para el pedido.
+     *
+     * @return HasMany<DeliveryOffer>
+     */
+    public function deliveryOffers(): HasMany
+    {
+        return $this->hasMany(DeliveryOffer::class);
+    }
+
+    /**
+     * Tickets de soporte asociados al pedido.
+     *
+     * @return HasMany<CourierSupportTicket>
+     */
+    public function courierSupportTickets(): HasMany
+    {
+        return $this->hasMany(CourierSupportTicket::class);
+    }
+
+    /**
      * Resenas originadas por el pedido.
      *
      * @return HasMany<Resena>
@@ -237,8 +255,7 @@ class Pedido extends Model
     /**
      * Filtra pedidos por estado.
      *
-     * @param Builder<Pedido> $query
-     * @param string $estado
+     * @param  Builder<Pedido>  $query
      * @return Builder<Pedido>
      */
     public function scopeEstado(Builder $query, string $estado): Builder
@@ -249,7 +266,7 @@ class Pedido extends Model
     /**
      * Filtra pedidos pendientes.
      *
-     * @param Builder<Pedido> $query
+     * @param  Builder<Pedido>  $query
      * @return Builder<Pedido>
      */
     public function scopePending(Builder $query): Builder
@@ -260,7 +277,7 @@ class Pedido extends Model
     /**
      * Filtra pedidos padres multivendedor.
      *
-     * @param Builder<Pedido> $query
+     * @param  Builder<Pedido>  $query
      * @return Builder<Pedido>
      */
     public function scopePadres(Builder $query): Builder
@@ -271,7 +288,7 @@ class Pedido extends Model
     /**
      * Filtra pedidos hijos por vendedor.
      *
-     * @param Builder<Pedido> $query
+     * @param  Builder<Pedido>  $query
      * @return Builder<Pedido>
      */
     public function scopeHijos(Builder $query): Builder

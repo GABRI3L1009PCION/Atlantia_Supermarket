@@ -231,7 +231,7 @@
                                             <span class="font-bold text-atlantia-wine">{{ $dte->uuid_sat }}</span>
                                         </div>
                                         <a
-                                            href="{{ $dte->pdf_path ? asset('storage/' . $dte->pdf_path) : '#' }}"
+                                            href="{{ $dte->pdf_path ? route('dte.pdf', $dte) : '#' }}"
                                             class="rounded-md border border-atlantia-rose/40 px-4 py-3 text-center text-sm font-bold
                                                 text-atlantia-wine hover:bg-atlantia-blush"
                                         >
