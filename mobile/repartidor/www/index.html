@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Atlantia Repartidor</title>
+  <link rel="stylesheet" href="./styles.css?v=20260704-accepted-1">
+</head>
+<body>
+  <div class="launch-screen" data-launch>
+    <img src="./assets/animated.gif" alt="Atlantia Repartidor">
+  </div>
+
+  <main class="app-shell">
+    <section class="login-screen" data-screen="login">
+      <div class="login-hero">
+        <img class="login-logo" src="./assets/logrepartidor.png" alt="Atlantia Repartidor">
+      </div>
+
+      <div class="login-copy">
+        <h1>Bienvenido de nuevo</h1>
+        <p>Ingresa para continuar entregando con Atlantia.</p>
+      </div>
+
+      <form class="login-card" data-login-form>
+        <label class="field">
+          <span>Correo</span>
+          <input name="email" type="email" autocomplete="email" placeholder="tu correo de repartidor" required>
+        </label>
+
+        <label class="field password-field">
+          <span>Contrasena</span>
+          <input name="password" type="password" autocomplete="current-password" placeholder="Ingresa tu contrasena" required>
+          <button type="button" data-toggle-password aria-label="Mostrar contrasena">Ver</button>
+        </label>
+
+        <details class="server-settings">
+          <summary>Ajustes de servidor</summary>
+          <label class="field">
+            <span>Servidor</span>
+            <input name="api_base_url" type="text" value="" placeholder="Automatico o 192.168.x.x" inputmode="url" autocomplete="url">
+          </label>
+        </details>
+
+        <button class="primary-action" type="submit" data-login-submit>
+          <span>Ingresar</span>
+          <span aria-hidden="true">-></span>
+        </button>
+        <p class="form-message" data-login-message></p>
+
+        <div class="secure-note">
+          <span aria-hidden="true">[]</span>
+          <p>Tus datos estan protegidos. Solo tu puedes acceder a esta cuenta.</p>
+        </div>
+      </form>
+    </section>
+
+    <section class="home-screen hidden" data-screen="home">
+      <header class="topbar">
+        <div class="driver-intro">
+          <p class="eyebrow">Atlantia Repartidor</p>
+          <h2 data-driver-name>En ruta</h2>
+          <span class="connection-pill"><span aria-hidden="true"></span><span data-connection-label>Conectado</span></span>
+        </div>
+        <div class="driver-actions">
+          <div class="driver-avatar" data-driver-initials>AR</div>
+          <button class="ghost-button logout-button" type="button" data-logout aria-label="Cerrar sesion">
+            <span class="button-icon icon-exit" aria-hidden="true"></span>
+            Salir
+          </button>
+        </div>
+      </header>
+      <p class="home-message" data-home-message></p>
+
+      <div class="tab-panel" data-tab-panel="home">
+        <section class="status-card">
+          <div class="status-main">
+            <span class="status-orb icon-wifi" aria-hidden="true"></span>
+            <div>
+            <p>Estado actual</p>
+            <strong data-availability>Desconectado</strong>
+            </div>
+          </div>
+          <div class="status-actions">
+            <button class="status-option online-option" type="button" data-go-online><span aria-hidden="true"></span>En linea</button>
+            <button class="status-option offline-option" type="button" data-go-offline><span aria-hidden="true"></span>Desconectar</button>
+          </div>
+        </section>
+
+        <section class="metrics-grid">
+          <article>
+            <span class="metric-icon icon-wallet" aria-hidden="true"></span>
+            <div>
+              <span>Hoy</span>
+              <strong data-today-earnings>Q 0.00</strong>
+              <small data-today-orders>0 pedidos</small>
+            </div>
+          </article>
+          <article>
+            <span class="metric-icon icon-star" aria-hidden="true"></span>
+            <div>
+              <span>Nivel</span>
+              <strong data-reward-level>Aprendiz</strong>
+              <small><span class="rating-star" aria-hidden="true"></span><span data-rating>5.0 calificacion</span></small>
+            </div>
+          </article>
+        </section>
+
+        <section class="gps-card">
+          <span class="gps-orb icon-pin" aria-hidden="true"></span>
+          <div>
+            <h3>GPS en vivo</h3>
+            <p data-gps-status>Listo para iniciar seguimiento.</p>
+          </div>
+          <button type="button" data-toggle-gps><span class="button-icon icon-pin-small" aria-hidden="true"></span>Iniciar GPS</button>
+        </section>
+
+        <section class="offers-section">
+          <div class="section-title">
+            <h3><span class="title-icon icon-bag" aria-hidden="true"></span>Pedidos entrantes</h3>
+            <button type="button" data-refresh>Actualizar</button>
+          </div>
+          <div class="offers-list" data-offers-list></div>
+        </section>
+
+        <section class="current-section">
+          <div class="section-title">
+            <h3><span class="title-icon icon-bike" aria-hidden="true"></span>Entrega actual</h3>
+          </div>
+          <div data-current-order class="empty-state route-empty">
+            <span class="empty-icon icon-route" aria-hidden="true"></span>
+            <div>
+              <strong>Sin entrega activa.</strong>
+              <p>Acepta un pedido para ver los detalles aqui.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="tab-panel hidden" data-tab-panel="offers">
+        <section class="offers-section">
+          <div class="section-title">
+            <h3>Pedidos entrantes</h3>
+            <button type="button" data-refresh>Actualizar</button>
+          </div>
+          <div class="offers-list" data-offers-list></div>
+        </section>
+
+        <section class="current-section">
+          <div class="section-title">
+            <h3>Entrega actual</h3>
+          </div>
+          <div data-current-order class="empty-state">Sin entrega activa.</div>
+        </section>
+      </div>
+
+      <div class="tab-panel hidden" data-tab-panel="wallet">
+        <section class="section-title solo">
+          <h3>Ganancias</h3>
+        </section>
+        <div class="wallet-panel" data-wallet-panel>
+          <article>
+            <span>Disponible</span>
+            <strong data-wallet-available>Q 0.00</strong>
+          </article>
+          <article>
+            <span>Esta semana</span>
+            <strong data-week-earnings>Q 0.00</strong>
+          </article>
+          <article>
+            <span>Propinas</span>
+            <strong data-tip-earnings>Q 0.00</strong>
+          </article>
+          <article>
+            <span>Bonos</span>
+            <strong data-bonus-earnings>Q 0.00</strong>
+          </article>
+        </div>
+      </div>
+
+      <div class="tab-panel hidden" data-tab-panel="support">
+        <section class="section-title solo">
+          <h3>Soporte</h3>
+        </section>
+        <div class="support-panel">
+          <article>
+            <strong>Centro de ayuda</strong>
+            <span>Preguntas frecuentes y asistencia local.</span>
+          </article>
+          <article>
+            <strong>Contactar soporte</strong>
+            <span>Estamos para ayudarte durante la ruta.</span>
+          </article>
+          <article class="danger">
+            <strong>Emergencia</strong>
+            <span>Linea directa para accidentes o incidentes.</span>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav hidden" data-bottom-nav>
+    <button type="button" data-tab="home"><span class="nav-icon icon-home" aria-hidden="true"></span><span>Inicio</span></button>
+    <button type="button" data-tab="offers"><span class="nav-icon icon-clipboard" aria-hidden="true"></span><span>Pedidos</span></button>
+    <button type="button" data-tab="wallet"><span class="nav-icon icon-wallet" aria-hidden="true"></span><span>Ganancias</span></button>
+    <button type="button" data-tab="support"><span class="nav-icon icon-headset" aria-hidden="true"></span><span>Soporte</span></button>
+  </nav>
+
+  <script src="./app.js?v=20260704-accepted-1"></script>
+</body>
+</html>

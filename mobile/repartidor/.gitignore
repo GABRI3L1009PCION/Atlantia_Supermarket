@@ -1,0 +1,8 @@
+node_modules/
+dist/
+www/.cache/
+*.keystore
+*.jks
+google-services.json
+.gradle/
+build/
