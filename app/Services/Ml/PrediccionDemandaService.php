@@ -5,6 +5,7 @@ namespace App\Services\Ml;
 use App\Contracts\MlServiceContract;
 use App\Exceptions\MlServiceUnavailableException;
 use App\Models\Ml\SalesPrediction;
+use App\Models\PedidoItem;
 use App\Models\Producto;
 use App\Models\User;
 use App\Services\Ml\Fallback\FallbackPrediccionService;
@@ -23,14 +24,10 @@ class PrediccionDemandaService
     public function __construct(
         private readonly MlServiceContract $mlClient,
         private readonly FallbackPrediccionService $fallbackPrediccionService
-    ) {
-    }
+    ) {}
 
     /**
      * Lista predicciones del vendedor autenticado.
-     *
-     * @param User $user
-     * @return LengthAwarePaginator
      */
     public function forVendor(User $user, array $filters = []): LengthAwarePaginator
     {
@@ -78,7 +75,7 @@ class PrediccionDemandaService
     }
 
     /**
-     * @param Collection<int, SalesPrediction> $predictions
+     * @param  Collection<int, SalesPrediction>  $predictions
      */
     private function stockRiskCount(Collection $predictions): int
     {
@@ -92,9 +89,7 @@ class PrediccionDemandaService
     /**
      * Obtiene o genera prediccion para un producto.
      *
-     * @param Producto $producto
-     * @param array<string, mixed> $data
-     * @return SalesPrediction
+     * @param  array<string, mixed>  $data
      */
     public function forProduct(Producto $producto, array $data = []): SalesPrediction
     {
@@ -113,10 +108,6 @@ class PrediccionDemandaService
 
     /**
      * Genera prediccion usando microservicio ML o fallback local.
-     *
-     * @param Producto $producto
-     * @param int $horizonteDias
-     * @return SalesPrediction
      */
     public function generar(Producto $producto, int $horizonteDias): SalesPrediction
     {
@@ -128,6 +119,7 @@ class PrediccionDemandaService
                 'vendor_id' => $producto->vendor_id,
                 'horizonte_dias' => $horizonteDias,
                 'stock_actual' => $producto->inventario?->stock_actual,
+                'historial' => $this->historialVentas($producto),
             ]);
         } catch (MlServiceUnavailableException) {
             $resultado = $this->fallbackPrediccionService->predecir($producto, $horizonteDias);
@@ -143,5 +135,27 @@ class PrediccionDemandaService
             'intervalo_superior' => $resultado['intervalo_superior'] ?? null,
             'modelo_version_id' => $resultado['modelo_version_id'] ?? null,
         ]));
+    }
+
+    /**
+     * Construye una serie diaria de ventas reciente compatible con FastAPI.
+     *
+     * @return array<int, array{fecha: string, unidades: float}>
+     */
+    private function historialVentas(Producto $producto): array
+    {
+        return PedidoItem::query()
+            ->selectRaw('DATE(created_at) as fecha, SUM(cantidad) as unidades')
+            ->where('producto_id', $producto->id)
+            ->where('created_at', '>=', now()->subDays(60))
+            ->groupByRaw('DATE(created_at)')
+            ->orderBy('fecha')
+            ->get()
+            ->map(fn ($row): array => [
+                'fecha' => (string) $row->fecha,
+                'unidades' => (float) $row->unidades,
+            ])
+            ->values()
+            ->all();
     }
 }

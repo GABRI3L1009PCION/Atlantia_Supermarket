@@ -16,9 +16,7 @@ class SecurityHeaders
     /**
      * Procesa la solicitud y agrega cabeceras seguras.
      *
-     * @param Request $request
-     * @param Closure(Request): Response $next
-     * @return Response
+     * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -60,6 +58,9 @@ class SecurityHeaders
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('X-Permitted-Cross-Domain-Policies', 'none');
+        if ($request->is('api/*')) {
+            $response->headers->set('Access-Control-Allow-Private-Network', 'true');
+        }
         /* En desarrollo con ngrok se amplía la política de geolocalización */
         $geoPolicy = app()->environment('local')
             ? 'geolocation=*, camera=(), microphone=()'
@@ -86,7 +87,6 @@ class SecurityHeaders
         $scriptSrc = [
             "'self'",
             "'nonce-{$nonce}'",
-            "'unsafe-eval'",
             'https://api.mapbox.com',
             'https://maps.googleapis.com',
             'https://maps.gstatic.com',
@@ -109,7 +109,7 @@ class SecurityHeaders
         ];
 
         if (app()->environment('local')) {
-            array_push($scriptSrc, 'http://127.0.0.1:5173', 'http://localhost:5173', 'https://*.ngrok-free.dev', 'https://*.ngrok-free.app', 'https://*.ngrok.io');
+            array_push($scriptSrc, "'unsafe-eval'", 'http://127.0.0.1:5173', 'http://localhost:5173', 'https://*.ngrok-free.dev', 'https://*.ngrok-free.app', 'https://*.ngrok.io');
             array_push(
                 $connectSrc,
                 'http://127.0.0.1:5173',
@@ -135,9 +135,9 @@ class SecurityHeaders
             "img-src 'self' data: blob: https:",
             "font-src 'self' data: https://fonts.gstatic.com",
             "style-src 'self' 'unsafe-inline' https://api.mapbox.com https://fonts.googleapis.com https://fonts.gstatic.com",
-            'script-src ' . implode(' ', $scriptSrc),
-            'connect-src ' . implode(' ', $connectSrc),
-            'frame-src ' . implode(' ', $frameSrc),
+            'script-src '.implode(' ', $scriptSrc),
+            'connect-src '.implode(' ', $connectSrc),
+            'frame-src '.implode(' ', $frameSrc),
             "worker-src 'self' blob:",
             "manifest-src 'self'",
         ]);

@@ -4,6 +4,7 @@ namespace App\Services\Ml;
 
 use App\Exceptions\MlServiceUnavailableException;
 use App\Models\Ml\RestockSuggestion;
+use App\Models\PedidoItem;
 use App\Models\Producto;
 use App\Models\Vendor;
 use App\Services\Ml\Fallback\ReglaSimpleReabastoService;
@@ -21,18 +22,16 @@ class SugerenciaReabastoService
     public function __construct(
         private readonly MlServiceClient $mlClient,
         private readonly ReglaSimpleReabastoService $reglaSimpleReabastoService
-    ) {
-    }
+    ) {}
 
     /**
      * Genera sugerencias para productos de un vendedor.
      *
-     * @param Vendor $vendor
      * @return EloquentCollection<int, RestockSuggestion>
      */
     public function generarParaVendor(Vendor $vendor): EloquentCollection
     {
-        $resultados = new EloquentCollection();
+        $resultados = new EloquentCollection;
 
         $vendor->productos()->with('inventario')->active()->chunkById(100, function ($productos) use ($resultados): void {
             foreach ($productos as $producto) {
@@ -49,9 +48,6 @@ class SugerenciaReabastoService
 
     /**
      * Genera una sugerencia para un producto.
-     *
-     * @param Producto $producto
-     * @return RestockSuggestion|null
      */
     public function generarParaProducto(Producto $producto): ?RestockSuggestion
     {
@@ -62,11 +58,13 @@ class SugerenciaReabastoService
         }
 
         try {
-            $resultado = $this->mlClient->post('/forecast/restock', [
+            $resultado = $this->mlClient->post('/restock/suggest', [
                 'producto_id' => $producto->id,
                 'vendor_id' => $producto->vendor_id,
                 'stock_actual' => $producto->inventario->stock_actual,
-                'stock_reservado' => $producto->inventario->stock_reservado,
+                'stock_minimo' => $producto->inventario->stock_minimo,
+                'ventas_promedio_diarias' => $this->ventasPromedioDiarias($producto),
+                'lead_time_dias' => 3,
             ]);
         } catch (MlServiceUnavailableException) {
             $resultado = $this->reglaSimpleReabastoService->calcular($producto->inventario);
@@ -92,5 +90,18 @@ class SugerenciaReabastoService
         }
 
         return $suggestion;
+    }
+
+    /**
+     * Promedio diario de unidades vendidas en los ultimos 30 dias.
+     */
+    private function ventasPromedioDiarias(Producto $producto): float
+    {
+        $ventas = PedidoItem::query()
+            ->where('producto_id', $producto->id)
+            ->where('created_at', '>=', now()->subDays(30))
+            ->sum('cantidad');
+
+        return round(((float) $ventas) / 30, 2);
     }
 }

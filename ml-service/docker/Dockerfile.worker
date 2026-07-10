@@ -1,4 +1,4 @@
-FROM python:3.11-slim-bookworm
+FROM python:3.11-slim-bookworm AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -12,10 +12,33 @@ WORKDIR /app
 
 COPY pyproject.toml README.md ./
 COPY app ./app
-COPY scripts ./scripts
 
-RUN pip install --upgrade pip \
-    && pip install ".[dev]" \
-    && chmod +x /app/scripts/*.sh
+RUN python -m venv /opt/venv \
+    && /opt/venv/bin/pip install --upgrade pip \
+    && /opt/venv/bin/pip install "."
+
+FROM python:3.11-slim-bookworm
+
+ENV PATH="/opt/venv/bin:${PATH}"
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl libgomp1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system atlantia \
+    && useradd --system --gid atlantia --home-dir /app --shell /usr/sbin/nologin atlantia
+
+WORKDIR /app
+
+COPY --from=builder /opt/venv /opt/venv
+COPY --chown=atlantia:atlantia app ./app
+COPY --chown=atlantia:atlantia scripts ./scripts
+
+RUN chmod +x /app/scripts/*.sh \
+    && chown -R atlantia:atlantia /app
+
+USER atlantia
 
 ENTRYPOINT ["/app/scripts/entrypoint-worker.sh"]

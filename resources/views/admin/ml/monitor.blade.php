@@ -40,7 +40,8 @@
             '/predict/demand' => 'Prediccion de demanda',
             '/recommend/products' => 'Recomendacion de productos',
             '/fraud/review' => 'Revision antifraude',
-            '/fraud/order' => 'Analisis de pedido sospechoso',
+            '/fraud/orders' => 'Analisis de pedido sospechoso',
+            '/restock/suggest' => 'Sugerencia de reabasto',
             default => $endpoint ?: 'Servicio ML',
         };
 

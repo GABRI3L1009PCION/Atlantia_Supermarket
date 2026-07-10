@@ -14,9 +14,7 @@ class VerificarMlServiceToken
     /**
      * Valida token bearer o firma HMAC del servicio ML.
      *
-     * @param Request $request
-     * @param Closure(Request): Response $next
-     * @return Response
+     * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -29,13 +27,10 @@ class VerificarMlServiceToken
 
     /**
      * Verifica token bearer compartido.
-     *
-     * @param Request $request
-     * @return bool
      */
     private function hasValidBearerToken(Request $request): bool
     {
-        $expectedToken = (string) config('services.ml.token', env('ML_SERVICE_TOKEN', ''));
+        $expectedToken = (string) config('services.ml.service_token', env('ML_SERVICE_TOKEN', ''));
 
         if ($expectedToken === '') {
             return false;
@@ -46,9 +41,6 @@ class VerificarMlServiceToken
 
     /**
      * Verifica firma HMAC del body recibido.
-     *
-     * @param Request $request
-     * @return bool
      */
     private function hasValidSignature(Request $request): bool
     {

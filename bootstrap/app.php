@@ -2,7 +2,9 @@
 
 use App\Exceptions\AtlantiaDomainException;
 use App\Http\Middleware\AuditoriaRequest;
+use App\Http\Middleware\BloquearPorIntentos;
 use App\Http\Middleware\ForceHttps;
+use App\Http\Middleware\PrivateNetworkAccess;
 use App\Http\Middleware\RateLimitCheckout;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\VendedorAprobado;
@@ -29,17 +31,26 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        /* Confiar en todos los proxies (necesario para ngrok / túnel) */
-        $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_FOR |
+        /* En produccion, TRUSTED_PROXIES debe apuntar al balanceador/CDN. */
+        $trustedProxies = (string) env('TRUSTED_PROXIES', '');
+        $trustedProxies = $trustedProxies === ''
+            ? null
+            : ($trustedProxies === '*' ? '*' : array_map('trim', explode(',', $trustedProxies)));
+
+        $middleware->trustProxies(at: $trustedProxies, headers: Request::HEADER_X_FORWARDED_FOR |
             Request::HEADER_X_FORWARDED_HOST |
             Request::HEADER_X_FORWARDED_PORT |
             Request::HEADER_X_FORWARDED_PROTO
         );
 
+        $middleware->prepend(PrivateNetworkAccess::class);
+
         $middleware->web(append: [
+            ForceHttps::class,
             SecurityHeaders::class,
         ]);
         $middleware->api(append: [
+            ForceHttps::class,
             SecurityHeaders::class,
         ]);
         $middleware->validateCsrfTokens(except: [
@@ -53,6 +64,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'audit.request' => AuditoriaRequest::class,
             'checkout.rate' => RateLimitCheckout::class,
             'force.https' => ForceHttps::class,
+            'login.lockout' => BloquearPorIntentos::class,
             'ml.token' => VerificarMlServiceToken::class,
             'ownership' => VerificarOwnership::class,
             'permission' => PermissionMiddleware::class,

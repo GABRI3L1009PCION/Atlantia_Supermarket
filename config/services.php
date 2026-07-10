@@ -70,7 +70,7 @@ return [
     ],
 
     'ml' => [
-        'base_url' => env('ML_SERVICE_URL', 'http://ml-api:8000'),
+        'base_url' => env('ML_SERVICE_URL', 'http://ml-api:8000/api/v1'),
         'service_token' => env('ML_SERVICE_TOKEN'),
         'webhook_secret' => env('ML_WEBHOOK_SECRET'),
         'timeout_seconds' => (int) env('ML_TIMEOUT_SECONDS', 10),

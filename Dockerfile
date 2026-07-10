@@ -1,3 +1,14 @@
+FROM node:22-alpine AS assets
+
+WORKDIR /app
+
+COPY package.json package-lock.json vite.config.js ./
+COPY resources ./resources
+COPY public ./public
+
+RUN npm ci --ignore-scripts \
+    && npm run build
+
 FROM php:8.3-fpm-bookworm AS base
 
 ARG UID=1000
@@ -5,12 +16,13 @@ ARG GID=1000
 
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
+ENV APP_ENV=production
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         bash \
+        ca-certificates \
         curl \
-        git \
         libicu-dev \
         libjpeg62-turbo-dev \
         libpng-dev \
@@ -35,10 +47,14 @@ COPY docker/php/php.ini /usr/local/etc/php/conf.d/99-atlantia.ini
 COPY docker/php/entrypoint.sh /usr/local/bin/atlantia-entrypoint
 RUN chmod +x /usr/local/bin/atlantia-entrypoint
 
-COPY --chown=atlantia:atlantia . .
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
 
-RUN if [ -f composer.json ]; then composer install --no-interaction --prefer-dist --optimize-autoloader; fi \
-    && mkdir -p storage bootstrap/cache \
+COPY --chown=atlantia:atlantia . .
+COPY --from=assets --chown=atlantia:atlantia /app/public/build ./public/build
+
+RUN composer dump-autoload --no-dev --optimize --classmap-authoritative \
+    && mkdir -p storage/app/private storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chown -R atlantia:atlantia storage bootstrap/cache
 
 USER atlantia
@@ -47,7 +63,3 @@ ENTRYPOINT ["atlantia-entrypoint"]
 CMD ["php-fpm"]
 
 FROM base AS production
-
-USER root
-RUN if [ -f composer.json ]; then composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader; fi
-USER atlantia
