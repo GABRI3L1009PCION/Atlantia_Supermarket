@@ -3,14 +3,16 @@
 use App\Http\Controllers\Cliente\CarritoController;
 use App\Http\Controllers\Cliente\CatalogoController;
 use App\Http\Controllers\Cliente\CheckoutController;
-use App\Http\Controllers\Cliente\DireccionController;
+use App\Http\Controllers\Cliente\ComercioController;
 use App\Http\Controllers\Cliente\DevolucionController;
+use App\Http\Controllers\Cliente\DireccionController;
 use App\Http\Controllers\Cliente\PedidoController;
 use App\Http\Controllers\Cliente\PerfilController;
 use App\Http\Controllers\Cliente\ProductoController;
 use App\Http\Controllers\Cliente\RecomendacionController;
 use App\Http\Controllers\Cliente\ResenaController;
 use App\Http\Controllers\Cliente\SeguimientoController;
+use App\Http\Controllers\Cliente\UbicacionController;
 use App\Http\Controllers\Cliente\WishlistController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,7 +27,12 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/catalogo', [CatalogoController::class, 'index'])->name('catalogo.index');
+Route::get('/comercios', [ComercioController::class, 'index'])->name('comercios.index');
+Route::get('/comercios/{vendor:slug}', [ComercioController::class, 'show'])->name('comercios.show');
 Route::get('/productos/{producto:uuid}', [ProductoController::class, 'show'])->name('productos.show');
+Route::post('/cliente/ubicacion', [UbicacionController::class, 'store'])
+    ->middleware('throttle:30,1')
+    ->name('cliente.ubicacion.store');
 
 Route::prefix('cliente')
     ->as('cliente.')

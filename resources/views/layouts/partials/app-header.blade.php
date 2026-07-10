@@ -11,7 +11,7 @@
     };
 
     $panelTitle = match (true) {
-        $user?->hasRole('admin') => 'Administracion Atlantia',
+        $user?->hasRole('admin') => 'Administracion Atlantia Delivery',
         $user?->hasRole('vendedor') => 'Panel de vendedor',
         $user?->hasRole('repartidor') => 'Panel de repartidor',
         $user?->hasRole('bodeguero') => 'Panel de bodega',
@@ -19,7 +19,7 @@
         $user?->hasRole('contabilidad_finanzas') => 'Panel contable y financiero',
         $user?->hasRole('supervisor_logistica') => 'Panel de supervision logistica',
         $user?->hasRole('empleado') => 'Panel operativo Atlantia',
-        default => 'Atlantia Supermarket',
+        default => 'Atlantia Delivery',
     };
 
     $quickLinks = match (true) {
@@ -30,6 +30,7 @@
             ['label' => 'Vendedores', 'route' => route('admin.vendedores.index'), 'active' => request()->routeIs('admin.vendedores.*')],
             ['label' => 'Productos', 'route' => route('admin.productos.index'), 'active' => request()->routeIs('admin.productos.*')],
             ['label' => 'Pedidos', 'route' => route('admin.pedidos.index'), 'active' => request()->routeIs('admin.pedidos.*')],
+            ['label' => 'Entregas externas', 'route' => route('admin.entregas-externas.index'), 'active' => request()->routeIs('admin.entregas-externas.*')],
             ['label' => 'Cupones', 'route' => route('admin.cupones.index'), 'active' => request()->routeIs('admin.cupones.*')],
             ['label' => 'Nominas', 'route' => route('admin.nominas.index'), 'active' => request()->routeIs('admin.nominas.*')],
             ['label' => 'DTE', 'route' => route('admin.dte.index'), 'active' => request()->routeIs('admin.dte.*')],
@@ -52,7 +53,10 @@
         $user?->hasRole('repartidor') => [
             ['label' => 'Vista general', 'route' => route('repartidor.dashboard'), 'active' => request()->routeIs('repartidor.dashboard')],
             ['label' => 'Entregas', 'route' => route('repartidor.pedidos.index'), 'active' => request()->routeIs('repartidor.pedidos.*')],
+            ['label' => 'Tiendas online', 'route' => route('repartidor.externas.index'), 'active' => request()->routeIs('repartidor.externas.*')],
             ['label' => 'Rutas', 'route' => route('repartidor.rutas.index'), 'active' => request()->routeIs('repartidor.rutas.*')],
+            ['label' => 'Ganancias', 'route' => route('repartidor.ganancias.index'), 'active' => request()->routeIs('repartidor.ganancias.*')],
+            ['label' => 'Soporte', 'route' => route('repartidor.soporte.index'), 'active' => request()->routeIs('repartidor.soporte.*')],
         ],
         default => [],
     };
@@ -72,6 +76,7 @@
                 ['label' => 'Categorias', 'route' => route('admin.categorias.index'), 'active' => request()->routeIs('admin.categorias.*')],
                 ['label' => 'Banners hero', 'route' => route('admin.hero-banners.index'), 'active' => request()->routeIs('admin.hero-banners.*')],
                 ['label' => 'Pedidos', 'route' => route('admin.pedidos.index'), 'active' => request()->routeIs('admin.pedidos.*')],
+                ['label' => 'Entregas externas', 'route' => route('admin.entregas-externas.index'), 'active' => request()->routeIs('admin.entregas-externas.*')],
                 ['label' => 'Zonas de entrega', 'route' => route('admin.zonas-entrega.index'), 'active' => request()->routeIs('admin.zonas-entrega.*')],
             ],
             'Finanzas y control' => [
@@ -120,17 +125,21 @@
             'Entregas' => [
                 ['label' => 'Vista general', 'route' => route('repartidor.dashboard'), 'active' => request()->routeIs('repartidor.dashboard')],
                 ['label' => 'Entregas', 'route' => route('repartidor.pedidos.index'), 'active' => request()->routeIs('repartidor.pedidos.*')],
+                ['label' => 'Tiendas online', 'route' => route('repartidor.externas.index'), 'active' => request()->routeIs('repartidor.externas.*')],
                 ['label' => 'Rutas', 'route' => route('repartidor.rutas.index'), 'active' => request()->routeIs('repartidor.rutas.*')],
+                ['label' => 'Ganancias', 'route' => route('repartidor.ganancias.index'), 'active' => request()->routeIs('repartidor.ganancias.*')],
+                ['label' => 'Historial', 'route' => route('repartidor.historial.index'), 'active' => request()->routeIs('repartidor.historial.*')],
+                ['label' => 'Soporte', 'route' => route('repartidor.soporte.index'), 'active' => request()->routeIs('repartidor.soporte.*')],
             ],
         ],
         default => [],
     };
 @endphp
 
-<header class="sticky top-0 z-50 border-b border-atlantia-rose/15 bg-white shadow-sm">
+<header class="{{ request()->routeIs('repartidor.dashboard', 'repartidor.pedidos.show', 'repartidor.ganancias.index', 'repartidor.historial.index') ? 'hidden md:sticky md:block' : 'sticky' }} top-0 z-50 border-b border-atlantia-rose/15 bg-white shadow-sm">
     <div class="flex h-14 items-center justify-between gap-2 px-4 sm:h-16 sm:gap-4 sm:px-6 lg:px-8">
 
-        {{-- Izquierda: logo + título --}}
+        {{-- Izquierda: logo + titulo --}}
         <div class="flex min-w-0 items-center gap-2.5">
             @if ($mobileSections !== [])
                 <details class="group relative xl:hidden">
@@ -143,7 +152,7 @@
                     <div class="fixed inset-x-3 top-[4.25rem] z-[80] max-h-[calc(100vh-5.5rem)] overflow-y-auto rounded-2xl border border-atlantia-rose/20 bg-white p-4 text-atlantia-ink shadow-2xl">
                         <div class="flex items-center justify-between gap-3 border-b border-atlantia-rose/10 pb-3">
                             <div>
-                                <p class="text-[11px] font-black uppercase tracking-[0.18em] text-atlantia-rose">Menu</p>
+                                <p class="text-[11px] font-black uppercase text-atlantia-rose">Menu</p>
                                 <p class="text-lg font-black text-atlantia-ink">{{ $panelTitle }}</p>
                             </div>
                             <span class="max-w-32 truncate rounded-full bg-atlantia-blush px-3 py-1 text-xs font-black text-atlantia-wine">{{ $user?->name }}</span>
@@ -152,7 +161,7 @@
                         <nav class="mt-4 space-y-4" aria-label="Menu administrativo movil">
                             @foreach ($mobileSections as $sectionTitle => $links)
                                 <section>
-                                    <p class="px-1 text-[11px] font-black uppercase tracking-[0.18em] text-atlantia-ink/45">{{ $sectionTitle }}</p>
+                                    <p class="px-1 text-[11px] font-black uppercase text-atlantia-ink/45">{{ $sectionTitle }}</p>
                                     <div class="mt-2 grid gap-2 sm:grid-cols-2">
                                         @foreach ($links as $link)
                                             <a href="{{ $link['route'] }}" class="{{ $link['active'] ? 'border-atlantia-wine bg-atlantia-wine text-white' : 'border-atlantia-rose/20 bg-white text-atlantia-ink hover:bg-atlantia-blush hover:text-atlantia-wine' }} flex min-h-11 items-center justify-between rounded-xl border px-3 text-sm font-black transition">
@@ -174,12 +183,12 @@
                 <img src="{{ asset($logoPath) }}" alt="Atlantia" class="h-8 w-auto sm:h-9">
             </a>
             <div class="min-w-0 hidden sm:block">
-                <p class="text-[10px] font-black uppercase tracking-widest text-atlantia-rose/80">Atlantia</p>
+                <p class="text-[10px] font-black uppercase text-atlantia-rose/80">Atlantia</p>
                 <p class="truncate text-sm font-black text-atlantia-ink leading-tight">{{ $panelTitle }}</p>
             </div>
         </div>
 
-        {{-- Derecha: notificaciones + usuario + cerrar sesión --}}
+        {{-- Derecha: notificaciones + usuario + cerrar sesion --}}
         <div class="flex shrink-0 items-center gap-2">
             <livewire:cliente.campanilla-notificaciones />
 
@@ -189,10 +198,10 @@
                 <p class="text-xs text-atlantia-ink/50">{{ $user?->email }}</p>
             </div>
 
-            {{-- Cerrar sesión --}}
+            {{-- Cerrar sesion --}}
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
-                {{-- Móvil: solo icono --}}
+                {{-- Movil: solo icono --}}
                 <button type="submit"
                     class="flex items-center gap-1.5 rounded-lg bg-atlantia-wine px-3 py-2 text-xs font-black text-white transition active:scale-95 sm:px-4 sm:text-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -204,7 +213,7 @@
         </div>
     </div>
 
-    {{-- Barra de navegación rápida (solo roles con quickLinks, solo < xl) --}}
+    {{-- Barra de navegacion rapida (solo roles con quickLinks, solo < xl) --}}
     @if ($quickLinks !== [])
         <div class="border-t border-atlantia-rose/10 bg-[#fff8fb] xl:hidden">
             <div class="flex gap-2 overflow-x-auto px-4 py-2.5 sm:px-6 lg:px-8"

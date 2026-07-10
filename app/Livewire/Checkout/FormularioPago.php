@@ -25,8 +25,11 @@ class FormularioPago extends Component
      * Campos de tarjeta para validacion visual.
      */
     public string $cardNumberPreview = '';
+
     public string $cardExpPreview = '';
+
     public string $cardCvvPreview = '';
+
     public string $cardNamePreview = '';
 
     /**
@@ -163,15 +166,24 @@ class FormularioPago extends Component
 
     /**
      * Selecciona un metodo de pago permitido.
-     *
-     * @param string $metodoPago
-     * @return void
      */
     public function seleccionarMetodo(string $metodoPago): void
     {
         $this->metodoPago = $metodoPago;
 
-        if ($metodoPago !== 'transferencia') {
+        $this->validarMetodoPago();
+    }
+
+    /**
+     * Sincroniza el formulario cuando el cliente cambia el radio.
+     */
+    public function updatedMetodoPago(string $metodoPago): void
+    {
+        if (! in_array($metodoPago, $this->metodos, true)) {
+            $this->metodoPago = 'efectivo';
+        }
+
+        if ($this->metodoPago !== 'transferencia') {
             $this->referenciaTransferencia = null;
         }
 
@@ -180,8 +192,6 @@ class FormularioPago extends Component
 
     /**
      * Valida y notifica el metodo seleccionado al formulario padre.
-     *
-     * @return void
      */
     public function validarMetodoPago(): void
     {
@@ -214,8 +224,6 @@ class FormularioPago extends Component
 
     /**
      * Renderiza el selector de pago.
-     *
-     * @return View
      */
     public function render(): View
     {

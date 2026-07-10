@@ -1,4 +1,4 @@
-@extends('layouts.marketplace', ['title' => 'Estado de solicitud | Atlantia Supermarket'])
+@extends('layouts.marketplace', ['title' => 'Estado de solicitud | Atlantia Delivery'])
 
 @section('content')
 @php
@@ -20,7 +20,7 @@
                 </div>
             @endif
 
-            <p class="text-xs font-black uppercase tracking-[0.18em] text-atlantia-rose">Atlantia Supermarket</p>
+            <p class="text-xs font-black uppercase text-atlantia-rose">Atlantia Delivery</p>
             <h1 class="mt-2 text-3xl font-black text-atlantia-ink">Tu solicitud ha sido recibida</h1>
             <p class="mt-3 text-sm leading-6 text-atlantia-ink/70">
                 Revisaremos tu documentacion en 3 a 5 dias. Te notificaremos al correo
@@ -29,11 +29,11 @@
 
             <div class="mt-6 grid gap-4 sm:grid-cols-2">
                 <div class="rounded-xl border border-atlantia-rose/25 bg-atlantia-cream p-4">
-                    <p class="text-xs font-black uppercase tracking-[0.16em] text-atlantia-rose">Numero de seguimiento</p>
+                    <p class="text-xs font-black uppercase text-atlantia-rose">Numero de seguimiento</p>
                     <p class="mt-2 text-2xl font-black text-atlantia-wine">{{ $vendor->application_code }}</p>
                 </div>
                 <div class="rounded-xl border border-atlantia-rose/25 bg-atlantia-cream p-4">
-                    <p class="text-xs font-black uppercase tracking-[0.16em] text-atlantia-rose">Estado actual</p>
+                    <p class="text-xs font-black uppercase text-atlantia-rose">Estado actual</p>
                     <p class="mt-2 text-2xl font-black text-atlantia-wine">{{ $currentStatus }}</p>
                 </div>
             </div>

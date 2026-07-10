@@ -8,6 +8,7 @@ use App\Models\Pedido;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Services\Fel\DteComprobantePdf;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -23,10 +24,10 @@ class DteInvoiceDeliveryTest extends TestCase
     /**
      * Envia el PDF al correo de facturacion aunque el cliente sea invitado interno.
      */
-    public function testFacturaPdfSeEnviaAlCorreoDeFacturacionDelInvitado(): void
+    public function test_factura_pdf_se_envia_al_correo_de_facturacion_del_invitado(): void
     {
         Mail::fake();
-        Storage::fake('public');
+        Storage::fake('local');
 
         $guest = User::factory()->cliente()->create([
             'email' => 'guest-test@invitados.atlantia.local',
@@ -74,7 +75,7 @@ class DteInvoiceDeliveryTest extends TestCase
         $dte->refresh();
 
         $this->assertNotNull($dte->pdf_path);
-        Storage::disk('public')->assertExists($dte->pdf_path);
+        Storage::disk('local')->assertExists($dte->pdf_path);
         $this->assertDatabaseHas('sent_emails', [
             'to' => 'cliente.real@example.com',
             'subject' => 'Factura Atlantia DTE-TEST-0001',
@@ -85,7 +86,7 @@ class DteInvoiceDeliveryTest extends TestCase
     /**
      * El PDF contiene el formato principal de factura FEL emulada.
      */
-    public function testPdfIncluyeFormatoFacturaFelEmulada(): void
+    public function test_pdf_incluye_formato_factura_fel_emulada(): void
     {
         $vendor = Vendor::factory()->approved()->create();
         $pedido = Pedido::factory()->create([
@@ -116,5 +117,35 @@ class DteInvoiceDeliveryTest extends TestCase
         $this->assertStringContainsString('RECEPTOR / CLIENTE', $pdf);
         $this->assertStringContainsString('Consumidor final', $pdf);
         $this->assertStringContainsString('DOCUMENTO EMULADO PARA PRUEBAS', $pdf);
+    }
+
+    /**
+     * La ruta de PDF fiscal privado solo responde al cliente propietario.
+     */
+    public function test_pdf_privado_requiere_cliente_propietario(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+        Storage::fake('local');
+
+        $cliente = User::factory()->cliente()->create();
+        $cliente->assignRole('cliente');
+        $otroCliente = User::factory()->cliente()->create();
+        $otroCliente->assignRole('cliente');
+        $vendor = Vendor::factory()->approved()->create();
+        $pedido = Pedido::factory()->create([
+            'cliente_id' => $cliente->id,
+            'vendor_id' => $vendor->id,
+        ]);
+        $dte = DteFactura::factory()->certificado()->create([
+            'pedido_id' => $pedido->id,
+            'vendor_id' => $vendor->id,
+            'pdf_path' => 'dte/pdf/test-private.pdf',
+        ]);
+
+        Storage::disk('local')->put($dte->pdf_path, '%PDF-1.4 private invoice');
+
+        $this->get(route('dte.pdf', $dte))->assertForbidden();
+        $this->actingAs($otroCliente)->get(route('dte.pdf', $dte))->assertForbidden();
+        $this->actingAs($cliente)->get(route('dte.pdf', $dte))->assertOk();
     }
 }

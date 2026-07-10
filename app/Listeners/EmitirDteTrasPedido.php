@@ -2,9 +2,9 @@
 
 namespace App\Listeners;
 
-use App\Events\PedidoCreado;
 use App\Enums\EstadoPago;
 use App\Enums\MetodoPago;
+use App\Events\PedidoCreado;
 use App\Exceptions\DteCertificadorException;
 use App\Jobs\EnviarDteAlCertificador;
 use App\Models\Pedido;
@@ -22,14 +22,20 @@ class EmitirDteTrasPedido implements ShouldQueue
 
     /**
      * Procesa el evento de pedido creado.
-     *
-     * @param PedidoCreado $event
-     * @return void
      */
     public function handle(PedidoCreado $event): void
     {
         $dteGeneradorService = app(DteGeneradorService::class);
-        $pedido = Pedido::query()->with('pedidosHijos')->findOrFail($event->pedido->id);
+        $pedido = Pedido::query()->with('pedidosHijos')->find($event->pedido->id);
+
+        if (! $pedido) {
+            Log::warning('Se omitio la emision automatica de DTE porque el pedido ya no existe.', [
+                'pedido_id' => $event->pedido->id,
+            ]);
+
+            return;
+        }
+
         $pedidosAFacturar = $pedido->pedidosHijos->isNotEmpty() ? $pedido->pedidosHijos : collect([$pedido]);
 
         foreach ($pedidosAFacturar as $pedidoHijo) {

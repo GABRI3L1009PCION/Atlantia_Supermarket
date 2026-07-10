@@ -17,7 +17,7 @@
         'Reportes' => 'M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-8',
         'Vendedores' => 'M4 10h16l-1-5H5ZM6 10v10h12V10M9 20v-6h6v6',
         'Empleados' => 'M15 3H9a2 2 0 0 0-2 2v14l5-3 5 3V5a2 2 0 0 0-2-2Z',
-        'Repartidores' => 'M3 6h11v10H3ZM14 10h4l3 3v3h-7ZM7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM17 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z',
+        'Repartidores', 'Entregas externas' => 'M3 6h11v10H3ZM14 10h4l3 3v3h-7ZM7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM17 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z',
         'Productos' => 'M21 8 12 3 3 8l9 5 9-5ZM3 8v8l9 5 9-5V8M12 13v8',
         'Categorias' => 'M3 3h7v7H3ZM14 3h7v7h-7ZM3 14h7v7H3ZM14 14h7v7h-7Z',
         'Pedidos' => 'M5 3v18l2-1 2 1 2-1 2 1 2-1 2 1 2-1V3ZM8 7h8M8 11h8M8 15h5',
@@ -47,6 +47,7 @@
             ['label' => 'Productos', 'route' => route('admin.productos.index'), 'active' => request()->routeIs('admin.productos.*')],
             ['label' => 'Categorias', 'route' => route('admin.categorias.index'), 'active' => request()->routeIs('admin.categorias.*')],
             ['label' => 'Pedidos', 'route' => route('admin.pedidos.index'), 'active' => request()->routeIs('admin.pedidos.*')],
+            ['label' => 'Entregas externas', 'route' => route('admin.entregas-externas.index'), 'active' => request()->routeIs('admin.entregas-externas.*')],
             ['label' => 'Zonas de entrega', 'route' => route('admin.zonas-entrega.index'), 'active' => request()->routeIs('admin.zonas-entrega.*')],
         ],
         'Finanzas y control' => [
@@ -72,7 +73,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $title ?? 'Administracion Atlantia' }}</title>
+    <title>{{ $title ?? 'Administracion Atlantia Delivery' }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles(['nonce' => request()->attributes->get('csp_nonce')])
@@ -83,7 +84,7 @@
             <div class="sticky top-0 flex h-screen flex-col overflow-y-auto">
                 <div class="border-b border-white/10 px-5 py-5">
                     <a href="{{ route('admin.dashboard') }}" class="block rounded-2xl bg-transparent px-3 py-3 transition hover:bg-white/[0.05]">
-                        <img src="{{ asset($logoPath) }}" alt="Atlantia Supermarket" class="mx-auto h-12 w-auto max-w-[12.5rem] object-contain drop-shadow-[0_8px_18px_rgba(255,255,255,0.18)]">
+                        <img src="{{ asset($logoPath) }}" alt="Atlantia Delivery" class="mx-auto h-12 w-auto max-w-[12.5rem] object-contain drop-shadow-[0_8px_18px_rgba(255,255,255,0.18)]">
                         <div class="mt-5 flex items-center gap-3">
                             <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#941a4c] text-sm font-black text-white shadow-[0_12px_28px_rgba(30,4,14,0.28)]">
                                 {{ $adminInitials }}
@@ -91,7 +92,7 @@
                             <div class="min-w-0">
                                 <p class="truncate text-sm font-black leading-tight text-white">{{ $adminName }}</p>
                                 <p class="mt-0.5 truncate text-xs font-semibold text-white/64">{{ $adminEmail }}</p>
-                                <span class="mt-1.5 inline-flex rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#8b1745] ring-1 ring-white/20">
+                                <span class="mt-1.5 inline-flex rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase text-[#8b1745] ring-1 ring-white/20">
                                     ADMIN GENERAL
                                 </span>
                             </div>
@@ -102,7 +103,7 @@
                 <nav class="flex-1 space-y-6 px-4 py-5 text-sm" aria-label="Navegacion super admin">
                     @foreach ($sections as $title => $links)
                         <div>
-                            <p class="px-3 text-[11px] font-black uppercase tracking-[0.32em] text-white/35">{{ $title }}</p>
+                            <p class="px-3 text-[11px] font-black uppercase text-white/35">{{ $title }}</p>
                             <div class="mt-2 space-y-1">
                                 @foreach ($links as $link)
                                     <a
@@ -131,10 +132,10 @@
             <header class="sticky top-0 z-30 border-b border-atlantia-rose/15 bg-white/95 shadow-sm backdrop-blur">
                 <div class="flex min-h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
                     <div class="flex min-w-0 items-center gap-3">
-                        <img src="{{ asset($logoPath) }}" alt="Atlantia Supermarket" class="h-9 w-auto xl:hidden">
+                        <img src="{{ asset($logoPath) }}" alt="Atlantia Delivery" class="h-9 w-auto xl:hidden">
                         <div class="hidden min-w-0 sm:block">
                             <p class="truncate text-sm font-black text-atlantia-ink">
-                                Atlantia Supermarket
+                                Atlantia Delivery
                                 <span class="ml-2 rounded bg-atlantia-blush px-2 py-1 text-xs text-atlantia-rose">ADMIN GENERAL</span>
                             </p>
                             <p class="truncate text-xs text-atlantia-ink/50">Gobierno de plataforma - produccion Guatemala</p>

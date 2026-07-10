@@ -158,7 +158,7 @@
                 wire:model.live="acepta_terminos"
                 class="mt-1 rounded border-atlantia-rose text-atlantia-wine"
             >
-            <span>Acepto los terminos y condiciones de Atlantia Supermarket.</span>
+            <span>Acepto los terminos y condiciones de Atlantia Delivery.</span>
         </label>
         @error('acepta_terminos') <p class="text-sm font-semibold text-red-700">{{ $message }}</p> @enderror
 

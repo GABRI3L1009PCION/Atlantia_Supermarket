@@ -46,11 +46,10 @@
                 'bank_proof' => 'Comprobante bancario',
                 'nit_file' => 'NIT/RIT',
             ];
-            $documentLinks = collect($vendor->documents ?? [])->filter()->map(function ($path, $key) use ($documentLabels): array {
+            $documentLinks = collect($vendor->documents ?? [])->filter()->map(function ($path, $key) use ($documentLabels, $vendor): array {
                 return [
                     'label' => $documentLabels[$key] ?? str($key)->replace('_', ' ')->title()->toString(),
-                    'url' => \Illuminate\Support\Facades\Storage::disk('public')->url((string) $path),
-                    'path' => $path,
+                    'url' => route('admin.vendedores.documents.show', [$vendor, $key]),
                 ];
             })->values()->all();
 
@@ -473,6 +472,7 @@
             const compliance = document.querySelector('[data-filter-compliance]');
             let active = 'pending';
             const money = (value) => `Q${Number(value || 0).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const numeric = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
             const escapeHtml = (value) => String(value ?? '')
                 .replaceAll('&', '&amp;')
                 .replaceAll('<', '&lt;')
@@ -531,10 +531,6 @@
                     drawer.querySelector('[data-drawer-products]').textContent = vendor.active_products;
                     drawer.querySelector('[data-drawer-rating]').textContent = `${Number(vendor.rating).toFixed(1)}★`;
                     drawer.querySelector('[data-drawer-compliance]').textContent = `${vendor.compliance}%`;
-                    drawer.querySelector('[data-drawer-personal]').innerHTML = `<p>Nombre: ${vendor.name}</p><p>Email: ${vendor.email || 'No registrado'}</p><p>Telefono: ${vendor.phone || 'No registrado'}</p><p>Direccion: ${vendor.address || 'Pendiente'}</p>`;
-                    drawer.querySelector('[data-drawer-business]').innerHTML = `<p>Nombre: ${vendor.business}</p><p>Descripcion: ${vendor.description}</p><p>Categoria: Alimentos</p><p>Municipio: ${vendor.municipio}</p>`;
-                    drawer.querySelector('[data-drawer-documents]').innerHTML = `<p>✓ DPI frente</p><p>✓ DPI reverso</p><p>${vendor.documents >= 3 ? '✓' : '✗'} Comprobante banco</p><p>${vendor.documents >= 4 ? '✓' : '✗'} Perfil fiscal/NIT</p>`;
-                    drawer.querySelector('[data-drawer-commissions]').innerHTML = `<p>Total owed: ${money(vendor.commission_owed)}</p><p>Comision vigente: ${vendor.commission_percentage}%</p><p>Renta mensual: ${money(vendor.monthly_rent)}</p>`;
                     drawer.querySelector('[data-drawer-personal]').innerHTML = [
                         field('Nombre', vendor.name),
                         field('Email', vendor.email),
@@ -576,12 +572,30 @@
                     drawer.querySelector('[data-drawer-documents]').innerHTML = (vendor.document_links || []).length
                         ? vendor.document_links.map((document) => `<a href="${escapeHtml(document.url)}" target="_blank" rel="noopener" class="flex items-center justify-between rounded-lg border border-atlantia-rose/20 px-3 py-2 font-bold text-atlantia-wine transition hover:bg-atlantia-blush"><span>${escapeHtml(document.label)}</span><span class="text-xs">Ver archivo</span></a>`).join('')
                         : '<p>No hay archivos cargados.</p>';
+                    const vendorName = String(vendor.name ?? 'este vendedor');
+                    const approveUrl = escapeHtml(vendor.approve_url);
+                    const reactivateUrl = escapeHtml(vendor.reactivate_url);
+                    const suspendUrl = escapeHtml(vendor.suspend_url);
+                    const showUrl = escapeHtml(vendor.show_url);
+                    const commissionPercentage = numeric(vendor.commission_percentage);
+                    const monthlyRent = numeric(vendor.monthly_rent);
                     drawer.querySelector('[data-drawer-actions]').innerHTML = vendor.status === 'pending'
-                        ? `<form method="POST" action="${vendor.approve_url}" onsubmit="return confirm('¿Aprobar a ${vendor.name} con ${money(vendor.monthly_rent)} mensual y ${vendor.commission_percentage}% de comision?')"><input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="_method" value="PATCH"><input type="hidden" name="commission_percentage" value="${vendor.commission_percentage}"><input type="hidden" name="monthly_rent" value="${vendor.monthly_rent}"><button class="rounded-md bg-atlantia-wine px-4 py-2 text-sm font-black text-white">Aprobar plan</button></form><button class="rounded-md border border-atlantia-rose/30 px-4 py-2 text-sm font-black text-atlantia-wine">Rechazar</button>`
+                        ? `<form method="POST" action="${approveUrl}" data-confirm="${escapeHtml(`Aprobar a ${vendorName} con ${money(monthlyRent)} mensual y ${commissionPercentage}% de comision?`)}"><input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="_method" value="PATCH"><input type="hidden" name="commission_percentage" value="${commissionPercentage}"><input type="hidden" name="monthly_rent" value="${monthlyRent}"><button class="rounded-md bg-atlantia-wine px-4 py-2 text-sm font-black text-white">Aprobar plan</button></form><button class="rounded-md border border-atlantia-rose/30 px-4 py-2 text-sm font-black text-atlantia-wine">Rechazar</button>`
                         : vendor.status === 'suspended'
-                            ? `<form method="POST" action="${vendor.reactivate_url}" onsubmit="return confirm('¿Reactivar a ${vendor.name}?')"><input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="_method" value="PATCH"><button class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-black text-white">Reactivar</button></form>`
-                            : `<form method="POST" action="${vendor.suspend_url}" onsubmit="return confirm('¿Suspender a ${vendor.name}?')"><input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="_method" value="PATCH"><input type="hidden" name="motivo_suspension" value="Suspension administrativa desde panel."><input type="hidden" name="tipo_suspension" value="operativa"><button class="rounded-md bg-amber-600 px-4 py-2 text-sm font-black text-white">Suspender</button></form><a href="${vendor.show_url}" class="rounded-md border border-atlantia-rose/30 px-4 py-2 text-sm font-black text-atlantia-wine">Abrir ficha</a>`;
+                            ? `<form method="POST" action="${reactivateUrl}" data-confirm="${escapeHtml(`Reactivar a ${vendorName}?`)}"><input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="_method" value="PATCH"><button class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-black text-white">Reactivar</button></form>`
+                            : `<form method="POST" action="${suspendUrl}" data-confirm="${escapeHtml(`Suspender a ${vendorName}?`)}"><input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="_method" value="PATCH"><input type="hidden" name="motivo_suspension" value="Suspension administrativa desde panel."><input type="hidden" name="tipo_suspension" value="operativa"><button class="rounded-md bg-amber-600 px-4 py-2 text-sm font-black text-white">Suspender</button></form><a href="${showUrl}" class="rounded-md border border-atlantia-rose/30 px-4 py-2 text-sm font-black text-atlantia-wine">Abrir ficha</a>`;
                 });
+            });
+            drawer?.addEventListener('submit', (event) => {
+                const form = event.target;
+                if (!(form instanceof HTMLFormElement)) {
+                    return;
+                }
+
+                const message = form.dataset.confirm;
+                if (message && ! window.confirm(message)) {
+                    event.preventDefault();
+                }
             });
             document.querySelector('[data-close-drawer]')?.addEventListener('click', () => { drawer.classList.add('hidden'); drawer.classList.remove('flex'); });
             drawer?.addEventListener('click', (event) => { if (event.target === drawer) { drawer.classList.add('hidden'); drawer.classList.remove('flex'); } });

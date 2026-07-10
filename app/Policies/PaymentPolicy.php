@@ -20,7 +20,7 @@ class PaymentPolicy
     public function validateTransfer(User $user, Payment $payment): bool
     {
         return $this->validateTransfers($user)
-            && $payment->metodo === MetodoPago::Transferencia
-            && $payment->estado === EstadoPago::Pendiente;
+            && $payment->metodoValor() === MetodoPago::Transferencia->value
+            && in_array($payment->estadoValor(), [EstadoPago::Pendiente->value, EstadoPago::Validando->value], true);
     }
 }

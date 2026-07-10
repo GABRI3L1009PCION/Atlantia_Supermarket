@@ -7,7 +7,6 @@ use App\Http\Requests\Vendedor\StoreSolicitudVendedorRequest;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorFiscalProfile;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -111,7 +110,7 @@ class SolicitudVendedorController extends Controller
                 'gender' => $data['gender'] ?? null,
                 'personal_address' => $personalAddress,
                 'business_name' => $data['business_name'],
-                'slug' => Str::slug($data['business_name']) . '-' . Str::lower(Str::random(6)),
+                'slug' => Str::slug($data['business_name']).'-'.Str::lower(Str::random(6)),
                 'descripcion' => $data['business_description'],
                 'business_category' => $data['business_category'] === 'otro'
                     ? ($data['business_category_other'] ?? 'Otro')
@@ -153,7 +152,7 @@ class SolicitudVendedorController extends Controller
                     'nombre_comercial_sat' => $data['business_name'],
                     'direccion_fiscal' => $this->formatAddress($businessAddress ?: $personalAddress),
                     'regimen_sat' => $this->mapRegimen($data['regimen_sat']),
-                    'codigo_establecimiento' => 'PEND-' . $vendor->id,
+                    'codigo_establecimiento' => 'PEND-'.$vendor->id,
                     'certificador_fel' => 'infile',
                     'banco_nombre' => $data['bank'],
                     'cuenta_bancaria' => $data['account_number'],
@@ -185,59 +184,23 @@ class SolicitudVendedorController extends Controller
     }
 
     /**
-     * Verifica disponibilidad de correo para validacion en vivo.
-     */
-    public function checkEmail(Request $request): JsonResponse
-    {
-        $email = trim((string) $request->query('email'));
-        $exists = $email !== '' && User::query()->where('email', $email)->exists();
-
-        return response()->json([
-            'available' => ! $exists,
-            'exists' => $exists,
-        ]);
-    }
-
-    /**
-     * Verifica disponibilidad de documento para validacion en vivo.
-     */
-    public function checkDocument(Request $request): JsonResponse
-    {
-        $document = trim((string) $request->query('document'));
-        $normalized = preg_replace('/[^A-Za-z0-9]/', '', $document);
-        $exists = $document !== '' && Vendor::query()
-            ->where(function ($query) use ($document, $normalized): void {
-                $query->where('document_number', $document);
-
-                if ($normalized !== '') {
-                    $query->orWhereRaw("REPLACE(REPLACE(document_number, '-', ''), ' ', '') = ?", [$normalized]);
-                }
-            })
-            ->exists();
-
-        return response()->json([
-            'available' => ! $exists,
-            'exists' => $exists,
-        ]);
-    }
-
-    /**
      * Guarda documentos de la solicitud.
      *
      * @return array<string, string>
      */
     private function storeDocuments(Request $request, string $trackingCode): array
     {
-        $path = 'vendor-applications/' . $trackingCode;
+        $path = 'vendor-applications/'.$trackingCode;
+        $privateDisk = (string) config('filesystems.private_disk', 'local');
         $documents = [
-            'document_front' => $request->file('document_front')?->store($path, 'public'),
-            'document_back' => $request->file('document_back')?->store($path, 'public'),
+            'document_front' => $request->file('document_front')?->store($path, $privateDisk),
+            'document_back' => $request->file('document_back')?->store($path, $privateDisk),
             'business_logo' => $request->file('business_logo')?->store($path, 'public'),
-            'bank_proof' => $request->file('bank_proof')?->store($path, 'public'),
+            'bank_proof' => $request->file('bank_proof')?->store($path, $privateDisk),
         ];
 
         if ($request->hasFile('nit_file')) {
-            $documents['nit_file'] = $request->file('nit_file')?->store($path, 'public');
+            $documents['nit_file'] = $request->file('nit_file')?->store($path, $privateDisk);
         }
 
         return array_filter($documents);
@@ -249,7 +212,7 @@ class SolicitudVendedorController extends Controller
     private function trackingCode(): string
     {
         do {
-            $code = 'VND-' . now()->format('Y') . '-' . Str::upper(Str::random(6));
+            $code = 'VND-'.now()->format('Y').'-'.Str::upper(Str::random(6));
         } while (Vendor::query()->where('application_code', $code)->exists());
 
         return $code;
@@ -258,7 +221,7 @@ class SolicitudVendedorController extends Controller
     /**
      * Normaliza direccion comercial opcional.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array<string, string|null>
      */
     private function businessAddress(array $data): array
@@ -277,7 +240,7 @@ class SolicitudVendedorController extends Controller
     /**
      * Convierte una direccion a texto compacto.
      *
-     * @param array<string, mixed> $address
+     * @param  array<string, mixed>  $address
      */
     private function formatAddress(array $address): string
     {

@@ -11,7 +11,9 @@ use App\Services\Vendedores\VendorAdminService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Controlador administrativo de vendedores.
@@ -21,9 +23,7 @@ class VendedorController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly VendorAdminService $vendorAdminService)
-    {
-    }
+    public function __construct(private readonly VendorAdminService $vendorAdminService) {}
 
     /**
      * Lista solicitudes y vendedores registrados.
@@ -52,12 +52,52 @@ class VendedorController extends Controller
     {
         $this->authorize('viewAny', Vendor::class);
 
-        $filename = 'reporte-vendedores-' . now()->format('Y-m-d-His') . '.pdf';
+        $filename = 'reporte-vendedores-'.now()->format('Y-m-d-His').'.pdf';
 
         return response($reportPdf->make($this->vendorAdminService->report()), 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
+    }
+
+    /**
+     * Descarga un documento privado de solicitud de vendedor.
+     */
+    public function document(Vendor $vendor, string $document): StreamedResponse
+    {
+        $this->authorize('view', $vendor);
+
+        $allowedDocuments = [
+            'document_front' => 'documento-frente',
+            'document_back' => 'documento-reverso',
+            'business_logo' => 'logo-negocio',
+            'bank_proof' => 'comprobante-bancario',
+            'nit_file' => 'nit-rit',
+        ];
+
+        abort_unless(array_key_exists($document, $allowedDocuments), 404);
+
+        $path = (string) data_get($vendor->documents ?? [], $document);
+
+        abort_if($path === '', 404);
+
+        $disk = $document === 'business_logo'
+            ? 'public'
+            : (string) config('filesystems.private_disk', 'local');
+
+        if (! Storage::disk($disk)->exists($path) && $disk !== 'public' && Storage::disk('public')->exists($path)) {
+            $disk = 'public';
+        }
+
+        abort_unless(Storage::disk($disk)->exists($path), 404);
+
+        $extension = pathinfo($path, PATHINFO_EXTENSION);
+        $filename = $allowedDocuments[$document]
+            .'-'
+            .($vendor->application_code ?: $vendor->uuid)
+            .($extension !== '' ? '.'.$extension : '');
+
+        return Storage::disk($disk)->download($path, $filename);
     }
 
     /**

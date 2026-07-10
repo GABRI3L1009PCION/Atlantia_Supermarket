@@ -16,9 +16,7 @@ class EmailVerificationCodeNotification extends Notification
     /**
      * Crea una nueva notificacion.
      */
-    public function __construct(private readonly string $code)
-    {
-    }
+    public function __construct(private readonly string $code) {}
 
     /**
      * Canales de envio.
@@ -35,9 +33,9 @@ class EmailVerificationCodeNotification extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage())
-            ->from(config('mail.from.address'), 'Atlantia Supermarket')
-            ->subject('Tu codigo de verificacion de Atlantia Supermarket')
+        return (new MailMessage)
+            ->from(config('mail.from.address'), 'Atlantia Delivery')
+            ->subject('Tu codigo de verificacion de Atlantia Delivery')
             ->view('emails.auth.verification-code', [
                 'user' => $notifiable,
                 'code' => $this->code,

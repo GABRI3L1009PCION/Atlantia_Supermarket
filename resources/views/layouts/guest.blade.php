@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $title ?? 'Acceso Atlantia Supermarket' }}</title>
+    <title>{{ $title ?? 'Acceso Atlantia Delivery' }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles(['nonce' => request()->attributes->get('csp_nonce')])
@@ -26,10 +26,10 @@
                 </div>
             @endif
 
-            <a href="{{ route('home') }}" class="mx-auto block w-fit" aria-label="Atlantia Supermarket">
+            <a href="{{ route('home') }}" class="mx-auto block w-fit" aria-label="Atlantia Delivery">
                 <img
                     src="{{ asset($logoPath) }}"
-                    alt="Atlantia Supermarket"
+                    alt="Atlantia Delivery"
                     class="{{ trim($__env->yieldContent('guestLogoClass', 'h-12 w-auto sm:h-16')) }}"
                 >
             </a>

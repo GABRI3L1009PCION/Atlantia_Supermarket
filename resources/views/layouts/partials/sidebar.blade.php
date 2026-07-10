@@ -34,7 +34,10 @@
         'Roles y permisos' => 'shield',
         'Vendedores' => 'store',
         'Empleados' => 'badge',
-        'Repartidores', 'Entregas', 'Rutas' => 'truck',
+        'Repartidores', 'Entregas', 'Rutas', 'Tiendas online', 'Entregas externas' => 'truck',
+        'Ganancias' => 'coins',
+        'Historial' => 'chart',
+        'Soporte' => 'message',
         'Productos', 'Inventario' => 'package',
         'Categorias' => 'grid',
         'Banners hero' => 'image',
@@ -94,6 +97,7 @@
                 ['label' => 'Categorias', 'route' => route('admin.categorias.index'), 'active' => request()->routeIs('admin.categorias.*')],
                 ['label' => 'Banners hero', 'route' => route('admin.hero-banners.index'), 'active' => request()->routeIs('admin.hero-banners.*')],
                 ['label' => 'Pedidos', 'route' => route('admin.pedidos.index'), 'active' => request()->routeIs('admin.pedidos.*')],
+                ['label' => 'Entregas externas', 'route' => route('admin.entregas-externas.index'), 'active' => request()->routeIs('admin.entregas-externas.*')],
                 ['label' => 'Zonas de entrega', 'route' => route('admin.zonas-entrega.index'), 'active' => request()->routeIs('admin.zonas-entrega.*')],
             ],
             'Finanzas y ML' => [
@@ -140,7 +144,11 @@
             'Entregas' => [
                 ['label' => 'Vista general', 'route' => route('repartidor.dashboard'), 'active' => request()->routeIs('repartidor.dashboard')],
                 ['label' => 'Entregas', 'route' => route('repartidor.pedidos.index'), 'active' => request()->routeIs('repartidor.pedidos.*')],
+                ['label' => 'Tiendas online', 'route' => route('repartidor.externas.index'), 'active' => request()->routeIs('repartidor.externas.*')],
                 ['label' => 'Rutas', 'route' => route('repartidor.rutas.index'), 'active' => request()->routeIs('repartidor.rutas.*')],
+                ['label' => 'Ganancias', 'route' => route('repartidor.ganancias.index'), 'active' => request()->routeIs('repartidor.ganancias.*')],
+                ['label' => 'Historial', 'route' => route('repartidor.historial.index'), 'active' => request()->routeIs('repartidor.historial.*')],
+                ['label' => 'Soporte', 'route' => route('repartidor.soporte.index'), 'active' => request()->routeIs('repartidor.soporte.*')],
             ],
         ],
         default => [

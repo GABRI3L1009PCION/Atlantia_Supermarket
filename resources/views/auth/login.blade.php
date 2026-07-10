@@ -44,13 +44,13 @@
                 <div class="relative z-10 flex flex-1 flex-col items-center justify-start pt-10 text-center sm:pt-12 lg:pt-14">
                     <img
                         src="{{ asset($logoPath) }}"
-                        alt="Atlantia Supermarket"
+                        alt="Atlantia Delivery"
                         class="h-12 w-auto sm:h-14 lg:h-[4rem]"
                     >
 
                     <div class="mt-3 max-w-[15rem] space-y-2 px-0 py-1">
-                        <p class="text-[0.64rem] font-extrabold uppercase tracking-[0.22em] text-atlantia-wine sm:text-[0.72rem]">
-                            Atlantia Supermarket
+                        <p class="text-[0.64rem] font-extrabold uppercase text-atlantia-wine sm:text-[0.72rem]">
+                            Atlantia Delivery
                         </p>
 
                         <div class="mx-auto flex w-full max-w-[140px] items-center justify-center gap-3 text-atlantia-wine/80">
@@ -64,7 +64,7 @@
                         </div>
 
                         <p class="mx-auto max-w-[11rem] text-sm leading-5 text-atlantia-ink/78 sm:text-[0.92rem]">
-                            Tu supermercado de confianza,
+                            Tu red de comercios y entregas,
                         </p>
                         <p class="mx-auto max-w-[9rem] text-sm leading-5 text-atlantia-ink/78 sm:text-[0.92rem]">
                             siempre cerca de ti.
@@ -88,7 +88,7 @@
                             Ingresar
                         </h1>
                         <p class="mt-1 text-sm leading-5 text-atlantia-ink/65 sm:text-[0.92rem]">
-                            Accede a tu cuenta de Atlantia Supermarket.
+                            Accede a tu cuenta de Atlantia Delivery.
                         </p>
                     </div>
 

@@ -1,4 +1,4 @@
-@extends('layouts.marketplace', ['title' => 'Solicitud de vendedor | Atlantia Supermarket'])
+@extends('layouts.marketplace', ['title' => 'Solicitud de vendedor | Atlantia Delivery'])
 
 @section('content')
 @php
@@ -19,7 +19,7 @@
             <div class="border-b border-atlantia-rose/15 bg-white px-5 py-5 sm:px-7">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                        <p class="text-[11px] font-black uppercase tracking-[0.18em] text-atlantia-rose">Atlantia Supermarket</p>
+                        <p class="text-[11px] font-black uppercase text-atlantia-rose">Atlantia Delivery</p>
                         <h1 class="mt-2 text-2xl font-black leading-tight text-atlantia-ink sm:text-3xl">Solicitud para vender</h1>
                         <p class="mt-2 max-w-2xl text-sm leading-6 text-atlantia-ink/65">
                         Completa la informacion necesaria para validar tu identidad, documentos, negocio y cuenta bancaria.
@@ -69,7 +69,7 @@
                                 <input required minlength="5" maxlength="100" name="name" value="{{ old('name') }}" placeholder="Ej: Daniela Maria Escalante Moreno" class="w-full rounded-md border border-atlantia-rose/35 bg-white px-4 py-3 text-sm text-atlantia-ink outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
                             </x-form-field>
                             <x-form-field name="email" label="Correo electronico" help="Usaremos este correo para tu cuenta y comunicaciones">
-                                <input required type="email" name="email" value="{{ old('email') }}" placeholder="tu@email.com" data-check-email-url="{{ route('vendedor.solicitar.check-email') }}" class="w-full rounded-md border border-atlantia-rose/35 bg-white px-4 py-3 text-sm text-atlantia-ink outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
+                                <input required type="email" name="email" value="{{ old('email') }}" placeholder="tu@email.com" class="w-full rounded-md border border-atlantia-rose/35 bg-white px-4 py-3 text-sm text-atlantia-ink outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
                             </x-form-field>
                             <x-form-field name="phone" label="Telefono" help="Formato Guatemala: +502 XXXX XXXX">
                                 <input required name="phone" value="{{ old('phone', '+502 ') }}" placeholder="+502 XXXX XXXX" data-phone-mask class="w-full rounded-md border border-atlantia-rose/35 bg-white px-4 py-3 text-sm text-atlantia-ink outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
@@ -127,7 +127,7 @@
                                 </div>
                             </x-form-field>
                             <x-form-field name="document_number" label="Numero de documento" help="Tal como aparece en tu documento">
-                                <input required name="document_number" value="{{ old('document_number') }}" placeholder="XXXXXXXX-XXXX" data-check-document-url="{{ route('vendedor.solicitar.check-document') }}" class="field-input">
+                                <input required name="document_number" value="{{ old('document_number') }}" placeholder="XXXXXXXX-XXXX" class="field-input">
                             </x-form-field>
                             <x-form-field name="document_front" label="Documento frente" help="JPG, PNG o PDF. Maximo 5MB.">
                                 <input required type="file" name="document_front" accept=".jpg,.jpeg,.png,.pdf" class="file-input">
@@ -183,8 +183,8 @@
                                         <span class="block text-base font-black text-atlantia-ink">{{ $plan['name'] }}</span>
                                         <span class="mt-2 block text-2xl font-black text-atlantia-wine">{{ $plan['price'] > 0 ? 'Q' . number_format($plan['price'], 0) : 'Gratis' }}<span class="text-xs text-atlantia-ink/50">{{ $plan['price'] > 0 ? '/mes' : '' }}</span></span>
                                         <span class="mt-1 block text-xs font-black text-atlantia-wine">{{ $plan['commission'] }}% comision por venta</span>
-                                        <span class="mt-2 block text-xs font-bold text-atlantia-ink/60">{{ $plan['products'] }} · {{ $plan['users'] }}</span>
-                                        <span class="mt-1 block text-xs font-bold text-atlantia-ink/60">{{ $plan['payout'] }} · {{ $plan['support'] }}</span>
+                                        <span class="mt-2 block text-xs font-bold text-atlantia-ink/60">{{ $plan['products'] }} - {{ $plan['users'] }}</span>
+                                        <span class="mt-1 block text-xs font-bold text-atlantia-ink/60">{{ $plan['payout'] }} - {{ $plan['support'] }}</span>
                                         <span class="mt-1 block text-xs font-bold text-atlantia-ink/60">{{ $plan['analytics'] }}</span>
                                         <span class="mt-2 block text-xs leading-5 text-atlantia-ink/55">{{ $plan['description'] }}</span>
                                     </label>
@@ -291,7 +291,7 @@
                         <div class="mt-6 space-y-4">
                             <label class="flex gap-3 rounded-xl border border-atlantia-rose/25 bg-white p-4 text-sm text-atlantia-ink transition hover:border-atlantia-wine/45">
                                 <input required type="checkbox" name="terms" value="1" class="mt-1 accent-atlantia-wine" @checked(old('terms'))>
-                                <span><strong>Acepto los terminos y condiciones de Atlantia Supermarket.</strong><br><span class="text-atlantia-ink/65">Confirmas que venderas productos de calidad y respetaras las politicas de privacidad y marketplace.</span></span>
+                                <span><strong>Acepto los terminos y condiciones de Atlantia Delivery.</strong><br><span class="text-atlantia-ink/65">Confirmas que venderas productos de calidad y respetaras las politicas de privacidad y marketplace.</span></span>
                             </label>
                             <label class="flex gap-3 rounded-xl border border-atlantia-rose/25 bg-white p-4 text-sm text-atlantia-ink transition hover:border-atlantia-wine/45">
                                 <input required type="checkbox" name="truth" value="1" class="mt-1 accent-atlantia-wine" @checked(old('truth'))>
@@ -465,21 +465,6 @@
             }
         };
 
-        const checkAvailability = async (field, param, unavailableMessage) => {
-            const url = field.dataset.checkEmailUrl || field.dataset.checkDocumentUrl;
-            if (!url || !field.value) return;
-            setError(field, '');
-            try {
-                const response = await fetch(`${url}?${param}=${encodeURIComponent(field.value)}`, { headers: { Accept: 'application/json' } });
-                if (!response.ok) return;
-                const payload = await response.json();
-                if (typeof payload.available !== 'boolean') return;
-                setError(field, payload.available ? '' : unavailableMessage);
-            } catch {
-                // La validacion del servidor se mantiene como respaldo.
-            }
-        };
-
         restoreDraft();
         toggleNit();
         toggleOtherCategory();
@@ -507,10 +492,8 @@
             saveDraft();
         });
 
-        form.querySelector('[name="email"]')?.addEventListener('blur', (event) => checkAvailability(event.target, 'email', 'Este correo ya esta registrado.'));
-        form.querySelector('[name="document_number"]')?.addEventListener('blur', (event) => checkAvailability(event.target, 'document', 'Este documento ya tiene una cuenta o solicitud.'));
         document.querySelector('[data-cancel-application]')?.addEventListener('click', (event) => {
-            if (localStorage.getItem(storageKey) && !confirm('Si sales ahora perderas el progreso guardado en este navegador. ¿Deseas cancelar?')) {
+            if (localStorage.getItem(storageKey) && !confirm('Si sales ahora perderas el progreso guardado en este navegador. Deseas cancelar?')) {
                 event.preventDefault();
             }
         });

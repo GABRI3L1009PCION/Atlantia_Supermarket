@@ -131,7 +131,7 @@
         @endif
 
         <input type="hidden" name="envio" value="{{ $envio }}">
-        <input type="hidden" name="metodo_pago" value="{{ $metodoPago }}">
+        <input type="hidden" name="metodo_pago_resumen" value="{{ $metodoPago }}" data-checkout-payment-summary>
         <input type="hidden" name="coupon_code" value="{{ $couponCode }}">
 
         <label class="mt-3 flex items-start gap-2 text-[11px] leading-4 text-atlantia-ink/75">

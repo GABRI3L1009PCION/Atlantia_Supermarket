@@ -103,9 +103,9 @@
             <header class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 class="text-2xl font-black tracking-tight text-[#211920] sm:text-3xl">
-                        Dashboard general
+                        Centro de operaciones
                     </h1>
-                    <p class="mt-1 text-xs font-medium text-[#6f626a]">Operacion, pedidos y control del marketplace</p>
+                    <p class="mt-1 text-xs font-medium text-[#6f626a]">Atlantia Delivery controla marketplace, supermercado propio, tiendas aliadas y entregas externas desde este panel.</p>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-3 text-xs text-[#6f626a]">

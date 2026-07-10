@@ -124,12 +124,15 @@
                             <p class="mt-2 text-sm text-amber-800/85">
                                 Ingresa como este usuario para revisar permisos, panel y experiencia real.
                             </p>
-                            <a
-                                href="{{ route('admin.impersonation.start', $usuario) }}"
-                                class="mt-4 inline-flex items-center rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
-                            >
-                                Entrar como este usuario
-                            </a>
+                            <form method="POST" action="{{ route('admin.impersonation.start', $usuario) }}" class="mt-4">
+                                @csrf
+                                <button
+                                    type="submit"
+                                    class="inline-flex items-center rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+                                >
+                                    Entrar como este usuario
+                                </button>
+                            </form>
                         </div>
                     @endcan
 

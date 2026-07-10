@@ -22,6 +22,7 @@ use App\Models\Pedido;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Services\Pedidos\CheckoutService;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -49,7 +50,7 @@ class CheckoutServiceTest extends TestCase
     /**
      * Verifica que el stock ya este reservado cuando inicia el cobro.
      */
-    public function testStockSeReservaAntesDeProcesarElPago(): void
+    public function test_stock_se_reserva_antes_de_procesar_el_pago(): void
     {
         [$cliente, $direccion] = $this->createClienteConDireccion();
         $producto = $this->createProductoConInventario(3);
@@ -64,7 +65,7 @@ class CheckoutServiceTest extends TestCase
             $this->assertSame(EstadoPedido::Pendiente, $pedido->estado);
         });
 
-        $pedido = app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+        $pedido = app(CheckoutService::class)->checkout(
             $cliente,
             PedidoDTO::fromCheckoutArray([
                 'direccion_id' => $direccion->id,
@@ -85,17 +86,17 @@ class CheckoutServiceTest extends TestCase
      * Cuando Stripe aprueba la tarjeta, los pedidos por vendedor quedan pagados
      * y la factura PDF se genera/envia automaticamente.
      */
-    public function testPagoConTarjetaEmiteFacturaAutomaticamente(): void
+    public function test_pago_con_tarjeta_emite_factura_automaticamente(): void
     {
         Mail::fake();
-        Storage::fake('public');
+        Storage::fake('local');
 
         [$cliente, $direccion] = $this->createClienteConDireccion();
         $producto = $this->createProductoConInventario(2);
         $this->createCarritoActivo($cliente, $producto, 1);
         $this->fakePasarelaAprobada();
 
-        $pedido = app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+        $pedido = app(CheckoutService::class)->checkout(
             $cliente,
             PedidoDTO::fromCheckoutArray([
                 'direccion_id' => $direccion->id,
@@ -114,10 +115,10 @@ class CheckoutServiceTest extends TestCase
         $this->assertSame(EstadoPago::Pagado, $pedidoHijo->estado_pago);
         $this->assertNotNull($pedidoHijo->dte_id);
         $this->assertSame('certificado', $pedidoHijo->dte->estado);
-        Storage::disk('public')->assertExists($pedidoHijo->dte->pdf_path);
+        Storage::disk('local')->assertExists($pedidoHijo->dte->pdf_path);
         $this->assertDatabaseHas('sent_emails', [
             'to' => 'cliente.factura@example.com',
-            'subject' => 'Factura Atlantia ' . $pedidoHijo->dte->numero_dte,
+            'subject' => 'Factura Atlantia '.$pedidoHijo->dte->numero_dte,
             'status' => 'sent',
         ]);
     }
@@ -125,7 +126,7 @@ class CheckoutServiceTest extends TestCase
     /**
      * Si el pago falla, el stock reservado debe liberarse.
      */
-    public function testSiElPagoFallaElStockSeRestaura(): void
+    public function test_si_el_pago_falla_el_stock_se_restaura(): void
     {
         [$cliente, $direccion] = $this->createClienteConDireccion();
         $producto = $this->createProductoConInventario(2);
@@ -136,7 +137,7 @@ class CheckoutServiceTest extends TestCase
         $this->expectException(PagoRechazadoException::class);
 
         try {
-            app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+            app(CheckoutService::class)->checkout(
                 $cliente,
                 PedidoDTO::fromCheckoutArray([
                     'direccion_id' => $direccion->id,
@@ -160,7 +161,7 @@ class CheckoutServiceTest extends TestCase
     /**
      * No permite checkout cuando el stock disponible no alcanza.
      */
-    public function testNoSePuedeHacerCheckoutConStockInsuficiente(): void
+    public function test_no_se_puede_hacer_checkout_con_stock_insuficiente(): void
     {
         [$cliente, $direccion] = $this->createClienteConDireccion();
         $producto = $this->createProductoConInventario(1);
@@ -169,7 +170,7 @@ class CheckoutServiceTest extends TestCase
 
         $this->expectException(StockInsuficienteException::class);
 
-        app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+        app(CheckoutService::class)->checkout(
             $cliente,
             PedidoDTO::fromCheckoutArray([
                 'direccion_id' => $direccion->id,
@@ -182,14 +183,14 @@ class CheckoutServiceTest extends TestCase
     /**
      * Permite checkout con ubicacion GPS real aunque aun no exista zona configurada.
      */
-    public function testCheckoutAceptaUbicacionGpsRealAunqueNoExistaZona(): void
+    public function test_checkout_acepta_ubicacion_gps_real_aunque_no_exista_zona(): void
     {
         [$cliente, $direccion] = $this->createClienteConDireccion('Livingston');
         $producto = $this->createProductoConInventario(3);
         $this->createCarritoActivo($cliente, $producto, 1);
         $this->fakePasarelaAprobada();
 
-        $pedido = app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+        $pedido = app(CheckoutService::class)->checkout(
             $cliente,
             PedidoDTO::fromCheckoutArray([
                 'direccion_id' => $direccion->id,
@@ -204,7 +205,7 @@ class CheckoutServiceTest extends TestCase
     /**
      * Permite checkout en municipios futuros cuando el cliente comparte GPS real.
      */
-    public function testCheckoutAceptaMunicipioFuturoConGpsReal(): void
+    public function test_checkout_acepta_municipio_futuro_con_gps_real(): void
     {
         [$cliente, $direccion] = $this->createClienteConDireccion('Livingston');
         DeliveryZone::query()->create([
@@ -222,7 +223,7 @@ class CheckoutServiceTest extends TestCase
         $this->createCarritoActivo($cliente, $producto, 1);
         $this->fakePasarelaAprobada();
 
-        $pedido = app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+        $pedido = app(CheckoutService::class)->checkout(
             $cliente,
             PedidoDTO::fromCheckoutArray([
                 'direccion_id' => $direccion->id,
@@ -238,7 +239,7 @@ class CheckoutServiceTest extends TestCase
      * Acepta zonas operativas creadas sin mapa cuando la direccion tiene GPS exacto
      * y coincide con la colonia configurada.
      */
-    public function testCheckoutAceptaZonaSinMapaPorColoniaConGpsExacto(): void
+    public function test_checkout_acepta_zona_sin_mapa_por_colonia_con_gps_exacto(): void
     {
         $cliente = User::factory()->cliente()->create();
         $cliente->assignRole('cliente');
@@ -307,7 +308,7 @@ class CheckoutServiceTest extends TestCase
         $this->createCarritoActivo($cliente, $producto, 1);
         $this->fakePasarelaAprobada();
 
-        $pedido = app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+        $pedido = app(CheckoutService::class)->checkout(
             $cliente,
             PedidoDTO::fromCheckoutArray([
                 'direccion_id' => $direccion->id,
@@ -322,7 +323,7 @@ class CheckoutServiceTest extends TestCase
     /**
      * Rechaza direcciones sin coordenadas GPS aunque el municipio este cubierto.
      */
-    public function testCheckoutRechazaDireccionSinUbicacionExacta(): void
+    public function test_checkout_rechaza_direccion_sin_ubicacion_exacta(): void
     {
         [$cliente, $direccion] = $this->createClienteConDireccion();
         $direccion->update([
@@ -335,7 +336,7 @@ class CheckoutServiceTest extends TestCase
 
         $this->expectException(DireccionFueraDeZonaException::class);
 
-        app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+        app(CheckoutService::class)->checkout(
             $cliente,
             PedidoDTO::fromCheckoutArray([
                 'direccion_id' => $direccion->id,
@@ -348,7 +349,7 @@ class CheckoutServiceTest extends TestCase
     /**
      * Simula dos compras compitiendo por el ultimo item.
      */
-    public function testSoloUnUsuarioLograComprarElUltimoItemDisponible(): void
+    public function test_solo_un_usuario_logra_comprar_el_ultimo_item_disponible(): void
     {
         [$clienteUno, $direccionUno] = $this->createClienteConDireccion();
         [$clienteDos, $direccionDos] = $this->createClienteConDireccion();
@@ -358,7 +359,7 @@ class CheckoutServiceTest extends TestCase
         $this->createCarritoActivo($clienteDos, $producto, 1);
         $this->fakePasarelaAprobada();
 
-        $pedidoExitoso = app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+        $pedidoExitoso = app(CheckoutService::class)->checkout(
             $clienteUno,
             PedidoDTO::fromCheckoutArray([
                 'direccion_id' => $direccionUno->id,
@@ -371,7 +372,7 @@ class CheckoutServiceTest extends TestCase
 
         $this->expectException(StockInsuficienteException::class);
 
-        app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+        app(CheckoutService::class)->checkout(
             $clienteDos,
             PedidoDTO::fromCheckoutArray([
                 'direccion_id' => $direccionDos->id,
@@ -496,13 +497,12 @@ class CheckoutServiceTest extends TestCase
     private function fakePasarelaAprobada(?callable $antesDeCrearPago = null): void
     {
         $this->app->bind(PasarelaPagoContract::class, function () use ($antesDeCrearPago) {
-            return new class ($antesDeCrearPago) implements PasarelaPagoContract {
+            return new class($antesDeCrearPago) implements PasarelaPagoContract
+            {
                 /**
-                 * @param callable|null $antesDeCrearPago
+                 * @param  callable|null  $antesDeCrearPago
                  */
-                public function __construct(private $antesDeCrearPago)
-                {
-                }
+                public function __construct(private $antesDeCrearPago) {}
 
                 public function procesar(array $datos): PagoResultado
                 {
@@ -550,7 +550,8 @@ class CheckoutServiceTest extends TestCase
     private function fakePasarelaRechazada(): void
     {
         $this->app->bind(PasarelaPagoContract::class, function () {
-            return new class () implements PasarelaPagoContract {
+            return new class implements PasarelaPagoContract
+            {
                 public function procesar(array $datos): PagoResultado
                 {
                     throw new PagoRechazadoException('La tarjeta fue rechazada por el banco emisor.');

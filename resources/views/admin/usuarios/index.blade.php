@@ -790,6 +790,12 @@
             const statusClasses = window.atlantiaStatusClasses || {};
             const currentUserId = Number(window.atlantiaCurrentUserId || 0);
             const toast = (type, message) => window.dispatchEvent(new CustomEvent('toast', { detail: { type, message } }));
+            const escapeHtml = (value) => String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
 
             const formatPhone = (value) => value.replace(/\D/g, '').slice(0, 8).replace(/(\d{4})(\d+)/, '$1-$2');
             document.querySelectorAll('[data-phone-mask]').forEach((input) => {
@@ -984,9 +990,9 @@
                 detailModal.querySelector('[data-detail-roles]').innerHTML = user.roles.map((role) => `
                     <div class="flex items-center justify-between rounded-md border border-atlantia-rose/15 bg-atlantia-cream/55 px-2 py-1.5">
                         <div class="flex items-center gap-2">
-                            <span class="grid h-7 w-7 place-items-center rounded-md bg-rose-50 text-xs font-black text-atlantia-wine">${(roleLabels[role] || role).slice(0, 2).toUpperCase()}</span>
+                            <span class="grid h-7 w-7 place-items-center rounded-md bg-rose-50 text-xs font-black text-atlantia-wine">${escapeHtml((roleLabels[role] || role).slice(0, 2).toUpperCase())}</span>
                             <div>
-                                <p class="text-xs font-black text-atlantia-ink">${roleLabels[role] || role}</p>
+                                <p class="text-xs font-black text-atlantia-ink">${escapeHtml(roleLabels[role] || role)}</p>
                                 <p class="text-[11px] text-atlantia-ink/55">Acceso operativo</p>
                             </div>
                         </div>
@@ -994,8 +1000,8 @@
                     </div>
                 `).join('') || '<p class="rounded-md bg-atlantia-cream/60 px-2 py-1.5 text-xs text-atlantia-ink/60">Sin roles asignados</p>';
                 detailModal.querySelector('[data-detail-history]').innerHTML = `
-                    <div class="grid grid-cols-[78px_1fr] gap-2 rounded-md bg-atlantia-cream/55 px-2 py-1.5"><span class="text-atlantia-ink/45">${user.created_at || '--'}</span><span><strong>Usuario creado</strong><br><span class="text-atlantia-ink/55">${user.created_by}</span></span></div>
-                    <div class="grid grid-cols-[78px_1fr] gap-2 rounded-md bg-atlantia-cream/55 px-2 py-1.5"><span class="text-atlantia-ink/45">${user.updated_at || '--'}</span><span><strong>Usuario actualizado</strong><br><span class="text-atlantia-ink/55">${user.updated_by}</span></span></div>
+                    <div class="grid grid-cols-[78px_1fr] gap-2 rounded-md bg-atlantia-cream/55 px-2 py-1.5"><span class="text-atlantia-ink/45">${escapeHtml(user.created_at || '--')}</span><span><strong>Usuario creado</strong><br><span class="text-atlantia-ink/55">${escapeHtml(user.created_by)}</span></span></div>
+                    <div class="grid grid-cols-[78px_1fr] gap-2 rounded-md bg-atlantia-cream/55 px-2 py-1.5"><span class="text-atlantia-ink/45">${escapeHtml(user.updated_at || '--')}</span><span><strong>Usuario actualizado</strong><br><span class="text-atlantia-ink/55">${escapeHtml(user.updated_by)}</span></span></div>
                     <div class="grid grid-cols-[78px_1fr] gap-2 rounded-md bg-atlantia-cream/55 px-2 py-1.5"><span class="text-atlantia-ink/45">--</span><span><strong>Cuenta activa</strong><br><span class="text-atlantia-ink/55">Administracion Atlantia</span></span></div>
                 `;
             };
@@ -1017,9 +1023,9 @@
                 drawer.querySelector('[data-drawer-updated-at]').textContent = `${user.updated_at} (${user.updated_relative})`;
                 drawer.querySelector('[data-drawer-inactive]').textContent = user.inactive_reason || '';
                 drawer.querySelector('[data-drawer-history]').innerHTML = `
-                    <div class="flex items-center gap-4 rounded-md bg-atlantia-cream/60 px-4 py-2"><span class="h-2 w-2 shrink-0 rounded-full bg-atlantia-wine"></span><span>Cuenta creada por ${user.created_by} el ${user.created_at}.</span></div>
-                    <div class="flex items-center gap-4 rounded-md bg-atlantia-cream/60 px-4 py-2"><span class="h-2 w-2 shrink-0 rounded-full bg-atlantia-wine"></span><span>Ultima modificacion por ${user.updated_by} el ${user.updated_at}.</span></div>
-                    <div class="flex items-center gap-4 rounded-md bg-atlantia-cream/60 px-4 py-2"><span class="h-2 w-2 shrink-0 rounded-full bg-atlantia-wine"></span><span>Roles actuales: ${user.roles_label}.</span></div>
+                    <div class="flex items-center gap-4 rounded-md bg-atlantia-cream/60 px-4 py-2"><span class="h-2 w-2 shrink-0 rounded-full bg-atlantia-wine"></span><span>Cuenta creada por ${escapeHtml(user.created_by)} el ${escapeHtml(user.created_at)}.</span></div>
+                    <div class="flex items-center gap-4 rounded-md bg-atlantia-cream/60 px-4 py-2"><span class="h-2 w-2 shrink-0 rounded-full bg-atlantia-wine"></span><span>Ultima modificacion por ${escapeHtml(user.updated_by)} el ${escapeHtml(user.updated_at)}.</span></div>
+                    <div class="flex items-center gap-4 rounded-md bg-atlantia-cream/60 px-4 py-2"><span class="h-2 w-2 shrink-0 rounded-full bg-atlantia-wine"></span><span>Roles actuales: ${escapeHtml(user.roles_label)}.</span></div>
                 `;
 
                 editForm.action = user.update_url;

@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="csp-nonce" content="{{ request()->attributes->get('csp_nonce') }}">
 
-    <title>{{ $title ?? 'Atlantia Supermarket' }}</title>
+    <title>{{ $title ?? 'Atlantia Delivery' }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')

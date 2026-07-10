@@ -23,22 +23,15 @@ class EnviarCorreoFactura implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-
     public int $tries = 3;
 
     /**
      * Crea el job.
-     *
-     * @param int $dteId
      */
-    public function __construct(private readonly int $dteId)
-    {
-    }
+    public function __construct(private readonly int $dteId) {}
 
     /**
      * Envia el correo fiscal y registra auditoria de email.
-     *
-     * @return void
      */
     public function handle(DteComprobantePdf $pdf): void
     {
@@ -52,20 +45,24 @@ class EnviarCorreoFactura implements ShouldQueue
         }
 
         try {
-            if ($dte->pdf_path === null || ! Storage::disk('public')->exists($dte->pdf_path)) {
+            $privateDisk = (string) config('filesystems.private_disk', 'local');
+
+            if ($dte->pdf_path === null || ! $this->pdfExists($dte->pdf_path, $privateDisk)) {
                 $pdf->store($dte);
                 $dte->refresh();
             }
 
-            Mail::raw($this->body($dte), function ($message) use ($recipientEmail, $recipientName, $dte): void {
+            Mail::raw($this->body($dte), function ($message) use ($recipientEmail, $recipientName, $dte, $privateDisk): void {
                 $message->to($recipientEmail, $recipientName)
-                    ->subject('Factura Atlantia ' . $dte->numero_dte);
+                    ->subject('Factura Atlantia '.$dte->numero_dte);
 
                 if ($dte->pdf_path !== null) {
+                    $disk = Storage::disk($privateDisk)->exists($dte->pdf_path) ? $privateDisk : 'public';
+
                     $message->attachFromStorageDisk(
-                        'public',
+                        $disk,
                         $dte->pdf_path,
-                        'factura-atlantia-' . $dte->numero_dte . '.pdf',
+                        'factura-atlantia-'.$dte->numero_dte.'.pdf',
                         ['mime' => 'application/pdf']
                     );
                 }
@@ -81,9 +78,6 @@ class EnviarCorreoFactura implements ShouldQueue
 
     /**
      * Construye cuerpo de correo sin adjuntar datos sensibles.
-     *
-     * @param DteFactura $dte
-     * @return string
      */
     private function body(DteFactura $dte): string
     {
@@ -91,18 +85,21 @@ class EnviarCorreoFactura implements ShouldQueue
         $tipo = $mock ? 'factura electronica FEL emulada' : 'factura FEL';
 
         return "Hola, adjuntamos tu {$tipo} {$dte->numero_dte} emitido por {$dte->vendor?->business_name}. "
-            . "Total: Q {$dte->monto_total}. "
-            . ($mock ? 'Este documento es de prueba y no sustituye una certificacion SAT real.' : "UUID SAT: {$dte->uuid_sat}.");
+            ."Total: Q {$dte->monto_total}. "
+            .($mock ? 'Este documento es de prueba y no sustituye una certificacion SAT real.' : "UUID SAT: {$dte->uuid_sat}.");
+    }
+
+    /**
+     * Verifica existencia del PDF en disco privado y, temporalmente, en ubicacion publica legada.
+     */
+    private function pdfExists(string $path, string $privateDisk): bool
+    {
+        return Storage::disk($privateDisk)->exists($path)
+            || Storage::disk('public')->exists($path);
     }
 
     /**
      * Registra resultado del envio.
-     *
-     * @param string $email
-     * @param DteFactura $dte
-     * @param string $status
-     * @param string|null $error
-     * @return void
      */
     private function registrar(string $email, DteFactura $dte, string $status, ?string $error = null): void
     {
@@ -110,7 +107,7 @@ class EnviarCorreoFactura implements ShouldQueue
             'uuid' => (string) Str::uuid(),
             'user_id' => $dte->pedido?->cliente_id,
             'to' => $email,
-            'subject' => 'Factura Atlantia ' . $dte->numero_dte,
+            'subject' => 'Factura Atlantia '.$dte->numero_dte,
             'template' => 'emails.dte.factura',
             'status' => $status,
             'error' => $error,

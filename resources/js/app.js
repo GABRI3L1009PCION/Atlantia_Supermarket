@@ -46,6 +46,113 @@ function initializeFlashModals() {
 document.addEventListener('DOMContentLoaded', initializeFlashModals);
 document.addEventListener('livewire:navigated', initializeFlashModals);
 
+function initializeOfferCountdowns() {
+    document.querySelectorAll('[data-offer-countdown]').forEach((counter) => {
+        if (counter.dataset.offerCountdownReady === 'true') {
+            return;
+        }
+
+        counter.dataset.offerCountdownReady = 'true';
+
+        const expiresAt = Date.parse(counter.dataset.offerExpiresAt || '');
+        const totalSeconds = Math.max(1, Number(counter.dataset.offerTotalSeconds || 1));
+        const modal = counter.closest('[data-offer-modal]');
+        const ring = modal?.querySelector('[data-offer-ring]');
+
+        if (!Number.isFinite(expiresAt)) {
+            return;
+        }
+
+        const render = () => {
+            const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+            const progress = Math.max(0, Math.min(100, (remaining / totalSeconds) * 100));
+
+            counter.textContent = String(remaining);
+
+            if (ring) {
+                ring.style.background = `conic-gradient(#8b0832 ${progress}%, rgba(139, 8, 50, .16) 0)`;
+            }
+
+            return remaining;
+        };
+
+        render();
+
+        const interval = setInterval(() => {
+            if (!document.body.contains(counter)) {
+                clearInterval(interval);
+                return;
+            }
+
+            if (render() <= 0) {
+                clearInterval(interval);
+                modal?.classList.add('hidden');
+            }
+        }, 250);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initializeOfferCountdowns);
+document.addEventListener('livewire:navigated', initializeOfferCountdowns);
+
+function initializeDeliveryCodeInputs() {
+    document.querySelectorAll('[data-delivery-code-form]').forEach((form) => {
+        if (form.dataset.deliveryCodeReady === 'true') {
+            return;
+        }
+
+        form.dataset.deliveryCodeReady = 'true';
+
+        const inputs = [...form.querySelectorAll('[data-delivery-code-digit]')];
+        const hidden = form.querySelector('[data-delivery-code-hidden]');
+
+        const sync = () => {
+            if (hidden) {
+                hidden.value = inputs.map((input) => input.value).join('');
+            }
+        };
+
+        inputs.forEach((input, index) => {
+            input.addEventListener('input', () => {
+                input.value = input.value.replace(/\D/g, '').slice(-1);
+                sync();
+
+                if (input.value && inputs[index + 1]) {
+                    inputs[index + 1].focus();
+                    inputs[index + 1].select();
+                }
+            });
+
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Backspace' && !input.value && inputs[index - 1]) {
+                    inputs[index - 1].focus();
+                    inputs[index - 1].select();
+                }
+            });
+
+            input.addEventListener('paste', (event) => {
+                const pasted = event.clipboardData?.getData('text')?.replace(/\D/g, '').slice(0, inputs.length);
+
+                if (!pasted) {
+                    return;
+                }
+
+                event.preventDefault();
+                inputs.forEach((target, digitIndex) => {
+                    target.value = pasted[digitIndex] || '';
+                });
+                sync();
+                inputs[Math.min(pasted.length, inputs.length) - 1]?.focus();
+            });
+        });
+
+        form.addEventListener('submit', sync);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initializeDeliveryCodeInputs);
+document.addEventListener('livewire:navigated', initializeDeliveryCodeInputs);
+
 document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') {
         return;
@@ -98,19 +205,28 @@ function showToast(type, message) {
 
     toast.className = `pointer-events-auto rounded-xl border px-4 py-3 text-sm font-semibold shadow-xl transition ${tone}`;
     toast.setAttribute('role', 'alert');
-    toast.innerHTML = `
-        <div class="flex items-start gap-3">
-            <div class="min-w-0 flex-1 leading-6">${message}</div>
-            <button type="button" class="shrink-0 text-current/70 hover:text-current" aria-label="Cerrar notificacion">&times;</button>
-        </div>
-    `;
 
     const removeToast = () => {
         toast.classList.add('opacity-0', 'translate-y-2');
         setTimeout(() => toast.remove(), 180);
     };
 
-    toast.querySelector('button')?.addEventListener('click', removeToast);
+    const content = document.createElement('div');
+    content.className = 'flex items-start gap-3';
+
+    const text = document.createElement('div');
+    text.className = 'min-w-0 flex-1 leading-6';
+    text.textContent = message;
+
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'shrink-0 text-current/70 hover:text-current';
+    close.setAttribute('aria-label', 'Cerrar notificacion');
+    close.textContent = 'x';
+    close.addEventListener('click', removeToast);
+
+    content.append(text, close);
+    toast.appendChild(content);
     stack.appendChild(toast);
     setTimeout(removeToast, 5000);
 }
@@ -262,6 +378,10 @@ function syncCheckoutPaymentMethod(form) {
     form.querySelectorAll('input[type="hidden"][name="metodo_pago"]').forEach((input) => {
         input.value = checkedMethod;
     });
+
+    form.querySelectorAll('[data-checkout-payment-summary]').forEach((input) => {
+        input.value = checkedMethod;
+    });
 }
 
 function syncStripeCardPanel(form) {
@@ -271,7 +391,19 @@ function syncStripeCardPanel(form) {
         return;
     }
 
-    panel.classList.toggle('hidden', !checkoutUsesCard(form));
+    const usesCard = checkoutUsesCard(form);
+    panel.classList.toggle('hidden', !usesCard);
+
+    panel.querySelectorAll('input, select, textarea, button').forEach((control) => {
+        if (control.matches('[data-stripe-payment-method]')) {
+            control.disabled = !usesCard;
+            return;
+        }
+
+        if (control.matches('[data-stripe-cardholder-name]')) {
+            control.disabled = !usesCard;
+        }
+    });
 }
 
 function setStripeCheckoutSubmitting(form, submitting) {
@@ -538,6 +670,7 @@ document.addEventListener('submit', async (event) => {
 
 document.addEventListener('DOMContentLoaded', initializeStripeCheckout);
 document.addEventListener('livewire:navigated', initializeStripeCheckout);
+document.addEventListener('livewire:updated', initializeStripeCheckout);
 
 const stripeCheckoutObserver = new MutationObserver(initializeStripeCheckout);
 stripeCheckoutObserver.observe(document.documentElement, {

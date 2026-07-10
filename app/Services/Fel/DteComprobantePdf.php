@@ -11,15 +11,15 @@ use Illuminate\Support\Facades\Storage;
 class DteComprobantePdf
 {
     /**
-     * Genera y guarda el PDF publico del DTE.
+     * Genera y guarda el PDF privado del DTE.
      */
     public function store(DteFactura $dte): string
     {
         $dte->loadMissing(['vendor.fiscalProfile', 'pedido.cliente', 'pedido.direccion', 'items.producto']);
 
-        $path = 'dte/pdf/' . $dte->uuid . '.pdf';
+        $path = 'dte/pdf/'.$dte->uuid.'.pdf';
 
-        Storage::disk('public')->put($path, $this->output($dte));
+        Storage::disk((string) config('filesystems.private_disk', 'local'))->put($path, $this->output($dte));
         $dte->update(['pdf_path' => $path]);
 
         return $path;
@@ -83,12 +83,12 @@ class DteComprobantePdf
 
         $this->box($commands, 46, 538, 242, 126, 'EMISOR');
         $this->text($commands, 58, 634, 10, $profile?->razon_social ?? $vendor?->business_name ?? 'Atlantia Supermarket', true);
-        $this->text($commands, 58, 618, 8.5, 'NIT: ' . ($profile?->nit ?? 'CF'));
-        $this->text($commands, 58, 604, 8.5, 'Direccion: ' . $this->clip((string) ($profile?->direccion_fiscal ?? $vendor?->direccion_comercial ?? 'Izabal, Guatemala'), 43));
-        $this->text($commands, 58, 590, 8.5, 'Ciudad: ' . ($vendor?->municipio ?? 'Puerto Barrios') . ', Guatemala');
-        $this->text($commands, 58, 576, 8.5, 'Telefono: ' . ($vendor?->telefono_publico ?? '(502) 0000-0000'));
-        $this->text($commands, 58, 562, 8.5, 'Correo: ' . ($vendor?->email_publico ?? 'facturacion@atlantia.com.gt'));
-        $this->text($commands, 58, 548, 8.5, 'Regimen: ' . ($profile?->regimen_sat ?? 'General'));
+        $this->text($commands, 58, 618, 8.5, 'NIT: '.($profile?->nit ?? 'CF'));
+        $this->text($commands, 58, 604, 8.5, 'Direccion: '.$this->clip((string) ($profile?->direccion_fiscal ?? $vendor?->direccion_comercial ?? 'Izabal, Guatemala'), 43));
+        $this->text($commands, 58, 590, 8.5, 'Ciudad: '.($vendor?->municipio ?? 'Puerto Barrios').', Guatemala');
+        $this->text($commands, 58, 576, 8.5, 'Telefono: '.($vendor?->telefono_publico ?? '(502) 0000-0000'));
+        $this->text($commands, 58, 562, 8.5, 'Correo: '.($vendor?->email_publico ?? 'facturacion@atlantia.com.gt'));
+        $this->text($commands, 58, 548, 8.5, 'Regimen: '.($profile?->regimen_sat ?? 'General'));
 
         $this->box($commands, 306, 538, 262, 126, 'DATOS DEL DTE');
         $this->text($commands, 320, 636, 8.5, 'Serie:', true);
@@ -143,8 +143,8 @@ class DteComprobantePdf
             $this->text($commands, 96, $y, 8, number_format((float) $item->cantidad, 2));
             $this->text($commands, 152, $y, 8, 'Unidad');
             $this->text($commands, 208, $y, 8, $this->clip((string) $item->descripcion, 33), true);
-            $this->text($commands, 392, $y, 8, 'Q ' . number_format((float) $item->precio_unitario, 2));
-            $this->text($commands, 478, $y, 8, 'Q ' . number_format((float) $item->monto_total, 2));
+            $this->text($commands, 392, $y, 8, 'Q '.number_format((float) $item->precio_unitario, 2));
+            $this->text($commands, 478, $y, 8, 'Q '.number_format((float) $item->monto_total, 2));
             $y -= 23;
         }
 
@@ -156,30 +156,30 @@ class DteComprobantePdf
         $this->text($commands, 46, 180, 7.5, 'Contribuyendo por el pais que todos queremos.');
         $this->text($commands, 46, 166, 7.5, $isMock ? 'DOCUMENTO EMULADO PARA PRUEBAS - NO ES CERTIFICACION SAT REAL.' : 'Documento certificado electronicamente.');
         $this->text($commands, 46, 152, 7.5, 'Centro de costo: 01 - Supermercado');
-        $this->text($commands, 46, 138, 7.5, 'Vendedor: ' . $this->clip($vendor?->business_name ?? 'Atlantia Supermarket', 42));
+        $this->text($commands, 46, 138, 7.5, 'Vendedor: '.$this->clip($vendor?->business_name ?? 'Atlantia Supermarket', 42));
 
         $this->stroke($commands, 0.55, 0.06, 0.24);
         $this->rect($commands, 318, 132, 250, 82, 'B');
         $this->text($commands, 334, 192, 9, 'SUBTOTAL:', true);
-        $this->text($commands, 486, 192, 9, 'Q ' . number_format((float) $dte->monto_neto, 2), true);
+        $this->text($commands, 486, 192, 9, 'Q '.number_format((float) $dte->monto_neto, 2), true);
         $this->text($commands, 334, 174, 9, 'DESCUENTO TOTAL:', true);
-        $this->text($commands, 486, 174, 9, 'Q ' . number_format((float) ($pedido?->descuento ?? 0), 2), true);
+        $this->text($commands, 486, 174, 9, 'Q '.number_format((float) ($pedido?->descuento ?? 0), 2), true);
         $this->text($commands, 334, 156, 9, 'IVA (12%):', true);
-        $this->text($commands, 486, 156, 9, 'Q ' . number_format((float) $dte->monto_iva, 2), true);
+        $this->text($commands, 486, 156, 9, 'Q '.number_format((float) $dte->monto_iva, 2), true);
         $this->fill($commands, 0.55, 0.06, 0.24);
         $this->rect($commands, 318, 132, 250, 20, 'f');
         $this->fill($commands, 1, 1, 1);
         $this->text($commands, 334, 139, 10, 'TOTAL A PAGAR:', true);
-        $this->text($commands, 486, 139, 10, 'Q ' . number_format((float) $dte->monto_total, 2), true);
+        $this->text($commands, 486, 139, 10, 'Q '.number_format((float) $dte->monto_total, 2), true);
 
         $this->box($commands, 46, 58, 522, 58, 'CERTIFICACION ELECTRONICA');
         $this->text($commands, 58, 92, 7.5, $isMock
             ? 'Este comprobante fue emitido por el ambiente emulado de Atlantia para presentacion y pruebas.'
             : 'Esta factura ha sido certificada electronicamente por el certificador FEL configurado.');
-        $this->text($commands, 58, 78, 7.5, 'UUID: ' . $this->clip($uuidSat, 54), true);
+        $this->text($commands, 58, 78, 7.5, 'UUID: '.$this->clip($uuidSat, 54), true);
         $this->pseudoQr($commands, 268, 66, 42, $uuidSat);
         $this->text($commands, 326, 92, 7.5, 'Verificacion del DTE');
-        $this->text($commands, 326, 78, 7.5, 'Numero de acceso: ' . substr(hash('sha256', $uuidSat), 0, 24));
+        $this->text($commands, 326, 78, 7.5, 'Numero de acceso: '.substr(hash('sha256', $uuidSat), 0, 24));
         $this->text($commands, 326, 64, 7.5, 'Original: Cliente');
 
         $this->fill($commands, 0.35, 0.31, 0.35);
@@ -193,7 +193,7 @@ class DteComprobantePdf
     /**
      * Caja de resumen monetario.
      *
-     * @param array<int, string> $commands
+     * @param  array<int, string>  $commands
      */
     private function summaryBox(array &$commands, int $x, int $y, string $label, float $amount): void
     {
@@ -203,13 +203,13 @@ class DteComprobantePdf
         $this->fill($commands, 0.35, 0.31, 0.35);
         $this->text($commands, $x + 15, $y + 30, 8.5, $label);
         $this->fill($commands, 0.55, 0.06, 0.24);
-        $this->text($commands, $x + 15, $y + 12, 14, 'Q' . number_format($amount, 2), true);
+        $this->text($commands, $x + 15, $y + 12, 14, 'Q'.number_format($amount, 2), true);
     }
 
     /**
      * Caja de informacion.
      *
-     * @param array<int, string> $commands
+     * @param  array<int, string>  $commands
      */
     private function box(array &$commands, int $x, int $y, int $w, int $h, string $label): void
     {
@@ -223,7 +223,7 @@ class DteComprobantePdf
     /**
      * Dibuja un QR visual deterministico para la representacion impresa.
      *
-     * @param array<int, string> $commands
+     * @param  array<int, string>  $commands
      */
     private function pseudoQr(array &$commands, int $x, int $y, int $size, string $seed): void
     {
@@ -264,7 +264,7 @@ class DteComprobantePdf
     /**
      * Escribe texto.
      *
-     * @param array<int, string> $commands
+     * @param  array<int, string>  $commands
      */
     private function text(array &$commands, int $x, int $y, float $size, string $text, bool $bold = false): void
     {
@@ -275,7 +275,7 @@ class DteComprobantePdf
     /**
      * Dibuja rectangulo.
      *
-     * @param array<int, string> $commands
+     * @param  array<int, string>  $commands
      */
     private function rect(array &$commands, int $x, int $y, int $w, int $h, string $operator): void
     {
@@ -285,7 +285,7 @@ class DteComprobantePdf
     /**
      * Dibuja linea.
      *
-     * @param array<int, string> $commands
+     * @param  array<int, string>  $commands
      */
     private function line(array &$commands, int $x1, int $y1, int $x2, int $y2): void
     {
@@ -295,7 +295,7 @@ class DteComprobantePdf
     /**
      * Color de relleno.
      *
-     * @param array<int, string> $commands
+     * @param  array<int, string>  $commands
      */
     private function fill(array &$commands, float $r, float $g, float $b): void
     {
@@ -305,7 +305,7 @@ class DteComprobantePdf
     /**
      * Color de trazo.
      *
-     * @param array<int, string> $commands
+     * @param  array<int, string>  $commands
      */
     private function stroke(array &$commands, float $r, float $g, float $b): void
     {
@@ -323,7 +323,7 @@ class DteComprobantePdf
             '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >> endobj',
             '4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj',
             '5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> endobj',
-            '6 0 obj << /Length ' . strlen($content) . " >> stream\n" . $content . "\nendstream endobj",
+            '6 0 obj << /Length '.strlen($content)." >> stream\n".$content."\nendstream endobj",
         ];
 
         $pdf = "%PDF-1.4\n";
@@ -331,18 +331,18 @@ class DteComprobantePdf
 
         foreach ($objects as $object) {
             $offsets[] = strlen($pdf);
-            $pdf .= $object . "\n";
+            $pdf .= $object."\n";
         }
 
         $xref = strlen($pdf);
-        $pdf .= "xref\n0 " . (count($objects) + 1) . "\n";
+        $pdf .= "xref\n0 ".(count($objects) + 1)."\n";
         $pdf .= "0000000000 65535 f \n";
 
         for ($i = 1; $i <= count($objects); $i++) {
             $pdf .= sprintf("%010d 00000 n \n", $offsets[$i]);
         }
 
-        $pdf .= "trailer << /Size " . (count($objects) + 1) . " /Root 1 0 R >>\n";
+        $pdf .= 'trailer << /Size '.(count($objects) + 1)." /Root 1 0 R >>\n";
         $pdf .= "startxref\n{$xref}\n%%EOF";
 
         return $pdf;
@@ -364,6 +364,6 @@ class DteComprobantePdf
      */
     private function clip(string $text, int $length): string
     {
-        return strlen($text) > $length ? substr($text, 0, $length - 3) . '...' : $text;
+        return strlen($text) > $length ? substr($text, 0, $length - 3).'...' : $text;
     }
 }

@@ -6,10 +6,13 @@ use App\Contracts\PasarelaPagoContract;
 use App\DTOs\PagoResultado;
 use App\DTOs\PedidoDTO;
 use App\Enums\EstadoPago;
+use App\Enums\EstadoPedido;
 use App\Enums\MetodoPago;
 use App\Exceptions\PagoRechazadoException;
 use App\Models\Payment;
 use App\Models\Pedido;
+use App\Services\Inventario\StockService;
+use App\Services\Pedidos\EstadoPedidoService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -22,16 +25,14 @@ class PasarelaPagoService implements PasarelaPagoContract
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly VerificadorHmacService $verificadorHmacService)
-    {
-    }
+    public function __construct(
+        private readonly StockService $stockService,
+        private readonly EstadoPedidoService $estadoPedidoService
+    ) {}
 
     /**
      * Registra el pago del checkout.
      *
-     * @param Pedido $pedido
-     * @param PedidoDTO $pedidoDTO
-     * @return Payment
      *
      * @throws PagoRechazadoException
      */
@@ -67,8 +68,7 @@ class PasarelaPagoService implements PasarelaPagoContract
     /**
      * Procesa un pago segun el contrato intercambiable.
      *
-     * @param array<string, mixed> $datos
-     * @return PagoResultado
+     * @param  array<string, mixed>  $datos
      */
     public function procesar(array $datos): PagoResultado
     {
@@ -85,23 +85,38 @@ class PasarelaPagoService implements PasarelaPagoContract
     /**
      * Registra confirmacion desde webhook de pasarela.
      *
-     * @param array<string, mixed> $payload
-     * @param array<string, mixed> $headers
-     * @return Payment|null
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $headers
      */
     public function confirmarDesdeWebhook(array $payload, array $headers): ?Payment
     {
-        $secret = (string) config('services.payment_gateway.webhook_secret', '');
-        $body = json_encode($payload, JSON_THROW_ON_ERROR);
-        $signature = (string) ($headers['x-atlantia-signature'][0] ?? $headers['X-Atlantia-Signature'][0] ?? '');
+        $paymentUuid = (string) ($payload['payment_uuid'] ?? '');
+        $transactionId = (string) (
+            $payload['transaction_id']
+            ?? $payload['transaccion_id_pasarela']
+            ?? $payload['payment_intent']
+            ?? data_get($payload, 'payload.transaction_id')
+            ?? data_get($payload, 'payload.payment_intent')
+            ?? data_get($payload, 'payload.data.object.id')
+            ?? ''
+        );
 
-        if (! $this->verificadorHmacService->verify($body, $signature, $secret)) {
+        if ($paymentUuid === '' && $transactionId === '') {
             return null;
         }
 
-        return DB::transaction(function () use ($payload): ?Payment {
+        return DB::transaction(function () use ($payload, $paymentUuid, $transactionId): ?Payment {
             $payment = Payment::query()
-                ->where('transaccion_id_pasarela', $payload['transaction_id'] ?? null)
+                ->with(['pedido.pedidosHijos'])
+                ->where(function ($query) use ($paymentUuid, $transactionId): void {
+                    if ($paymentUuid !== '') {
+                        $query->where('uuid', $paymentUuid);
+                    }
+
+                    if ($transactionId !== '') {
+                        $query->orWhere('transaccion_id_pasarela', $transactionId);
+                    }
+                })
                 ->lockForUpdate()
                 ->first();
 
@@ -109,16 +124,32 @@ class PasarelaPagoService implements PasarelaPagoContract
                 return null;
             }
 
+            $estado = $this->estadoDesdeWebhook($payload);
+            $payloadAnterior = $payment->pasarela_payload ?? [];
+
             $payment->update([
-                'estado' => ($payload['status'] ?? null) === 'approved'
-                    ? EstadoPago::Aprobado->value
-                    : EstadoPago::Rechazado->value,
+                'estado' => $estado->value,
+                'transaccion_id_pasarela' => $payment->transaccion_id_pasarela ?: ($transactionId ?: null),
                 'hmac_validado' => true,
-                'validado_at' => now(),
-                'pasarela_payload' => $payload,
+                'validado_at' => in_array($estado, [
+                    EstadoPago::Aprobado,
+                    EstadoPago::Pagado,
+                    EstadoPago::Rechazado,
+                    EstadoPago::Anulado,
+                    EstadoPago::Reembolsado,
+                ], true) ? now() : $payment->validado_at,
+                'pasarela_payload' => [
+                    ...$payloadAnterior,
+                    'webhook' => $payload,
+                ],
             ]);
             if ($payment->pedido !== null) {
                 $this->syncPedidoTreeEstadoPago($payment->pedido, $this->estadoPedidoPago($payment->estado));
+
+                if (in_array($estado, [EstadoPago::Rechazado, EstadoPago::Anulado], true)) {
+                    $this->stockService->releaseForPedido($payment->pedido);
+                    $this->cancelPedidoTree($payment->pedido, 'Pedido cancelado por webhook de pago rechazado.');
+                }
             }
 
             return $payment->refresh();
@@ -128,9 +159,6 @@ class PasarelaPagoService implements PasarelaPagoContract
     /**
      * Procesa pago segun metodo.
      *
-     * @param Pedido $pedido
-     * @param string $metodo
-     * @param PedidoDTO $pedidoDTO
      * @return array<string, mixed>
      *
      * @throws PagoRechazadoException
@@ -151,8 +179,6 @@ class PasarelaPagoService implements PasarelaPagoContract
     /**
      * Procesa tarjeta con Stripe Payment Intents.
      *
-     * @param Pedido $pedido
-     * @param PedidoDTO $pedidoDTO
      * @return array<string, mixed>
      *
      * @throws PagoRechazadoException
@@ -176,7 +202,7 @@ class PasarelaPagoService implements PasarelaPagoContract
             'amount' => (int) round(((float) $pedido->total) * 100),
             'currency' => strtolower((string) config('services.stripe.currency', 'gtq')),
             'confirm' => 'true',
-            'description' => 'Atlantia Supermarket pedido ' . $pedido->numero_pedido,
+            'description' => 'Atlantia Supermarket pedido '.$pedido->numero_pedido,
             'metadata[pedido_uuid]' => $pedido->uuid,
             'metadata[numero_pedido]' => $pedido->numero_pedido,
         ];
@@ -191,7 +217,7 @@ class PasarelaPagoService implements PasarelaPagoContract
 
         $response = Http::asForm()
             ->withToken($secret)
-            ->withHeaders(['Idempotency-Key' => 'pedido-' . $pedido->uuid])
+            ->withHeaders(['Idempotency-Key' => 'pedido-'.$pedido->uuid])
             ->timeout(20)
             ->post('https://api.stripe.com/v1/payment_intents', $payload);
 
@@ -279,9 +305,30 @@ class PasarelaPagoService implements PasarelaPagoContract
     }
 
     /**
+     * Cancela el pedido padre y sus hijos sin liberar stock mas de una vez.
+     */
+    private function cancelPedidoTree(Pedido $pedido, string $nota): void
+    {
+        $pedido->loadMissing('pedidosHijos');
+        $pedidos = collect([$pedido])->merge($pedido->pedidosHijos);
+
+        foreach ($pedidos as $pedidoTreeItem) {
+            if (in_array($pedidoTreeItem->estadoValor(), [
+                EstadoPedido::Cancelado->value,
+                EstadoPedido::Rechazado->value,
+                EstadoPedido::Entregado->value,
+            ], true)) {
+                continue;
+            }
+
+            $this->estadoPedidoService->registrar($pedidoTreeItem, EstadoPedido::Cancelado, $nota);
+        }
+    }
+
+    /**
      * Mapea estado de payment a estado_pago del pedido.
      *
-     * @param string $estado
+     * @param  string  $estado
      * @return string
      */
     private function estadoPedidoPago(string|EstadoPago $estado): EstadoPago
@@ -290,10 +337,40 @@ class PasarelaPagoService implements PasarelaPagoContract
 
         return match ($estadoValue) {
             EstadoPago::Aprobado->value => EstadoPago::Pagado,
+            EstadoPago::Pagado->value => EstadoPago::Pagado,
             EstadoPago::Validando->value => EstadoPago::Validando,
             EstadoPago::Rechazado->value => EstadoPago::Rechazado,
+            EstadoPago::Anulado->value => EstadoPago::Anulado,
             EstadoPago::Reembolsado->value => EstadoPago::Reembolsado,
             default => EstadoPago::Pendiente,
+        };
+    }
+
+    /**
+     * Normaliza estados de pasarelas externas al enum interno.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function estadoDesdeWebhook(array $payload): EstadoPago
+    {
+        $status = Str::of((string) (
+            $payload['status']
+            ?? $payload['estado']
+            ?? data_get($payload, 'payload.status')
+            ?? data_get($payload, 'payload.data.object.status')
+            ?? ''
+        ))
+            ->lower()
+            ->replace([' ', '-'], '_')
+            ->toString();
+
+        return match ($status) {
+            'approved', 'aprobado', 'paid', 'pagado', 'succeeded', 'processing', 'requires_capture' => EstadoPago::Aprobado,
+            'pending', 'pendiente', 'validando', 'in_review', 'review' => EstadoPago::Validando,
+            'rejected', 'rechazado', 'failed', 'declined', 'canceled', 'cancelled', 'cancelado' => EstadoPago::Rechazado,
+            'refunded', 'reembolsado' => EstadoPago::Reembolsado,
+            'reversed', 'reversado', 'voided', 'anulado' => EstadoPago::Anulado,
+            default => EstadoPago::Validando,
         };
     }
 }

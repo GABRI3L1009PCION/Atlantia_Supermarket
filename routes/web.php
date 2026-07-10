@@ -1,8 +1,9 @@
 <?php
 
-use App\Http\Controllers\HealthController;
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Cliente\CatalogoController;
+use App\Http\Controllers\DtePdfController;
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\Vendedor\SolicitudVendedorController;
 use Illuminate\Support\Facades\Route;
@@ -26,13 +27,12 @@ Route::middleware(['web', 'security.headers'])->group(function (): void {
     Route::post('/vendedor/solicitar', [SolicitudVendedorController::class, 'store'])
         ->middleware('throttle:3,1440')
         ->name('vendedor.solicitar.store');
-    Route::get('/vendedor/solicitar/validar-email', [SolicitudVendedorController::class, 'checkEmail'])
-        ->name('vendedor.solicitar.check-email');
-    Route::get('/vendedor/solicitar/validar-documento', [SolicitudVendedorController::class, 'checkDocument'])
-        ->name('vendedor.solicitar.check-document');
     Route::get('/vendedor/solicitud/{codigo}', [SolicitudVendedorController::class, 'show'])
         ->name('vendedor.solicitud.show');
-    Route::get('/admin/salir-impersonacion', [ImpersonationController::class, 'stop'])
+    Route::get('/dte/{dte:uuid}/pdf', DtePdfController::class)
+        ->middleware('throttle:30,1')
+        ->name('dte.pdf');
+    Route::delete('/admin/salir-impersonacion', [ImpersonationController::class, 'stop'])
         ->middleware('auth')
         ->name('admin.impersonation.stop');
     Route::middleware('auth')->group(function (): void {
@@ -46,12 +46,12 @@ Route::middleware(['web', 'security.headers'])->group(function (): void {
     });
 
     $routeFiles = [
-        __DIR__ . '/auth.php',
-        __DIR__ . '/cliente.php',
-        __DIR__ . '/admin.php',
-        __DIR__ . '/vendedor.php',
-        __DIR__ . '/repartidor.php',
-        __DIR__ . '/empleado.php',
+        __DIR__.'/auth.php',
+        __DIR__.'/cliente.php',
+        __DIR__.'/admin.php',
+        __DIR__.'/vendedor.php',
+        __DIR__.'/repartidor.php',
+        __DIR__.'/empleado.php',
     ];
 
     foreach ($routeFiles as $routeFile) {
