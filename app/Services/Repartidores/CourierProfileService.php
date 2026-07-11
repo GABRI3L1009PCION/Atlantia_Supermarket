@@ -2,6 +2,7 @@
 
 namespace App\Services\Repartidores;
 
+use App\Jobs\ProcesarDespachoAutomatico;
 use App\Models\CourierProfile;
 use App\Models\DeliveryOffer;
 use App\Models\DeliveryRoute;
@@ -62,6 +63,10 @@ class CourierProfileService
         }
 
         $profile->update($payload);
+
+        if ($status === 'available') {
+            ProcesarDespachoAutomatico::dispatch();
+        }
 
         return $profile->refresh();
     }

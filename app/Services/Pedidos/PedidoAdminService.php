@@ -4,7 +4,6 @@ namespace App\Services\Pedidos;
 
 use App\Enums\EstadoPago;
 use App\Enums\EstadoPedido;
-use App\Events\RepartidorAsignado;
 use App\Models\DeliveryRoute;
 use App\Models\Pedido;
 use App\Models\PedidoEstado;
@@ -172,7 +171,6 @@ class PedidoAdminService
                             'estimated_gain' => $route->estimated_earning,
                             'ttl_seconds' => 120,
                         ]);
-                        RepartidorAsignado::dispatch($pedido->fresh(), $repartidor);
                     }
                 }
             }

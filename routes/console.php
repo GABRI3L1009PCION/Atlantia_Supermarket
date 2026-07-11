@@ -2,6 +2,7 @@
 
 use App\Jobs\LimpiarCarritosAbandonados;
 use App\Jobs\LimpiarTokensExpirados;
+use App\Jobs\ProcesarDespachoAutomatico;
 use App\Models\User;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -54,8 +55,8 @@ Artisan::command('atlantia:create-super-admin {--name=} {--email=} {--phone=}', 
     return 0;
 })->purpose('Crear el primer super administrador real de Atlantia');
 
-Schedule::job(new LimpiarCarritosAbandonados())->daily();
-Schedule::job(new LimpiarTokensExpirados())->daily();
+Schedule::job(new LimpiarCarritosAbandonados)->daily();
+Schedule::job(new LimpiarTokensExpirados)->daily();
 Schedule::command('queue:prune-failed --hours=720')->weekly();
 
 if (config('session.driver') === 'database') {
@@ -63,3 +64,7 @@ if (config('session.driver') === 'database') {
 }
 
 Schedule::command('scout:sync-index-settings')->weekly();
+Schedule::job(new ProcesarDespachoAutomatico)
+    ->everyMinute()
+    ->onOneServer()
+    ->withoutOverlapping();

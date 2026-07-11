@@ -2,9 +2,13 @@
 
 namespace App\Services\Repartidores;
 
+use App\Contracts\NotificacionContract;
 use App\Enums\EstadoPedido;
+use App\Events\RepartidorAsignado;
 use App\Exceptions\TransaccionFallidaException;
+use App\Jobs\ProcesarDespachoAutomatico;
 use App\Models\DeliveryOffer;
+use App\Models\DeliveryRoute;
 use App\Models\ExternalDeliveryOrder;
 use App\Models\Pedido;
 use App\Models\User;
@@ -21,7 +25,8 @@ class DeliveryOfferService
      * Crea una instancia del servicio.
      */
     public function __construct(
-        private readonly CourierProfileService $profileService
+        private readonly CourierProfileService $profileService,
+        private readonly NotificacionContract $notificationService
     ) {}
 
     /**
@@ -78,6 +83,10 @@ class DeliveryOfferService
 
         $this->maybeAutoAccept($offer, $repartidor);
 
+        if ($offer->fresh()->status === 'pending') {
+            $this->notifyOffer($offer->fresh(), $repartidor);
+        }
+
         return $offer->refresh();
     }
 
@@ -116,6 +125,10 @@ class DeliveryOfferService
 
         $this->maybeAutoAccept($offer, $repartidor);
 
+        if ($offer->fresh()->status === 'pending') {
+            $this->notifyOffer($offer->fresh(), $repartidor);
+        }
+
         return $offer->refresh();
     }
 
@@ -124,7 +137,9 @@ class DeliveryOfferService
      */
     public function accept(DeliveryOffer $offer, User $user): DeliveryOffer
     {
-        return DB::transaction(function () use ($offer, $user): DeliveryOffer {
+        $this->expireIfStale($offer, $user);
+
+        $acceptedOffer = DB::transaction(function () use ($offer, $user): DeliveryOffer {
             $offer = DeliveryOffer::query()->lockForUpdate()->findOrFail($offer->id);
             $this->assertOfferCanBeHandled($offer, $user);
 
@@ -147,6 +162,12 @@ class DeliveryOfferService
 
             return $offer->refresh()->load(['pedido', 'externalOrder', 'route']);
         });
+
+        if ($acceptedOffer->pedido !== null) {
+            RepartidorAsignado::dispatch($acceptedOffer->pedido, $user);
+        }
+
+        return $acceptedOffer;
     }
 
     /**
@@ -154,7 +175,9 @@ class DeliveryOfferService
      */
     public function reject(DeliveryOffer $offer, User $user, ?string $reason = null): DeliveryOffer
     {
-        return DB::transaction(function () use ($offer, $user, $reason): DeliveryOffer {
+        $this->expireIfStale($offer, $user);
+
+        $rejectedOffer = DB::transaction(function () use ($offer, $user, $reason): DeliveryOffer {
             $offer = DeliveryOffer::query()->lockForUpdate()->findOrFail($offer->id);
             $this->assertOfferCanBeHandled($offer, $user);
 
@@ -168,6 +191,10 @@ class DeliveryOfferService
 
             return $offer->refresh();
         });
+
+        $this->queueRedispatch($rejectedOffer);
+
+        return $rejectedOffer;
     }
 
     /**
@@ -175,14 +202,20 @@ class DeliveryOfferService
      */
     public function expireStaleFor(User $user): int
     {
-        $count = DeliveryOffer::query()
+        $offers = DeliveryOffer::query()
             ->where('repartidor_id', $user->id)
             ->where('status', 'pending')
             ->where('expires_at', '<=', now())
+            ->get();
+
+        $count = DeliveryOffer::query()
+            ->whereKey($offers->modelKeys())
+            ->where('status', 'pending')
             ->update(['status' => 'expired']);
 
         if ($count > 0) {
             $this->profileService->refreshPerformance($user);
+            $offers->each(fn (DeliveryOffer $offer) => $this->queueRedispatch($offer));
         }
 
         return $count;
@@ -193,16 +226,25 @@ class DeliveryOfferService
      */
     private function acceptInternal(DeliveryOffer $offer, User $user): void
     {
-        $pedido = Pedido::query()->with('deliveryRoute')->findOrFail($offer->pedido_id);
-        $route = $pedido->deliveryRoute;
+        $pedido = Pedido::query()->lockForUpdate()->findOrFail($offer->pedido_id);
+        $route = DeliveryRoute::query()->where('pedido_id', $pedido->id)->lockForUpdate()->first();
 
         if ($route === null) {
             throw new TransaccionFallidaException('El pedido aun no tiene una ruta asignada.');
         }
 
+        if ($route->aceptada_at !== null && (int) $route->repartidor_id !== (int) $user->id) {
+            throw new TransaccionFallidaException('La entrega ya fue aceptada por otro repartidor.');
+        }
+
+        if (DeliveryOffer::query()->where('pedido_id', $pedido->id)->where('status', 'accepted')->where('id', '!=', $offer->id)->exists()) {
+            throw new TransaccionFallidaException('La entrega ya fue aceptada por otro repartidor.');
+        }
+
         $route->update([
             'repartidor_id' => $user->id,
             'estado' => 'asignada',
+            'asignada_at' => $route->asignada_at ?? now(),
             'aceptada_at' => $route->aceptada_at ?? now(),
             'estimated_earning' => $offer->estimated_gain,
             'confirmation_code' => $route->confirmation_code ?? (string) random_int(1000, 9999),
@@ -226,7 +268,16 @@ class DeliveryOfferService
      */
     private function acceptExternal(DeliveryOffer $offer, User $user): void
     {
-        $order = ExternalDeliveryOrder::query()->findOrFail($offer->external_delivery_order_id);
+        $order = ExternalDeliveryOrder::query()->lockForUpdate()->findOrFail($offer->external_delivery_order_id);
+
+        if (! in_array($order->status, ['requested', 'offered'], true) && (int) $order->repartidor_id !== (int) $user->id) {
+            throw new TransaccionFallidaException('La entrega externa ya fue aceptada por otro repartidor.');
+        }
+
+        if (DeliveryOffer::query()->where('external_delivery_order_id', $order->id)->where('status', 'accepted')->where('id', '!=', $offer->id)->exists()) {
+            throw new TransaccionFallidaException('La entrega externa ya fue aceptada por otro repartidor.');
+        }
+
         $order->update([
             'repartidor_id' => $user->id,
             'status' => 'accepted',
@@ -282,8 +333,51 @@ class DeliveryOfferService
         }
 
         if ($offer->expires_at->isPast()) {
-            $offer->update(['status' => 'expired']);
             throw new TransaccionFallidaException('El tiempo para aceptar esta oferta vencio.');
         }
+    }
+
+    private function expireIfStale(DeliveryOffer $offer, User $user): void
+    {
+        $expiredOffer = DB::transaction(function () use ($offer, $user): ?DeliveryOffer {
+            $offer = DeliveryOffer::query()->lockForUpdate()->findOrFail($offer->id);
+
+            if ((int) $offer->repartidor_id !== (int) $user->id || $offer->status !== 'pending' || ! $offer->expires_at->isPast()) {
+                return null;
+            }
+
+            $offer->update(['status' => 'expired']);
+
+            return $offer->refresh();
+        });
+
+        if ($expiredOffer === null) {
+            return;
+        }
+
+        $this->profileService->refreshPerformance($user);
+        $this->queueRedispatch($expiredOffer);
+
+        throw new TransaccionFallidaException('El tiempo para aceptar esta oferta vencio.');
+    }
+
+    private function queueRedispatch(DeliveryOffer $offer): void
+    {
+        ProcesarDespachoAutomatico::dispatch($offer->pedido_id, $offer->external_delivery_order_id);
+    }
+
+    private function notifyOffer(DeliveryOffer $offer, User $repartidor): void
+    {
+        $this->notificationService->enviar($repartidor, 'entrega.oferta', [
+            'titulo' => 'Nueva oferta de entrega',
+            'mensaje' => 'Tienes una nueva entrega disponible para aceptar.',
+            'offer_uuid' => $offer->uuid,
+            'pedido_uuid' => $offer->pedido?->uuid,
+            'external_order_uuid' => $offer->externalOrder?->uuid,
+            'source_type' => $offer->source_type,
+            'estimated_gain' => (float) $offer->estimated_gain,
+            'pickup_distance_km' => $offer->pickup_distance_km !== null ? (float) $offer->pickup_distance_km : null,
+            'expires_at' => $offer->expires_at->toIso8601String(),
+        ]);
     }
 }

@@ -2,10 +2,12 @@
 
 namespace App\Services\Geolocalizacion;
 
+use App\Jobs\ProcesarDespachoAutomatico;
 use App\Models\DeliveryRoute;
 use App\Models\MarketCourierStatus;
 use App\Models\Pedido;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -16,13 +18,11 @@ class SeguimientoGpsService
     /**
      * Registra una ubicacion GPS enviada por el repartidor.
      *
-     * @param User $repartidor
-     * @param array<string, mixed> $data
-     * @return MarketCourierStatus
+     * @param  array<string, mixed>  $data
      */
     public function storeLocation(User $repartidor, array $data): MarketCourierStatus
     {
-        return DB::transaction(function () use ($repartidor, $data): MarketCourierStatus {
+        $status = DB::transaction(function () use ($repartidor, $data): MarketCourierStatus {
             $status = MarketCourierStatus::query()->create([
                 'repartidor_id' => $repartidor->id,
                 'pedido_id' => $data['pedido_id'] ?? null,
@@ -39,13 +39,14 @@ class SeguimientoGpsService
 
             return $status->refresh();
         });
+
+        ProcesarDespachoAutomatico::dispatch();
+
+        return $status;
     }
 
     /**
      * Obtiene ultima ubicacion del repartidor.
-     *
-     * @param User $repartidor
-     * @return MarketCourierStatus|null
      */
     public function latestForCourier(User $repartidor): ?MarketCourierStatus
     {
@@ -58,8 +59,7 @@ class SeguimientoGpsService
     /**
      * Obtiene historial GPS de un pedido.
      *
-     * @param Pedido $pedido
-     * @return \Illuminate\Database\Eloquent\Collection<int, MarketCourierStatus>
+     * @return Collection<int, MarketCourierStatus>
      */
     public function historyForPedido(Pedido $pedido)
     {
@@ -71,9 +71,6 @@ class SeguimientoGpsService
 
     /**
      * Agrega punto GPS a la ruta real asociada.
-     *
-     * @param MarketCourierStatus $status
-     * @return void
      */
     private function appendRutaReal(MarketCourierStatus $status): void
     {

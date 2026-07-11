@@ -3,6 +3,7 @@
 namespace App\Services\Repartidores;
 
 use App\Exceptions\TransaccionFallidaException;
+use App\Jobs\ProcesarDespachoAutomatico;
 use App\Models\ExternalDeliveryOrder;
 use App\Models\User;
 use App\Services\Geolocalizacion\EtaCalculadorService;
@@ -60,7 +61,7 @@ class ExternalDeliveryOrderService
         $deliveryFee = (float) ($data['delivery_fee'] ?? $this->defaultDeliveryFee($distanceKm));
         $courierEarning = (float) ($data['courier_earning'] ?? max(18, round($deliveryFee * 0.7, 2)));
 
-        return ExternalDeliveryOrder::query()->create([
+        $order = ExternalDeliveryOrder::query()->create([
             'uuid' => (string) Str::uuid(),
             'source_channel' => $data['source_channel'] ?? 'manual',
             'external_reference' => $data['external_reference'] ?? 'EXT-'.now()->format('YmdHis'),
@@ -92,6 +93,10 @@ class ExternalDeliveryOrderService
             'confirmation_code' => (string) random_int(1000, 9999),
             'metadata' => $data['metadata'] ?? null,
         ]);
+
+        ProcesarDespachoAutomatico::dispatch(null, $order->id);
+
+        return $order;
     }
 
     /**
