@@ -5,6 +5,7 @@
 .env.production
 .env.local
 .env.*.local
+docker/env/compose.env
 .phpactor.json
 .phpunit.result.cache
 

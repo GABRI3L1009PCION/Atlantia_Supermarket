@@ -9,6 +9,12 @@ COPY public ./public
 RUN npm ci --ignore-scripts \
     && npm run build
 
+FROM nginx:1.27-alpine AS web
+
+COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY public /var/www/html/public
+COPY --from=assets /app/public/build /var/www/html/public/build
+
 FROM php:8.3-fpm-bookworm AS base
 
 ARG UID=1000
@@ -53,7 +59,7 @@ RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoload
 COPY --chown=atlantia:atlantia . .
 COPY --from=assets --chown=atlantia:atlantia /app/public/build ./public/build
 
-RUN composer dump-autoload --no-dev --optimize --classmap-authoritative \
+RUN APP_ENV=local composer dump-autoload --no-dev --optimize --classmap-authoritative \
     && mkdir -p storage/app/private storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chown -R atlantia:atlantia storage bootstrap/cache
 

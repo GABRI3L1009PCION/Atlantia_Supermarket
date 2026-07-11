@@ -6,9 +6,8 @@ This document defines the production target for Atlantia Supermarket. The goal i
 
 ```mermaid
 flowchart LR
-    U["Clientes / vendedores / admins"] --> CF["CDN + WAF + TLS"]
-    CF --> LB["Load balancer"]
-    LB --> WEB["Nginx edge containers"]
+    U["Clientes / vendedores / admins"] --> EDGE["Caddy HTTPS o CDN/WAF"]
+    EDGE --> WEB["Nginx edge containers"]
     WEB --> PHP["Laravel PHP-FPM app pool"]
     PHP --> DB["Managed MySQL primary"]
     PHP --> RR["MySQL read replicas"]
@@ -28,7 +27,7 @@ flowchart LR
 
 - All app, worker, scheduler and ML containers must be stateless. No database, queue, session, cache or uploaded file state should be stored in container layers.
 - MySQL, Redis, object storage and search must be managed services or dedicated stateful nodes with backups, monitoring and restricted private networking.
-- TLS terminates at Cloudflare/CDN or the load balancer. The Laravel containers must receive correct `X-Forwarded-Proto` only from trusted proxies.
+- TLS terminates at Caddy, Cloudflare/CDN or the load balancer. The Laravel containers must receive correct `X-Forwarded-Proto` only from trusted proxies.
 - Secrets must come from `/opt/atlantia/shared/*.env` on a locked host or from a secret manager. Real secrets must never live in Git.
 - Migrations are a release step, not something every app replica runs automatically.
 - Scheduler must run as one active replica only.
@@ -39,6 +38,7 @@ flowchart LR
 `docker-compose.prod.yml` is now a production baseline:
 
 - `app`: Laravel PHP-FPM runtime.
+- `caddy`: HTTPS automatico y unico punto de entrada publico.
 - `nginx`: local edge/reverse proxy for PHP-FPM.
 - `worker-critical`: checkout/payment/critical queue worker.
 - `worker-default`: mail/notifications/ML/reports/default queue worker.
@@ -57,11 +57,13 @@ Create these files on the production host or map them from your secret manager:
 - `/opt/atlantia/shared/ml.env`
 - `/opt/atlantia/shared/mysql.env` only when using the local-stateful profile
 - `/opt/atlantia/shared/redis.env` only when using the local-stateful profile
+- `/opt/atlantia/shared/search.env` only when using the local-stateful profile
 
 Use these templates:
 
 - `.env.production.example`
 - `ml-service/.env.production.example`
+- `docker/env/*.env.example`
 
 Minimum production overrides:
 
@@ -127,24 +129,24 @@ Growth path toward 1M registered customers:
 
 1. Build immutable images for the same Git commit:
    - `${REGISTRY_IMAGE}/marketplace:${APP_IMAGE_TAG}`
+   - `${REGISTRY_IMAGE}/marketplace-web:${APP_IMAGE_TAG}`
    - `${REGISTRY_IMAGE}/ml-api:${APP_IMAGE_TAG}`
    - `${REGISTRY_IMAGE}/ml-worker:${APP_IMAGE_TAG}`
-2. Upload or prepare `/opt/atlantia/current` to match the same release so Nginx serves the same `public/build` assets as the app image.
-3. Run preflight checks:
+2. Run preflight checks:
    - env files present and readable only by deploy user
    - `APP_DEBUG=false`
    - `APP_KEY` set
    - webhook secrets set
    - Redis and DB reachable through private network
-4. Run migrations once:
+3. Run migrations once:
    - `docker compose -f docker-compose.prod.yml run --rm app php artisan migrate --force`
-5. Warm application caches:
+4. Warm application caches:
    - `docker compose -f docker-compose.prod.yml run --rm app php artisan config:cache`
    - `docker compose -f docker-compose.prod.yml run --rm app php artisan route:cache`
    - `docker compose -f docker-compose.prod.yml run --rm app php artisan view:cache`
-6. Start or roll the services:
+5. Start or roll the services:
    - `docker compose -f docker-compose.prod.yml up -d`
-7. Verify:
+6. Verify:
    - `/health`
    - `/up`
    - login
@@ -179,16 +181,9 @@ Required logs:
 - admin impersonation audit logs
 - auth failures and lockouts
 
-## Pre-Go-Live Blockers Found In The Current App
+## Application Work Completed Before This Baseline
 
-These are not pure infrastructure, but they affect production safety:
-
-- Move vendor application documents from public disk to private storage.
-- Fix payment webhook payload mismatch before accepting real webhook callbacks.
-- Fix manual transfer state mismatch: checkout creates `validando`, validation policy/list expects `pendiente`.
-- Harden login lockout for admin/employee accounts; current active lockout is too short.
-- Align Laravel ML client paths with FastAPI paths or set compatibility routes.
-- Run load tests for catalog, cart, checkout and webhook endpoints before launch.
+The stabilization work moved vendor documents to private storage, aligned payment and transfer states, hardened login lockout and aligned Laravel ML paths with FastAPI. Load, restore and live-provider acceptance tests remain mandatory before public launch.
 
 ## Capacity Statement
 

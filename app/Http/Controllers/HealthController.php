@@ -16,8 +16,6 @@ class HealthController extends Controller
 {
     /**
      * Devuelve el estado de dependencias criticas.
-     *
-     * @return JsonResponse
      */
     public function __invoke(): JsonResponse
     {
@@ -44,8 +42,6 @@ class HealthController extends Controller
 
     /**
      * Verifica la conexion a MySQL.
-     *
-     * @return string
      */
     private function checkDatabase(): string
     {
@@ -65,8 +61,6 @@ class HealthController extends Controller
 
     /**
      * Verifica la conexion a Redis.
-     *
-     * @return string
      */
     private function checkRedis(): string
     {
@@ -87,8 +81,6 @@ class HealthController extends Controller
 
     /**
      * Verifica disponibilidad de Meilisearch.
-     *
-     * @return string
      */
     private function checkMeilisearch(): string
     {
@@ -101,7 +93,7 @@ class HealthController extends Controller
 
             $response = Http::timeout(3)
                 ->acceptJson()
-                ->get($host . '/health');
+                ->get($host.'/health');
 
             return $response->successful() ? 'ok' : 'error';
         } catch (Throwable $exception) {
@@ -116,13 +108,11 @@ class HealthController extends Controller
 
     /**
      * Verifica disponibilidad del microservicio ML.
-     *
-     * @return string
      */
     private function checkMlService(): string
     {
         try {
-            $baseUrl = rtrim((string) env('ML_SERVICE_URL'), '/');
+            $baseUrl = rtrim((string) config('services.ml.base_url'), '/');
 
             if ($baseUrl === '') {
                 return 'error';
@@ -131,7 +121,7 @@ class HealthController extends Controller
             $response = Http::timeout((int) env('ML_TIMEOUT_SECONDS', 10))
                 ->acceptJson()
                 ->withToken((string) env('ML_SERVICE_TOKEN'))
-                ->get($baseUrl . '/api/v1/health');
+                ->get($baseUrl.'/health');
 
             return $response->successful() ? 'ok' : 'error';
         } catch (Throwable $exception) {
