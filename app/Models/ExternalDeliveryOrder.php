@@ -59,6 +59,7 @@ class ExternalDeliveryOrder extends Model
         'picked_up_at',
         'arrived_customer_at',
         'delivered_at',
+        'completion_acknowledged_at',
         'cancelled_at',
         'pickup_not_ready_at',
         'pickup_issue_reason',
@@ -67,6 +68,7 @@ class ExternalDeliveryOrder extends Model
         'confirmation_code_verified_at',
         'cash_issue_reported_at',
         'cash_issue_notes',
+        'real_path',
         'metadata',
     ];
 
@@ -98,10 +100,12 @@ class ExternalDeliveryOrder extends Model
             'picked_up_at' => 'datetime',
             'arrived_customer_at' => 'datetime',
             'delivered_at' => 'datetime',
+            'completion_acknowledged_at' => 'datetime',
             'cancelled_at' => 'datetime',
             'pickup_not_ready_at' => 'datetime',
             'confirmation_code_verified_at' => 'datetime',
             'cash_issue_reported_at' => 'datetime',
+            'real_path' => 'array',
             'metadata' => 'array',
             'deleted_at' => 'datetime',
         ];

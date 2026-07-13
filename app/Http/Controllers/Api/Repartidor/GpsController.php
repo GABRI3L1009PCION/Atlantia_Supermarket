@@ -14,13 +14,16 @@ class GpsController extends Controller
     public function store(ActualizarGpsRequest $request): JsonResponse
     {
         $this->authorize('sendLocation', $request->user());
-        $status = $this->seguimientoGpsService->storeLocation($request->user(), $request->validated())->load('pedido');
+        $status = $this->seguimientoGpsService
+            ->storeLocation($request->user(), $request->validated())
+            ->load(['pedido', 'externalDeliveryOrder']);
 
         return response()->json([
             'message' => 'Ubicacion registrada.',
             'data' => [
                 'id' => $status->id,
                 'pedido_id' => $status->pedido?->uuid,
+                'external_order_id' => $status->externalDeliveryOrder?->uuid,
                 'latitude' => (float) $status->latitude,
                 'longitude' => (float) $status->longitude,
                 'estado' => $status->estado,

@@ -125,6 +125,15 @@ class PedidoController extends Controller
         }, 'Pedido entregado.');
     }
 
+    public function acknowledgeCompletion(Pedido $pedido, Request $request): JsonResponse
+    {
+        $this->authorize('viewAssigned', $pedido);
+
+        return $this->respondOrder(function () use ($pedido, $request): Pedido {
+            return $this->pedidoService->acknowledgeCompletion($pedido, $request->user());
+        }, 'Cierre de entrega confirmado.');
+    }
+
     /**
      * @param  callable(): Pedido  $callback
      */

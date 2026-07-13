@@ -100,8 +100,11 @@ Route::as('api.')
                     Route::patch('/orders/{pedido:uuid}/pickup-not-ready', [RepartidorPedidoController::class, 'pickupNotReady'])->name('orders.pickup-not-ready');
                     Route::patch('/orders/{pedido:uuid}/pickup', [RepartidorPedidoController::class, 'pickup'])->name('orders.pickup');
                     Route::patch('/orders/{pedido:uuid}/arrived-customer', [RepartidorPedidoController::class, 'arrivedCustomer'])->name('orders.arrived-customer');
-                    Route::patch('/orders/{pedido:uuid}/verify-code', [RepartidorPedidoController::class, 'verifyCode'])->name('orders.verify-code');
+                    Route::patch('/orders/{pedido:uuid}/verify-code', [RepartidorPedidoController::class, 'verifyCode'])
+                        ->middleware('throttle:6,1')
+                        ->name('orders.verify-code');
                     Route::patch('/orders/{pedido:uuid}/deliver', [RepartidorPedidoController::class, 'deliver'])->name('orders.deliver');
+                    Route::patch('/orders/{pedido:uuid}/ack-completion', [RepartidorPedidoController::class, 'acknowledgeCompletion'])->name('orders.ack-completion');
 
                     Route::get('/external-orders', [RepartidorExternalDeliveryController::class, 'index'])->name('external-orders.index');
                     Route::get('/external-orders/{externalDeliveryOrder:uuid}', [RepartidorExternalDeliveryController::class, 'show'])->name('external-orders.show');
@@ -109,8 +112,12 @@ Route::as('api.')
                     Route::patch('/external-orders/{externalDeliveryOrder:uuid}/pickup-not-ready', [RepartidorExternalDeliveryController::class, 'pickupNotReady'])->name('external-orders.pickup-not-ready');
                     Route::patch('/external-orders/{externalDeliveryOrder:uuid}/pickup', [RepartidorExternalDeliveryController::class, 'pickedUp'])->name('external-orders.pickup');
                     Route::patch('/external-orders/{externalDeliveryOrder:uuid}/arrived-customer', [RepartidorExternalDeliveryController::class, 'arrivedCustomer'])->name('external-orders.arrived-customer');
+                    Route::patch('/external-orders/{externalDeliveryOrder:uuid}/verify-code', [RepartidorExternalDeliveryController::class, 'verifyCode'])
+                        ->middleware('throttle:6,1')
+                        ->name('external-orders.verify-code');
                     Route::patch('/external-orders/{externalDeliveryOrder:uuid}/cash-issue', [RepartidorExternalDeliveryController::class, 'cashIssue'])->name('external-orders.cash-issue');
                     Route::patch('/external-orders/{externalDeliveryOrder:uuid}/deliver', [RepartidorExternalDeliveryController::class, 'deliver'])->name('external-orders.deliver');
+                    Route::patch('/external-orders/{externalDeliveryOrder:uuid}/ack-completion', [RepartidorExternalDeliveryController::class, 'acknowledgeCompletion'])->name('external-orders.ack-completion');
 
                     Route::get('/support', [RepartidorSupportController::class, 'index'])->name('support.index');
                     Route::post('/support/tickets', [RepartidorSupportController::class, 'store'])->name('support.tickets.store');

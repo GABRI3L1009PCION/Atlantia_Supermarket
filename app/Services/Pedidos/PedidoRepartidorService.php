@@ -348,11 +348,11 @@ class PedidoRepartidorService
                 $route->refresh();
             }
 
-            if ($route->confirmation_code !== null && blank($data['confirmation_code'] ?? null)) {
+            if ($route->confirmation_code !== null && $route->delivered_code_confirmed_at === null && blank($data['confirmation_code'] ?? null)) {
                 throw new TransaccionFallidaException('Pide al cliente el codigo de entrega para completar el pedido.');
             }
 
-            if ($route->confirmation_code !== null && (string) $data['confirmation_code'] !== (string) $route->confirmation_code) {
+            if ($route->confirmation_code !== null && $route->delivered_code_confirmed_at === null && (string) $data['confirmation_code'] !== (string) $route->confirmation_code) {
                 throw new TransaccionFallidaException('El codigo de confirmacion no coincide.');
             }
 
@@ -385,6 +385,31 @@ class PedidoRepartidorService
 
             return $this->detail($pedido->fresh());
         });
+    }
+
+    /**
+     * Confirma que la app ya mostro el cierre de la entrega.
+     */
+    public function acknowledgeCompletion(Pedido $pedido, User $user): Pedido
+    {
+        $route = DeliveryRoute::query()
+            ->where('pedido_id', $pedido->id)
+            ->where('repartidor_id', $user->id)
+            ->first();
+
+        if ($route === null) {
+            throw new TransaccionFallidaException('Este pedido no esta asignado a tu cuenta.');
+        }
+
+        if ($route->estado !== 'completada' || $pedido->estadoValor() !== EstadoPedido::Entregado->value) {
+            throw new TransaccionFallidaException('La entrega aun no esta completada.');
+        }
+
+        $route->update([
+            'completion_acknowledged_at' => $route->completion_acknowledged_at ?? now(),
+        ]);
+
+        return $this->detail($pedido->fresh());
     }
 
     /**

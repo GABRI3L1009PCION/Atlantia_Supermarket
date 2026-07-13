@@ -67,6 +67,21 @@ class ExternalDeliveryController extends Controller
         }, 'Llegada al cliente registrada.');
     }
 
+    public function verifyCode(ExternalDeliveryOrder $externalDeliveryOrder, Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'confirmation_code' => ['required', 'digits:4'],
+        ]);
+
+        return $this->respondExternal(function () use ($externalDeliveryOrder, $request, $data): ExternalDeliveryOrder {
+            return $this->externalService->verifyDeliveryCode(
+                $externalDeliveryOrder,
+                $request->user(),
+                (string) $data['confirmation_code']
+            );
+        }, 'Codigo verificado.');
+    }
+
     public function cashIssue(ExternalDeliveryOrder $externalDeliveryOrder, Request $request): JsonResponse
     {
         $data = $request->validate(['cash_notes' => ['nullable', 'string', 'max:1000']]);
@@ -86,6 +101,13 @@ class ExternalDeliveryController extends Controller
         return $this->respondExternal(function () use ($externalDeliveryOrder, $request, $data): ExternalDeliveryOrder {
             return $this->externalService->deliver($externalDeliveryOrder, $request->user(), $data);
         }, 'Entrega externa completada.');
+    }
+
+    public function acknowledgeCompletion(ExternalDeliveryOrder $externalDeliveryOrder, Request $request): JsonResponse
+    {
+        return $this->respondExternal(function () use ($externalDeliveryOrder, $request): ExternalDeliveryOrder {
+            return $this->externalService->acknowledgeCompletion($externalDeliveryOrder, $request->user());
+        }, 'Cierre de entrega confirmado.');
     }
 
     /**

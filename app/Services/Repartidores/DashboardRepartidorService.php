@@ -32,10 +32,23 @@ class DashboardRepartidorService
         $walletSummary = $this->walletService->summary($user);
         $activeExternal = ExternalDeliveryOrder::query()
             ->where('repartidor_id', $user->id)
-            ->active()
+            ->whereIn('status', ['accepted', 'arrived_pickup', 'pickup_not_ready', 'picked_up', 'arrived_customer'])
             ->latest()
             ->get();
         $activeOffers = $this->offerService->activeFor($user);
+        $recentCompletedInternal = DeliveryRoute::query()
+            ->with(['pedido.cliente', 'pedido.direccion', 'pedido.items.producto', 'pedido.vendor'])
+            ->where('repartidor_id', $user->id)
+            ->where('estado', 'completada')
+            ->whereNull('completion_acknowledged_at')
+            ->latest('completada_at')
+            ->first();
+        $recentCompletedExternal = ExternalDeliveryOrder::query()
+            ->where('repartidor_id', $user->id)
+            ->where('status', 'delivered')
+            ->whereNull('completion_acknowledged_at')
+            ->latest('delivered_at')
+            ->first();
 
         return [
             'overview' => [
@@ -62,6 +75,7 @@ class DashboardRepartidorService
             'ruta_actual' => DeliveryRoute::query()
                 ->with(['pedido.cliente', 'pedido.direccion', 'pedido.items.producto'])
                 ->where('repartidor_id', $user->id)
+                ->whereNotNull('aceptada_at')
                 ->whereIn('estado', ['asignada', 'iniciada', 'pausada'])
                 ->orderByRaw("CASE estado WHEN 'iniciada' THEN 0 WHEN 'asignada' THEN 1 ELSE 2 END")
                 ->oldest('asignada_at')
@@ -80,6 +94,8 @@ class DashboardRepartidorService
                 ->limit(6)
                 ->get(),
             'external_active' => $activeExternal,
+            'recent_completed_internal' => $recentCompletedInternal,
+            'recent_completed_external' => $recentCompletedExternal,
             'offers' => $activeOffers,
             'profile' => $profile,
             'reward' => $this->profileService->rewardProgress($profile),

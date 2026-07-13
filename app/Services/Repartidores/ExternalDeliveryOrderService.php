@@ -136,7 +136,7 @@ class ExternalDeliveryOrderService
     {
         return ExternalDeliveryOrder::query()
             ->where('repartidor_id', $user->id)
-            ->active()
+            ->whereIn('status', ['accepted', 'arrived_pickup', 'pickup_not_ready', 'picked_up', 'arrived_customer'])
             ->latest()
             ->get();
     }
@@ -195,6 +195,35 @@ class ExternalDeliveryOrderService
     }
 
     /**
+     * Verifica el codigo del cliente sin cerrar la entrega externa.
+     */
+    public function verifyDeliveryCode(ExternalDeliveryOrder $order, User $user, string $confirmationCode): ExternalDeliveryOrder
+    {
+        return DB::transaction(function () use ($order, $user, $confirmationCode): ExternalDeliveryOrder {
+            $this->assertAssigned($order, $user);
+
+            if ($order->status !== 'arrived_customer') {
+                throw new TransaccionFallidaException('Primero debes marcar que llegaste con el cliente.');
+            }
+
+            if ($order->confirmation_code === null) {
+                $order->update(['confirmation_code' => (string) random_int(1000, 9999)]);
+                $order->refresh();
+            }
+
+            if ((string) $order->confirmation_code !== $confirmationCode) {
+                throw new TransaccionFallidaException('El codigo de confirmacion no coincide.');
+            }
+
+            $order->update([
+                'confirmation_code_verified_at' => $order->confirmation_code_verified_at ?? now(),
+            ]);
+
+            return $order->refresh();
+        });
+    }
+
+    /**
      * Reporta falta de efectivo.
      */
     public function reportCashIssue(ExternalDeliveryOrder $order, User $user, ?string $notes = null): ExternalDeliveryOrder
@@ -227,11 +256,11 @@ class ExternalDeliveryOrderService
                 $order->save();
             }
 
-            if ($order->confirmation_code !== null && blank($data['confirmation_code'] ?? null)) {
+            if ($order->confirmation_code !== null && $order->confirmation_code_verified_at === null && blank($data['confirmation_code'] ?? null)) {
                 throw new TransaccionFallidaException('Pide al cliente el codigo de entrega para completar el pedido.');
             }
 
-            if ($order->confirmation_code !== null) {
+            if ($order->confirmation_code !== null && $order->confirmation_code_verified_at === null) {
                 if ((string) $data['confirmation_code'] !== (string) $order->confirmation_code) {
                     throw new TransaccionFallidaException('El codigo de confirmacion no coincide.');
                 }
@@ -256,6 +285,26 @@ class ExternalDeliveryOrderService
 
             return $order->refresh();
         });
+    }
+
+    /**
+     * Confirma que la app ya mostro el cierre de la entrega externa.
+     */
+    public function acknowledgeCompletion(ExternalDeliveryOrder $order, User $user): ExternalDeliveryOrder
+    {
+        if ((int) $order->repartidor_id !== (int) $user->id) {
+            throw new TransaccionFallidaException('Esta entrega externa no esta asignada a tu cuenta.');
+        }
+
+        if ($order->status !== 'delivered') {
+            throw new TransaccionFallidaException('La entrega aun no esta completada.');
+        }
+
+        $order->update([
+            'completion_acknowledged_at' => $order->completion_acknowledged_at ?? now(),
+        ]);
+
+        return $order->refresh();
     }
 
     /**

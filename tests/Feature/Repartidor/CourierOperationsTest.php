@@ -12,9 +12,12 @@ use App\Models\DeliveryRoute;
 use App\Models\Pedido;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Services\Geolocalizacion\SeguimientoGpsService;
 use App\Services\Pedidos\PedidoRepartidorService;
+use App\Services\Repartidores\DashboardRepartidorService;
 use App\Services\Repartidores\DeliveryOfferService;
 use App\Services\Repartidores\ExternalDeliveryOrderService;
+use App\Services\Repartidores\MobileRepartidorPayloadService;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -75,6 +78,10 @@ class CourierOperationsTest extends TestCase
             'payment_method' => 'efectivo',
         ]);
 
+        $beforeAcceptance = app(DashboardRepartidorService::class)->metrics($repartidor);
+        $this->assertNull($beforeAcceptance['ruta_actual']);
+        $this->assertTrue($beforeAcceptance['offers']->contains('id', $offer->id));
+
         $this->actingAs($repartidor)
             ->patch(route('repartidor.ofertas.accept', $offer))
             ->assertRedirect(route('repartidor.pedidos.show', $pedido));
@@ -90,6 +97,7 @@ class CourierOperationsTest extends TestCase
         ]);
         $this->assertNotNull($route->fresh()->confirmation_code);
         $this->assertSame(EstadoPedido::EnPreparacion->value, $pedido->fresh()->estadoValor());
+        $this->assertSame($route->id, app(DashboardRepartidorService::class)->metrics($repartidor)['ruta_actual']?->id);
     }
 
     public function test_no_permite_entregar_antes_de_llegar_al_cliente(): void
@@ -106,6 +114,25 @@ class CourierOperationsTest extends TestCase
         ]);
 
         app(PedidoRepartidorService::class)->deliver($pedido->fresh(), [], $repartidor);
+    }
+
+    public function test_gps_usa_uuid_y_no_cambia_el_estado_operativo_del_pedido(): void
+    {
+        $repartidor = $this->createRepartidor();
+        [$pedido, $route] = $this->createPedidoAsignado($repartidor, EstadoPedido::EnPreparacion->value);
+        $route->update(['aceptada_at' => now()]);
+
+        $status = app(SeguimientoGpsService::class)->storeLocation($repartidor, [
+            'pedido_uuid' => $pedido->uuid,
+            'latitude' => 15.731,
+            'longitude' => -88.594,
+            'estado' => 'asignado',
+        ]);
+
+        $this->assertSame($pedido->id, $status->pedido_id);
+        $this->assertSame('asignada', $route->fresh()->estado);
+        $this->assertSame(15.731, (float) data_get($route->fresh()->ruta_real, '0.latitude'));
+        $this->assertSame(-88.594, (float) data_get($route->fresh()->ruta_real, '0.longitude'));
     }
 
     public function test_entrega_interna_registra_billetera_y_efectivo(): void
@@ -150,6 +177,22 @@ class CourierOperationsTest extends TestCase
         $wallet = CourierWallet::query()->where('user_id', $repartidor->id)->firstOrFail();
         $this->assertEquals(33.00, (float) $wallet->available_balance);
         $this->assertEquals(125.00, (float) $wallet->cash_balance);
+
+        $route->refresh()->update(['completada_at' => now()->subHour()]);
+        $payload = app(MobileRepartidorPayloadService::class)->dashboard(
+            app(DashboardRepartidorService::class)->metrics($repartidor)
+        );
+
+        $this->assertSame($pedido->uuid, data_get($payload, 'recent_completed_order.order.id'));
+
+        app(PedidoRepartidorService::class)->acknowledgeCompletion($pedido->fresh(), $repartidor);
+
+        $payload = app(MobileRepartidorPayloadService::class)->dashboard(
+            app(DashboardRepartidorService::class)->metrics($repartidor)
+        );
+
+        $this->assertNull($payload['recent_completed_order']);
+        $this->assertNotNull($route->fresh()->completion_acknowledged_at);
     }
 
     public function test_entrega_interna_rechaza_codigo_incorrecto(): void
@@ -187,6 +230,10 @@ class CourierOperationsTest extends TestCase
 
         $this->assertSame(EstadoPedido::EnRuta->value, $pedido->fresh()->estadoValor());
         $this->assertNotNull($route->fresh()->delivered_code_confirmed_at);
+
+        app(PedidoRepartidorService::class)->deliver($pedido->fresh(), [], $repartidor);
+
+        $this->assertSame(EstadoPedido::Entregado->value, $pedido->fresh()->estadoValor());
     }
 
     public function test_flujo_completo_de_entrega_externa(): void
@@ -217,10 +264,21 @@ class CourierOperationsTest extends TestCase
         $offer = $offerService->createForExternal($order, $repartidor, ['estimated_gain' => 30]);
         $offerService->accept($offer, $repartidor);
 
+        $gps = app(SeguimientoGpsService::class)->storeLocation($repartidor, [
+            'external_order_uuid' => $order->uuid,
+            'latitude' => 15.731,
+            'longitude' => -88.594,
+            'estado' => 'asignado',
+        ]);
+
+        $this->assertSame($order->id, $gps->external_delivery_order_id);
+        $this->assertSame(15.731, (float) data_get($order->fresh()->real_path, '0.latitude'));
+
         $order = $externalService->arrivedPickup($order->fresh(), $repartidor);
         $order = $externalService->pickedUp($order, $repartidor);
         $order = $externalService->arrivedCustomer($order, $repartidor);
-        $externalService->deliver($order, $repartidor, ['confirmation_code' => $order->confirmation_code]);
+        $order = $externalService->verifyDeliveryCode($order, $repartidor, (string) $order->confirmation_code);
+        $order = $externalService->deliver($order, $repartidor);
 
         $this->assertDatabaseHas('external_delivery_orders', [
             'id' => $order->id,
@@ -237,6 +295,9 @@ class CourierOperationsTest extends TestCase
             ->where('type', 'cash_paid_pickup')
             ->where('amount', -20)
             ->exists());
+
+        $externalService->acknowledgeCompletion($order->fresh(), $repartidor);
+        $this->assertNotNull($order->fresh()->completion_acknowledged_at);
     }
 
     private function createRepartidor(): User

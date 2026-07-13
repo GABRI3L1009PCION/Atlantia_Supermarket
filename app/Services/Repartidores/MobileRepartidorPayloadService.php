@@ -65,6 +65,10 @@ class MobileRepartidorPayloadService
             'external_active' => collect($metrics['external_active'] ?? [])->map(
                 fn (ExternalDeliveryOrder $order): array => $this->externalOrder($order)
             )->values(),
+            'recent_completed_order' => $this->recentCompletedOrder(
+                $metrics['recent_completed_internal'] ?? null,
+                $metrics['recent_completed_external'] ?? null
+            ),
             'offers' => collect($metrics['offers'] ?? [])->map(
                 fn (DeliveryOffer $offer): array => $this->offer($offer)
             )->values(),
@@ -272,6 +276,7 @@ class MobileRepartidorPayloadService
             'tip_amount' => (float) $order->tip_amount,
             'estimated_distance_km' => (float) $order->estimated_distance_km,
             'estimated_time_min' => (int) $order->estimated_time_min,
+            'real_path' => $order->real_path ?? [],
             'confirmation_code_required' => $order->confirmation_code !== null,
             'timeline' => [
                 'requested_at' => $order->requested_at?->toIso8601String(),
@@ -279,6 +284,7 @@ class MobileRepartidorPayloadService
                 'arrived_pickup_at' => $order->arrived_pickup_at?->toIso8601String(),
                 'picked_up_at' => $order->picked_up_at?->toIso8601String(),
                 'arrived_customer_at' => $order->arrived_customer_at?->toIso8601String(),
+                'code_verified_at' => $order->confirmation_code_verified_at?->toIso8601String(),
                 'delivered_at' => $order->delivered_at?->toIso8601String(),
             ],
             'cash_issue' => [
@@ -310,8 +316,36 @@ class MobileRepartidorPayloadService
                 'picked_up_at' => $route->picked_up_at?->toIso8601String(),
                 'started_at' => $route->iniciada_at?->toIso8601String(),
                 'arrived_customer_at' => $route->arrived_customer_at?->toIso8601String(),
+                'code_verified_at' => $route->delivered_code_confirmed_at?->toIso8601String(),
                 'completed_at' => $route->completada_at?->toIso8601String(),
             ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function recentCompletedOrder(?DeliveryRoute $internal, ?ExternalDeliveryOrder $external): ?array
+    {
+        $internalCompletedAt = $internal?->completada_at;
+        $externalCompletedAt = $external?->delivered_at;
+
+        if ($internalCompletedAt === null && $externalCompletedAt === null) {
+            return null;
+        }
+
+        if ($externalCompletedAt !== null && ($internalCompletedAt === null || $externalCompletedAt->greaterThan($internalCompletedAt))) {
+            return [
+                'type' => 'external',
+                'completed_at' => $externalCompletedAt->toIso8601String(),
+                'order' => $this->externalOrder($external),
+            ];
+        }
+
+        return [
+            'type' => 'internal',
+            'completed_at' => $internalCompletedAt?->toIso8601String(),
+            'order' => $this->internalOrder($internal->pedido),
         ];
     }
 

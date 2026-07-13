@@ -25,6 +25,7 @@ class MarketCourierStatus extends Model
     protected $fillable = [
         'repartidor_id',
         'pedido_id',
+        'external_delivery_order_id',
         'latitude',
         'longitude',
         'timestamp_gps',
@@ -71,10 +72,19 @@ class MarketCourierStatus extends Model
     }
 
     /**
+     * Entrega externa asociada al punto GPS.
+     *
+     * @return BelongsTo<ExternalDeliveryOrder, MarketCourierStatus>
+     */
+    public function externalDeliveryOrder(): BelongsTo
+    {
+        return $this->belongsTo(ExternalDeliveryOrder::class);
+    }
+
+    /**
      * Filtra estados por repartidor.
      *
-     * @param Builder<MarketCourierStatus> $query
-     * @param int $repartidorId
+     * @param  Builder<MarketCourierStatus>  $query
      * @return Builder<MarketCourierStatus>
      */
     public function scopeForRepartidor(Builder $query, int $repartidorId): Builder
@@ -85,8 +95,7 @@ class MarketCourierStatus extends Model
     /**
      * Filtra estados por pedido.
      *
-     * @param Builder<MarketCourierStatus> $query
-     * @param int $pedidoId
+     * @param  Builder<MarketCourierStatus>  $query
      * @return Builder<MarketCourierStatus>
      */
     public function scopeForPedido(Builder $query, int $pedidoId): Builder
@@ -97,7 +106,7 @@ class MarketCourierStatus extends Model
     /**
      * Ordena estados desde el mas reciente.
      *
-     * @param Builder<MarketCourierStatus> $query
+     * @param  Builder<MarketCourierStatus>  $query
      * @return Builder<MarketCourierStatus>
      */
     public function scopeLatestGps(Builder $query): Builder

@@ -51,6 +51,7 @@ class DeliveryRoute extends Model
         'pickup_not_ready_at',
         'pickup_issue_reason',
         'completada_at',
+        'completion_acknowledged_at',
         'estimated_earning',
         'tip_amount',
         'bonus_amount',
@@ -94,6 +95,7 @@ class DeliveryRoute extends Model
             'arrived_customer_at' => 'datetime',
             'pickup_not_ready_at' => 'datetime',
             'completada_at' => 'datetime',
+            'completion_acknowledged_at' => 'datetime',
             'delivered_code_confirmed_at' => 'datetime',
             'deleted_at' => 'datetime',
         ];
