@@ -5,6 +5,8 @@
 .env.production
 .env.local
 .env.*.local
+.env.staging.docker.local
+ml-service/.env.staging.docker.local
 docker/env/compose.env
 .phpactor.json
 .phpunit.result.cache
