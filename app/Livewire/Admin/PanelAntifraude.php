@@ -84,7 +84,7 @@ class PanelAntifraude extends Component
             ->when($this->estado === 'pendientes', fn ($query) => $query->where('revisada', false))
             ->when($this->riesgo === 'alto', fn ($query) => $query->where('score_riesgo', '>=', 0.8))
             ->when($this->riesgo === 'medio', fn ($query) => $query->whereBetween('score_riesgo', [0.5, 0.799999]))
-            ->when($this->tipo !== '', fn ($query) => $query->where('tipo', 'like', '%' . $this->tipo . '%'))
+            ->when($this->tipo !== '', fn ($query) => $query->where('tipo', 'like', '%'.$this->tipo.'%'))
             ->latest()
             ->limit(12)
             ->get();

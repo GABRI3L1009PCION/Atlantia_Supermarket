@@ -23,4 +23,3 @@ class GeolocalizacionException extends AtlantiaDomainException
         return 'No fue posible calcular la ubicacion o ruta solicitada.';
     }
 }
-

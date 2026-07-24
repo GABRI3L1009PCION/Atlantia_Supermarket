@@ -76,7 +76,7 @@ class ContactMessage extends Model
     /**
      * Filtra mensajes pendientes de atencion.
      *
-     * @param Builder<ContactMessage> $query
+     * @param  Builder<ContactMessage>  $query
      * @return Builder<ContactMessage>
      */
     public function scopePendientes(Builder $query): Builder
@@ -87,7 +87,7 @@ class ContactMessage extends Model
     /**
      * Filtra mensajes atendidos.
      *
-     * @param Builder<ContactMessage> $query
+     * @param  Builder<ContactMessage>  $query
      * @return Builder<ContactMessage>
      */
     public function scopeAtendidos(Builder $query): Builder
@@ -98,8 +98,7 @@ class ContactMessage extends Model
     /**
      * Filtra mensajes por prioridad.
      *
-     * @param Builder<ContactMessage> $query
-     * @param string $prioridad
+     * @param  Builder<ContactMessage>  $query
      * @return Builder<ContactMessage>
      */
     public function scopePrioridad(Builder $query, string $prioridad): Builder

@@ -77,24 +77,24 @@ class PedidoVendedorService
     }
 
     /**
-     * @param Collection<int, Pedido> $orders
+     * @param  Collection<int, Pedido>  $orders
      * @return array<int, array<string, mixed>>
      */
     private function nextActions(Collection $orders): array
     {
         return [
             [
-                'label' => $this->countByStatus($orders, EstadoPedido::Pendiente) . ' pedidos pendientes',
+                'label' => $this->countByStatus($orders, EstadoPedido::Pendiente).' pedidos pendientes',
                 'hint' => 'Requieren confirmacion',
                 'tone' => 'orange',
             ],
             [
-                'label' => $this->countByStatus($orders, EstadoPedido::EnPreparacion) . ' pedidos en preparacion',
+                'label' => $this->countByStatus($orders, EstadoPedido::EnPreparacion).' pedidos en preparacion',
                 'hint' => 'Actualiza el estado',
                 'tone' => 'blue',
             ],
             [
-                'label' => $this->countByStatus($orders, EstadoPedido::ListoParaEntrega) . ' pedido listo para entrega',
+                'label' => $this->countByStatus($orders, EstadoPedido::ListoParaEntrega).' pedido listo para entrega',
                 'hint' => 'Coordina la entrega',
                 'tone' => 'green',
             ],
@@ -102,7 +102,7 @@ class PedidoVendedorService
     }
 
     /**
-     * @param Collection<int, Pedido> $orders
+     * @param  Collection<int, Pedido>  $orders
      */
     private function countByStatus(Collection $orders, EstadoPedido $estado): int
     {
@@ -120,7 +120,7 @@ class PedidoVendedorService
     /**
      * Actualiza estado del pedido del vendedor.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function updateEstado(Pedido $pedido, array $data, User $user): Pedido
     {

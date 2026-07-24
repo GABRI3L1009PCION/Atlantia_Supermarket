@@ -12,7 +12,7 @@ class CourierWebhookService
     /**
      * Procesa evento externo de courier.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     public function handle(array $data, array $headers = []): array

@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Cliente;
 
 use App\DTOs\DireccionDTO;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Cliente\StoreDireccionRequest;
 use App\Http\Requests\Cliente\Direccion\UpdateDireccionRequest;
+use App\Http\Requests\Cliente\StoreDireccionRequest;
 use App\Models\Cliente\Direccion;
 use App\Services\Clientes\DireccionService;
 use Illuminate\Http\RedirectResponse;
@@ -20,9 +20,7 @@ class DireccionController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly DireccionService $direccionService)
-    {
-    }
+    public function __construct(private readonly DireccionService $direccionService) {}
 
     /**
      * Lista direcciones del cliente.

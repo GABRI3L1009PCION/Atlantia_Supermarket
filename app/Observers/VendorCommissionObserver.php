@@ -12,9 +12,6 @@ class VendorCommissionObserver
 {
     /**
      * Invalida cache al guardar una comision.
-     *
-     * @param VendorCommission $vendorCommission
-     * @return void
      */
     public function saved(VendorCommission $vendorCommission): void
     {
@@ -23,9 +20,6 @@ class VendorCommissionObserver
 
     /**
      * Invalida cache al eliminar una comision.
-     *
-     * @param VendorCommission $vendorCommission
-     * @return void
      */
     public function deleted(VendorCommission $vendorCommission): void
     {

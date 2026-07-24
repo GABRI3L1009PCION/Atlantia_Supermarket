@@ -20,7 +20,7 @@ class VendorZonaEntregaService
     {
         $vendor = $user->vendor;
         $disponibles = DeliveryZone::query()->active()->orderBy('nombre')->get();
-        $seleccionadas = $vendor?->deliveryZones()->get() ?? new Collection();
+        $seleccionadas = $vendor?->deliveryZones()->get() ?? new Collection;
         $configuradas = $seleccionadas->keyBy('id');
         $zonas = $disponibles->map(function (DeliveryZone $zone) use ($configuradas): array {
             $selected = $configuradas->get($zone->id);
@@ -60,7 +60,7 @@ class VendorZonaEntregaService
     /**
      * Sincroniza zonas del vendedor.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function sync(User $user, array $data): void
     {

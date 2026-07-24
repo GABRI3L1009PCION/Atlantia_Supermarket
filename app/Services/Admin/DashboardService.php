@@ -2,7 +2,6 @@
 
 namespace App\Services\Admin;
 
-use BackedEnum;
 use App\Models\AuditLog;
 use App\Models\Dte\DteFactura;
 use App\Models\Ml\FraudAlert;
@@ -12,6 +11,7 @@ use App\Models\Pedido;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Vendor;
+use BackedEnum;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -195,22 +195,22 @@ class DashboardService
         return collect([
             [
                 'name' => 'Aplicacion Laravel',
-                'detail' => 'Entorno ' . app()->environment(),
+                'detail' => 'Entorno '.app()->environment(),
                 'status' => 'operativo',
             ],
             [
                 'name' => 'Base de datos',
-                'detail' => 'Conexion ' . config('database.default'),
+                'detail' => 'Conexion '.config('database.default'),
                 'status' => config('database.default') !== null ? 'operativo' : 'pendiente',
             ],
             [
                 'name' => 'Colas y jobs',
-                'detail' => 'Driver ' . config('queue.default'),
+                'detail' => 'Driver '.config('queue.default'),
                 'status' => config('queue.default') !== 'sync' ? 'operativo' : 'configurar',
             ],
             [
                 'name' => 'Busqueda',
-                'detail' => 'Scout ' . (string) config('scout.driver', 'database'),
+                'detail' => 'Scout '.(string) config('scout.driver', 'database'),
                 'status' => (string) config('scout.driver', 'database') === 'meilisearch' ? 'operativo' : 'configurar',
             ],
             [

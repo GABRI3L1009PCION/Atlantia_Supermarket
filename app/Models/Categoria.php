@@ -85,7 +85,7 @@ class Categoria extends Model
     /**
      * Filtra categorias activas.
      *
-     * @param Builder<Categoria> $query
+     * @param  Builder<Categoria>  $query
      * @return Builder<Categoria>
      */
     public function scopeActive(Builder $query): Builder
@@ -96,7 +96,7 @@ class Categoria extends Model
     /**
      * Filtra categorias raiz.
      *
-     * @param Builder<Categoria> $query
+     * @param  Builder<Categoria>  $query
      * @return Builder<Categoria>
      */
     public function scopeRoot(Builder $query): Builder
@@ -107,7 +107,7 @@ class Categoria extends Model
     /**
      * Ordena categorias para navegacion.
      *
-     * @param Builder<Categoria> $query
+     * @param  Builder<Categoria>  $query
      * @return Builder<Categoria>
      */
     public function scopeOrdered(Builder $query): Builder

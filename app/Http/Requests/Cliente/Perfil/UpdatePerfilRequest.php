@@ -22,6 +22,7 @@ class UpdatePerfilRequest extends FormRequest
             'preferencias' => ['nullable', 'array'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

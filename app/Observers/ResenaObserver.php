@@ -13,9 +13,6 @@ class ResenaObserver
 {
     /**
      * Asigna UUID seguro antes de crear.
-     *
-     * @param Resena $resena
-     * @return void
      */
     public function creating(Resena $resena): void
     {
@@ -26,9 +23,6 @@ class ResenaObserver
 
     /**
      * Dispara analisis ML despues de crear una resena.
-     *
-     * @param Resena $resena
-     * @return void
      */
     public function created(Resena $resena): void
     {

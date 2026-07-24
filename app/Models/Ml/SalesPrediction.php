@@ -86,8 +86,7 @@ class SalesPrediction extends Model
     /**
      * Filtra predicciones por horizonte.
      *
-     * @param Builder<SalesPrediction> $query
-     * @param int $dias
+     * @param  Builder<SalesPrediction>  $query
      * @return Builder<SalesPrediction>
      */
     public function scopeHorizonte(Builder $query, int $dias): Builder
@@ -98,8 +97,7 @@ class SalesPrediction extends Model
     /**
      * Filtra predicciones de una fecha.
      *
-     * @param Builder<SalesPrediction> $query
-     * @param string $fecha
+     * @param  Builder<SalesPrediction>  $query
      * @return Builder<SalesPrediction>
      */
     public function scopeFecha(Builder $query, string $fecha): Builder

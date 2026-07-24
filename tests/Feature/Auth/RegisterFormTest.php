@@ -21,7 +21,7 @@ class RegisterFormTest extends TestCase
         $this->seed(RolePermissionSeeder::class);
     }
 
-    public function testClienteCanRegisterFromLivewireForm(): void
+    public function test_cliente_can_register_from_livewire_form(): void
     {
         Notification::fake();
 
@@ -43,7 +43,7 @@ class RegisterFormTest extends TestCase
         $this->assertTrue($user->hasRole('cliente'));
     }
 
-    public function testClienteCanRegisterFromStandardPostFallback(): void
+    public function test_cliente_can_register_from_standard_post_fallback(): void
     {
         Notification::fake();
 

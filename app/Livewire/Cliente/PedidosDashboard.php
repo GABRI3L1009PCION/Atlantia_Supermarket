@@ -48,9 +48,7 @@ class PedidosDashboard extends Component
     /**
      * Livewire vuelve a ejecutar render en cada intervalo de polling.
      */
-    public function refreshOrders(): void
-    {
-    }
+    public function refreshOrders(): void {}
 
     public function render(PedidoClienteService $orders): View
     {

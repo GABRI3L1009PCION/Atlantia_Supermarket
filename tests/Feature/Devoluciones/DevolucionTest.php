@@ -42,7 +42,7 @@ class DevolucionTest extends TestCase
     /**
      * Cliente puede solicitar devolucion dentro de los 7 dias permitidos.
      */
-    public function testClientePuedeSolicitarDevolucionDentroDeSieteDias(): void
+    public function test_cliente_puede_solicitar_devolucion_dentro_de_siete_dias(): void
     {
         [$cliente, $pedido] = $this->createDeliveredOrder(daysAgo: 3);
 
@@ -64,7 +64,7 @@ class DevolucionTest extends TestCase
     /**
      * No permite devolucion despues de 7 dias.
      */
-    public function testNoSePuedeSolicitarDevolucionDespuesDeSieteDias(): void
+    public function test_no_se_puede_solicitar_devolucion_despues_de_siete_dias(): void
     {
         [$cliente, $pedido] = $this->createDeliveredOrder(daysAgo: 9);
 
@@ -79,7 +79,7 @@ class DevolucionTest extends TestCase
     /**
      * Administracion puede aprobar o rechazar devoluciones pendientes.
      */
-    public function testAdminPuedeAprobarORechazarDevoluciones(): void
+    public function test_admin_puede_aprobar_o_rechazar_devoluciones(): void
     {
         [$cliente, $pedido] = $this->createDeliveredOrder(daysAgo: 2);
         $admin = User::factory()->admin()->create();
@@ -107,7 +107,7 @@ class DevolucionTest extends TestCase
     /**
      * Al aprobar una devolucion se restaura el stock del producto.
      */
-    public function testAlAprobarUnaDevolucionSeRestauraElStock(): void
+    public function test_al_aprobar_una_devolucion_se_restaura_el_stock(): void
     {
         [$cliente, $pedido, $producto] = $this->createDeliveredOrder(daysAgo: 2, includeProduct: true);
         $admin = User::factory()->admin()->create();

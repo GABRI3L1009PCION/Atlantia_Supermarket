@@ -13,15 +13,13 @@ class GeocodingService
     /**
      * Convierte una direccion textual en coordenadas.
      *
-     * @param string $direccion
-     * @param string|null $municipio
      * @return array<string, mixed>
      *
      * @throws GeolocalizacionException
      */
     public function geocode(string $direccion, ?string $municipio = null): array
     {
-        $query = trim($direccion . ' ' . ($municipio ?? '') . ' Izabal Guatemala');
+        $query = trim($direccion.' '.($municipio ?? '').' Izabal Guatemala');
         $token = $this->token();
 
         if ($this->usarMock($token)) {
@@ -29,7 +27,7 @@ class GeocodingService
         }
 
         $response = Http::timeout(12)->get(
-            'https://api.mapbox.com/geocoding/v5/mapbox.places/' . urlencode($query) . '.json',
+            'https://api.mapbox.com/geocoding/v5/mapbox.places/'.urlencode($query).'.json',
             [
                 'access_token' => $token,
                 'country' => 'gt',
@@ -56,8 +54,6 @@ class GeocodingService
     /**
      * Convierte coordenadas en direccion aproximada.
      *
-     * @param float $latitude
-     * @param float $longitude
      * @return array<string, mixed>
      */
     public function reverse(float $latitude, float $longitude): array
@@ -88,8 +84,6 @@ class GeocodingService
 
     /**
      * Obtiene token de Mapbox.
-     *
-     * @return string|null
      */
     private function token(): ?string
     {
@@ -98,9 +92,6 @@ class GeocodingService
 
     /**
      * Determina si debe usarse respuesta local.
-     *
-     * @param string|null $token
-     * @return bool
      */
     private function usarMock(?string $token): bool
     {
@@ -110,7 +101,6 @@ class GeocodingService
     /**
      * Coordenadas razonables dentro de Izabal para desarrollo local.
      *
-     * @param string $query
      * @return array<string, mixed>
      */
     private function mock(string $query): array
@@ -120,7 +110,7 @@ class GeocodingService
         return [
             'latitude' => round(15.7275 + (($hash % 1000) / 100000), 8),
             'longitude' => round(-88.5944 - (($hash % 900) / 100000), 8),
-            'mapbox_place_id' => 'mock.izabal.' . $hash,
+            'mapbox_place_id' => 'mock.izabal.'.$hash,
             'place_name' => $query,
             'source' => 'mock',
         ];

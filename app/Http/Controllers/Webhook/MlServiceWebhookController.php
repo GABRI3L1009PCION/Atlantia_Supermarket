@@ -15,9 +15,7 @@ class MlServiceWebhookController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly MlWebhookService $mlWebhookService)
-    {
-    }
+    public function __construct(private readonly MlWebhookService $mlWebhookService) {}
 
     /**
      * Recibe evento del microservicio ML.

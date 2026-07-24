@@ -15,9 +15,7 @@ class DashboardController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly DashboardVendedorService $dashboardVendedorService)
-    {
-    }
+    public function __construct(private readonly DashboardVendedorService $dashboardVendedorService) {}
 
     /**
      * Muestra metricas del vendedor autenticado.

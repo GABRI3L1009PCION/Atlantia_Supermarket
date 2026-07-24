@@ -87,7 +87,7 @@ class VendorCommission extends Model
     /**
      * Filtra comisiones pendientes.
      *
-     * @param Builder<VendorCommission> $query
+     * @param  Builder<VendorCommission>  $query
      * @return Builder<VendorCommission>
      */
     public function scopePending(Builder $query): Builder
@@ -98,7 +98,7 @@ class VendorCommission extends Model
     /**
      * Filtra comisiones facturadas.
      *
-     * @param Builder<VendorCommission> $query
+     * @param  Builder<VendorCommission>  $query
      * @return Builder<VendorCommission>
      */
     public function scopeFacturada(Builder $query): Builder
@@ -109,7 +109,7 @@ class VendorCommission extends Model
     /**
      * Filtra comisiones pagadas.
      *
-     * @param Builder<VendorCommission> $query
+     * @param  Builder<VendorCommission>  $query
      * @return Builder<VendorCommission>
      */
     public function scopePagada(Builder $query): Builder
@@ -120,9 +120,7 @@ class VendorCommission extends Model
     /**
      * Filtra comisiones por periodo.
      *
-     * @param Builder<VendorCommission> $query
-     * @param int $anio
-     * @param int $mes
+     * @param  Builder<VendorCommission>  $query
      * @return Builder<VendorCommission>
      */
     public function scopePeriodo(Builder $query, int $anio, int $mes): Builder

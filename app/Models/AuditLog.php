@@ -77,8 +77,7 @@ class AuditLog extends Model
     /**
      * Filtra eventos por nombre.
      *
-     * @param Builder<AuditLog> $query
-     * @param string $event
+     * @param  Builder<AuditLog>  $query
      * @return Builder<AuditLog>
      */
     public function scopeEvent(Builder $query, string $event): Builder
@@ -89,8 +88,7 @@ class AuditLog extends Model
     /**
      * Filtra eventos de un request especifico.
      *
-     * @param Builder<AuditLog> $query
-     * @param string $requestId
+     * @param  Builder<AuditLog>  $query
      * @return Builder<AuditLog>
      */
     public function scopeForRequest(Builder $query, string $requestId): Builder

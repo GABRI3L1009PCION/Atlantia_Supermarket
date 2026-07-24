@@ -15,10 +15,10 @@ class RutaOptimaServiceTest extends TestCase
     /**
      * Calcula una ruta local determinista en ambiente de pruebas.
      */
-    public function testCalculatesLocalRouteWhenMapboxIsDisabled(): void
+    public function test_calculates_local_route_when_mapbox_is_disabled(): void
     {
         config(['services.mapbox.token' => null]);
-        $service = new RutaOptimaService(new EtaCalculadorService(), new TspOptimizadorService());
+        $service = new RutaOptimaService(new EtaCalculadorService, new TspOptimizadorService);
 
         $route = $service->calcularEntrePuntos(
             ['latitude' => 15.7309, 'longitude' => -88.5944],
@@ -37,7 +37,7 @@ class RutaOptimaServiceTest extends TestCase
     /**
      * Usa el centro operativo por defecto cuando un job antiguo no trae origen.
      */
-    public function testUsesDefaultOriginWhenOriginIsMissing(): void
+    public function test_uses_default_origin_when_origin_is_missing(): void
     {
         config([
             'services.mapbox.token' => null,
@@ -45,7 +45,7 @@ class RutaOptimaServiceTest extends TestCase
             'services.google_maps.default_lng' => -88.5944,
         ]);
 
-        $service = new RutaOptimaService(new EtaCalculadorService(), new TspOptimizadorService());
+        $service = new RutaOptimaService(new EtaCalculadorService, new TspOptimizadorService);
 
         $route = $service->calcularEntrePuntos(
             [],

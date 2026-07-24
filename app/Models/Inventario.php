@@ -61,7 +61,7 @@ class Inventario extends Model
     /**
      * Filtra inventarios bajo el stock minimo.
      *
-     * @param Builder<Inventario> $query
+     * @param  Builder<Inventario>  $query
      * @return Builder<Inventario>
      */
     public function scopeBajoMinimo(Builder $query): Builder
@@ -72,7 +72,7 @@ class Inventario extends Model
     /**
      * Filtra inventarios con stock disponible.
      *
-     * @param Builder<Inventario> $query
+     * @param  Builder<Inventario>  $query
      * @return Builder<Inventario>
      */
     public function scopeDisponible(Builder $query): Builder

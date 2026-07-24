@@ -16,8 +16,7 @@ class VendorAdminService
     /**
      * Pagina vendedores.
      *
-     * @param array<string, mixed> $filters
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
     public function paginate(array $filters = []): LengthAwarePaginator
     {
@@ -134,7 +133,7 @@ class VendorAdminService
     /**
      * Suspende vendedor.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function suspend(Vendor $vendor, array $data, User $admin): Vendor
     {

@@ -111,7 +111,7 @@ class ListaProductos extends Component
             'categoriaId' => 'nullable|integer|exists:categorias,id',
             'categorias' => 'array',
             'categorias.*' => 'integer|exists:categorias,id',
-            'municipio' => 'nullable|string|in:' . implode(',', $this->municipios),
+            'municipio' => 'nullable|string|in:'.implode(',', $this->municipios),
             'orden' => 'required|string|in:relevancia,precio_asc,precio_desc,recientes,mas_vendido,mas_nuevo',
             'precioMin' => 'nullable|integer|min:0|max:999999',
             'precioMax' => 'nullable|integer|min:0|max:999999',
@@ -123,9 +123,6 @@ class ListaProductos extends Component
 
     /**
      * Actualiza la busqueda desde otros componentes del catalogo.
-     *
-     * @param string $search
-     * @return void
      */
     #[On('catalogo.busqueda-actualizada')]
     public function aplicarBusqueda(string $search): void
@@ -136,9 +133,6 @@ class ListaProductos extends Component
 
     /**
      * Actualiza la categoria desde el filtro lateral.
-     *
-     * @param int|null $categoriaId
-     * @return void
      */
     #[On('catalogo.categoria-seleccionada')]
     public function aplicarCategoria(?int $categoriaId): void
@@ -149,8 +143,6 @@ class ListaProductos extends Component
 
     /**
      * Reinicia paginacion al cambiar texto de busqueda.
-     *
-     * @return void
      */
     public function updatedSearch(): void
     {
@@ -160,8 +152,6 @@ class ListaProductos extends Component
 
     /**
      * Reinicia paginacion al cambiar categoria.
-     *
-     * @return void
      */
     public function updatedCategoriaId(): void
     {
@@ -172,8 +162,6 @@ class ListaProductos extends Component
 
     /**
      * Reinicia paginacion al cambiar categorias multiples.
-     *
-     * @return void
      */
     public function updatedCategorias(): void
     {
@@ -183,8 +171,6 @@ class ListaProductos extends Component
 
     /**
      * Reinicia paginacion al cambiar municipio.
-     *
-     * @return void
      */
     public function updatedMunicipio(): void
     {
@@ -194,8 +180,6 @@ class ListaProductos extends Component
 
     /**
      * Reinicia paginacion al cambiar orden.
-     *
-     * @return void
      */
     public function updatedOrden(): void
     {
@@ -205,8 +189,6 @@ class ListaProductos extends Component
 
     /**
      * Reinicia paginacion al cambiar precio minimo.
-     *
-     * @return void
      */
     public function updatedPrecioMin(): void
     {
@@ -217,8 +199,6 @@ class ListaProductos extends Component
 
     /**
      * Reinicia paginacion al cambiar precio maximo.
-     *
-     * @return void
      */
     public function updatedPrecioMax(): void
     {
@@ -229,8 +209,6 @@ class ListaProductos extends Component
 
     /**
      * Reinicia paginacion al cambiar rating.
-     *
-     * @return void
      */
     public function updatedRatingMin(): void
     {
@@ -240,8 +218,6 @@ class ListaProductos extends Component
 
     /**
      * Reinicia paginacion al cambiar stock.
-     *
-     * @return void
      */
     public function updatedSoloEnStock(): void
     {
@@ -251,8 +227,6 @@ class ListaProductos extends Component
 
     /**
      * Reinicia paginacion al cambiar vendedor.
-     *
-     * @return void
      */
     public function updatedVendorId(): void
     {
@@ -262,8 +236,6 @@ class ListaProductos extends Component
 
     /**
      * Limpia todos los filtros del catalogo.
-     *
-     * @return void
      */
     public function limpiarFiltros(): void
     {
@@ -284,9 +256,6 @@ class ListaProductos extends Component
 
     /**
      * Solicita agregar un producto al carrito.
-     *
-     * @param int $productoId
-     * @return void
      */
     public function agregarAlCarrito(int $productoId): void
     {
@@ -298,8 +267,6 @@ class ListaProductos extends Component
 
     /**
      * Renderiza la lista de productos.
-     *
-     * @return View
      */
     public function render(): View
     {
@@ -341,7 +308,7 @@ class ListaProductos extends Component
     /**
      * Ordena la coleccion devuelta por el servicio sin mutar datos de negocio.
      *
-     * @param Collection<int, Producto> $productos
+     * @param  Collection<int, Producto>  $productos
      * @return Collection<int, Producto>
      */
     private function ordenarProductos(Collection $productos): Collection
@@ -359,9 +326,6 @@ class ListaProductos extends Component
 
     /**
      * Obtiene el precio efectivo para ordenar.
-     *
-     * @param Producto $producto
-     * @return float
      */
     private function precioOrdenable(Producto $producto): float
     {
@@ -385,8 +349,6 @@ class ListaProductos extends Component
 
     /**
      * Alinea categoria simple con selector multiple.
-     *
-     * @return void
      */
     private function sincronizarCategoriasDesdeCategoriaId(): void
     {
@@ -395,8 +357,6 @@ class ListaProductos extends Component
 
     /**
      * Mantiene el rango de precios en orden logico.
-     *
-     * @return void
      */
     private function normalizarRangoPrecio(): void
     {

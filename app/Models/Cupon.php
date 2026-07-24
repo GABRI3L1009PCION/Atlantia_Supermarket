@@ -92,7 +92,7 @@ class Cupon extends Model
     /**
      * Filtra cupones vigentes.
      *
-     * @param Builder<Cupon> $query
+     * @param  Builder<Cupon>  $query
      * @return Builder<Cupon>
      */
     public function scopeVigentes(Builder $query): Builder

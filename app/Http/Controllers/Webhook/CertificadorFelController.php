@@ -15,9 +15,7 @@ class CertificadorFelController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly InfileCertificadorService $infileCertificadorService)
-    {
-    }
+    public function __construct(private readonly InfileCertificadorService $infileCertificadorService) {}
 
     /**
      * Recibe evento del certificador FEL.

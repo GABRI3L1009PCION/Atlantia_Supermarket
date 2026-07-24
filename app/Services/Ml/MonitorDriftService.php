@@ -17,7 +17,7 @@ class MonitorDriftService
     /**
      * Dashboard administrativo de ML.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array<string, mixed>
      */
     public function dashboard(array $filters = []): array
@@ -42,8 +42,7 @@ class MonitorDriftService
     /**
      * Pagina jobs de entrenamiento.
      *
-     * @param array<string, mixed> $filters
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
     public function paginateJobs(array $filters = []): LengthAwarePaginator
     {
@@ -58,9 +57,7 @@ class MonitorDriftService
     /**
      * Registra metrica diaria de drift.
      *
-     * @param MlModelVersion $modelVersion
-     * @param array<string, mixed> $data
-     * @return MlMetric
+     * @param  array<string, mixed>  $data
      */
     public function registrarMetrica(MlModelVersion $modelVersion, array $data): MlMetric
     {
@@ -78,8 +75,7 @@ class MonitorDriftService
     /**
      * Procesa webhook del microservicio ML.
      *
-     * @param array<string, mixed> $payload
-     * @return void
+     * @param  array<string, mixed>  $payload
      */
     public function handleWebhook(array $payload): void
     {

@@ -18,21 +18,13 @@ class NotificarClientePedidoConfirmado implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-
     /**
      * Crea el job.
-     *
-     * @param int $pedidoId
      */
-    public function __construct(private readonly int $pedidoId)
-    {
-    }
+    public function __construct(private readonly int $pedidoId) {}
 
     /**
      * Envia notificacion interna del pedido.
-     *
-     * @param NotificadorPedidoService $notificadorPedidoService
-     * @return void
      */
     public function handle(NotificadorPedidoService $notificadorPedidoService): void
     {

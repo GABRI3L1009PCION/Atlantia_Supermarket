@@ -15,8 +15,7 @@ class RepartidorService
     /**
      * Pagina repartidores.
      *
-     * @param array<string, mixed> $filters
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
     public function paginate(array $filters = []): LengthAwarePaginator
     {
@@ -38,8 +37,7 @@ class RepartidorService
     /**
      * Crea un repartidor operativo.
      *
-     * @param array<string, mixed> $data
-     * @return User
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data): User
     {
@@ -63,8 +61,7 @@ class RepartidorService
     /**
      * Actualiza un repartidor.
      *
-     * @param array<string, mixed> $data
-     * @return User
+     * @param  array<string, mixed>  $data
      */
     public function update(User $repartidor, array $data): User
     {

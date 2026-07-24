@@ -23,4 +23,3 @@ class VendedorNoAprobadoException extends AtlantiaDomainException
         return 'El vendedor aun no esta aprobado para operar.';
     }
 }
-

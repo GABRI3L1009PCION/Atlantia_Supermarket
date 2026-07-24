@@ -13,7 +13,6 @@ interface CertificadorFelInterface
     /**
      * Certifica una factura electronica ante el certificador FEL.
      *
-     * @param DteFactura $dte
      * @return array<string, mixed>
      */
     public function certificar(DteFactura $dte): array;
@@ -21,7 +20,6 @@ interface CertificadorFelInterface
     /**
      * Solicita anulacion fiscal de una factura certificada.
      *
-     * @param DteAnulacion $anulacion
      * @return array<string, mixed>
      */
     public function anular(DteAnulacion $anulacion): array;
@@ -29,7 +27,6 @@ interface CertificadorFelInterface
     /**
      * Consulta el estado de un DTE en el certificador.
      *
-     * @param string $uuidSat
      * @return array<string, mixed>
      */
     public function consultar(string $uuidSat): array;

@@ -105,7 +105,7 @@ class MlModelVersion extends Model
     /**
      * Filtra versiones en produccion.
      *
-     * @param Builder<MlModelVersion> $query
+     * @param  Builder<MlModelVersion>  $query
      * @return Builder<MlModelVersion>
      */
     public function scopeProduction(Builder $query): Builder
@@ -116,7 +116,7 @@ class MlModelVersion extends Model
     /**
      * Filtra versiones en staging.
      *
-     * @param Builder<MlModelVersion> $query
+     * @param  Builder<MlModelVersion>  $query
      * @return Builder<MlModelVersion>
      */
     public function scopeStaging(Builder $query): Builder
@@ -127,8 +127,7 @@ class MlModelVersion extends Model
     /**
      * Filtra versiones por nombre de modelo.
      *
-     * @param Builder<MlModelVersion> $query
-     * @param string $nombreModelo
+     * @param  Builder<MlModelVersion>  $query
      * @return Builder<MlModelVersion>
      */
     public function scopeNombreModelo(Builder $query, string $nombreModelo): Builder

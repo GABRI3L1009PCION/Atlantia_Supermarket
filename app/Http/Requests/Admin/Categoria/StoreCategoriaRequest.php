@@ -24,6 +24,7 @@ class StoreCategoriaRequest extends FormRequest
             'is_active' => ['sometimes', 'boolean'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

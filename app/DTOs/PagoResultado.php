@@ -3,6 +3,7 @@
 namespace App\DTOs;
 
 use App\Enums\EstadoPago;
+use Illuminate\Support\Carbon;
 
 /**
  * DTO normalizado del resultado de pago.
@@ -10,22 +11,16 @@ use App\Enums\EstadoPago;
 final readonly class PagoResultado
 {
     /**
-     * @param EstadoPago $estado
-     * @param string|null $transaccionIdPasarela
-     * @param bool $hmacValidado
-     * @param string|null $referenciaBancaria
-     * @param \Illuminate\Support\Carbon|null $validadoAt
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     public function __construct(
         public EstadoPago $estado,
         public ?string $transaccionIdPasarela = null,
         public bool $hmacValidado = false,
         public ?string $referenciaBancaria = null,
-        public ?\Illuminate\Support\Carbon $validadoAt = null,
+        public ?Carbon $validadoAt = null,
         public array $payload = []
-    ) {
-    }
+    ) {}
 
     /**
      * Devuelve estructura para persistencia.

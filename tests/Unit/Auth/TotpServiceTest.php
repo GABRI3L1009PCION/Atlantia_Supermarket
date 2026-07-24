@@ -7,7 +7,7 @@ use Tests\TestCase;
 
 class TotpServiceTest extends TestCase
 {
-    public function testItMatchesKnownRfcTotpVector(): void
+    public function test_it_matches_known_rfc_totp_vector(): void
     {
         $service = app(TotpService::class);
         $secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
@@ -15,7 +15,7 @@ class TotpServiceTest extends TestCase
         $this->assertSame('287082', $service->codeAt($secret, 59));
     }
 
-    public function testItVerifiesGeneratedCodes(): void
+    public function test_it_verifies_generated_codes(): void
     {
         $service = app(TotpService::class);
         $secret = $service->generateSecret();

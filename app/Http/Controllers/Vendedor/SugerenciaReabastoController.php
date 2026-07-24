@@ -18,9 +18,7 @@ class SugerenciaReabastoController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly ReabastoInteligenteService $reabastoInteligenteService)
-    {
-    }
+    public function __construct(private readonly ReabastoInteligenteService $reabastoInteligenteService) {}
 
     /**
      * Lista sugerencias para el vendedor.

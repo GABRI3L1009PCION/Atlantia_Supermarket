@@ -7,11 +7,12 @@ use App\Http\Requests\Admin\Usuario\StoreUsuarioRequest;
 use App\Http\Requests\Admin\Usuario\UpdateUsuarioRequest;
 use App\Models\User;
 use App\Services\Auth\UsuarioService;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Spatie\Permission\Models\Role;
 
 /**
  * Controlador administrativo de usuarios.
@@ -21,9 +22,7 @@ class UsuarioController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly UsuarioService $usuarioService)
-    {
-    }
+    public function __construct(private readonly UsuarioService $usuarioService) {}
 
     /**
      * Lista usuarios.
@@ -34,7 +33,7 @@ class UsuarioController extends Controller
 
         return view('admin.usuarios.index', [
             'usuarios' => $this->usuarioService->paginate($request->all(), $request->user()),
-            'roles' => \Spatie\Permission\Models\Role::query()->orderBy('name')->get(),
+            'roles' => Role::query()->orderBy('name')->get(),
         ]);
     }
 
@@ -71,7 +70,7 @@ class UsuarioController extends Controller
 
         return view('admin.usuarios.show', [
             'usuario' => $this->usuarioService->detail($usuario),
-            'roles' => \Spatie\Permission\Models\Role::query()->orderBy('name')->get(),
+            'roles' => Role::query()->orderBy('name')->get(),
         ]);
     }
 

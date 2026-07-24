@@ -16,10 +16,6 @@ class PrediccionGenerada
 
     /**
      * Crea el evento.
-     *
-     * @param SalesPrediction $prediction
      */
-    public function __construct(public readonly SalesPrediction $prediction)
-    {
-    }
+    public function __construct(public readonly SalesPrediction $prediction) {}
 }

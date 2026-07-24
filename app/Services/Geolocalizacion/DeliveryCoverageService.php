@@ -28,9 +28,7 @@ class DeliveryCoverageService
         'santo-tomas' => 'Santo Tomas',
     ];
 
-    public function __construct(private readonly ZonaEntregaService $zonaEntregaService)
-    {
-    }
+    public function __construct(private readonly ZonaEntregaService $zonaEntregaService) {}
 
     /**
      * Busca la zona activa que cubre una direccion.
@@ -113,7 +111,7 @@ class DeliveryCoverageService
     /**
      * Suma el envio por vendedor para carritos multivendedor.
      *
-     * @param iterable<int, int|null> $vendorIds
+     * @param  iterable<int, int|null>  $vendorIds
      */
     public function deliveryCostForVendors(Direccion $direccion, iterable $vendorIds): ?float
     {
@@ -219,7 +217,7 @@ class DeliveryCoverageService
     }
 
     /**
-     * @param Collection<int, DeliveryZone> $zones
+     * @param  Collection<int, DeliveryZone>  $zones
      */
     private function nearestZoneByCenter(Collection $zones, float $latitude, float $longitude): ?DeliveryZone
     {
@@ -287,7 +285,7 @@ class DeliveryCoverageService
     }
 
     /**
-     * @param array<int, array{0: mixed, 1: mixed}> $ring
+     * @param  array<int, array{0: mixed, 1: mixed}>  $ring
      */
     private function pointInRing(float $latitude, float $longitude, array $ring): bool
     {
@@ -315,7 +313,7 @@ class DeliveryCoverageService
      * Cuando una zona se administra sin mapa, valida por colonia/barrio/codigo
      * manteniendo la ubicacion GPS exacta de la direccion para reparto.
      *
-     * @param Collection<int, DeliveryZone> $zones
+     * @param  Collection<int, DeliveryZone>  $zones
      */
     private function zoneByAddressText(Collection $zones, Direccion $direccion): ?DeliveryZone
     {

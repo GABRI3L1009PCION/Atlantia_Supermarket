@@ -78,7 +78,7 @@ class DteAnulacion extends Model
     /**
      * Filtra anulaciones aceptadas.
      *
-     * @param Builder<DteAnulacion> $query
+     * @param  Builder<DteAnulacion>  $query
      * @return Builder<DteAnulacion>
      */
     public function scopeAceptadas(Builder $query): Builder
@@ -89,7 +89,7 @@ class DteAnulacion extends Model
     /**
      * Filtra anulaciones rechazadas.
      *
-     * @param Builder<DteAnulacion> $query
+     * @param  Builder<DteAnulacion>  $query
      * @return Builder<DteAnulacion>
      */
     public function scopeRechazadas(Builder $query): Builder

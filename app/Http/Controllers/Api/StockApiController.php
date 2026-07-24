@@ -16,9 +16,7 @@ class StockApiController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly StockService $stockService)
-    {
-    }
+    public function __construct(private readonly StockService $stockService) {}
 
     /**
      * Consulta disponibilidad de un producto.

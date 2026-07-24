@@ -19,22 +19,15 @@ class CalcularDriftDiario implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-
     /**
      * Crea el job.
      *
-     * @param int $modelVersionId
-     * @param array<string, mixed> $metricas
+     * @param  array<string, mixed>  $metricas
      */
-    public function __construct(private readonly int $modelVersionId, private readonly array $metricas)
-    {
-    }
+    public function __construct(private readonly int $modelVersionId, private readonly array $metricas) {}
 
     /**
      * Registra metricas y emite alerta si el drift supera umbral.
-     *
-     * @param MonitorDriftService $monitorDriftService
-     * @return void
      */
     public function handle(MonitorDriftService $monitorDriftService): void
     {

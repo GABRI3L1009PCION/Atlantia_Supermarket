@@ -2,8 +2,8 @@
 
 namespace Tests\Browser;
 
-use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
@@ -16,7 +16,7 @@ class ClienteCheckoutFlowTest extends TestCase
     /**
      * El flujo principal permite checkout publico y conserva pedidos autenticados.
      */
-    public function testClienteFlowRoutesAreRegisteredWithExpectedMiddleware(): void
+    public function test_cliente_flow_routes_are_registered_with_expected_middleware(): void
     {
         $checkout = Route::getRoutes()->getByName('cliente.checkout.store');
         $pedido = Route::getRoutes()->getByName('cliente.pedidos.show');
@@ -31,7 +31,7 @@ class ClienteCheckoutFlowTest extends TestCase
     /**
      * Un visitante no autenticado puede entrar al checkout como invitado.
      */
-    public function testGuestCanReachCheckout(): void
+    public function test_guest_can_reach_checkout(): void
     {
         $this->get(route('cliente.checkout.create'))->assertOk();
     }

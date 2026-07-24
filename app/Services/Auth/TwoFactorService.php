@@ -16,6 +16,7 @@ use Throwable;
 class TwoFactorService
 {
     private const MAX_FAILED_CHALLENGES = 5;
+
     private const LOCK_MINUTES = 15;
 
     /**
@@ -24,8 +25,7 @@ class TwoFactorService
     public function __construct(
         private readonly LoginService $loginService,
         private readonly TotpService $totpService
-    ) {
-    }
+    ) {}
 
     /**
      * Devuelve los datos de la pantalla 2FA actual.
@@ -60,7 +60,7 @@ class TwoFactorService
     /**
      * Verifica un desafio 2FA y devuelve la ruta destino.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function verifyChallenge(array $data, Request $request): string
     {

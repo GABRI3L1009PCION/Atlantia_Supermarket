@@ -15,9 +15,7 @@ class RecomendacionApiController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly RecomendacionService $recomendacionService)
-    {
-    }
+    public function __construct(private readonly RecomendacionService $recomendacionService) {}
 
     /**
      * Devuelve recomendaciones para el cliente.

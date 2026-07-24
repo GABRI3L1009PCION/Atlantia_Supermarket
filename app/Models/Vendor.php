@@ -218,7 +218,7 @@ class Vendor extends Model
     /**
      * Filtra vendedores aprobados.
      *
-     * @param Builder<Vendor> $query
+     * @param  Builder<Vendor>  $query
      * @return Builder<Vendor>
      */
     public function scopeApproved(Builder $query): Builder
@@ -229,7 +229,7 @@ class Vendor extends Model
     /**
      * Filtra vendedores pendientes de aprobacion.
      *
-     * @param Builder<Vendor> $query
+     * @param  Builder<Vendor>  $query
      * @return Builder<Vendor>
      */
     public function scopePending(Builder $query): Builder
@@ -240,7 +240,7 @@ class Vendor extends Model
     /**
      * Filtra vendedores suspendidos.
      *
-     * @param Builder<Vendor> $query
+     * @param  Builder<Vendor>  $query
      * @return Builder<Vendor>
      */
     public function scopeSuspended(Builder $query): Builder
@@ -251,8 +251,7 @@ class Vendor extends Model
     /**
      * Filtra vendedores por municipio.
      *
-     * @param Builder<Vendor> $query
-     * @param string $municipio
+     * @param  Builder<Vendor>  $query
      * @return Builder<Vendor>
      */
     public function scopeMunicipio(Builder $query, string $municipio): Builder

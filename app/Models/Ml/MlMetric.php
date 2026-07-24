@@ -60,8 +60,7 @@ class MlMetric extends Model
     /**
      * Filtra metricas con drift superior al umbral.
      *
-     * @param Builder<MlMetric> $query
-     * @param float $threshold
+     * @param  Builder<MlMetric>  $query
      * @return Builder<MlMetric>
      */
     public function scopeDriftAbove(Builder $query, float $threshold): Builder
@@ -72,8 +71,7 @@ class MlMetric extends Model
     /**
      * Filtra metricas por fecha.
      *
-     * @param Builder<MlMetric> $query
-     * @param string $fecha
+     * @param  Builder<MlMetric>  $query
      * @return Builder<MlMetric>
      */
     public function scopeFecha(Builder $query, string $fecha): Builder

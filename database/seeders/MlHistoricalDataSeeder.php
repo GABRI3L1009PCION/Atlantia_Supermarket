@@ -56,11 +56,6 @@ class MlHistoricalDataSeeder extends Seeder
 
     /**
      * Crea o actualiza una version de modelo.
-     *
-     * @param string $name
-     * @param string $version
-     * @param string $artifactPath
-     * @return MlModelVersion
      */
     private function modelVersion(string $name, string $version, string $artifactPath): MlModelVersion
     {
@@ -89,10 +84,6 @@ class MlHistoricalDataSeeder extends Seeder
 
     /**
      * Crea jobs de entrenamiento historicos.
-     *
-     * @param MlModelVersion $demandModel
-     * @param MlModelVersion $recommendationModel
-     * @param MlModelVersion $fraudModel
      */
     private function trainingJobs(
         MlModelVersion $demandModel,
@@ -101,7 +92,7 @@ class MlHistoricalDataSeeder extends Seeder
     ): void {
         foreach ([$demandModel, $recommendationModel, $fraudModel] as $model) {
             MlTrainingJob::query()->updateOrCreate(
-                ['uuid' => '00000000-0000-4000-8000-' . str_pad((string) $model->id, 12, '0', STR_PAD_LEFT)],
+                ['uuid' => '00000000-0000-4000-8000-'.str_pad((string) $model->id, 12, '0', STR_PAD_LEFT)],
                 [
                     'modelo_nombre' => $model->nombre_modelo,
                     'modelo_version_id' => $model->id,
@@ -122,8 +113,6 @@ class MlHistoricalDataSeeder extends Seeder
 
     /**
      * Crea predicciones de demanda por producto.
-     *
-     * @param MlModelVersion $model
      */
     private function salesPredictions(MlModelVersion $model): void
     {
@@ -158,8 +147,6 @@ class MlHistoricalDataSeeder extends Seeder
 
     /**
      * Crea sugerencias de reabastecimiento.
-     *
-     * @param MlModelVersion $model
      */
     private function restockSuggestions(MlModelVersion $model): void
     {
@@ -194,8 +181,6 @@ class MlHistoricalDataSeeder extends Seeder
 
     /**
      * Crea recomendaciones para el cliente demo.
-     *
-     * @param MlModelVersion $model
      */
     private function productRecommendations(MlModelVersion $model): void
     {
@@ -225,10 +210,6 @@ class MlHistoricalDataSeeder extends Seeder
 
     /**
      * Crea metricas diarias por modelo.
-     *
-     * @param MlModelVersion $demandModel
-     * @param MlModelVersion $recommendationModel
-     * @param MlModelVersion $fraudModel
      */
     private function metrics(
         MlModelVersion $demandModel,
@@ -256,10 +237,6 @@ class MlHistoricalDataSeeder extends Seeder
 
     /**
      * Crea logs de llamadas ML.
-     *
-     * @param MlModelVersion $demandModel
-     * @param MlModelVersion $recommendationModel
-     * @param MlModelVersion $fraudModel
      */
     private function predictionLogs(
         MlModelVersion $demandModel,
@@ -292,8 +269,6 @@ class MlHistoricalDataSeeder extends Seeder
 
     /**
      * Crea alertas antifraude de baja y media prioridad.
-     *
-     * @param MlModelVersion $model
      */
     private function fraudAlerts(MlModelVersion $model): void
     {
@@ -327,8 +302,6 @@ class MlHistoricalDataSeeder extends Seeder
 
     /**
      * Crea flags ML para resenas.
-     *
-     * @param MlModelVersion $model
      */
     private function reviewFlags(MlModelVersion $model): void
     {

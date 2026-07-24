@@ -17,11 +17,6 @@ class ResenaMarcadaSospechosa
 
     /**
      * Crea el evento.
-     *
-     * @param Resena $resena
-     * @param ReviewFlag $flag
      */
-    public function __construct(public readonly Resena $resena, public readonly ReviewFlag $flag)
-    {
-    }
+    public function __construct(public readonly Resena $resena, public readonly ReviewFlag $flag) {}
 }

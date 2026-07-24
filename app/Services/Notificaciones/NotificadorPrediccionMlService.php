@@ -11,9 +11,7 @@ use Throwable;
 
 class NotificadorPrediccionMlService
 {
-    public function __construct(private readonly NotificacionContract $notificationService)
-    {
-    }
+    public function __construct(private readonly NotificacionContract $notificationService) {}
 
     public function demandaMayorAlStock(SalesPrediction $prediction): void
     {
@@ -70,7 +68,7 @@ class NotificadorPrediccionMlService
         return SentEmail::query()
             ->where('user_id', $userId)
             ->where('template', 'ml.prediccion_stock_riesgo')
-            ->where('metadata', 'like', '%' . $productoUuid . '%')
+            ->where('metadata', 'like', '%'.$productoUuid.'%')
             ->where('created_at', '>=', now()->subHours(12))
             ->exists();
     }
@@ -80,11 +78,11 @@ class NotificadorPrediccionMlService
         return implode("\n", [
             'Atlantia Supermarket - Alerta ML de demanda',
             '',
-            'Producto: ' . $prediction->producto->nombre,
+            'Producto: '.$prediction->producto->nombre,
             "Horizonte: {$prediction->horizonte_dias} dias",
-            'Demanda estimada: ' . number_format((float) $prediction->valor_predicho, 0) . ' unidades',
+            'Demanda estimada: '.number_format((float) $prediction->valor_predicho, 0).' unidades',
             "Stock actual: {$stock} unidades",
-            'Rango estimado: ' . number_format((float) ($prediction->intervalo_inferior ?? 0), 0) . ' - ' . number_format((float) ($prediction->intervalo_superior ?? 0), 0) . ' unidades',
+            'Rango estimado: '.number_format((float) ($prediction->intervalo_inferior ?? 0), 0).' - '.number_format((float) ($prediction->intervalo_superior ?? 0), 0).' unidades',
             '',
             'Recomendacion: revisa Prediccion de demanda y Reabasto ML para decidir si debes reponer inventario.',
             route('vendedor.predicciones.index'),

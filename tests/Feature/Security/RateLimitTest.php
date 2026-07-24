@@ -29,7 +29,7 @@ class RateLimitTest extends TestCase
     /**
      * Bloquea login despues de 5 intentos fallidos.
      */
-    public function testLoginBloqueaDespuesDeCincoIntentosFallidos(): void
+    public function test_login_bloquea_despues_de_cinco_intentos_fallidos(): void
     {
         $user = User::factory()->cliente()->create([
             'email' => 'cliente@atlantia.test',
@@ -52,7 +52,7 @@ class RateLimitTest extends TestCase
     /**
      * Bloquea registro despues de 5 intentos por IP y hora.
      */
-    public function testRegistroBloqueaDespuesDeCincoIntentosPorHora(): void
+    public function test_registro_bloquea_despues_de_cinco_intentos_por_hora(): void
     {
         for ($i = 0; $i < 5; $i++) {
             $this->post(route('register.store'), [

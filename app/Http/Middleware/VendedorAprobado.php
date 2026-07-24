@@ -14,9 +14,7 @@ class VendedorAprobado
     /**
      * Verifica que el usuario vendedor tenga perfil aprobado.
      *
-     * @param Request $request
-     * @param Closure(Request): Response $next
-     * @return Response
+     * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {

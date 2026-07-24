@@ -18,7 +18,6 @@ class ReintentarDteFallido implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-
     public int $tries = 5;
 
     /**
@@ -28,18 +27,11 @@ class ReintentarDteFallido implements ShouldQueue
 
     /**
      * Crea el job.
-     *
-     * @param int $dteId
      */
-    public function __construct(private readonly int $dteId)
-    {
-    }
+    public function __construct(private readonly int $dteId) {}
 
     /**
      * Ejecuta el reintento.
-     *
-     * @param DteContingenciaService $contingenciaService
-     * @return void
      */
     public function handle(DteContingenciaService $contingenciaService): void
     {

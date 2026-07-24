@@ -19,9 +19,7 @@ class EmpleadoController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly EmpleadoService $empleadoService)
-    {
-    }
+    public function __construct(private readonly EmpleadoService $empleadoService) {}
 
     /**
      * Lista empleados internos.

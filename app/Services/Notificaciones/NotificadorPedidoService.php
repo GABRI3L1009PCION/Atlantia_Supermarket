@@ -16,15 +16,10 @@ class NotificadorPedidoService
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly NotificacionContract $notificationService)
-    {
-    }
+    public function __construct(private readonly NotificacionContract $notificationService) {}
 
     /**
      * Notifica confirmacion de pedido al cliente y vendedor.
-     *
-     * @param Pedido $pedido
-     * @return void
      */
     public function pedidoConfirmado(Pedido $pedido): void
     {
@@ -49,11 +44,6 @@ class NotificadorPedidoService
 
     /**
      * Notifica cambio de estado de un pedido.
-     *
-     * @param Pedido $pedido
-     * @param string $estadoAnterior
-     * @param string $estadoNuevo
-     * @return void
      */
     public function estadoActualizado(Pedido $pedido, string $estadoAnterior, string $estadoNuevo): void
     {
@@ -76,10 +66,6 @@ class NotificadorPedidoService
 
     /**
      * Notifica asignacion de entrega al repartidor.
-     *
-     * @param Pedido $pedido
-     * @param User $repartidor
-     * @return void
      */
     public function rutaAsignada(Pedido $pedido, User $repartidor): void
     {
@@ -93,9 +79,6 @@ class NotificadorPedidoService
 
     /**
      * Notifica al repartidor que el pedido ya puede recogerse.
-     *
-     * @param Pedido $pedido
-     * @return void
      */
     public function pedidoListoParaRecoger(Pedido $pedido): void
     {
@@ -116,10 +99,7 @@ class NotificadorPedidoService
     /**
      * Crea notificacion interna y auditoria de email encolado.
      *
-     * @param User $user
-     * @param string $type
-     * @param array<string, mixed> $data
-     * @return void
+     * @param  array<string, mixed>  $data
      */
     private function notificarUsuario(User $user, string $type, array $data): void
     {
@@ -130,11 +110,7 @@ class NotificadorPedidoService
     /**
      * Registra email pendiente para auditoria y jobs futuros.
      *
-     * @param User $user
-     * @param string $subject
-     * @param string $template
-     * @param array<string, mixed> $metadata
-     * @return SentEmail
+     * @param  array<string, mixed>  $metadata
      */
     private function registrarEmail(User $user, string $subject, string $template, array $metadata): SentEmail
     {

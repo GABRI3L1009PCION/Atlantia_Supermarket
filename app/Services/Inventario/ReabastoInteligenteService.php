@@ -25,9 +25,6 @@ class ReabastoInteligenteService
 {
     /**
      * Lista sugerencias de reabastecimiento para el vendedor autenticado.
-     *
-     * @param User $user
-     * @return LengthAwarePaginator
      */
     public function forVendor(User $user, array $filters = []): LengthAwarePaginator
     {
@@ -74,7 +71,7 @@ class ReabastoInteligenteService
     }
 
     /**
-     * @param Collection<int, RestockSuggestion> $suggestions
+     * @param  Collection<int, RestockSuggestion>  $suggestions
      */
     private function demandaTotal(Collection $suggestions): int
     {
@@ -89,12 +86,11 @@ class ReabastoInteligenteService
     /**
      * Genera sugerencias para todos los productos activos de un vendedor.
      *
-     * @param Vendor $vendor
      * @return EloquentCollection<int, RestockSuggestion>
      */
     public function generarParaVendor(Vendor $vendor): EloquentCollection
     {
-        $sugerencias = new EloquentCollection();
+        $sugerencias = new EloquentCollection;
 
         $vendor->productos()
             ->with(['inventario'])
@@ -114,9 +110,6 @@ class ReabastoInteligenteService
 
     /**
      * Genera o actualiza una sugerencia para un producto.
-     *
-     * @param Producto $producto
-     * @return RestockSuggestion|null
      */
     public function generarParaProducto(Producto $producto): ?RestockSuggestion
     {
@@ -157,10 +150,7 @@ class ReabastoInteligenteService
     /**
      * Acepta una sugerencia y actualiza stock fisico recibido.
      *
-     * @param RestockSuggestion $suggestion
-     * @param array<string, mixed> $data
-     * @param User $user
-     * @return RestockSuggestion
+     * @param  array<string, mixed>  $data
      *
      * @throws TransaccionFallidaException
      */
@@ -195,8 +185,6 @@ class ReabastoInteligenteService
     /**
      * Calcula cantidad sugerida usando prediccion ML o regla conservadora.
      *
-     * @param Producto $producto
-     * @param Inventario $inventario
      * @return array<string, mixed>
      */
     private function calcularSugerencia(Producto $producto, Inventario $inventario): array
@@ -227,11 +215,6 @@ class ReabastoInteligenteService
 
     /**
      * Define urgencia segun dias de cobertura.
-     *
-     * @param int $diasHastaQuiebre
-     * @param int $stockDisponible
-     * @param int $stockMinimo
-     * @return string
      */
     private function urgencia(int $diasHastaQuiebre, int $stockDisponible, int $stockMinimo): string
     {
@@ -252,9 +235,6 @@ class ReabastoInteligenteService
 
     /**
      * Obtiene inventario bloqueado para aceptar reabastecimiento.
-     *
-     * @param Producto $producto
-     * @return Inventario
      */
     private function lockedInventario(Producto $producto): Inventario
     {
@@ -267,12 +247,8 @@ class ReabastoInteligenteService
     /**
      * Registra auditoria append-only del reabastecimiento.
      *
-     * @param Inventario $inventario
-     * @param User $user
-     * @param array<string, mixed> $oldValues
-     * @param array<string, mixed> $newValues
-     * @param int $suggestionId
-     * @return void
+     * @param  array<string, mixed>  $oldValues
+     * @param  array<string, mixed>  $newValues
      */
     private function audit(
         Inventario $inventario,

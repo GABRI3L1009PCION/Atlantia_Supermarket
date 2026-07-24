@@ -21,7 +21,7 @@ class DteGenerationTest extends TestCase
     /**
      * Reutiliza el DTE existente para evitar doble certificacion.
      */
-    public function testReturnsExistingDteWhenPedidoAlreadyHasInvoice(): void
+    public function test_returns_existing_dte_when_pedido_already_has_invoice(): void
     {
         $vendor = Vendor::factory()->approved()->create();
         $pedido = Pedido::factory()->create(['vendor_id' => $vendor->id]);

@@ -107,7 +107,7 @@ class Empleado extends Model
     /**
      * Filtra empleados activos.
      *
-     * @param Builder<Empleado> $query
+     * @param  Builder<Empleado>  $query
      * @return Builder<Empleado>
      */
     public function scopeActive(Builder $query): Builder
@@ -118,8 +118,7 @@ class Empleado extends Model
     /**
      * Filtra empleados por departamento.
      *
-     * @param Builder<Empleado> $query
-     * @param string $departamento
+     * @param  Builder<Empleado>  $query
      * @return Builder<Empleado>
      */
     public function scopeDepartamento(Builder $query, string $departamento): Builder

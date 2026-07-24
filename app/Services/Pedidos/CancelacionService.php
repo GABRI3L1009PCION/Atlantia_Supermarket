@@ -21,16 +21,11 @@ class CancelacionService
     public function __construct(
         private readonly EstadoPedidoService $estadoPedidoService,
         private readonly StockService $stockService
-    ) {
-    }
+    ) {}
 
     /**
      * Cancela un pedido y libera inventario reservado.
      *
-     * @param Pedido $pedido
-     * @param User $usuario
-     * @param string $motivo
-     * @return Pedido
      *
      * @throws TransaccionFallidaException
      */

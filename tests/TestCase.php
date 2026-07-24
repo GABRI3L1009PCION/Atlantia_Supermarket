@@ -24,9 +24,6 @@ abstract class TestCase extends BaseTestCase
 
     /**
      * Verifica que una prueba no exceda el presupuesto de consultas esperado.
-     *
-     * @param int $maximo
-     * @return void
      */
     protected function assertQueryCountBelow(int $maximo): void
     {

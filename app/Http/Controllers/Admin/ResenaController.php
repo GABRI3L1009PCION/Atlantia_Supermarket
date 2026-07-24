@@ -19,9 +19,7 @@ class ResenaController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly ResenaModerationService $resenaModerationService)
-    {
-    }
+    public function __construct(private readonly ResenaModerationService $resenaModerationService) {}
 
     /**
      * Lista resenas para moderacion.

@@ -15,6 +15,7 @@ class ForgotPasswordRequest extends FormRequest
     {
         return ['email' => ['required', 'email', 'exists:users,email']];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

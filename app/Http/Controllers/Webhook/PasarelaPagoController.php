@@ -15,9 +15,7 @@ class PasarelaPagoController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly PasarelaPagoService $pasarelaPagoService)
-    {
-    }
+    public function __construct(private readonly PasarelaPagoService $pasarelaPagoService) {}
 
     /**
      * Recibe evento de la pasarela.

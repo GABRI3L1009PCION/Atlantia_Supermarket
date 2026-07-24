@@ -16,9 +16,7 @@ class PrediccionApiController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly PrediccionDemandaService $prediccionDemandaService)
-    {
-    }
+    public function __construct(private readonly PrediccionDemandaService $prediccionDemandaService) {}
 
     /**
      * Devuelve prediccion para un producto.

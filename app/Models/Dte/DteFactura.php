@@ -7,8 +7,8 @@ use App\Models\Vendor;
 use App\Models\VendorCommission;
 use Database\Factories\DteFacturaFactory;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -131,7 +131,7 @@ class DteFactura extends Model
     /**
      * Filtra facturas certificadas.
      *
-     * @param Builder<DteFactura> $query
+     * @param  Builder<DteFactura>  $query
      * @return Builder<DteFactura>
      */
     public function scopeCertificadas(Builder $query): Builder
@@ -142,7 +142,7 @@ class DteFactura extends Model
     /**
      * Filtra facturas anuladas.
      *
-     * @param Builder<DteFactura> $query
+     * @param  Builder<DteFactura>  $query
      * @return Builder<DteFactura>
      */
     public function scopeAnuladas(Builder $query): Builder
@@ -153,7 +153,7 @@ class DteFactura extends Model
     /**
      * Filtra facturas rechazadas.
      *
-     * @param Builder<DteFactura> $query
+     * @param  Builder<DteFactura>  $query
      * @return Builder<DteFactura>
      */
     public function scopeRechazadas(Builder $query): Builder
@@ -164,8 +164,7 @@ class DteFactura extends Model
     /**
      * Filtra facturas por tipo DTE.
      *
-     * @param Builder<DteFactura> $query
-     * @param string $tipoDte
+     * @param  Builder<DteFactura>  $query
      * @return Builder<DteFactura>
      */
     public function scopeTipoDte(Builder $query, string $tipoDte): Builder

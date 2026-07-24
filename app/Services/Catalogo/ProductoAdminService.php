@@ -21,8 +21,7 @@ class ProductoAdminService
     /**
      * Pagina productos globales.
      *
-     * @param array<string, mixed> $filters
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
     public function paginate(array $filters = []): LengthAwarePaginator
     {
@@ -49,10 +48,10 @@ class ProductoAdminService
             })
             ->when($filters['q'] ?? null, function ($query, string $q): void {
                 $query->where(fn ($builder) => $builder
-                    ->where('nombre', 'like', '%' . $q . '%')
-                    ->orWhere('sku', 'like', '%' . $q . '%')
-                    ->orWhere('codigo_barras', 'like', '%' . $q . '%')
-                    ->orWhere('slug', 'like', '%' . $q . '%'));
+                    ->where('nombre', 'like', '%'.$q.'%')
+                    ->orWhere('sku', 'like', '%'.$q.'%')
+                    ->orWhere('codigo_barras', 'like', '%'.$q.'%')
+                    ->orWhere('slug', 'like', '%'.$q.'%'));
             })
             ->when(
                 ($filters['orden'] ?? 'recientes') === 'nombre',
@@ -89,7 +88,7 @@ class ProductoAdminService
     /**
      * Modera estado y visibilidad del producto.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function moderate(Producto $producto, array $data, User $user): Producto
     {
@@ -101,8 +100,7 @@ class ProductoAdminService
     /**
      * Crea un producto administrativo con inventario inicial.
      *
-     * @param array<string, mixed> $data
-     * @return Producto
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data): Producto
     {
@@ -128,7 +126,7 @@ class ProductoAdminService
                 'vendor_id' => $vendor->id,
                 'sku' => $sku,
                 'codigo_barras' => $this->uniqueBarcode(),
-                'slug' => ($data['slug'] ?? Str::slug((string) $data['nombre'])) . '-' . Str::lower(Str::random(4)),
+                'slug' => ($data['slug'] ?? Str::slug((string) $data['nombre'])).'-'.Str::lower(Str::random(4)),
                 'publicado_at' => ($data['visible_catalogo'] ?? false) ? now() : null,
             ]);
 
@@ -149,8 +147,7 @@ class ProductoAdminService
     /**
      * Actualiza un producto e inventario administrativo.
      *
-     * @param array<string, mixed> $data
-     * @return Producto
+     * @param  array<string, mixed>  $data
      */
     public function update(Producto $producto, array $data): Producto
     {
@@ -211,8 +208,7 @@ class ProductoAdminService
     /**
      * Resuelve si el producto pertenece a Atlantia o a un vendedor externo.
      *
-     * @param array<string, mixed> $data
-     * @return Vendor
+     * @param  array<string, mixed>  $data
      */
     private function resolveProductOwner(array $data): Vendor
     {
@@ -294,7 +290,7 @@ class ProductoAdminService
 
         while ($this->skuExists($sku, $vendorId, $ignoreProductId)) {
             $suffix += 1;
-            $sku = Str::limit($base, 56, '') . '-' . str_pad((string) $suffix, 2, '0', STR_PAD_LEFT);
+            $sku = Str::limit($base, 56, '').'-'.str_pad((string) $suffix, 2, '0', STR_PAD_LEFT);
         }
 
         return $sku;
@@ -315,8 +311,8 @@ class ProductoAdminService
     private function uniqueBarcode(): string
     {
         do {
-            $body = '740' . str_pad((string) random_int(0, 999999999), 9, '0', STR_PAD_LEFT);
-            $barcode = $body . $this->ean13CheckDigit($body);
+            $body = '740'.str_pad((string) random_int(0, 999999999), 9, '0', STR_PAD_LEFT);
+            $barcode = $body.$this->ean13CheckDigit($body);
         } while (Producto::withTrashed()->where('codigo_barras', $barcode)->exists());
 
         return $barcode;
@@ -336,9 +332,7 @@ class ProductoAdminService
     /**
      * Guarda imagenes administrativas del producto.
      *
-     * @param Producto $producto
-     * @param array<int, mixed> $imagenes
-     * @return void
+     * @param  array<int, mixed>  $imagenes
      */
     private function storeImages(Producto $producto, array $imagenes): void
     {
@@ -351,7 +345,7 @@ class ProductoAdminService
         $hasPrincipal = $producto->imagenes()->where('es_principal', true)->exists();
 
         foreach ($imagenes as $index => $imagen) {
-            $path = $imagen->store('productos/' . $producto->uuid, $disk);
+            $path = $imagen->store('productos/'.$producto->uuid, $disk);
 
             $producto
                 ->addMediaFromDisk($path, $disk)

@@ -17,9 +17,7 @@ class MlReentrenamientoController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly MlTrainingService $mlTrainingService)
-    {
-    }
+    public function __construct(private readonly MlTrainingService $mlTrainingService) {}
 
     /**
      * Lista jobs de entrenamiento.

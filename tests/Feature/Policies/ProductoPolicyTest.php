@@ -31,7 +31,7 @@ class ProductoPolicyTest extends TestCase
     /**
      * Vendedor solo puede editar sus propios productos.
      */
-    public function testVendedorSoloEditaSusPropiosProductos(): void
+    public function test_vendedor_solo_edita_sus_propios_productos(): void
     {
         [$vendorUserA, $vendorA] = $this->createVendedor();
         [$vendorUserB] = $this->createVendedor();
@@ -44,7 +44,7 @@ class ProductoPolicyTest extends TestCase
     /**
      * Admin puede editar cualquier producto.
      */
-    public function testAdminPuedeEditarCualquierProducto(): void
+    public function test_admin_puede_editar_cualquier_producto(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');

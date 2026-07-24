@@ -32,4 +32,3 @@ class RastreoEnVivo extends Component
         return view('livewire.pedidos.rastreo-en-vivo', ['ubicacion' => $ubicacion]);
     }
 }
-

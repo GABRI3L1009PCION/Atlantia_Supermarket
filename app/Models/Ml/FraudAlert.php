@@ -98,7 +98,7 @@ class FraudAlert extends Model
     /**
      * Filtra alertas pendientes de revision.
      *
-     * @param Builder<FraudAlert> $query
+     * @param  Builder<FraudAlert>  $query
      * @return Builder<FraudAlert>
      */
     public function scopePendientes(Builder $query): Builder
@@ -109,7 +109,7 @@ class FraudAlert extends Model
     /**
      * Filtra alertas resueltas.
      *
-     * @param Builder<FraudAlert> $query
+     * @param  Builder<FraudAlert>  $query
      * @return Builder<FraudAlert>
      */
     public function scopeResueltas(Builder $query): Builder
@@ -120,8 +120,7 @@ class FraudAlert extends Model
     /**
      * Filtra alertas con riesgo alto.
      *
-     * @param Builder<FraudAlert> $query
-     * @param float $threshold
+     * @param  Builder<FraudAlert>  $query
      * @return Builder<FraudAlert>
      */
     public function scopeHighRisk(Builder $query, float $threshold = 0.8): Builder

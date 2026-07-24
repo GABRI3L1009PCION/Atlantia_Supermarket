@@ -15,15 +15,10 @@ class NotificadorStockService
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly NotificacionContract $notificationService)
-    {
-    }
+    public function __construct(private readonly NotificacionContract $notificationService) {}
 
     /**
      * Notifica al vendedor cuando un producto cae bajo el minimo.
-     *
-     * @param Inventario $inventario
-     * @return void
      */
     public function stockBajo(Inventario $inventario): void
     {
@@ -58,8 +53,7 @@ class NotificadorStockService
     /**
      * Notifica varios inventarios en alerta.
      *
-     * @param iterable<int, Inventario> $inventarios
-     * @return int
+     * @param  iterable<int, Inventario>  $inventarios
      */
     public function stockBajoMasivo(iterable $inventarios): int
     {

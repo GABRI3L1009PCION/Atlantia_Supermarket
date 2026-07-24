@@ -13,10 +13,6 @@ class PedidoPolicy
 {
     /**
      * Permite acceso global a administradores.
-     *
-     * @param User $user
-     * @param string $ability
-     * @return bool|null
      */
     public function before(User $user, string $ability): ?bool
     {
@@ -29,9 +25,6 @@ class PedidoPolicy
 
     /**
      * Determina si el usuario puede listar pedidos.
-     *
-     * @param User $user
-     * @return bool
      */
     public function viewAny(User $user): bool
     {
@@ -40,10 +33,6 @@ class PedidoPolicy
 
     /**
      * Determina si el usuario puede ver un pedido.
-     *
-     * @param User $user
-     * @param Pedido $pedido
-     * @return bool
      */
     public function view(User $user, Pedido $pedido): bool
     {
@@ -56,9 +45,6 @@ class PedidoPolicy
 
     /**
      * Determina si el cliente puede crear pedidos.
-     *
-     * @param User $user
-     * @return bool
      */
     public function create(User $user): bool
     {
@@ -68,10 +54,6 @@ class PedidoPolicy
 
     /**
      * Determina si el usuario puede actualizar un pedido.
-     *
-     * @param User $user
-     * @param Pedido $pedido
-     * @return bool
      */
     public function update(User $user, Pedido $pedido): bool
     {
@@ -82,10 +64,6 @@ class PedidoPolicy
 
     /**
      * Determina si el usuario puede eliminar logicamente un pedido.
-     *
-     * @param User $user
-     * @param Pedido $pedido
-     * @return bool
      */
     public function delete(User $user, Pedido $pedido): bool
     {
@@ -94,9 +72,6 @@ class PedidoPolicy
 
     /**
      * Determina si el cliente puede iniciar checkout.
-     *
-     * @param User $user
-     * @return bool
      */
     public function checkout(User $user): bool
     {
@@ -106,9 +81,6 @@ class PedidoPolicy
 
     /**
      * Determina si el cliente puede listar sus pedidos.
-     *
-     * @param User $user
-     * @return bool
      */
     public function viewOwnOrders(User $user): bool
     {
@@ -117,9 +89,6 @@ class PedidoPolicy
 
     /**
      * Determina si el vendedor puede listar pedidos de su tienda.
-     *
-     * @param User $user
-     * @return bool
      */
     public function viewOwnVendorOrders(User $user): bool
     {
@@ -129,10 +98,6 @@ class PedidoPolicy
 
     /**
      * Determina si el vendedor puede ver un pedido recibido.
-     *
-     * @param User $user
-     * @param Pedido $pedido
-     * @return bool
      */
     public function viewVendorOrder(User $user, Pedido $pedido): bool
     {
@@ -142,10 +107,6 @@ class PedidoPolicy
 
     /**
      * Determina si el vendedor puede actualizar estado operativo.
-     *
-     * @param User $user
-     * @param Pedido $pedido
-     * @return bool
      */
     public function updateVendorStatus(User $user, Pedido $pedido): bool
     {
@@ -156,9 +117,6 @@ class PedidoPolicy
 
     /**
      * Determina si el repartidor puede listar pedidos asignados.
-     *
-     * @param User $user
-     * @return bool
      */
     public function viewAssignedOrders(User $user): bool
     {
@@ -167,10 +125,6 @@ class PedidoPolicy
 
     /**
      * Determina si el repartidor puede ver un pedido asignado.
-     *
-     * @param User $user
-     * @param Pedido $pedido
-     * @return bool
      */
     public function viewAssigned(User $user, Pedido $pedido): bool
     {
@@ -180,10 +134,6 @@ class PedidoPolicy
 
     /**
      * Determina si el repartidor puede actualizar estado de entrega.
-     *
-     * @param User $user
-     * @param Pedido $pedido
-     * @return bool
      */
     public function updateDeliveryStatus(User $user, Pedido $pedido): bool
     {
@@ -194,10 +144,6 @@ class PedidoPolicy
 
     /**
      * Determina si el repartidor puede reportar una incidencia.
-     *
-     * @param User $user
-     * @param Pedido $pedido
-     * @return bool
      */
     public function reportIncident(User $user, Pedido $pedido): bool
     {
@@ -208,10 +154,6 @@ class PedidoPolicy
 
     /**
      * Determina si el usuario puede rastrear un pedido.
-     *
-     * @param User $user
-     * @param Pedido $pedido
-     * @return bool
      */
     public function track(User $user, Pedido $pedido): bool
     {
@@ -224,10 +166,6 @@ class PedidoPolicy
 
     /**
      * Determina si el cliente puede crear resena desde el pedido.
-     *
-     * @param User $user
-     * @param Pedido $pedido
-     * @return bool
      */
     public function review(User $user, Pedido $pedido): bool
     {
@@ -238,10 +176,6 @@ class PedidoPolicy
 
     /**
      * Determina si el usuario puede cancelar un pedido.
-     *
-     * @param User $user
-     * @param Pedido $pedido
-     * @return bool
      */
     public function cancel(User $user, Pedido $pedido): bool
     {
@@ -257,10 +191,6 @@ class PedidoPolicy
 
     /**
      * Verifica ownership del cliente.
-     *
-     * @param User $user
-     * @param Pedido $pedido
-     * @return bool
      */
     private function ownsPedidoAsCliente(User $user, Pedido $pedido): bool
     {
@@ -269,10 +199,6 @@ class PedidoPolicy
 
     /**
      * Verifica ownership del vendedor.
-     *
-     * @param User $user
-     * @param Pedido $pedido
-     * @return bool
      */
     private function ownsPedidoAsVendor(User $user, Pedido $pedido): bool
     {
@@ -283,10 +209,6 @@ class PedidoPolicy
 
     /**
      * Verifica que el pedido este asignado al repartidor.
-     *
-     * @param User $user
-     * @param Pedido $pedido
-     * @return bool
      */
     private function isAssignedCourier(User $user, Pedido $pedido): bool
     {

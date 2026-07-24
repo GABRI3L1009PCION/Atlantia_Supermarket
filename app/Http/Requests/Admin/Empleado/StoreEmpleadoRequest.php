@@ -37,6 +37,7 @@ class StoreEmpleadoRequest extends FormRequest
             ])],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

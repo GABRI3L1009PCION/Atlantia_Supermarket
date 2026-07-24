@@ -23,9 +23,7 @@ class ProductoController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly ProductoAdminService $productoAdminService)
-    {
-    }
+    public function __construct(private readonly ProductoAdminService $productoAdminService) {}
 
     /**
      * Lista productos del marketplace.

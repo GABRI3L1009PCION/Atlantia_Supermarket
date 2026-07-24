@@ -7,20 +7,6 @@ namespace App\DTOs;
  */
 final readonly class DireccionDTO
 {
-    /**
-     * @param string $alias
-     * @param string $nombreContacto
-     * @param string $telefonoContacto
-     * @param string $municipio
-     * @param string|null $zonaOBarrio
-     * @param string $direccionLinea1
-     * @param string|null $direccionLinea2
-     * @param string|null $referencia
-     * @param float|null $latitude
-     * @param float|null $longitude
-     * @param string|null $mapboxPlaceId
-     * @param bool $esPrincipal
-     */
     public function __construct(
         public string $alias,
         public string $nombreContacto,
@@ -34,14 +20,12 @@ final readonly class DireccionDTO
         public ?float $longitude,
         public ?string $mapboxPlaceId,
         public bool $esPrincipal
-    ) {
-    }
+    ) {}
 
     /**
      * Crea DTO desde datos validados.
      *
-     * @param array<string, mixed> $data
-     * @return self
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): self
     {

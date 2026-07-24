@@ -13,7 +13,7 @@ class IncidenciaService
     /**
      * Registra incidencia como estado historico del pedido.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function store(Pedido $pedido, array $data, User $user): void
     {
@@ -24,4 +24,3 @@ class IncidenciaService
         ]);
     }
 }
-

@@ -18,22 +18,13 @@ class ExportarDatasetParaEntrenamiento implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-
     /**
      * Crea el job.
-     *
-     * @param string $tipo
-     * @param string $disk
      */
-    public function __construct(private readonly string $tipo = 'ventas', private readonly string $disk = 'local')
-    {
-    }
+    public function __construct(private readonly string $tipo = 'ventas', private readonly string $disk = 'local') {}
 
     /**
      * Exporta datos a JSONL.
-     *
-     * @param ExportadorDatasetService $exportadorDatasetService
-     * @return void
      */
     public function handle(ExportadorDatasetService $exportadorDatasetService): void
     {
@@ -45,7 +36,7 @@ class ExportarDatasetParaEntrenamiento implements ShouldQueue
             ->map(fn (mixed $row) => json_encode($row, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
             ->implode(PHP_EOL);
 
-        $path = 'ml/datasets/' . $this->tipo . '-' . now()->format('YmdHis') . '.jsonl';
+        $path = 'ml/datasets/'.$this->tipo.'-'.now()->format('YmdHis').'.jsonl';
 
         Storage::disk($this->disk)->put($path, $content);
     }

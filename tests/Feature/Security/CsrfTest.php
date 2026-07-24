@@ -25,14 +25,14 @@ class CsrfTest extends TestCase
         $this->withMiddleware();
     }
 
-    public function testFormularioLoginIncluyeTokenCsrf(): void
+    public function test_formulario_login_incluye_token_csrf(): void
     {
         $this->get(route('login'))
             ->assertOk()
             ->assertSee('name="_token"', false);
     }
 
-    public function testFormularioRegistroIncluyeTokenCsrf(): void
+    public function test_formulario_registro_incluye_token_csrf(): void
     {
         $this->get(route('register'))
             ->assertOk()
@@ -40,7 +40,7 @@ class CsrfTest extends TestCase
             ->assertSee('data-csrf=', false);
     }
 
-    public function testFormularioCheckoutIncluyeTokenCsrf(): void
+    public function test_formulario_checkout_incluye_token_csrf(): void
     {
         $cliente = User::factory()->cliente()->create();
         $cliente->assignRole('cliente');
@@ -51,7 +51,7 @@ class CsrfTest extends TestCase
             ->assertSee('name="_token"', false);
     }
 
-    public function testFormularioAdminIncluyeTokenCsrf(): void
+    public function test_formulario_admin_incluye_token_csrf(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -62,7 +62,7 @@ class CsrfTest extends TestCase
             ->assertSee('name="_token"', false);
     }
 
-    public function testFormularioVendedorIncluyeTokenCsrf(): void
+    public function test_formulario_vendedor_incluye_token_csrf(): void
     {
         $user = User::factory()->vendedor()->create();
         $user->assignRole('vendedor');
@@ -74,7 +74,7 @@ class CsrfTest extends TestCase
             ->assertSee('name="_token"', false);
     }
 
-    public function testWebhooksSiguenExcluidosDeCsrf(): void
+    public function test_webhooks_siguen_excluidos_de_csrf(): void
     {
         $reflection = new ReflectionClass(VerifyCsrfToken::class);
         $except = $reflection->getProperty('except');

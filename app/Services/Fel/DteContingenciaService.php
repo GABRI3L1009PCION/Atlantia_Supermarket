@@ -13,14 +13,10 @@ class DteContingenciaService
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly InfileCertificadorService $certificadorFel)
-    {
-    }
+    public function __construct(private readonly InfileCertificadorService $certificadorFel) {}
 
     /**
      * Lista DTE pendientes o rechazados para reproceso operativo.
-     *
-     * @return LengthAwarePaginator
      */
     public function pendientes(): LengthAwarePaginator
     {
@@ -33,9 +29,6 @@ class DteContingenciaService
 
     /**
      * Reintenta certificacion de un DTE en contingencia.
-     *
-     * @param DteFactura $dte
-     * @return DteFactura
      */
     public function reintentar(DteFactura $dte): DteFactura
     {

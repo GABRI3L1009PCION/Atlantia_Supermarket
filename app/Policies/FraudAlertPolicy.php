@@ -20,4 +20,3 @@ class FraudAlertPolicy
         return $user->hasAnyRole(['admin', 'empleado']) && ! $alert->resuelta;
     }
 }
-

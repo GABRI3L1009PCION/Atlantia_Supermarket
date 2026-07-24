@@ -21,8 +21,7 @@ class UsuarioService
     /**
      * Pagina usuarios visibles para administracion operativa.
      *
-     * @param array<string, mixed> $filters
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
     public function paginate(array $filters = [], ?User $viewer = null): LengthAwarePaginator
     {
@@ -39,8 +38,8 @@ class UsuarioService
             })
             ->when($filters['q'] ?? null, function ($query, string $q): void {
                 $query->where(fn ($builder) => $builder
-                    ->where('name', 'like', '%' . $q . '%')
-                    ->orWhere('email', 'like', '%' . $q . '%'));
+                    ->where('name', 'like', '%'.$q.'%')
+                    ->orWhere('email', 'like', '%'.$q.'%'));
             })
             ->when($filters['role'] ?? null, function ($query, string $role): void {
                 $query->whereHas('roles', fn ($roleQuery) => $roleQuery->where('name', $role));
@@ -80,8 +79,7 @@ class UsuarioService
     /**
      * Crea una cuenta operativa desde administracion.
      *
-     * @param array<string, mixed> $data
-     * @return User
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data): User
     {
@@ -109,7 +107,7 @@ class UsuarioService
     /**
      * Actualiza datos operativos de usuario.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(User $user, array $data): User
     {
@@ -160,9 +158,7 @@ class UsuarioService
     /**
      * Crea perfiles auxiliares segun rol base.
      *
-     * @param User $user
-     * @param array<string, mixed> $data
-     * @return void
+     * @param  array<string, mixed>  $data
      */
     private function createSupportProfiles(User $user, array $data): void
     {
@@ -188,7 +184,7 @@ class UsuarioService
                     ['user_id' => $user->id],
                     [
                         'uuid' => (string) Str::uuid(),
-                        'codigo_empleado' => $this->employeeCodePrefix((string) $data['role']) . str_pad((string) $user->id, 3, '0', STR_PAD_LEFT),
+                        'codigo_empleado' => $this->employeeCodePrefix((string) $data['role']).str_pad((string) $user->id, 3, '0', STR_PAD_LEFT),
                         'departamento' => $this->employeeDepartment((string) $data['role'], $data),
                         'puesto' => $this->employeePosition((string) $data['role']),
                         'telefono_interno' => $data['phone'] ?? null,
@@ -204,7 +200,7 @@ class UsuarioService
                     [
                         'uuid' => (string) Str::uuid(),
                         'business_name' => $user->name,
-                        'slug' => Str::slug($user->name) . '-' . Str::lower(Str::random(6)),
+                        'slug' => Str::slug($user->name).'-'.Str::lower(Str::random(6)),
                         'descripcion' => 'Vendedor creado por administracion.',
                         'telefono_publico' => $data['phone'] ?? null,
                         'email_publico' => $user->email,
@@ -224,11 +220,11 @@ class UsuarioService
                 VendorFiscalProfile::query()->firstOrCreate(
                     ['vendor_id' => $vendor->id],
                     [
-                        'nit' => 'CF-' . $vendor->id,
+                        'nit' => 'CF-'.$vendor->id,
                         'razon_social' => $vendor->business_name,
                         'direccion_fiscal' => 'Pendiente de completar',
                         'regimen_sat' => 'general',
-                        'codigo_establecimiento' => 'ADM-' . $vendor->id,
+                        'codigo_establecimiento' => 'ADM-'.$vendor->id,
                         'certificador_fel' => 'infile',
                         'fel_activo' => false,
                     ]
@@ -254,7 +250,7 @@ class UsuarioService
     /**
      * Departamento interno sugerido segun rol operativo.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function employeeDepartment(string $role, array $data): string
     {
@@ -299,7 +295,7 @@ class UsuarioService
     /**
      * Aplica una accion masiva sobre usuarios seleccionados.
      *
-     * @param array<int, int> $ids
+     * @param  array<int, int>  $ids
      */
     public function batch(array $ids, string $action, array $payload = [], ?User $viewer = null): int
     {
@@ -332,7 +328,7 @@ class UsuarioService
     /**
      * Cambia rol desde acciones masivas y crea perfiles auxiliares cuando corresponde.
      *
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     private function assignBatchRole(User $user, string $role, array $payload): void
     {

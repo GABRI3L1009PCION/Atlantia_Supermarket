@@ -16,8 +16,8 @@ use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorFiscalProfile;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use Database\Seeders\MlHistoricalDataSeeder;
 
 /**
  * Seeder de desarrollo con datos operativos para entorno local.
@@ -76,7 +76,7 @@ class DevelopmentSeeder extends Seeder
     /**
      * Crea administradores operativos.
      *
-     * @return \Illuminate\Support\Collection<int, User>
+     * @return Collection<int, User>
      */
     private function seedAdmins()
     {
@@ -110,8 +110,7 @@ class DevelopmentSeeder extends Seeder
     /**
      * Crea vendedores con catalogo inicial.
      *
-     * @param User $adminAprobador
-     * @return \Illuminate\Support\Collection<int, Vendor>
+     * @return Collection<int, Vendor>
      */
     private function seedVendedores(User $adminAprobador)
     {
@@ -128,10 +127,10 @@ class DevelopmentSeeder extends Seeder
                 ['email' => $row[1]],
                 [
                     'uuid' => User::query()->where('email', $row[1])->value('uuid') ?? (string) Str::uuid(),
-                    'name' => 'Vendedor ' . ($index + 1) . ' Atlantia',
+                    'name' => 'Vendedor '.($index + 1).' Atlantia',
                     'email_verified_at' => now(),
                     'password' => bcrypt('Atlantia2026!'),
-                    'phone' => '+502 5600-12' . str_pad((string) $index, 2, '0', STR_PAD_LEFT),
+                    'phone' => '+502 5600-12'.str_pad((string) $index, 2, '0', STR_PAD_LEFT),
                     'status' => 'active',
                 ]
             );
@@ -147,7 +146,7 @@ class DevelopmentSeeder extends Seeder
                     'telefono_publico' => $user->phone,
                     'email_publico' => $user->email,
                     'municipio' => $row[2],
-                    'direccion_comercial' => 'Zona comercial principal de ' . $row[2],
+                    'direccion_comercial' => 'Zona comercial principal de '.$row[2],
                     'latitude' => $row[2] === 'Morales' ? 15.47250000 : 15.73090000,
                     'longitude' => $row[2] === 'Morales' ? -88.84090000 : -88.59440000,
                     'is_approved' => true,
@@ -165,12 +164,12 @@ class DevelopmentSeeder extends Seeder
             VendorFiscalProfile::query()->updateOrCreate(
                 ['vendor_id' => $vendor->id],
                 [
-                    'nit' => '54879' . ($index + 1) . '-K',
-                    'razon_social' => $row[0] . ', Sociedad Individual',
+                    'nit' => '54879'.($index + 1).'-K',
+                    'razon_social' => $row[0].', Sociedad Individual',
                     'nombre_comercial_sat' => $row[0],
                     'direccion_fiscal' => 'Izabal, Guatemala',
                     'regimen_sat' => 'general',
-                    'codigo_establecimiento' => 'EST-' . ($index + 1),
+                    'codigo_establecimiento' => 'EST-'.($index + 1),
                     'afiliacion_iva' => 'general',
                     'certificador_fel' => 'infile',
                     'fel_activo' => true,
@@ -216,7 +215,7 @@ class DevelopmentSeeder extends Seeder
     /**
      * Crea clientes y perfiles.
      *
-     * @return \Illuminate\Support\Collection<int, User>
+     * @return Collection<int, User>
      */
     private function seedClientes()
     {
@@ -227,10 +226,10 @@ class DevelopmentSeeder extends Seeder
                 ['email' => $email],
                 [
                     'uuid' => User::query()->where('email', $email)->value('uuid') ?? (string) Str::uuid(),
-                    'name' => 'Cliente Atlantia ' . $index,
+                    'name' => 'Cliente Atlantia '.$index,
                     'email_verified_at' => now(),
                     'password' => bcrypt('Atlantia2026!'),
-                    'phone' => '+502 5800-' . str_pad((string) $index, 4, '0', STR_PAD_LEFT),
+                    'phone' => '+502 5800-'.str_pad((string) $index, 4, '0', STR_PAD_LEFT),
                     'status' => 'active',
                 ]
             );
@@ -259,7 +258,7 @@ class DevelopmentSeeder extends Seeder
                     'telefono_contacto' => $user->phone,
                     'municipio' => $index % 2 === 0 ? 'Puerto Barrios' : 'Santo Tomas',
                     'zona_o_barrio' => $index % 2 === 0 ? 'Centro' : 'San Agustin',
-                    'direccion_linea_1' => '5a avenida ' . $index . '-45',
+                    'direccion_linea_1' => '5a avenida '.$index.'-45',
                     'direccion_linea_2' => null,
                     'referencia' => 'Casa color vino junto a la tienda de barrio.',
                     'latitude' => $index % 2 === 0 ? 15.73090000 : 15.69690000,
@@ -277,7 +276,7 @@ class DevelopmentSeeder extends Seeder
     /**
      * Crea repartidores base.
      *
-     * @return \Illuminate\Support\Collection<int, User>
+     * @return Collection<int, User>
      */
     private function seedRepartidores()
     {
@@ -294,7 +293,7 @@ class DevelopmentSeeder extends Seeder
                     'name' => $row[0],
                     'email_verified_at' => now(),
                     'password' => bcrypt('Atlantia2026!'),
-                    'phone' => '+502 5900-22' . $index,
+                    'phone' => '+502 5900-22'.$index,
                     'status' => 'active',
                 ]
             );
@@ -307,9 +306,9 @@ class DevelopmentSeeder extends Seeder
     /**
      * Genera pedidos historicos para clientes.
      *
-     * @param array<int, User> $clientes
-     * @param array<int, Vendor> $vendors
-     * @param array<int, User> $repartidores
+     * @param  array<int, User>  $clientes
+     * @param  array<int, Vendor>  $vendors
+     * @param  array<int, User>  $repartidores
      */
     private function seedPedidos(array $clientes, array $vendors, array $repartidores): void
     {
@@ -373,7 +372,7 @@ class DevelopmentSeeder extends Seeder
                         'uuid' => Payment::query()->where('pedido_id', $pedido->id)->value('uuid') ?? (string) Str::uuid(),
                         'monto' => $pedido->total,
                         'estado' => EstadoPago::Aprobado->value,
-                        'transaccion_id_pasarela' => 'cash_' . Str::lower(Str::random(10)),
+                        'transaccion_id_pasarela' => 'cash_'.Str::lower(Str::random(10)),
                         'hmac_validado' => true,
                         'validado_at' => now()->subDays(5),
                         'pasarela_payload' => ['gateway' => 'cash'],

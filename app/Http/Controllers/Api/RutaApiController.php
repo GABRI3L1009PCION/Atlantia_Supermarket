@@ -16,9 +16,7 @@ class RutaApiController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly RutaOptimaService $rutaOptimaService)
-    {
-    }
+    public function __construct(private readonly RutaOptimaService $rutaOptimaService) {}
 
     /**
      * Calcula vista previa de ruta.

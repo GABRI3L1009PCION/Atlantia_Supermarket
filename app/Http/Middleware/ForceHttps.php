@@ -14,9 +14,7 @@ class ForceHttps
     /**
      * Redirige a HTTPS cuando la aplicacion corre en produccion.
      *
-     * @param Request $request
-     * @param Closure(Request): Response $next
-     * @return Response
+     * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -29,9 +27,6 @@ class ForceHttps
 
     /**
      * Determina si la solicitud debe redirigirse a HTTPS.
-     *
-     * @param Request $request
-     * @return bool
      */
     private function shouldForceHttps(Request $request): bool
     {

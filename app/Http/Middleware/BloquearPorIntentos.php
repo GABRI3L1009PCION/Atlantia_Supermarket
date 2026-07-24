@@ -25,9 +25,7 @@ class BloquearPorIntentos
     /**
      * Verifica intentos fallidos recientes por email e IP.
      *
-     * @param Request $request
-     * @param Closure(Request): Response $next
-     * @return Response
+     * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {

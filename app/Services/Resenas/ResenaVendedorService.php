@@ -57,7 +57,7 @@ class ResenaVendedorService
     }
 
     /**
-     * @param Collection<int, Resena> $reviews
+     * @param  Collection<int, Resena>  $reviews
      */
     private function topRatedProductCount(Collection $reviews): int
     {

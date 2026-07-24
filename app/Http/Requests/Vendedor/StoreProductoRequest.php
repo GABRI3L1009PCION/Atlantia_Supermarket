@@ -13,8 +13,6 @@ class StoreProductoRequest extends FormRequest
 {
     /**
      * Determina si el vendedor puede crear productos.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -118,8 +116,6 @@ class StoreProductoRequest extends FormRequest
 
     /**
      * Normaliza datos del producto.
-     *
-     * @return void
      */
     protected function prepareForValidation(): void
     {
@@ -146,9 +142,6 @@ class StoreProductoRequest extends FormRequest
 
     /**
      * Normaliza decimales escritos con coma.
-     *
-     * @param mixed $value
-     * @return string|null
      */
     private function normalizarDecimal(mixed $value): ?string
     {
@@ -157,9 +150,6 @@ class StoreProductoRequest extends FormRequest
 
     /**
      * Convierte cadenas vacias en null.
-     *
-     * @param mixed $value
-     * @return string|null
      */
     private function blankToNull(mixed $value): ?string
     {
@@ -180,14 +170,14 @@ class StoreProductoRequest extends FormRequest
             ->take(3)
             ->join('-');
 
-        return 'TAL-' . ($base !== '' ? $base : Str::upper(Str::random(6)));
+        return 'TAL-'.($base !== '' ? $base : Str::upper(Str::random(6)));
     }
 
     private function barcodeFromName(string $nombre): string
     {
-        $body = '750' . substr(str_pad((string) abs(crc32($nombre)), 9, '0', STR_PAD_LEFT), -9);
+        $body = '750'.substr(str_pad((string) abs(crc32($nombre)), 9, '0', STR_PAD_LEFT), -9);
 
-        return $body . $this->ean13CheckDigit($body);
+        return $body.$this->ean13CheckDigit($body);
     }
 
     private function ean13CheckDigit(string $body): int

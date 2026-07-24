@@ -18,9 +18,7 @@ class MensajeContactoController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly ContactMessageService $contactMessageService)
-    {
-    }
+    public function __construct(private readonly ContactMessageService $contactMessageService) {}
 
     /**
      * Lista mensajes de contacto.

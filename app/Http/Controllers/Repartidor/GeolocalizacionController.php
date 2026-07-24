@@ -15,9 +15,7 @@ class GeolocalizacionController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly SeguimientoGpsService $seguimientoGpsService)
-    {
-    }
+    public function __construct(private readonly SeguimientoGpsService $seguimientoGpsService) {}
 
     /**
      * Guarda una ubicacion GPS.

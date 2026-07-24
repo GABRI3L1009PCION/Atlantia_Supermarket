@@ -17,6 +17,7 @@ class AnularDteRequest extends FormRequest
             'motivo' => ['required', 'string', 'min:10', 'max:255'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

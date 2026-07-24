@@ -14,8 +14,7 @@ class CatalogoService
     /**
      * Devuelve productos publicados con filtros seguros.
      *
-     * @param array<string, mixed> $filtros
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filtros
      */
     public function catalogo(array $filtros = []): LengthAwarePaginator
     {
@@ -23,22 +22,22 @@ class CatalogoService
             ->with(['imagenPrincipal', 'media', 'categoria', 'vendor', 'inventario'])
             ->publicados();
 
-        $busqueda = trim((string)($filtros['q'] ?? $filtros['buscar'] ?? ''));
+        $busqueda = trim((string) ($filtros['q'] ?? $filtros['buscar'] ?? ''));
 
         if ($busqueda !== '') {
             $query->where(function (Builder $builder) use ($busqueda): void {
                 $builder
-                    ->where('nombre', 'like', '%' . $busqueda . '%')
-                    ->orWhere('sku', 'like', '%' . $busqueda . '%')
-                    ->orWhere('descripcion', 'like', '%' . $busqueda . '%');
+                    ->where('nombre', 'like', '%'.$busqueda.'%')
+                    ->orWhere('sku', 'like', '%'.$busqueda.'%')
+                    ->orWhere('descripcion', 'like', '%'.$busqueda.'%');
             });
         }
 
-        if (!empty($filtros['categoria_id'])) {
+        if (! empty($filtros['categoria_id'])) {
             $query->where('categoria_id', (int) $filtros['categoria_id']);
         }
 
-        $orden = (string)($filtros['orden'] ?? 'recientes');
+        $orden = (string) ($filtros['orden'] ?? 'recientes');
 
         switch ($orden) {
             case 'precio_asc':
@@ -58,7 +57,7 @@ class CatalogoService
                 break;
         }
 
-        $perPage = (int)($filtros['per_page'] ?? 12);
+        $perPage = (int) ($filtros['per_page'] ?? 12);
 
         if ($perPage < 1) {
             $perPage = 12;

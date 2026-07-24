@@ -18,21 +18,13 @@ class ActualizarInventarioPostPago implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-
     /**
      * Crea el job.
-     *
-     * @param int $pedidoId
      */
-    public function __construct(private readonly int $pedidoId)
-    {
-    }
+    public function __construct(private readonly int $pedidoId) {}
 
     /**
      * Consume inventario reservado del pedido.
-     *
-     * @param StockService $stockService
-     * @return void
      */
     public function handle(StockService $stockService): void
     {

@@ -4,8 +4,8 @@ namespace App\Http\Requests\Vendedor;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreSolicitudVendedorRequest extends FormRequest
 {
@@ -31,7 +31,7 @@ class StoreSolicitudVendedorRequest extends FormRequest
             'name' => ['required', 'string', 'min:5', 'max:100'],
             'email' => ['required', 'email:rfc', 'max:190', 'unique:users,email'],
             'phone' => ['required', 'string', 'regex:/^\+502\s?\d{4}\s?\d{4}$/'],
-            'birthdate' => ['required', 'date', 'before_or_equal:' . $adultLimit, 'after_or_equal:' . $oldestLimit],
+            'birthdate' => ['required', 'date', 'before_or_equal:'.$adultLimit, 'after_or_equal:'.$oldestLimit],
             'gender' => ['nullable', Rule::in(['masculino', 'femenino', 'prefiero_no_decir'])],
             'address_street' => ['required', 'string', 'max:160'],
             'address_number' => ['required', 'string', 'max:40'],

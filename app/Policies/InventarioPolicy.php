@@ -14,4 +14,3 @@ class InventarioPolicy
         return $user->hasRole('vendedor') && $user->vendor !== null;
     }
 }
-

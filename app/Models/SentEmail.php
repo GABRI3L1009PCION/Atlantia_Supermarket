@@ -62,7 +62,7 @@ class SentEmail extends Model
     /**
      * Filtra emails enviados correctamente.
      *
-     * @param Builder<SentEmail> $query
+     * @param  Builder<SentEmail>  $query
      * @return Builder<SentEmail>
      */
     public function scopeSent(Builder $query): Builder
@@ -73,7 +73,7 @@ class SentEmail extends Model
     /**
      * Filtra emails fallidos.
      *
-     * @param Builder<SentEmail> $query
+     * @param  Builder<SentEmail>  $query
      * @return Builder<SentEmail>
      */
     public function scopeFailed(Builder $query): Builder
@@ -84,8 +84,7 @@ class SentEmail extends Model
     /**
      * Filtra emails por plantilla.
      *
-     * @param Builder<SentEmail> $query
-     * @param string $template
+     * @param  Builder<SentEmail>  $query
      * @return Builder<SentEmail>
      */
     public function scopeTemplate(Builder $query, string $template): Builder

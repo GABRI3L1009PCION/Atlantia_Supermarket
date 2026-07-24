@@ -19,9 +19,6 @@ class EnviarNotificacionPedido implements ShouldQueue
 
     /**
      * Procesa eventos de pedido.
-     *
-     * @param object $event
-     * @return void
      */
     public function handle(object $event): void
     {

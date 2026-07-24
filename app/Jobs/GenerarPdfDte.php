@@ -18,22 +18,15 @@ class GenerarPdfDte implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-
     public int $tries = 3;
 
     /**
      * Crea el job.
-     *
-     * @param int $dteId
      */
-    public function __construct(private readonly int $dteId)
-    {
-    }
+    public function __construct(private readonly int $dteId) {}
 
     /**
      * Genera y almacena el PDF.
-     *
-     * @return void
      */
     public function handle(DteComprobantePdf $pdf): void
     {

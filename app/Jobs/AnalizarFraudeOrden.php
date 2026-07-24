@@ -23,22 +23,16 @@ class AnalizarFraudeOrden implements ShouldQueue
 
     /**
      * Intentos maximos del job.
-     *
-     * @var int
      */
     public int $tries = 3;
 
     /**
      * Tiempo maximo de ejecucion.
-     *
-     * @var int
      */
     public int $timeout = 60;
 
     /**
      * Crea el job.
-     *
-     * @param int $pedidoId
      */
     public function __construct(private readonly int $pedidoId)
     {
@@ -47,9 +41,6 @@ class AnalizarFraudeOrden implements ShouldQueue
 
     /**
      * Ejecuta el analisis antifraude ML con fallback local.
-     *
-     * @param DetectorFraudeService $detectorFraudeService
-     * @return void
      */
     public function handle(DetectorFraudeService $detectorFraudeService): void
     {
@@ -71,7 +62,7 @@ class AnalizarFraudeOrden implements ShouldQueue
                 'estado' => $alerta === null ? $pedido->estadoValor() : EstadoPedido::EnRevision->value,
                 'notas' => $alerta === null
                     ? $pedido->notas
-                    : trim((string) $pedido->notas . "\nPedido movido a revision antifraude automatica."),
+                    : trim((string) $pedido->notas."\nPedido movido a revision antifraude automatica."),
             ]);
 
             if ($alerta !== null) {

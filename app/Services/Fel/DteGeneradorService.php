@@ -19,15 +19,11 @@ class DteGeneradorService
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly InfileCertificadorService $certificadorFel)
-    {
-    }
+    public function __construct(private readonly InfileCertificadorService $certificadorFel) {}
 
     /**
      * Genera y certifica factura FEL para un pedido de vendedor.
      *
-     * @param Pedido $pedido
-     * @return DteFactura
      *
      * @throws DteCertificadorException
      * @throws TransaccionFallidaException
@@ -95,9 +91,6 @@ class DteGeneradorService
 
     /**
      * Genera XML fiscal base compatible con el flujo FEL.
-     *
-     * @param DteFactura $dte
-     * @return string
      */
     public function generarXml(DteFactura $dte): string
     {
@@ -140,8 +133,6 @@ class DteGeneradorService
     /**
      * Valida que el pedido tenga datos minimos para FEL.
      *
-     * @param Pedido $pedido
-     * @return void
      *
      * @throws DteCertificadorException
      */
@@ -166,13 +157,10 @@ class DteGeneradorService
 
     /**
      * Genera correlativo interno Atlantia para DTE.
-     *
-     * @param Pedido $pedido
-     * @return string
      */
     private function numeroInterno(Pedido $pedido): string
     {
-        return 'DTE-' . now()->format('Ymd') . '-' . str_pad((string) $pedido->id, 8, '0', STR_PAD_LEFT);
+        return 'DTE-'.now()->format('Ymd').'-'.str_pad((string) $pedido->id, 8, '0', STR_PAD_LEFT);
     }
 
     /**

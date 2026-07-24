@@ -16,8 +16,7 @@ class ZonaEntregaService
     /**
      * Pagina zonas.
      *
-     * @param array<string, mixed> $filters
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
     public function paginate(array $filters = []): LengthAwarePaginator
     {
@@ -74,7 +73,7 @@ class ZonaEntregaService
     /**
      * Crea zona global.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data): DeliveryZone
     {
@@ -108,7 +107,7 @@ class ZonaEntregaService
     /**
      * Actualiza zona global.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(DeliveryZone $zone, array $data): DeliveryZone
     {
@@ -144,7 +143,7 @@ class ZonaEntregaService
     /**
      * Separa columnas reales y metadata escalable de operacion.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     private function preparePersistenceData(array $data): array
@@ -191,7 +190,6 @@ class ZonaEntregaService
     /**
      * Convierte barrios en arreglo limpio.
      *
-     * @param mixed $barrios
      * @return array<int, string>
      */
     private function splitBarrios(mixed $barrios): array

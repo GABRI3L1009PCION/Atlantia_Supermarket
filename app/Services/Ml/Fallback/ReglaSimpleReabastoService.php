@@ -12,7 +12,6 @@ class ReglaSimpleReabastoService
     /**
      * Calcula sugerencia usando minimo/maximo configurado.
      *
-     * @param Inventario $inventario
      * @return array<string, mixed>
      */
     public function calcular(Inventario $inventario): array

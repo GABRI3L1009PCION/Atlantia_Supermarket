@@ -16,9 +16,6 @@ class NotificarAdminDrift implements ShouldQueue
 
     /**
      * Procesa drift detectado.
-     *
-     * @param DriftDetectado $event
-     * @return void
      */
     public function handle(DriftDetectado $event): void
     {

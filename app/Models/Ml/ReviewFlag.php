@@ -82,7 +82,7 @@ class ReviewFlag extends Model
     /**
      * Filtra flags pendientes.
      *
-     * @param Builder<ReviewFlag> $query
+     * @param  Builder<ReviewFlag>  $query
      * @return Builder<ReviewFlag>
      */
     public function scopePendientes(Builder $query): Builder
@@ -93,8 +93,7 @@ class ReviewFlag extends Model
     /**
      * Filtra flags con sospecha alta.
      *
-     * @param Builder<ReviewFlag> $query
-     * @param float $threshold
+     * @param  Builder<ReviewFlag>  $query
      * @return Builder<ReviewFlag>
      */
     public function scopeHighSuspicion(Builder $query, float $threshold = 0.8): Builder

@@ -11,11 +11,6 @@ class ConversionTrackingService
 {
     /**
      * Registra una conversion atribuida a recomendacion.
-     *
-     * @param int $clienteId
-     * @param int $productoId
-     * @param string $evento
-     * @return void
      */
     public function track(int $clienteId, int $productoId, string $evento): void
     {
@@ -33,7 +28,6 @@ class ConversionTrackingService
     /**
      * Devuelve eventos recientes del cliente.
      *
-     * @param int $clienteId
      * @return array<int, array<string, mixed>>
      */
     public function recientes(int $clienteId): array
@@ -43,9 +37,6 @@ class ConversionTrackingService
 
     /**
      * Llave de cache.
-     *
-     * @param int $clienteId
-     * @return string
      */
     private function key(int $clienteId): string
     {

@@ -25,7 +25,7 @@ class HeroBannerService
     /**
      * Guarda un banner nuevo.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data): HeroBanner
     {
@@ -47,7 +47,7 @@ class HeroBannerService
     /**
      * Actualiza un banner existente.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(HeroBanner $banner, array $data): HeroBanner
     {
@@ -135,7 +135,7 @@ class HeroBannerService
     /**
      * Guarda las imagenes del banner.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function syncImages(HeroBanner $banner, array $data): void
     {

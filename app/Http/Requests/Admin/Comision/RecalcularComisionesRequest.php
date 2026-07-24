@@ -18,6 +18,7 @@ class RecalcularComisionesRequest extends FormRequest
             'mes' => ['required', 'integer', 'min:1', 'max:12'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

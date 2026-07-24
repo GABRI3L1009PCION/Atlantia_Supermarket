@@ -15,8 +15,7 @@ class ResenaModerationService
     /**
      * Pagina resenas para moderacion.
      *
-     * @param array<string, mixed> $filters
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
     public function paginate(array $filters = []): LengthAwarePaginator
     {
@@ -26,10 +25,10 @@ class ResenaModerationService
             ->when(isset($filters['flagged_ml']), fn ($query) => $query->where('flagged_ml', (bool) $filters['flagged_ml']))
             ->when($filters['q'] ?? null, function ($query, string $search): void {
                 $query->where(function ($builder) use ($search): void {
-                    $builder->where('titulo', 'like', '%' . $search . '%')
-                        ->orWhere('contenido', 'like', '%' . $search . '%')
-                        ->orWhereHas('producto', fn ($productQuery) => $productQuery->where('nombre', 'like', '%' . $search . '%'))
-                        ->orWhereHas('cliente', fn ($userQuery) => $userQuery->where('name', 'like', '%' . $search . '%'));
+                    $builder->where('titulo', 'like', '%'.$search.'%')
+                        ->orWhere('contenido', 'like', '%'.$search.'%')
+                        ->orWhereHas('producto', fn ($productQuery) => $productQuery->where('nombre', 'like', '%'.$search.'%'))
+                        ->orWhereHas('cliente', fn ($userQuery) => $userQuery->where('name', 'like', '%'.$search.'%'));
                 });
             })
             ->latest()
@@ -48,7 +47,7 @@ class ResenaModerationService
     /**
      * Resume el estado del panel de moderacion.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array<string, int>
      */
     public function dashboard(array $filters = []): array
@@ -66,7 +65,7 @@ class ResenaModerationService
     /**
      * Modera una resena.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function moderate(Resena $resena, array $data, User $user): Resena
     {
@@ -96,7 +95,7 @@ class ResenaModerationService
     /**
      * Modera un conjunto de resenas por lote.
      *
-     * @param array<int, string> $uuids
+     * @param  array<int, string>  $uuids
      */
     public function moderateBatch(array $uuids, string $accion, ?string $notas, User $user): int
     {

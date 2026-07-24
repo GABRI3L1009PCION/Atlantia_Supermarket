@@ -9,18 +9,11 @@ final readonly class Dinero
 {
     /**
      * Crea una instancia basada en centavos.
-     *
-     * @param int $centavos
      */
-    private function __construct(private int $centavos)
-    {
-    }
+    private function __construct(private int $centavos) {}
 
     /**
      * Crea dinero desde una cantidad numerica.
-     *
-     * @param int|float|string|null $monto
-     * @return self
      */
     public static function from(int|float|string|null $monto): self
     {
@@ -33,8 +26,6 @@ final readonly class Dinero
 
     /**
      * Devuelve cero monetario.
-     *
-     * @return self
      */
     public static function zero(): self
     {
@@ -43,9 +34,6 @@ final readonly class Dinero
 
     /**
      * Suma dos importes.
-     *
-     * @param self $otro
-     * @return self
      */
     public function add(self $otro): self
     {
@@ -54,9 +42,6 @@ final readonly class Dinero
 
     /**
      * Resta dos importes.
-     *
-     * @param self $otro
-     * @return self
      */
     public function subtract(self $otro): self
     {
@@ -65,9 +50,6 @@ final readonly class Dinero
 
     /**
      * Multiplica un importe por una cantidad entera.
-     *
-     * @param int $factor
-     * @return self
      */
     public function multiply(int $factor): self
     {
@@ -76,9 +58,6 @@ final readonly class Dinero
 
     /**
      * Calcula un porcentaje entero del importe.
-     *
-     * @param int $porcentaje
-     * @return self
      */
     public function percentage(int $porcentaje): self
     {
@@ -87,8 +66,6 @@ final readonly class Dinero
 
     /**
      * Devuelve el valor decimal listo para persistir.
-     *
-     * @return string
      */
     public function toDecimal(): string
     {
@@ -97,8 +74,6 @@ final readonly class Dinero
 
     /**
      * Devuelve centavos.
-     *
-     * @return int
      */
     public function toCents(): int
     {
@@ -107,8 +82,6 @@ final readonly class Dinero
 
     /**
      * Devuelve representacion flotante solo para interoperabilidad externa.
-     *
-     * @return float
      */
     public function toFloat(): float
     {

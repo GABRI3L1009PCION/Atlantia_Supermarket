@@ -8,8 +8,11 @@ namespace App\Services\Reportes;
 class VendorReportPdf
 {
     private const WIDTH = 612.0;
+
     private const HEIGHT = 792.0;
+
     private const MARGIN = 42.0;
+
     private const CONTENT_WIDTH = 528.0;
 
     /** @var array<int, string> */
@@ -18,7 +21,7 @@ class VendorReportPdf
     /**
      * Construye el archivo PDF con datos reales.
      *
-     * @param array<string, mixed> $report
+     * @param  array<string, mixed>  $report
      */
     public function make(array $report): string
     {
@@ -62,7 +65,7 @@ class VendorReportPdf
     }
 
     /**
-     * @param array<string, mixed> $report
+     * @param  array<string, mixed>  $report
      */
     private function drawHeader(array $report): void
     {
@@ -86,16 +89,16 @@ class VendorReportPdf
     }
 
     /**
-     * @param array<string, mixed> $report
+     * @param  array<string, mixed>  $report
      */
     private function drawMetricCards(array $report): void
     {
         $metrics = $report['metrics'] ?? [];
         $cards = [
-            ['Total vendedores', (string) ($metrics['total'] ?? 0), ($metrics['approved'] ?? 0) . ' activos', [160, 24, 82]],
-            ['Ventas 30 dias', 'Q' . number_format((float) ($metrics['sales_30'] ?? 0), 2), 'Suma de vendedores visibles', [160, 24, 82]],
-            ['Comision pendiente', 'Q' . number_format((float) ($metrics['pending_commission'] ?? 0), 2), 'Pendiente/facturada', [160, 24, 82]],
-            ['Rating promedio', number_format((float) ($metrics['avg_rating'] ?? 0), 1) . '*', 'Resenas aprobadas registradas', [160, 24, 82]],
+            ['Total vendedores', (string) ($metrics['total'] ?? 0), ($metrics['approved'] ?? 0).' activos', [160, 24, 82]],
+            ['Ventas 30 dias', 'Q'.number_format((float) ($metrics['sales_30'] ?? 0), 2), 'Suma de vendedores visibles', [160, 24, 82]],
+            ['Comision pendiente', 'Q'.number_format((float) ($metrics['pending_commission'] ?? 0), 2), 'Pendiente/facturada', [160, 24, 82]],
+            ['Rating promedio', number_format((float) ($metrics['avg_rating'] ?? 0), 1).'*', 'Resenas aprobadas registradas', [160, 24, 82]],
         ];
 
         foreach ($cards as $index => $card) {
@@ -109,7 +112,7 @@ class VendorReportPdf
     }
 
     /**
-     * @param array<string, mixed> $report
+     * @param  array<string, mixed>  $report
      */
     private function drawStatusPanel(array $report): void
     {
@@ -153,11 +156,11 @@ class VendorReportPdf
         }
 
         $this->text(210, 404, 'Total:', 8, 'F2', [132, 28, 70]);
-        $this->text(236, 404, array_sum($counts) . ' vendedores', 8, 'F1', [64, 55, 62]);
+        $this->text(236, 404, array_sum($counts).' vendedores', 8, 'F1', [64, 55, 62]);
     }
 
     /**
-     * @param array<string, mixed> $report
+     * @param  array<string, mixed>  $report
      */
     private function drawSalesPanel(array $report): void
     {
@@ -191,11 +194,11 @@ class VendorReportPdf
         }
 
         $this->text(470, 404, 'Total ventas:', 8, 'F1', [64, 55, 62]);
-        $this->text(526, 404, 'Q' . number_format($total, 2), 8, 'F2', [132, 28, 70]);
+        $this->text(526, 404, 'Q'.number_format($total, 2), 8, 'F2', [132, 28, 70]);
     }
 
     /**
-     * @param array<int, array<string, mixed>> $vendors
+     * @param  array<int, array<string, mixed>>  $vendors
      */
     private function drawVendorTable(float $x, float $y, array $vendors, int $maxRows): void
     {
@@ -238,14 +241,14 @@ class VendorReportPdf
             $this->text($x + 252, $rowY + 15, $this->clip((string) ($vendor['phone'] ?? 'No registrado'), 11), 6, 'F1', [64, 55, 62]);
             $this->roundedRect($x + 315, $rowY + 9, 48, 16, 4, $statusStyle['fill'], $statusStyle['stroke'], 0.5);
             $this->text($x + 322, $rowY + 14, $this->clip((string) ($vendor['status_label'] ?? 'Pendiente'), 11), 6, 'F2', $statusStyle['text']);
-            $this->text($x + 382, $rowY + 15, ($vendor['documents'] ?? 0) . '/' . ($vendor['documents_total'] ?? 0), 7, 'F1', [64, 55, 62]);
-            $this->text($x + 431, $rowY + 15, 'Q' . number_format((float) ($vendor['sales_30'] ?? 0), 2), 7, 'F1', [64, 55, 62]);
-            $this->text($x + 486, $rowY + 15, 'Q' . number_format((float) ($vendor['commission_owed'] ?? 0), 2), 7, 'F1', [64, 55, 62]);
+            $this->text($x + 382, $rowY + 15, ($vendor['documents'] ?? 0).'/'.($vendor['documents_total'] ?? 0), 7, 'F1', [64, 55, 62]);
+            $this->text($x + 431, $rowY + 15, 'Q'.number_format((float) ($vendor['sales_30'] ?? 0), 2), 7, 'F1', [64, 55, 62]);
+            $this->text($x + 486, $rowY + 15, 'Q'.number_format((float) ($vendor['commission_owed'] ?? 0), 2), 7, 'F1', [64, 55, 62]);
         }
     }
 
     /**
-     * @param array<string, mixed> $report
+     * @param  array<string, mixed>  $report
      */
     private function drawObservations(array $report, float $x, float $y): void
     {
@@ -255,9 +258,9 @@ class VendorReportPdf
         $this->roundedRect($x, $y, self::CONTENT_WIDTH, 66, 5, [255, 255, 255], [239, 207, 219], 0.8);
         $this->circle($x + 28, $y + 33, 17, [252, 232, 240], null);
         $this->text($x + 54, $y + 15, 'Observaciones', 12, 'F2', [132, 28, 70]);
-        $this->text($x + 54, $y + 34, '- ' . (int) ($counts['pending'] ?? 0) . ' vendedor(es) pendiente(s) de revision documental.', 7, 'F1', [64, 55, 62]);
-        $this->text($x + 54, $y + 48, '- ' . (int) ($counts['approved'] ?? 0) . ' vendedor(es) aprobado(s) y activo(s).', 7, 'F1', [64, 55, 62]);
-        $this->text($x + 292, $y + 34, '- Comision pendiente: Q' . number_format((float) ($metrics['pending_commission'] ?? 0), 2) . '.', 7, 'F1', [64, 55, 62]);
+        $this->text($x + 54, $y + 34, '- '.(int) ($counts['pending'] ?? 0).' vendedor(es) pendiente(s) de revision documental.', 7, 'F1', [64, 55, 62]);
+        $this->text($x + 54, $y + 48, '- '.(int) ($counts['approved'] ?? 0).' vendedor(es) aprobado(s) y activo(s).', 7, 'F1', [64, 55, 62]);
+        $this->text($x + 292, $y + 34, '- Comision pendiente: Q'.number_format((float) ($metrics['pending_commission'] ?? 0), 2).'.', 7, 'F1', [64, 55, 62]);
     }
 
     private function drawFooter(int $page, int $totalPages): void
@@ -286,8 +289,8 @@ class VendorReportPdf
     }
 
     /**
-     * @param array<int, int>|null $fill
-     * @param array<int, int>|null $stroke
+     * @param  array<int, int>|null  $fill
+     * @param  array<int, int>|null  $stroke
      */
     private function roundedRect(float $x, float $y, float $w, float $h, float $r, ?array $fill = null, ?array $stroke = null, float $lineWidth = 1): void
     {
@@ -304,12 +307,12 @@ class VendorReportPdf
             sprintf('%.2F %.2F %.2F %.2F %.2F %.2F c', $x, $this->py($y + $r - ($r * $k)), $x + $r - ($r * $k), $this->py($y), $x + $r, $this->py($y)),
         ];
 
-        $this->path(implode("\n", $points) . "\nh", $fill, $stroke, $lineWidth);
+        $this->path(implode("\n", $points)."\nh", $fill, $stroke, $lineWidth);
     }
 
     /**
-     * @param array<int, int>|null $fill
-     * @param array<int, int>|null $stroke
+     * @param  array<int, int>|null  $fill
+     * @param  array<int, int>|null  $stroke
      */
     private function rect(float $x, float $y, float $w, float $h, ?array $fill = null, ?array $stroke = null, float $lineWidth = 1): void
     {
@@ -318,8 +321,8 @@ class VendorReportPdf
     }
 
     /**
-     * @param array<int, int>|null $fill
-     * @param array<int, int>|null $stroke
+     * @param  array<int, int>|null  $fill
+     * @param  array<int, int>|null  $stroke
      */
     private function circle(float $cx, float $cy, float $r, ?array $fill = null, ?array $stroke = null, float $lineWidth = 1): void
     {
@@ -357,7 +360,7 @@ class VendorReportPdf
     }
 
     /**
-     * @param array<int, int> $fill
+     * @param  array<int, int>  $fill
      */
     private function pieSegment(float $cx, float $cy, float $r, float $startDeg, float $endDeg, array $fill): void
     {
@@ -369,7 +372,7 @@ class VendorReportPdf
 
         for ($i = 0; $i < $segments; $i++) {
             $next = $angle + $step;
-            $path .= "\n" . $this->arcCurve($cx, $cy, $r, $angle, $next);
+            $path .= "\n".$this->arcCurve($cx, $cy, $r, $angle, $next);
             $angle = $next;
         }
 
@@ -402,24 +405,24 @@ class VendorReportPdf
     }
 
     /**
-     * @param array<int, int> $color
+     * @param  array<int, int>  $color
      */
     private function line(float $x1, float $y1, float $x2, float $y2, array $color, float $lineWidth = 1): void
     {
-        $this->write($this->color($color, 'RG') . $lineWidth . " w\n" . sprintf('%.2F %.2F m %.2F %.2F l S', $x1, $this->py($y1), $x2, $this->py($y2)) . "\n");
+        $this->write($this->color($color, 'RG').$lineWidth." w\n".sprintf('%.2F %.2F m %.2F %.2F l S', $x1, $this->py($y1), $x2, $this->py($y2))."\n");
     }
 
     /**
-     * @param array<int, int> $color
+     * @param  array<int, int>  $color
      */
     private function text(float $x, float $y, string $text, int $size, string $font, array $color): void
     {
-        $this->write("BT\n" . $this->color($color, 'rg') . sprintf("/%s %d Tf\n%.2F %.2F Td\n(%s) Tj\nET\n", $font, $size, $x, $this->py($y + $size), $this->escape($text)));
+        $this->write("BT\n".$this->color($color, 'rg').sprintf("/%s %d Tf\n%.2F %.2F Td\n(%s) Tj\nET\n", $font, $size, $x, $this->py($y + $size), $this->escape($text)));
     }
 
     /**
-     * @param array<int, int>|null $fill
-     * @param array<int, int>|null $stroke
+     * @param  array<int, int>|null  $fill
+     * @param  array<int, int>|null  $stroke
      */
     private function path(string $path, ?array $fill = null, ?array $stroke = null, float $lineWidth = 1): void
     {
@@ -428,16 +431,16 @@ class VendorReportPdf
             $command .= $this->color($fill, 'rg');
         }
         if ($stroke) {
-            $command .= $this->color($stroke, 'RG') . $lineWidth . " w\n";
+            $command .= $this->color($stroke, 'RG').$lineWidth." w\n";
         }
 
-        $command .= $path . "\n";
+        $command .= $path."\n";
         $command .= $fill && $stroke ? "B\n" : ($fill ? "f\n" : "S\n");
         $this->write($command);
     }
 
     /**
-     * @param array<int, int> $rgb
+     * @param  array<int, int>  $rgb
      */
     private function color(array $rgb, string $operator): string
     {
@@ -466,11 +469,11 @@ class VendorReportPdf
             $pageObject = $objectNumber++;
             $contentObject = $objectNumber++;
             $kids[] = "{$pageObject} 0 R";
-            $objects[] = "{$pageObject} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " . self::WIDTH . ' ' . self::HEIGHT . "] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents {$contentObject} 0 R >>\nendobj\n";
-            $objects[] = "{$contentObject} 0 obj\n<< /Length " . strlen($content) . " >>\nstream\n{$content}\nendstream\nendobj\n";
+            $objects[] = "{$pageObject} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ".self::WIDTH.' '.self::HEIGHT."] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents {$contentObject} 0 R >>\nendobj\n";
+            $objects[] = "{$contentObject} 0 obj\n<< /Length ".strlen($content)." >>\nstream\n{$content}\nendstream\nendobj\n";
         }
 
-        $objects[1] = "2 0 obj\n<< /Type /Pages /Count " . count($this->pages) . ' /Kids [' . implode(' ', $kids) . "] >>\nendobj\n";
+        $objects[1] = "2 0 obj\n<< /Type /Pages /Count ".count($this->pages).' /Kids ['.implode(' ', $kids)."] >>\nendobj\n";
 
         $pdf = "%PDF-1.4\n";
         $offsets = [0];
@@ -481,13 +484,13 @@ class VendorReportPdf
         }
 
         $xrefPosition = strlen($pdf);
-        $pdf .= "xref\n0 " . count($offsets) . "\n0000000000 65535 f \n";
+        $pdf .= "xref\n0 ".count($offsets)."\n0000000000 65535 f \n";
 
         for ($i = 1; $i < count($offsets); $i++) {
             $pdf .= sprintf("%010d 00000 n \n", $offsets[$i]);
         }
 
-        return $pdf . "trailer\n<< /Size " . count($offsets) . " /Root 1 0 R >>\nstartxref\n{$xrefPosition}\n%%EOF";
+        return $pdf."trailer\n<< /Size ".count($offsets)." /Root 1 0 R >>\nstartxref\n{$xrefPosition}\n%%EOF";
     }
 
     private function py(float $y): float
@@ -512,6 +515,6 @@ class VendorReportPdf
 
     private function clip(string $text, int $length): string
     {
-        return strlen($text) > $length ? substr($text, 0, max(0, $length - 3)) . '...' : $text;
+        return strlen($text) > $length ? substr($text, 0, max(0, $length - 3)).'...' : $text;
     }
 }

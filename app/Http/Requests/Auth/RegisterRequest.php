@@ -5,6 +5,7 @@ namespace App\Http\Requests\Auth;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\In;
 use Illuminate\Validation\Rules\Password;
 
 /**
@@ -14,8 +15,6 @@ class RegisterRequest extends FormRequest
 {
     /**
      * Determina si el usuario puede realizar esta solicitud.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -144,8 +143,6 @@ class RegisterRequest extends FormRequest
 
     /**
      * Normaliza datos antes de validar.
-     *
-     * @return void
      */
     protected function prepareForValidation(): void
     {
@@ -164,7 +161,7 @@ class RegisterRequest extends FormRequest
     /**
      * Regla de municipios atendidos por Atlantia.
      *
-     * @return \Illuminate\Validation\Rules\In
+     * @return In
      */
     private function municipioRule()
     {
@@ -181,9 +178,6 @@ class RegisterRequest extends FormRequest
 
     /**
      * Normaliza telefono guatemalteco.
-     *
-     * @param mixed $telefono
-     * @return string
      */
     private function normalizarTelefono(mixed $telefono): string
     {
@@ -192,9 +186,6 @@ class RegisterRequest extends FormRequest
 
     /**
      * Convierte cadenas vacias en null.
-     *
-     * @param mixed $value
-     * @return string|null
      */
     private function blankToNull(mixed $value): ?string
     {
@@ -205,9 +196,6 @@ class RegisterRequest extends FormRequest
 
     /**
      * Valida el digito verificador del NIT guatemalteco.
-     *
-     * @param string $nit
-     * @return bool
      */
     private function nitValidoGuatemala(string $nit): bool
     {

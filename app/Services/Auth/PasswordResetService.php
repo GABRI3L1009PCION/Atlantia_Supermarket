@@ -15,8 +15,7 @@ class PasswordResetService
     /**
      * Envia enlace de recuperacion.
      *
-     * @param array<string, mixed> $data
-     * @return string
+     * @param  array<string, mixed>  $data
      */
     public function sendLink(array $data): string
     {
@@ -26,8 +25,7 @@ class PasswordResetService
     /**
      * Alias usado por el controlador de recuperacion.
      *
-     * @param array<string, mixed> $data
-     * @return string
+     * @param  array<string, mixed>  $data
      */
     public function sendResetLink(array $data): string
     {
@@ -37,8 +35,7 @@ class PasswordResetService
     /**
      * Restablece la contrasena de un usuario.
      *
-     * @param array<string, mixed> $data
-     * @return string
+     * @param  array<string, mixed>  $data
      */
     public function reset(array $data): string
     {
@@ -55,8 +52,7 @@ class PasswordResetService
     /**
      * Alias usado por el controlador de restablecimiento.
      *
-     * @param array<string, mixed> $data
-     * @return string
+     * @param  array<string, mixed>  $data
      */
     public function resetPassword(array $data): string
     {

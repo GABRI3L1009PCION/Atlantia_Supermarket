@@ -4,8 +4,8 @@ namespace App\Http\Requests\Admin\Usuario;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Validator;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Validator;
 
 class UpdateUsuarioRequest extends FormRequest
 {

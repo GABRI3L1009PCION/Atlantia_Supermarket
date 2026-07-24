@@ -24,8 +24,6 @@ class PanelCarrito extends Component
 
     /**
      * Abre el panel cuando el carrito cambia.
-     *
-     * @return void
      */
     #[On('carrito.actualizado')]
     public function refrescar(): void
@@ -35,8 +33,6 @@ class PanelCarrito extends Component
 
     /**
      * Abre el panel del carrito.
-     *
-     * @return void
      */
     public function abrir(): void
     {
@@ -45,8 +41,6 @@ class PanelCarrito extends Component
 
     /**
      * Cierra el panel del carrito.
-     *
-     * @return void
      */
     public function cerrar(): void
     {
@@ -55,9 +49,6 @@ class PanelCarrito extends Component
 
     /**
      * Incrementa una unidad de un item.
-     *
-     * @param int $itemId
-     * @return void
      */
     public function incrementar(int $itemId): void
     {
@@ -68,9 +59,6 @@ class PanelCarrito extends Component
 
     /**
      * Disminuye una unidad de un item.
-     *
-     * @param int $itemId
-     * @return void
      */
     public function disminuir(int $itemId): void
     {
@@ -88,10 +76,6 @@ class PanelCarrito extends Component
 
     /**
      * Actualiza la cantidad validando stock disponible.
-     *
-     * @param int $itemId
-     * @param int $cantidad
-     * @return void
      */
     public function actualizarCantidad(int $itemId, int $cantidad): void
     {
@@ -122,9 +106,6 @@ class PanelCarrito extends Component
 
     /**
      * Elimina un item del carrito.
-     *
-     * @param int $itemId
-     * @return void
      */
     public function eliminarItem(int $itemId): void
     {
@@ -135,8 +116,6 @@ class PanelCarrito extends Component
 
     /**
      * Elimina todos los items del carrito activo.
-     *
-     * @return void
      */
     public function vaciarCarrito(): void
     {
@@ -151,8 +130,6 @@ class PanelCarrito extends Component
 
     /**
      * Renderiza el panel del carrito.
-     *
-     * @return View
      */
     public function render(): View
     {
@@ -180,10 +157,6 @@ class PanelCarrito extends Component
 
     /**
      * Obtiene un item asegurando ownership del carrito actual.
-     *
-     * @param int $itemId
-     * @param bool $lock
-     * @return CarritoItem
      */
     private function itemDelCarrito(int $itemId, bool $lock = false): CarritoItem
     {
@@ -201,8 +174,6 @@ class PanelCarrito extends Component
 
     /**
      * Obtiene o crea el carrito activo del usuario o visitante.
-     *
-     * @return Carrito
      */
     private function carritoActual(): Carrito
     {
@@ -222,8 +193,6 @@ class PanelCarrito extends Component
 
     /**
      * Busca el carrito activo sin crearlo.
-     *
-     * @return Carrito|null
      */
     private function buscarCarritoActivo(): ?Carrito
     {
@@ -238,8 +207,7 @@ class PanelCarrito extends Component
     /**
      * Calcula subtotal del carrito.
      *
-     * @param Collection<int, CarritoItem> $items
-     * @return float
+     * @param  Collection<int, CarritoItem>  $items
      */
     private function subtotal(Collection $items): float
     {
@@ -250,9 +218,6 @@ class PanelCarrito extends Component
 
     /**
      * Calcula stock disponible del producto.
-     *
-     * @param Producto $producto
-     * @return int
      */
     private function stockDisponible(Producto $producto): int
     {
@@ -267,9 +232,6 @@ class PanelCarrito extends Component
 
     /**
      * Obtiene precio actual validado en servidor.
-     *
-     * @param Producto $producto
-     * @return float
      */
     private function precioActual(Producto $producto): float
     {

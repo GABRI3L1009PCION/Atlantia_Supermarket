@@ -7,8 +7,8 @@ use App\Models\PaymentSplit;
 use App\Models\Pedido;
 use App\Models\Vendor;
 use App\Services\Comisiones\CalculadoraComisionService;
-use Illuminate\Support\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -22,7 +22,7 @@ class CalculadoraComisionServiceTest extends TestCase
     /**
      * Calcula comision con porcentaje del vendedor y renta fija.
      */
-    public function testCalculatesMonthlyCommissionFromSettledSplits(): void
+    public function test_calculates_monthly_commission_from_settled_splits(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 4, 12, 10, 0, 0));
 

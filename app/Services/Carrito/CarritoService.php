@@ -20,9 +20,6 @@ class CarritoService
 {
     /**
      * Obtiene el carrito activo de la solicitud actual.
-     *
-     * @param Request $request
-     * @return Carrito
      */
     public function current(Request $request): Carrito
     {
@@ -35,10 +32,6 @@ class CarritoService
 
     /**
      * Agrega un producto al carrito con precio validado por servidor.
-     *
-     * @param Request $request
-     * @param CarritoItemDTO $itemDTO
-     * @return CarritoItem
      */
     public function addItem(Request $request, CarritoItemDTO $itemDTO): CarritoItem
     {
@@ -73,10 +66,6 @@ class CarritoService
 
     /**
      * Actualiza cantidad de un item del carrito.
-     *
-     * @param CarritoItem $item
-     * @param CarritoItemDTO $itemDTO
-     * @return CarritoItem
      */
     public function updateItem(CarritoItem $item, CarritoItemDTO $itemDTO): CarritoItem
     {
@@ -97,10 +86,6 @@ class CarritoService
 
     /**
      * Remueve un item del carrito.
-     *
-     * @param CarritoItem $item
-     * @param User|null $user
-     * @return void
      */
     public function removeItem(CarritoItem $item, ?User $user): void
     {
@@ -109,10 +94,6 @@ class CarritoService
 
     /**
      * Verifica si el item pertenece al usuario o sesion actual.
-     *
-     * @param Request $request
-     * @param CarritoItem $item
-     * @return bool
      */
     public function ownsItem(Request $request, CarritoItem $item): bool
     {
@@ -128,10 +109,6 @@ class CarritoService
 
     /**
      * Traslada el carrito de visitante a la cuenta del cliente.
-     *
-     * @param string $sessionId
-     * @param User $user
-     * @return void
      */
     public function mergeGuestCartIntoUser(string $sessionId, User $user): void
     {
@@ -188,9 +165,7 @@ class CarritoService
     /**
      * Sincroniza el carrito desde API para clientes autenticados.
      *
-     * @param Request $request
-     * @param array<string, mixed> $data
-     * @return Carrito
+     * @param  array<string, mixed>  $data
      */
     public function sync(Request $request, array $data): Carrito
     {
@@ -208,9 +183,7 @@ class CarritoService
     /**
      * Crea items desde una coleccion validada.
      *
-     * @param Request $request
-     * @param Collection<int, CarritoItemDTO|array<string, mixed>> $items
-     * @return void
+     * @param  Collection<int, CarritoItemDTO|array<string, mixed>>  $items
      */
     private function createItemsFromCollection(Request $request, Collection $items): void
     {
@@ -222,10 +195,6 @@ class CarritoService
 
     /**
      * Fusiona productos repetidos entre carritos.
-     *
-     * @param Carrito $guestCart
-     * @param Carrito $userCart
-     * @return void
      */
     private function mergeItems(Carrito $guestCart, Carrito $userCart): void
     {

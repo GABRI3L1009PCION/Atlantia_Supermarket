@@ -15,6 +15,7 @@ class AcceptRestockSuggestionRequest extends FormRequest
     {
         return ['cantidad_recibida' => ['nullable', 'integer', 'min:1']];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

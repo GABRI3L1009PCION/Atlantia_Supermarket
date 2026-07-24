@@ -36,9 +36,9 @@ class TotpService
         $binaryCounter = pack('N2', 0, $counter);
         $hash = hash_hmac('sha1', $binaryCounter, $binarySecret, true);
 
-        $offset = ord(substr($hash, -1)) & 0x0f;
+        $offset = ord(substr($hash, -1)) & 0x0F;
         $chunk = substr($hash, $offset, 4);
-        $value = unpack('N', $chunk)[1] & 0x7fffffff;
+        $value = unpack('N', $chunk)[1] & 0x7FFFFFFF;
         $otp = $value % (10 ** $digits);
 
         return str_pad((string) $otp, $digits, '0', STR_PAD_LEFT);
@@ -73,7 +73,7 @@ class TotpService
      */
     public function provisioningUri(string $issuer, string $account, string $secret): string
     {
-        $label = rawurlencode($issuer . ':' . $account);
+        $label = rawurlencode($issuer.':'.$account);
         $query = http_build_query([
             'secret' => $secret,
             'issuer' => $issuer,
@@ -82,7 +82,7 @@ class TotpService
             'period' => 30,
         ]);
 
-        return 'otpauth://totp/' . $label . '?' . $query;
+        return 'otpauth://totp/'.$label.'?'.$query;
     }
 
     /**
@@ -120,7 +120,7 @@ class TotpService
 
             while ($bitsLeft >= 8) {
                 $bitsLeft -= 8;
-                $output .= chr(($buffer >> $bitsLeft) & 0xff);
+                $output .= chr(($buffer >> $bitsLeft) & 0xFF);
             }
         }
 

@@ -19,9 +19,7 @@ class InventarioController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly StockService $stockService)
-    {
-    }
+    public function __construct(private readonly StockService $stockService) {}
 
     /**
      * Lista inventario del vendedor.

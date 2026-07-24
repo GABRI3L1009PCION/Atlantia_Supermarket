@@ -73,7 +73,7 @@ class ClienteDetalle extends Model
     /**
      * Filtra clientes que aceptan comunicaciones de marketing.
      *
-     * @param Builder<ClienteDetalle> $query
+     * @param  Builder<ClienteDetalle>  $query
      * @return Builder<ClienteDetalle>
      */
     public function scopeAceptaMarketing(Builder $query): Builder

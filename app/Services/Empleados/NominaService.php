@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
 class NominaService
 {
     /**
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      */
     public function paginate(array $filters = []): LengthAwarePaginator
     {
@@ -54,7 +54,7 @@ class NominaService
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function generate(array $data, User $user): Nomina
     {
@@ -110,7 +110,7 @@ class NominaService
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function updateDetail(Nomina $nomina, NominaDetalle $detalle, array $data): Nomina
     {

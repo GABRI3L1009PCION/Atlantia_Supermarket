@@ -35,12 +35,12 @@ class VendorFactory extends Factory
             VendorFiscalProfile::query()->firstOrCreate(
                 ['vendor_id' => $vendor->id],
                 [
-                    'nit' => 'CF-' . str_pad((string) $vendor->id, 6, '0', STR_PAD_LEFT),
+                    'nit' => 'CF-'.str_pad((string) $vendor->id, 6, '0', STR_PAD_LEFT),
                     'razon_social' => $vendor->business_name,
                     'nombre_comercial_sat' => $vendor->business_name,
                     'direccion_fiscal' => $vendor->direccion_comercial,
                     'regimen_sat' => 'general',
-                    'codigo_establecimiento' => 'EST-' . str_pad((string) $vendor->id, 3, '0', STR_PAD_LEFT),
+                    'codigo_establecimiento' => 'EST-'.str_pad((string) $vendor->id, 3, '0', STR_PAD_LEFT),
                     'afiliacion_iva' => 'GEN',
                     'certificador_fel' => 'infile',
                     'fel_activo' => true,
@@ -80,16 +80,16 @@ class VendorFactory extends Factory
             'uuid' => (string) Str::uuid(),
             'user_id' => User::factory()->vendedor(),
             'business_name' => $businessName,
-            'slug' => Str::slug($businessName . '-' . fake()->unique()->numberBetween(100, 999)),
+            'slug' => Str::slug($businessName.'-'.fake()->unique()->numberBetween(100, 999)),
             'descripcion' => fake()->randomElement([
                 'Tienda local con productos frescos y abarrotes de consumo diario.',
                 'Comercio familiar con entregas en zonas cercanas de Izabal.',
                 'Proveedor local de productos seleccionados para el hogar.',
             ]),
-            'logo_path' => 'vendors/logos/' . Str::slug($businessName) . '.webp',
-            'cover_path' => 'vendors/covers/' . Str::slug($businessName) . '.webp',
-            'telefono_publico' => '+502 ' . fake()->numerify('####-####'),
-            'email_publico' => Str::slug($businessName) . '@atlantia.local',
+            'logo_path' => 'vendors/logos/'.Str::slug($businessName).'.webp',
+            'cover_path' => 'vendors/covers/'.Str::slug($businessName).'.webp',
+            'telefono_publico' => '+502 '.fake()->numerify('####-####'),
+            'email_publico' => Str::slug($businessName).'@atlantia.local',
             'municipio' => $municipio,
             'direccion_comercial' => fake()->randomElement([
                 'Calzada Justo Rufino Barrios, local 4',
@@ -116,8 +116,6 @@ class VendorFactory extends Factory
 
     /**
      * Estado para vendedores aprobados.
-     *
-     * @return static
      */
     public function approved(): static
     {
@@ -132,8 +130,6 @@ class VendorFactory extends Factory
 
     /**
      * Estado para vendedores pendientes.
-     *
-     * @return static
      */
     public function pending(): static
     {
@@ -146,8 +142,6 @@ class VendorFactory extends Factory
 
     /**
      * Estado para vendedores suspendidos.
-     *
-     * @return static
      */
     public function suspended(): static
     {
@@ -162,7 +156,6 @@ class VendorFactory extends Factory
     /**
      * Coordenadas aproximadas por municipio de Izabal.
      *
-     * @param string $municipio
      * @return array<string, float>
      */
     private function coordinatesForMunicipio(string $municipio): array

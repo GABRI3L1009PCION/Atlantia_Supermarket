@@ -26,7 +26,7 @@ class AdminPanelAuthorizationTest extends TestCase
     /**
      * Permite acceso al dashboard administrativo para admin.
      */
-    public function testAdminCanAccessAdminDashboard(): void
+    public function test_admin_can_access_admin_dashboard(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -39,7 +39,7 @@ class AdminPanelAuthorizationTest extends TestCase
     /**
      * Permite acceso al dashboard administrativo para super admin.
      */
-    public function testSuperAdminCanAccessAdminDashboard(): void
+    public function test_super_admin_can_access_admin_dashboard(): void
     {
         $superAdmin = User::factory()->admin()->create(['email' => 'root.panel@atlantia.test']);
         $superAdmin->assignRole('super_admin');
@@ -52,7 +52,7 @@ class AdminPanelAuthorizationTest extends TestCase
     /**
      * Permite abrir la pantalla de zonas de entrega sin errores de vista.
      */
-    public function testAdminCanAccessDeliveryZonesPage(): void
+    public function test_admin_can_access_delivery_zones_page(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -70,7 +70,7 @@ class AdminPanelAuthorizationTest extends TestCase
     /**
      * Mantiene disponibles para el mapa las zonas que quedan fuera de la pagina actual.
      */
-    public function testDeliveryZoneMapSearchIncludesZonesOutsidePaginatedList(): void
+    public function test_delivery_zone_map_search_includes_zones_outside_paginated_list(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -107,7 +107,7 @@ class AdminPanelAuthorizationTest extends TestCase
     /**
      * Permite reutilizar una zona eliminada sin dejar nombres bloqueados invisibles.
      */
-    public function testAdminCanRecreateDeletedDeliveryZone(): void
+    public function test_admin_can_recreate_deleted_delivery_zone(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -148,7 +148,7 @@ class AdminPanelAuthorizationTest extends TestCase
     /**
      * Bloquea acceso al dashboard administrativo para clientes.
      */
-    public function testClienteCannotAccessAdminDashboard(): void
+    public function test_cliente_cannot_access_admin_dashboard(): void
     {
         $cliente = User::factory()->cliente()->create();
         $cliente->assignRole('cliente');
@@ -161,7 +161,7 @@ class AdminPanelAuthorizationTest extends TestCase
     /**
      * Impide que un admin operativo cree otra cuenta admin.
      */
-    public function testAdminCannotCreateAnotherAdminUser(): void
+    public function test_admin_cannot_create_another_admin_user(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -186,7 +186,7 @@ class AdminPanelAuthorizationTest extends TestCase
     /**
      * Permite que el super admin cree una cuenta admin.
      */
-    public function testSuperAdminCanCreateAdminUser(): void
+    public function test_super_admin_can_create_admin_user(): void
     {
         $superAdmin = User::factory()->admin()->create(['email' => 'root@atlantia.test']);
         $superAdmin->assignRole('super_admin');
@@ -211,7 +211,7 @@ class AdminPanelAuthorizationTest extends TestCase
     /**
      * Bloquea a un admin operativo cuando intenta editar otro admin.
      */
-    public function testAdminCannotUpdateExistingAdminUser(): void
+    public function test_admin_cannot_update_existing_admin_user(): void
     {
         $admin = User::factory()->admin()->create(['email' => 'operaciones@atlantia.test']);
         $admin->assignRole('admin');

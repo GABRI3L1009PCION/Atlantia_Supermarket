@@ -12,9 +12,7 @@ use Illuminate\View\View;
 
 class HeroBannerController extends Controller
 {
-    public function __construct(private readonly HeroBannerService $heroBannerService)
-    {
-    }
+    public function __construct(private readonly HeroBannerService $heroBannerService) {}
 
     public function index(): View
     {

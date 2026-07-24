@@ -18,6 +18,7 @@ class UpdateComisionRequest extends FormRequest
             'fecha_vencimiento' => ['nullable', 'date'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

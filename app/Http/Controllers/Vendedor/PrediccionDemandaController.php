@@ -15,9 +15,7 @@ class PrediccionDemandaController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly PrediccionDemandaService $prediccionDemandaService)
-    {
-    }
+    public function __construct(private readonly PrediccionDemandaService $prediccionDemandaService) {}
 
     /**
      * Lista predicciones por producto propio.

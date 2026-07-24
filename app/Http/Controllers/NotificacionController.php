@@ -15,9 +15,7 @@ class NotificacionController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly NotificationService $notificationService)
-    {
-    }
+    public function __construct(private readonly NotificationService $notificationService) {}
 
     /**
      * Muestra todas las notificaciones recientes.

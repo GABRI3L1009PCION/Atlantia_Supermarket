@@ -17,9 +17,7 @@ use Illuminate\View\View;
  */
 class NominaController extends Controller
 {
-    public function __construct(private readonly NominaService $nominaService)
-    {
-    }
+    public function __construct(private readonly NominaService $nominaService) {}
 
     public function index(Request $request): View
     {

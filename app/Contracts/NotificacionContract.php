@@ -12,10 +12,7 @@ interface NotificacionContract
     /**
      * Envia una notificacion tipada al usuario.
      *
-     * @param User $user
-     * @param string $tipo
-     * @param array<string, mixed> $datos
-     * @return string
+     * @param  array<string, mixed>  $datos
      */
     public function enviar(User $user, string $tipo, array $datos): string;
 }

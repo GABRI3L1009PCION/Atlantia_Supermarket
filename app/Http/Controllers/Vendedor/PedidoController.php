@@ -18,9 +18,7 @@ class PedidoController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly PedidoVendedorService $pedidoVendedorService)
-    {
-    }
+    public function __construct(private readonly PedidoVendedorService $pedidoVendedorService) {}
 
     /**
      * Lista pedidos recibidos.

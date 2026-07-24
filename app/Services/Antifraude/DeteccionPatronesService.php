@@ -19,8 +19,7 @@ class DeteccionPatronesService
     /**
      * Lista alertas antifraude con filtros administrativos.
      *
-     * @param array<string, mixed> $filters
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
     public function paginate(array $filters = []): LengthAwarePaginator
     {
@@ -45,7 +44,7 @@ class DeteccionPatronesService
     /**
      * Resume indicadores para el panel antifraude.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array<string, mixed>
      */
     public function dashboard(array $filters = []): array
@@ -62,9 +61,6 @@ class DeteccionPatronesService
 
     /**
      * Evalua un pedido y genera alerta si supera el umbral.
-     *
-     * @param Pedido $pedido
-     * @return FraudAlert|null
      */
     public function evaluarPedido(Pedido $pedido): ?FraudAlert
     {
@@ -90,10 +86,7 @@ class DeteccionPatronesService
     /**
      * Resuelve una alerta antifraude.
      *
-     * @param FraudAlert $fraudAlert
-     * @param array<string, mixed> $data
-     * @param User $user
-     * @return FraudAlert
+     * @param  array<string, mixed>  $data
      */
     public function resolve(FraudAlert $fraudAlert, array $data, User $user): FraudAlert
     {
@@ -118,7 +111,7 @@ class DeteccionPatronesService
     /**
      * Resuelve varias alertas antifraude por lote.
      *
-     * @param array<int, string> $uuids
+     * @param  array<int, string>  $uuids
      */
     public function resolveBatch(array $uuids, string $accion, ?string $notas, User $user): int
     {
@@ -143,7 +136,6 @@ class DeteccionPatronesService
     /**
      * Calcula score de riesgo por reglas conservadoras.
      *
-     * @param Pedido $pedido
      * @return array<string, mixed>
      */
     private function calcularRiesgoPedido(Pedido $pedido): array

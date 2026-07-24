@@ -21,7 +21,7 @@ class PerfilFiscalService
     /**
      * Actualiza perfil fiscal.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(User $user, array $data): VendorFiscalProfile
     {

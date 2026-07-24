@@ -21,6 +21,7 @@ class UpdatePedidoRequest extends FormRequest
             'notas_historial' => ['nullable', 'string', 'max:500'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

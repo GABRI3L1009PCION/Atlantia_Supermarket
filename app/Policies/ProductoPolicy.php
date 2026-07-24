@@ -12,10 +12,6 @@ class ProductoPolicy
 {
     /**
      * Permite acceso global a administradores.
-     *
-     * @param User $user
-     * @param string $ability
-     * @return bool|null
      */
     public function before(User $user, string $ability): ?bool
     {
@@ -28,9 +24,6 @@ class ProductoPolicy
 
     /**
      * Determina si el usuario puede listar productos.
-     *
-     * @param User $user
-     * @return bool
      */
     public function viewAny(User $user): bool
     {
@@ -40,9 +33,6 @@ class ProductoPolicy
 
     /**
      * Determina si el vendedor puede listar su catalogo propio.
-     *
-     * @param User $user
-     * @return bool
      */
     public function viewOwnProducts(User $user): bool
     {
@@ -52,10 +42,6 @@ class ProductoPolicy
 
     /**
      * Determina si el usuario puede ver un producto.
-     *
-     * @param User $user
-     * @param Producto $producto
-     * @return bool
      */
     public function view(User $user, Producto $producto): bool
     {
@@ -67,9 +53,6 @@ class ProductoPolicy
 
     /**
      * Determina si el vendedor puede crear productos.
-     *
-     * @param User $user
-     * @return bool
      */
     public function create(User $user): bool
     {
@@ -79,10 +62,6 @@ class ProductoPolicy
 
     /**
      * Determina si el usuario puede actualizar el producto.
-     *
-     * @param User $user
-     * @param Producto $producto
-     * @return bool
      */
     public function update(User $user, Producto $producto): bool
     {
@@ -93,10 +72,6 @@ class ProductoPolicy
 
     /**
      * Determina si el usuario puede eliminar el producto.
-     *
-     * @param User $user
-     * @param Producto $producto
-     * @return bool
      */
     public function delete(User $user, Producto $producto): bool
     {
@@ -107,10 +82,6 @@ class ProductoPolicy
 
     /**
      * Determina si el usuario puede ver el producto en catalogo publico.
-     *
-     * @param User|null $user
-     * @param Producto $producto
-     * @return bool
      */
     public function viewCatalogo(?User $user, Producto $producto): bool
     {
@@ -123,10 +94,6 @@ class ProductoPolicy
 
     /**
      * Determina si el vendedor puede ver predicciones del producto.
-     *
-     * @param User $user
-     * @param Producto $producto
-     * @return bool
      */
     public function viewDemandPrediction(User $user, Producto $producto): bool
     {
@@ -136,10 +103,6 @@ class ProductoPolicy
 
     /**
      * Determina si el vendedor puede actualizar inventario.
-     *
-     * @param User $user
-     * @param Producto $producto
-     * @return bool
      */
     public function updateInventory(User $user, Producto $producto): bool
     {
@@ -150,10 +113,6 @@ class ProductoPolicy
 
     /**
      * Determina si el usuario puede moderar el producto.
-     *
-     * @param User $user
-     * @param Producto $producto
-     * @return bool
      */
     public function moderate(User $user, Producto $producto): bool
     {
@@ -162,10 +121,6 @@ class ProductoPolicy
 
     /**
      * Verifica ownership del producto por vendedor.
-     *
-     * @param User $user
-     * @param Producto $producto
-     * @return bool
      */
     private function ownsProducto(User $user, Producto $producto): bool
     {
@@ -174,9 +129,6 @@ class ProductoPolicy
 
     /**
      * Verifica que el usuario tenga vendedor aprobado.
-     *
-     * @param User $user
-     * @return bool
      */
     private function hasApprovedVendor(User $user): bool
     {

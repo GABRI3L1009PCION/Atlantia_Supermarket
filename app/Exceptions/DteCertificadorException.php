@@ -23,4 +23,3 @@ class DteCertificadorException extends AtlantiaDomainException
         return 'El certificador FEL no pudo procesar el documento.';
     }
 }
-

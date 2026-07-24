@@ -19,28 +19,21 @@ class CalcularRutaOptima implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-
     public int $tries = 3;
 
     /**
      * Crea el job.
      *
-     * @param int $pedidoId
-     * @param int $repartidorId
-     * @param array<string, float> $origen
+     * @param  array<string, float>  $origen
      */
     public function __construct(
         private readonly int $pedidoId,
         private readonly int $repartidorId,
         private readonly array $origen = []
-    ) {
-    }
+    ) {}
 
     /**
      * Calcula ruta con Mapbox o fallback del servicio.
-     *
-     * @param RutaOptimaService $rutaOptimaService
-     * @return void
      */
     public function handle(RutaOptimaService $rutaOptimaService): void
     {

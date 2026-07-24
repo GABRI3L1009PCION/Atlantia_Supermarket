@@ -40,6 +40,7 @@ class UpdateEmpleadoRequest extends FormRequest
             ])],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

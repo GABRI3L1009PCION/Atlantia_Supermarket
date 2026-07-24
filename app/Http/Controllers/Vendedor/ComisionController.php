@@ -16,9 +16,7 @@ class ComisionController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly CalculadoraComisionService $calculadoraComisionService)
-    {
-    }
+    public function __construct(private readonly CalculadoraComisionService $calculadoraComisionService) {}
 
     /**
      * Lista comisiones propias.

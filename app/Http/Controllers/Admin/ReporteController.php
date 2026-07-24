@@ -15,9 +15,7 @@ class ReporteController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly ReporteAdminService $reporteAdminService)
-    {
-    }
+    public function __construct(private readonly ReporteAdminService $reporteAdminService) {}
 
     /**
      * Muestra reportes consolidados.

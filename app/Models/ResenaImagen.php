@@ -60,7 +60,7 @@ class ResenaImagen extends Model
     /**
      * Ordena imagenes por posicion visual.
      *
-     * @param Builder<ResenaImagen> $query
+     * @param  Builder<ResenaImagen>  $query
      * @return Builder<ResenaImagen>
      */
     public function scopeOrdered(Builder $query): Builder

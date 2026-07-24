@@ -16,9 +16,6 @@ class ActualizarRutaTrasAsignacion implements ShouldQueue
 
     /**
      * Procesa la asignacion de repartidor.
-     *
-     * @param RepartidorAsignado $event
-     * @return void
      */
     public function handle(RepartidorAsignado $event): void
     {

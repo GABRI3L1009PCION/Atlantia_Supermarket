@@ -16,8 +16,7 @@ class AnalisisResenaService
     /**
      * Lista resenas pendientes o marcadas por ML.
      *
-     * @param array<string, mixed> $filters
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
     public function pending(array $filters = []): LengthAwarePaginator
     {
@@ -33,9 +32,6 @@ class AnalisisResenaService
 
     /**
      * Analiza una resena y registra flag si corresponde.
-     *
-     * @param Resena $resena
-     * @return ReviewFlag|null
      */
     public function analizar(Resena $resena): ?ReviewFlag
     {
@@ -60,10 +56,7 @@ class AnalisisResenaService
     /**
      * Modera una resena marcada o pendiente.
      *
-     * @param Resena $resena
-     * @param array<string, mixed> $data
-     * @param User $user
-     * @return Resena
+     * @param  array<string, mixed>  $data
      */
     public function moderate(Resena $resena, array $data, User $user): Resena
     {
@@ -100,12 +93,11 @@ class AnalisisResenaService
     /**
      * Calcula sospecha NLP por reglas deterministicas.
      *
-     * @param Resena $resena
      * @return array<string, mixed>
      */
     private function calcularSospecha(Resena $resena): array
     {
-        $contenido = mb_strtolower(trim(($resena->titulo ?? '') . ' ' . ($resena->contenido ?? '')));
+        $contenido = mb_strtolower(trim(($resena->titulo ?? '').' '.($resena->contenido ?? '')));
         $score = 0.0;
         $razon = 'patron_textual';
 
@@ -139,9 +131,6 @@ class AnalisisResenaService
 
     /**
      * Detecta texto con demasiada repeticion de palabras.
-     *
-     * @param string $contenido
-     * @return bool
      */
     private function textoRepetitivo(string $contenido): bool
     {
@@ -159,9 +148,6 @@ class AnalisisResenaService
 
     /**
      * Mapea accion del formulario a enum de review_flags.
-     *
-     * @param string $accion
-     * @return string
      */
     private function accionTomada(string $accion): string
     {

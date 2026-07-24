@@ -23,4 +23,3 @@ class PedidoNoEncontradoException extends AtlantiaDomainException
         return 'No fue posible encontrar el pedido solicitado.';
     }
 }
-

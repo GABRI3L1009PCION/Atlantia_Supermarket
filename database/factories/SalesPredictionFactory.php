@@ -48,8 +48,6 @@ class SalesPredictionFactory extends Factory
 
     /**
      * Estado para horizonte de siete dias.
-     *
-     * @return static
      */
     public function horizonte7(): static
     {

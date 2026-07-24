@@ -25,4 +25,3 @@ class DeliveryRoutePolicy
         return $this->view($user, $route) && $route->estado !== 'completada';
     }
 }
-

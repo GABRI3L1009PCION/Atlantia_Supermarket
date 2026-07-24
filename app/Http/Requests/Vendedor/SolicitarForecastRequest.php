@@ -12,8 +12,6 @@ class SolicitarForecastRequest extends FormRequest
 {
     /**
      * Determina si el vendedor puede solicitar predicciones.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -69,8 +67,6 @@ class SolicitarForecastRequest extends FormRequest
 
     /**
      * Normaliza bandera de recalculo.
-     *
-     * @return void
      */
     protected function prepareForValidation(): void
     {

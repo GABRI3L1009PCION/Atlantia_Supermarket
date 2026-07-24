@@ -16,9 +16,7 @@ class IncidenciaController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly IncidenciaService $incidenciaService)
-    {
-    }
+    public function __construct(private readonly IncidenciaService $incidenciaService) {}
 
     /**
      * Registra una incidencia sobre un pedido asignado.

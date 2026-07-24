@@ -18,19 +18,14 @@ class RegisterController extends Controller
 {
     /**
      * Crea una instancia del controlador.
-     *
-     * @param RegistroService $registroService
      */
     public function __construct(
         private readonly RegistroService $registroService,
         private readonly CarritoService $carritoService
-    ) {
-    }
+    ) {}
 
     /**
      * Muestra el formulario de registro.
-     *
-     * @return View
      */
     public function create(): View
     {
@@ -39,9 +34,6 @@ class RegisterController extends Controller
 
     /**
      * Procesa un nuevo registro.
-     *
-     * @param RegisterRequest $request
-     * @return RedirectResponse
      */
     public function store(RegisterRequest $request): RedirectResponse
     {

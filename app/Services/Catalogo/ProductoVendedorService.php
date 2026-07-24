@@ -66,7 +66,7 @@ class ProductoVendedorService
     /**
      * Crea producto con inventario inicial.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function create(User $user, array $data): Producto
     {
@@ -88,7 +88,7 @@ class ProductoVendedorService
                 ])->all(),
                 'uuid' => (string) Str::uuid(),
                 'vendor_id' => $user->vendor?->id,
-                'slug' => Str::slug((string) $data['nombre']) . '-' . Str::lower(Str::random(6)),
+                'slug' => Str::slug((string) $data['nombre']).'-'.Str::lower(Str::random(6)),
                 'publicado_at' => ($data['visible_catalogo'] ?? false) ? now() : null,
             ]);
 
@@ -109,12 +109,12 @@ class ProductoVendedorService
     /**
      * Actualiza producto propio.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(Producto $producto, array $data): Producto
     {
         if (isset($data['nombre'])) {
-            $data['slug'] = $producto->slug ?: Str::slug((string) $data['nombre']) . '-' . Str::lower(Str::random(6));
+            $data['slug'] = $producto->slug ?: Str::slug((string) $data['nombre']).'-'.Str::lower(Str::random(6));
         }
 
         if (($data['visible_catalogo'] ?? false) && $producto->publicado_at === null) {
@@ -153,9 +153,7 @@ class ProductoVendedorService
     /**
      * Guarda imagenes del producto en el disco configurado.
      *
-     * @param Producto $producto
-     * @param array<int, mixed> $imagenes
-     * @return void
+     * @param  array<int, mixed>  $imagenes
      */
     private function storeImages(Producto $producto, array $imagenes): void
     {
@@ -166,7 +164,7 @@ class ProductoVendedorService
         $disk = config('filesystems.default') === 's3' ? 's3' : 'public';
 
         foreach ($imagenes as $index => $imagen) {
-            $path = $imagen->store('productos/' . $producto->uuid, $disk);
+            $path = $imagen->store('productos/'.$producto->uuid, $disk);
 
             $producto
                 ->addMediaFromDisk($path, $disk)

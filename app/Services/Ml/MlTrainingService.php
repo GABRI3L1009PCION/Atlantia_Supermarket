@@ -20,14 +20,12 @@ class MlTrainingService
         private readonly MlServiceClient $mlClient,
         private readonly ExportadorDatasetService $exportadorDatasetService,
         private readonly MonitorDriftService $monitorDriftService
-    ) {
-    }
+    ) {}
 
     /**
      * Pagina jobs de entrenamiento.
      *
-     * @param array<string, mixed> $filters
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
     public function paginate(array $filters = []): LengthAwarePaginator
     {
@@ -37,7 +35,7 @@ class MlTrainingService
     /**
      * Resume la operacion del centro de entrenamiento.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array<string, mixed>
      */
     public function dashboard(array $filters = []): array
@@ -53,9 +51,7 @@ class MlTrainingService
     /**
      * Inicia reentrenamiento.
      *
-     * @param array<string, mixed> $data
-     * @param User $user
-     * @return MlTrainingJob
+     * @param  array<string, mixed>  $data
      */
     public function start(array $data, User $user): MlTrainingJob
     {
@@ -101,9 +97,6 @@ class MlTrainingService
 
     /**
      * Calcula tamano de dataset por modelo.
-     *
-     * @param string $modeloNombre
-     * @return int
      */
     private function datasetSize(string $modeloNombre): int
     {

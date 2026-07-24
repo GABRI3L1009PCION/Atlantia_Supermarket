@@ -6,8 +6,8 @@ use App\Contracts\NotificacionContract;
 use App\Models\Ml\RestockSuggestion;
 use App\Models\SentEmail;
 use Illuminate\Support\Facades\Mail;
-use Throwable;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Servicio de notificaciones sobre sugerencias ML.
@@ -17,15 +17,10 @@ class NotificadorSugerenciaMlService
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly NotificacionContract $notificationService)
-    {
-    }
+    public function __construct(private readonly NotificacionContract $notificationService) {}
 
     /**
      * Notifica una sugerencia de reabastecimiento generada por ML.
-     *
-     * @param RestockSuggestion $suggestion
-     * @return void
      */
     public function sugerenciaReabasto(RestockSuggestion $suggestion): void
     {
@@ -77,8 +72,7 @@ class NotificadorSugerenciaMlService
     /**
      * Notifica varias sugerencias urgentes.
      *
-     * @param iterable<int, RestockSuggestion> $suggestions
-     * @return int
+     * @param  iterable<int, RestockSuggestion>  $suggestions
      */
     public function sugerenciasMasivas(iterable $suggestions): int
     {
@@ -97,7 +91,7 @@ class NotificadorSugerenciaMlService
         return SentEmail::query()
             ->where('user_id', $userId)
             ->where('template', 'ml.sugerencia_reabasto')
-            ->where('metadata', 'like', '%' . $productoUuid . '%')
+            ->where('metadata', 'like', '%'.$productoUuid.'%')
             ->where('created_at', '>=', now()->subHours(12))
             ->exists();
     }
@@ -113,7 +107,7 @@ class NotificadorSugerenciaMlService
             "Urgencia: {$suggestion->urgencia}",
             "Stock actual: {$suggestion->stock_actual}",
             "Cantidad sugerida: {$suggestion->stock_sugerido}",
-            'Dias estimados hasta quiebre: ' . ($suggestion->dias_hasta_quiebre ?? 'sin dato'),
+            'Dias estimados hasta quiebre: '.($suggestion->dias_hasta_quiebre ?? 'sin dato'),
             '',
             'Recomendacion: revisa este producto en Reabasto ML y confirma la reposicion para evitar quiebres de stock.',
             route('vendedor.reabasto.index'),

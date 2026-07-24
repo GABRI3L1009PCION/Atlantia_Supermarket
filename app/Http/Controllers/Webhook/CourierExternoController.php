@@ -15,9 +15,7 @@ class CourierExternoController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly CourierWebhookService $courierWebhookService)
-    {
-    }
+    public function __construct(private readonly CourierWebhookService $courierWebhookService) {}
 
     /**
      * Recibe evento de courier externo.

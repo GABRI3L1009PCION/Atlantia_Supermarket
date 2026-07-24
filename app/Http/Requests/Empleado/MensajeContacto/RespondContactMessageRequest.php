@@ -15,6 +15,7 @@ class RespondContactMessageRequest extends FormRequest
     {
         return ['respuesta' => ['required', 'string', 'max:2000']];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

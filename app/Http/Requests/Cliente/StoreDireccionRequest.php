@@ -12,8 +12,6 @@ class StoreDireccionRequest extends FormRequest
 {
     /**
      * Determina si el cliente puede crear direcciones.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -99,8 +97,6 @@ class StoreDireccionRequest extends FormRequest
 
     /**
      * Normaliza datos antes de validar.
-     *
-     * @return void
      */
     protected function prepareForValidation(): void
     {
@@ -116,10 +112,6 @@ class StoreDireccionRequest extends FormRequest
 
     /**
      * Devuelve valor por defecto si esta vacio.
-     *
-     * @param mixed $value
-     * @param string $default
-     * @return string
      */
     private function blankToDefault(mixed $value, string $default): string
     {
@@ -130,9 +122,6 @@ class StoreDireccionRequest extends FormRequest
 
     /**
      * Convierte cadenas vacias a null.
-     *
-     * @param mixed $value
-     * @return string|null
      */
     private function blankToNull(mixed $value): ?string
     {

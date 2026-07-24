@@ -90,7 +90,7 @@ class CampanillaNotificaciones extends Component
     /**
      * Agrega una notificacion operativa sintetica para solicitudes de vendedores.
      *
-     * @param Collection<int, object> $notifications
+     * @param  Collection<int, object>  $notifications
      * @return Collection<int, object>
      */
     private function prependPendingVendorNotification(Collection $notifications, int $count): Collection

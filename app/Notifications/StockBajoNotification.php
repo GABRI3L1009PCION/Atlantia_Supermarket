@@ -16,8 +16,7 @@ class StockBajoNotification extends Notification
     public function __construct(
         private readonly Producto $producto,
         private readonly int $stockActual
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {

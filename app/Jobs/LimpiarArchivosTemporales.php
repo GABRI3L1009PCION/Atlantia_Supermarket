@@ -17,25 +17,17 @@ class LimpiarArchivosTemporales implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-
     /**
      * Crea el job.
-     *
-     * @param string $disk
-     * @param string $path
-     * @param int $olderThanHours
      */
     public function __construct(
         private readonly string $disk = 'local',
         private readonly string $path = 'tmp',
         private readonly int $olderThanHours = 24
-    ) {
-    }
+    ) {}
 
     /**
      * Elimina archivos temporales antiguos.
-     *
-     * @return void
      */
     public function handle(): void
     {

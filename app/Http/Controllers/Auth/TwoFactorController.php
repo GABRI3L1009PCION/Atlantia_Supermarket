@@ -17,17 +17,11 @@ class TwoFactorController extends Controller
 {
     /**
      * Crea una instancia del controlador.
-     *
-     * @param TwoFactorService $twoFactorService
      */
-    public function __construct(private readonly TwoFactorService $twoFactorService)
-    {
-    }
+    public function __construct(private readonly TwoFactorService $twoFactorService) {}
 
     /**
      * Muestra el desafio 2FA.
-     *
-     * @return View
      */
     public function challenge(Request $request): View
     {
@@ -38,9 +32,6 @@ class TwoFactorController extends Controller
 
     /**
      * Verifica el desafio 2FA.
-     *
-     * @param TwoFactorChallengeRequest $request
-     * @return RedirectResponse
      */
     public function verify(TwoFactorChallengeRequest $request): RedirectResponse
     {
@@ -55,9 +46,6 @@ class TwoFactorController extends Controller
 
     /**
      * Activa 2FA para el usuario autenticado.
-     *
-     * @param Request $request
-     * @return RedirectResponse
      */
     public function enable(Request $request): RedirectResponse
     {
@@ -69,9 +57,6 @@ class TwoFactorController extends Controller
 
     /**
      * Desactiva 2FA para el usuario autenticado.
-     *
-     * @param Request $request
-     * @return RedirectResponse
      */
     public function disable(Request $request): RedirectResponse
     {

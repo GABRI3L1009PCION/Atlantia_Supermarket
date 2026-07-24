@@ -16,11 +16,6 @@ class DteRechazado
 
     /**
      * Crea el evento.
-     *
-     * @param DteFactura $dte
-     * @param string|null $motivo
      */
-    public function __construct(public readonly DteFactura $dte, public readonly ?string $motivo = null)
-    {
-    }
+    public function __construct(public readonly DteFactura $dte, public readonly ?string $motivo = null) {}
 }

@@ -24,14 +24,10 @@ class RutaOptimaService
     public function __construct(
         private readonly EtaCalculadorService $etaCalculadorService,
         private readonly TspOptimizadorService $tspOptimizadorService
-    ) {
-    }
+    ) {}
 
     /**
      * Lista rutas asignadas a un repartidor.
-     *
-     * @param User $repartidor
-     * @return LengthAwarePaginator
      */
     public function assignedTo(User $repartidor): LengthAwarePaginator
     {
@@ -44,9 +40,6 @@ class RutaOptimaService
 
     /**
      * Carga detalle completo de una ruta.
-     *
-     * @param DeliveryRoute $route
-     * @return DeliveryRoute
      */
     public function detail(DeliveryRoute $route): DeliveryRoute
     {
@@ -56,7 +49,7 @@ class RutaOptimaService
     /**
      * Genera vista previa de ruta desde coordenadas.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     public function preview(array $data): array
@@ -75,9 +68,6 @@ class RutaOptimaService
 
     /**
      * Obtiene ruta registrada para un pedido.
-     *
-     * @param Pedido $pedido
-     * @return DeliveryRoute|null
      */
     public function forPedido(Pedido $pedido): ?DeliveryRoute
     {
@@ -90,10 +80,7 @@ class RutaOptimaService
     /**
      * Asigna y planifica ruta para un pedido.
      *
-     * @param Pedido $pedido
-     * @param User $repartidor
-     * @param array<string, mixed> $origen
-     * @return DeliveryRoute
+     * @param  array<string, mixed>  $origen
      */
     public function asignar(Pedido $pedido, User $repartidor, array $origen): DeliveryRoute
     {
@@ -123,10 +110,7 @@ class RutaOptimaService
     /**
      * Completa ruta con evidencia de entrega.
      *
-     * @param DeliveryRoute $route
-     * @param array<string, mixed> $data
-     * @param User $repartidor
-     * @return DeliveryRoute
+     * @param  array<string, mixed>  $data
      *
      * @throws TransaccionFallidaException
      */
@@ -161,8 +145,8 @@ class RutaOptimaService
     /**
      * Calcula ruta optimizada con Mapbox o fallback local.
      *
-     * @param array<string, float> $origen
-     * @param array<int, array<string, mixed>> $paradas
+     * @param  array<string, float>  $origen
+     * @param  array<int, array<string, mixed>>  $paradas
      * @return array<string, mixed>
      */
     public function calcularEntrePuntos(array $origen, array $paradas): array
@@ -180,7 +164,7 @@ class RutaOptimaService
         }
 
         $coordinates = collect([$origen, ...$ordenadas])
-            ->map(fn ($punto) => $punto['longitude'] . ',' . $punto['latitude'])
+            ->map(fn ($punto) => $punto['longitude'].','.$punto['latitude'])
             ->implode(';');
 
         $response = Http::timeout(15)->get("https://api.mapbox.com/directions/v5/mapbox/driving/{$coordinates}", [
@@ -209,8 +193,8 @@ class RutaOptimaService
     /**
      * Fallback local basado en distancia Haversine.
      *
-     * @param array<string, float> $origen
-     * @param array<int, array<string, mixed>> $paradas
+     * @param  array<string, float>  $origen
+     * @param  array<int, array<string, mixed>>  $paradas
      * @return array<string, mixed>
      */
     private function fallbackRuta(array $origen, array $paradas): array
@@ -242,7 +226,7 @@ class RutaOptimaService
     /**
      * Normaliza claves de coordenadas aceptando formatos internos y de mapas.
      *
-     * @param array<string, mixed> $punto
+     * @param  array<string, mixed>  $punto
      * @return array<string, mixed>|null
      */
     private function normalizarPunto(array $punto): ?array

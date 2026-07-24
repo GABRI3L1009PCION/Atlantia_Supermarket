@@ -19,6 +19,7 @@ class CourierExternoWebhookRequest extends FormRequest
             'ruta_real' => ['nullable', 'array'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

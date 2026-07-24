@@ -17,7 +17,7 @@ class CategoriaService
     /**
      * Devuelve arbol de categorias.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return Collection<int, Categoria>
      */
     public function tree(array $filters = []): Collection
@@ -34,7 +34,7 @@ class CategoriaService
     /**
      * Crea una categoria.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data): Categoria
     {
@@ -53,7 +53,7 @@ class CategoriaService
     /**
      * Actualiza una categoria.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(Categoria $categoria, array $data): Categoria
     {

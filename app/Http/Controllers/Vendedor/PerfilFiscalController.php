@@ -17,9 +17,7 @@ class PerfilFiscalController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly PerfilFiscalService $perfilFiscalService)
-    {
-    }
+    public function __construct(private readonly PerfilFiscalService $perfilFiscalService) {}
 
     /**
      * Muestra perfil fiscal del vendedor.

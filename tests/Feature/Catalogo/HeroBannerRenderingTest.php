@@ -21,7 +21,7 @@ class HeroBannerRenderingTest extends TestCase
         Storage::fake('public');
     }
 
-    public function testHomeUsesActiveCurrentHeroBannerWhenAvailable(): void
+    public function test_home_uses_active_current_hero_banner_when_available(): void
     {
         $inactive = HeroBanner::factory()->create([
             'nombre' => 'Banner inactivo',
@@ -47,7 +47,7 @@ class HeroBannerRenderingTest extends TestCase
         $response->assertSee('alt="Banner promocional Banner vigente principal"', false);
     }
 
-    public function testHomeFallsBackWhenNoActiveBannerExists(): void
+    public function test_home_falls_back_when_no_active_banner_exists(): void
     {
         $response = $this->get(route('home'));
 
@@ -56,7 +56,7 @@ class HeroBannerRenderingTest extends TestCase
         $response->assertSee('alt="Banner promocional Fallback Atlantia"', false);
     }
 
-    public function testHomeRendersCategoryImagesInCarousel(): void
+    public function test_home_renders_category_images_in_carousel(): void
     {
         Storage::disk('public')->put('categorias/frutas.png', 'category-image');
 

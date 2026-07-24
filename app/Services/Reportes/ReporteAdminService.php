@@ -19,7 +19,7 @@ class ReporteAdminService
     /**
      * Devuelve resumen financiero.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array<string, mixed>
      */
     public function summary(array $filters = []): array
@@ -48,7 +48,7 @@ class ReporteAdminService
             'dtes_rechazados' => DteFactura::query()->where('estado', 'rechazado')->count(),
             'alertas_pendientes' => FraudAlert::query()->where('revisada', false)->count(),
             'ventas_por_periodo' => (clone $pedidosBase)
-                ->selectRaw($periodo . ' as periodo, COUNT(*) as pedidos, COALESCE(SUM(total), 0) as total')
+                ->selectRaw($periodo.' as periodo, COUNT(*) as pedidos, COALESCE(SUM(total), 0) as total')
                 ->groupBy(DB::raw($periodo))
                 ->orderBy('periodo')
                 ->get(),
@@ -98,7 +98,7 @@ class ReporteAdminService
     }
 
     /**
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array{0: Carbon, 1: Carbon}
      */
     private function dateRange(array $filters): array

@@ -12,8 +12,6 @@ class SuspenderVendedorRequest extends FormRequest
 {
     /**
      * Determina si el usuario puede suspender vendedores.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -72,8 +70,6 @@ class SuspenderVendedorRequest extends FormRequest
 
     /**
      * Normaliza banderas booleanas.
-     *
-     * @return void
      */
     protected function prepareForValidation(): void
     {

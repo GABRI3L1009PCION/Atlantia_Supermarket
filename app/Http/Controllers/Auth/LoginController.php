@@ -7,8 +7,8 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Services\Auth\LoginService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use RuntimeException;
 use Illuminate\View\View;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -18,17 +18,11 @@ class LoginController extends Controller
 {
     /**
      * Crea una instancia del controlador.
-     *
-     * @param LoginService $loginService
      */
-    public function __construct(private readonly LoginService $loginService)
-    {
-    }
+    public function __construct(private readonly LoginService $loginService) {}
 
     /**
      * Muestra el formulario de inicio de sesion.
-     *
-     * @return View
      */
     public function create(): View
     {
@@ -37,9 +31,6 @@ class LoginController extends Controller
 
     /**
      * Procesa el inicio de sesion.
-     *
-     * @param LoginRequest $request
-     * @return RedirectResponse
      */
     public function store(LoginRequest $request): RedirectResponse
     {
@@ -58,9 +49,6 @@ class LoginController extends Controller
 
     /**
      * Cierra la sesion activa.
-     *
-     * @param Request $request
-     * @return RedirectResponse
      */
     public function destroy(Request $request): RedirectResponse
     {

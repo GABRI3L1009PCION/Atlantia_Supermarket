@@ -16,17 +16,11 @@ class ForgotPasswordController extends Controller
 {
     /**
      * Crea una instancia del controlador.
-     *
-     * @param PasswordResetService $passwordResetService
      */
-    public function __construct(private readonly PasswordResetService $passwordResetService)
-    {
-    }
+    public function __construct(private readonly PasswordResetService $passwordResetService) {}
 
     /**
      * Muestra el formulario de recuperacion.
-     *
-     * @return View
      */
     public function create(): View
     {
@@ -35,9 +29,6 @@ class ForgotPasswordController extends Controller
 
     /**
      * Envia el enlace de recuperacion.
-     *
-     * @param ForgotPasswordRequest $request
-     * @return RedirectResponse
      */
     public function store(ForgotPasswordRequest $request): RedirectResponse
     {

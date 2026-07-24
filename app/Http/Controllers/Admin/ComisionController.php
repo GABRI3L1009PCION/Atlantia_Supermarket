@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Comision\RecalcularComisionesRequest;
 use App\Http\Requests\Admin\Comision\UpdateComisionRequest;
-use App\Models\VendorCommission;
 use App\Models\Vendor;
+use App\Models\VendorCommission;
 use App\Services\Comisiones\CalculadoraComisionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,9 +20,7 @@ class ComisionController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly CalculadoraComisionService $calculadoraComisionService)
-    {
-    }
+    public function __construct(private readonly CalculadoraComisionService $calculadoraComisionService) {}
 
     /**
      * Lista comisiones mensuales.
@@ -50,7 +48,7 @@ class ComisionController extends Controller
             (int) $request->validated('mes')
         );
 
-        return back()->with('success', 'Se recalcularon ' . $procesadas . ' comisiones del periodo.');
+        return back()->with('success', 'Se recalcularon '.$procesadas.' comisiones del periodo.');
     }
 
     /**

@@ -33,7 +33,7 @@ class AuthorizationTest extends TestCase
     /**
      * Un cliente no puede entrar al panel admin.
      */
-    public function testClienteNoPuedeAccederARutasDeAdmin(): void
+    public function test_cliente_no_puede_acceder_a_rutas_de_admin(): void
     {
         $cliente = User::factory()->cliente()->create();
         $cliente->assignRole('cliente');
@@ -46,7 +46,7 @@ class AuthorizationTest extends TestCase
     /**
      * Un vendedor no puede ver pedidos de otra tienda.
      */
-    public function testVendedorNoPuedeVerPedidosDeOtroVendedor(): void
+    public function test_vendedor_no_puede_ver_pedidos_de_otro_vendedor(): void
     {
         [$userA, $vendorA] = $this->createVendedorAprobado();
         [$userB, $vendorB] = $this->createVendedorAprobado();
@@ -69,7 +69,7 @@ class AuthorizationTest extends TestCase
     /**
      * Un repartidor solo puede ver sus entregas asignadas.
      */
-    public function testRepartidorSoloVeSusPedidosAsignados(): void
+    public function test_repartidor_solo_ve_sus_pedidos_asignados(): void
     {
         $repartidorA = User::factory()->repartidor()->create();
         $repartidorA->assignRole('repartidor');

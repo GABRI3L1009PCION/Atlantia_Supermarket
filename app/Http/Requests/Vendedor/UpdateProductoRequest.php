@@ -13,8 +13,6 @@ class UpdateProductoRequest extends FormRequest
 {
     /**
      * Determina si el vendedor puede actualizar el producto.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -136,8 +134,6 @@ class UpdateProductoRequest extends FormRequest
 
     /**
      * Normaliza datos enviados por formulario.
-     *
-     * @return void
      */
     protected function prepareForValidation(): void
     {
@@ -162,9 +158,6 @@ class UpdateProductoRequest extends FormRequest
 
     /**
      * Normaliza decimales escritos con coma.
-     *
-     * @param mixed $value
-     * @return string|null
      */
     private function normalizarDecimal(mixed $value): ?string
     {
@@ -173,9 +166,6 @@ class UpdateProductoRequest extends FormRequest
 
     /**
      * Convierte cadenas vacias en null.
-     *
-     * @param mixed $value
-     * @return string|null
      */
     private function blankToNull(mixed $value): ?string
     {

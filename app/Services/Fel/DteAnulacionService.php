@@ -19,17 +19,12 @@ class DteAnulacionService
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly InfileCertificadorService $certificadorFel)
-    {
-    }
+    public function __construct(private readonly InfileCertificadorService $certificadorFel) {}
 
     /**
      * Solicita anulacion de un DTE certificado.
      *
-     * @param DteFactura $dte
-     * @param array<string, mixed> $data
-     * @param User $user
-     * @return DteAnulacion
+     * @param  array<string, mixed>  $data
      *
      * @throws DteCertificadorException
      * @throws TransaccionFallidaException

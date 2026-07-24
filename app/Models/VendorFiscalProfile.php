@@ -86,7 +86,7 @@ class VendorFiscalProfile extends Model
     /**
      * Filtra perfiles con FEL activo.
      *
-     * @param Builder<VendorFiscalProfile> $query
+     * @param  Builder<VendorFiscalProfile>  $query
      * @return Builder<VendorFiscalProfile>
      */
     public function scopeFelActivo(Builder $query): Builder
@@ -97,8 +97,7 @@ class VendorFiscalProfile extends Model
     /**
      * Filtra perfiles por regimen SAT.
      *
-     * @param Builder<VendorFiscalProfile> $query
-     * @param string $regimen
+     * @param  Builder<VendorFiscalProfile>  $query
      * @return Builder<VendorFiscalProfile>
      */
     public function scopeRegimenSat(Builder $query, string $regimen): Builder

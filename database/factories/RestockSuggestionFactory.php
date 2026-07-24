@@ -49,8 +49,6 @@ class RestockSuggestionFactory extends Factory
 
     /**
      * Estado para sugerencia critica.
-     *
-     * @return static
      */
     public function critica(): static
     {
@@ -63,8 +61,6 @@ class RestockSuggestionFactory extends Factory
 
     /**
      * Estado para sugerencia aceptada.
-     *
-     * @return static
      */
     public function aceptada(): static
     {

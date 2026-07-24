@@ -11,8 +11,6 @@ class AprobarVendedorRequest extends FormRequest
 {
     /**
      * Determina si el usuario puede aprobar vendedores.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -76,8 +74,6 @@ class AprobarVendedorRequest extends FormRequest
 
     /**
      * Normaliza valores monetarios y booleanos.
-     *
-     * @return void
      */
     protected function prepareForValidation(): void
     {
@@ -93,9 +89,6 @@ class AprobarVendedorRequest extends FormRequest
 
     /**
      * Normaliza un valor decimal enviado desde formularios.
-     *
-     * @param mixed $value
-     * @return string
      */
     private function normalizarDecimal(mixed $value): string
     {

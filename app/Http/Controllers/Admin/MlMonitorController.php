@@ -18,9 +18,7 @@ class MlMonitorController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly MonitorDriftService $monitorDriftService)
-    {
-    }
+    public function __construct(private readonly MonitorDriftService $monitorDriftService) {}
 
     /**
      * Muestra estado de modelos y metricas.
@@ -62,7 +60,7 @@ class MlMonitorController extends Controller
     private function writeEnvironmentValue(string $key, string $value): void
     {
         $path = base_path('.env');
-        $line = $key . '=' . $value;
+        $line = $key.'='.$value;
 
         if (! is_file($path) || ! is_writable($path)) {
             throw new \RuntimeException('El archivo .env no esta disponible para escritura.');
@@ -74,10 +72,10 @@ class MlMonitorController extends Controller
             throw new \RuntimeException('No se pudo leer el archivo .env.');
         }
 
-        $pattern = '/^' . preg_quote($key, '/') . '=.*$/m';
+        $pattern = '/^'.preg_quote($key, '/').'=.*$/m';
         $updatedContent = preg_match($pattern, $content) === 1
             ? (string) preg_replace($pattern, $line, $content)
-            : rtrim($content) . PHP_EOL . $line . PHP_EOL;
+            : rtrim($content).PHP_EOL.$line.PHP_EOL;
 
         if (file_put_contents($path, $updatedContent) === false) {
             throw new \RuntimeException('No se pudo escribir el archivo .env.');

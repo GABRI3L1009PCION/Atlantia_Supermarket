@@ -26,8 +26,6 @@ class DireccionService
 
     /**
      * Crea direccion del cliente.
-     *
-     * @param DireccionDTO $direccionDTO
      */
     public function create(User $user, DireccionDTO $direccionDTO): Direccion
     {
@@ -52,8 +50,6 @@ class DireccionService
 
     /**
      * Actualiza direccion.
-     *
-     * @param DireccionDTO $direccionDTO
      */
     public function update(Direccion $direccion, DireccionDTO $direccionDTO): Direccion
     {

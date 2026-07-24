@@ -16,12 +16,19 @@ use Livewire\Component;
 class RegisterForm extends Component
 {
     public string $name = '';
+
     public string $email = '';
+
     public string $phone = '';
+
     public string $password = '';
+
     public string $password_confirmation = '';
+
     public bool $acepta_terminos = false;
+
     public bool $acepta_privacidad = false;
+
     public bool $acepta_marketing = false;
 
     /**

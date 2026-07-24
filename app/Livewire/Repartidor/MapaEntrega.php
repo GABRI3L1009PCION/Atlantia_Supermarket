@@ -25,4 +25,3 @@ class MapaEntrega extends Component
         ]);
     }
 }
-

@@ -24,7 +24,7 @@ class AdminPayrollTest extends TestCase
         $this->seed(RolePermissionSeeder::class);
     }
 
-    public function testAdminCanGenerateAdjustAndPayPayroll(): void
+    public function test_admin_can_generate_adjust_and_pay_payroll(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -93,7 +93,7 @@ class AdminPayrollTest extends TestCase
         ]);
     }
 
-    public function testPayrollGenerationRequiresConfiguredSalary(): void
+    public function test_payroll_generation_requires_configured_salary(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -121,7 +121,7 @@ class AdminPayrollTest extends TestCase
         $this->assertDatabaseCount('nominas', 0);
     }
 
-    public function testAdminCanCreateEmployeeWithPayrollSalary(): void
+    public function test_admin_can_create_employee_with_payroll_salary(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');

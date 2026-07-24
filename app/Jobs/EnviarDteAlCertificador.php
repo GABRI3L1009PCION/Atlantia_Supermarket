@@ -39,18 +39,11 @@ class EnviarDteAlCertificador implements ShouldQueue
 
     /**
      * Crea el job.
-     *
-     * @param int $dteId
      */
-    public function __construct(private readonly int $dteId)
-    {
-    }
+    public function __construct(private readonly int $dteId) {}
 
     /**
      * Ejecuta el envio al certificador.
-     *
-     * @param InfileCertificadorService $certificador
-     * @return void
      */
     public function handle(InfileCertificadorService $certificador): void
     {

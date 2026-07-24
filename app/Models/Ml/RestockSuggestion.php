@@ -85,7 +85,7 @@ class RestockSuggestion extends Model
     /**
      * Filtra sugerencias pendientes.
      *
-     * @param Builder<RestockSuggestion> $query
+     * @param  Builder<RestockSuggestion>  $query
      * @return Builder<RestockSuggestion>
      */
     public function scopePendientes(Builder $query): Builder
@@ -96,7 +96,7 @@ class RestockSuggestion extends Model
     /**
      * Filtra sugerencias urgentes.
      *
-     * @param Builder<RestockSuggestion> $query
+     * @param  Builder<RestockSuggestion>  $query
      * @return Builder<RestockSuggestion>
      */
     public function scopeUrgentes(Builder $query): Builder

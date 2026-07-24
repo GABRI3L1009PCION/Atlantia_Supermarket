@@ -12,8 +12,6 @@ class StoreResenaRequest extends FormRequest
 {
     /**
      * Determina si el cliente puede crear resenas.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -90,8 +88,6 @@ class StoreResenaRequest extends FormRequest
 
     /**
      * Normaliza textos y pedido recibido por ruta.
-     *
-     * @return void
      */
     protected function prepareForValidation(): void
     {
@@ -104,9 +100,6 @@ class StoreResenaRequest extends FormRequest
 
     /**
      * Convierte cadenas vacias a null.
-     *
-     * @param mixed $value
-     * @return string|null
      */
     private function blankToNull(mixed $value): ?string
     {

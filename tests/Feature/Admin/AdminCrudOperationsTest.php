@@ -31,7 +31,7 @@ class AdminCrudOperationsTest extends TestCase
     /**
      * Aprueba un vendedor y guarda sus condiciones operativas.
      */
-    public function testAdminCanApproveVendorAndPersistCommercialConfiguration(): void
+    public function test_admin_can_approve_vendor_and_persist_commercial_configuration(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -62,7 +62,7 @@ class AdminCrudOperationsTest extends TestCase
     /**
      * Crea un producto administrativo con inventario inicial.
      */
-    public function testAdminCanCreateProductAndInventory(): void
+    public function test_admin_can_create_product_and_inventory(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -110,7 +110,7 @@ class AdminCrudOperationsTest extends TestCase
     /**
      * Respeta la cantidad de productos por pagina seleccionada.
      */
-    public function testAdminProductIndexHonorsAllowedPerPageOptions(): void
+    public function test_admin_product_index_honors_allowed_per_page_options(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -130,7 +130,7 @@ class AdminCrudOperationsTest extends TestCase
     /**
      * Aplica el filtro de categoria del catalogo administrativo.
      */
-    public function testAdminProductIndexFiltersByCategory(): void
+    public function test_admin_product_index_filters_by_category(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -170,7 +170,7 @@ class AdminCrudOperationsTest extends TestCase
     /**
      * El formulario solo ofrece vendedores externos aprobados.
      */
-    public function testAdminProductFormDoesNotExposeInternalAtlantiaVendorAsLocalVendor(): void
+    public function test_admin_product_form_does_not_expose_internal_atlantia_vendor_as_local_vendor(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -198,7 +198,7 @@ class AdminCrudOperationsTest extends TestCase
     /**
      * No permite asignar el vendedor interno como vendedor externo.
      */
-    public function testAdminCannotUseInternalAtlantiaVendorAsExternalProductOwner(): void
+    public function test_admin_cannot_use_internal_atlantia_vendor_as_external_product_owner(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -235,7 +235,7 @@ class AdminCrudOperationsTest extends TestCase
     /**
      * Suspender un vendedor oculta su catalogo activo.
      */
-    public function testSuspendingVendorDisablesVisibleProducts(): void
+    public function test_suspending_vendor_disables_visible_products(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -279,7 +279,7 @@ class AdminCrudOperationsTest extends TestCase
     /**
      * Modera resenas por lote desde el panel administrativo.
      */
-    public function testAdminCanModerateReviewsInBatch(): void
+    public function test_admin_can_moderate_reviews_in_batch(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');

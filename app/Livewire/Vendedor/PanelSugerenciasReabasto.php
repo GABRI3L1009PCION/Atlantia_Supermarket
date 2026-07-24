@@ -7,8 +7,8 @@ use App\Models\Ml\RestockSuggestion;
 use App\Services\Ml\SugerenciaReabastoService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
-use Throwable;
 use Livewire\Component;
+use Throwable;
 
 class PanelSugerenciasReabasto extends Component
 {
@@ -39,6 +39,7 @@ class PanelSugerenciasReabasto extends Component
 
         if (! $vendor) {
             $this->error = 'No encontramos un perfil de vendedor activo para generar sugerencias.';
+
             return;
         }
 

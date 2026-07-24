@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 class ReporteVendedorService
 {
     /**
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array<string, mixed>
      */
     public function summary(User $user, array $filters = []): array
@@ -34,7 +34,7 @@ class ReporteVendedorService
             ->whereBetween('created_at', [$desde->copy()->startOfDay(), $hasta->copy()->endOfDay()]);
 
         $ventasPorPeriodo = (clone $pedidosBase)
-            ->selectRaw($periodo . ' as periodo, COUNT(*) as pedidos, COALESCE(SUM(total), 0) as total')
+            ->selectRaw($periodo.' as periodo, COUNT(*) as pedidos, COALESCE(SUM(total), 0) as total')
             ->groupBy(DB::raw($periodo))
             ->orderBy('periodo')
             ->get();
@@ -117,7 +117,7 @@ class ReporteVendedorService
     }
 
     /**
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array{0: Carbon, 1: Carbon}
      */
     private function dateRange(array $filters): array

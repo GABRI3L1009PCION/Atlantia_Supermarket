@@ -21,6 +21,7 @@ class SyncVendorZonaRequest extends FormRequest
             'zonas.*.activa' => ['sometimes', 'boolean'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

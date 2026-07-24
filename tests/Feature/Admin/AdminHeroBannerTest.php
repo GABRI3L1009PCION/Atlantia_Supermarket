@@ -23,7 +23,7 @@ class AdminHeroBannerTest extends TestCase
         $this->seed(RolePermissionSeeder::class);
     }
 
-    public function testAdminCanCreateHeroBannerWithDesktopAndMobileImages(): void
+    public function test_admin_can_create_hero_banner_with_desktop_and_mobile_images(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');

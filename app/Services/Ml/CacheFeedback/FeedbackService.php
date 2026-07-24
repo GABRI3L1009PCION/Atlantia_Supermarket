@@ -11,11 +11,6 @@ class FeedbackService
 {
     /**
      * Registra feedback del cliente sobre un producto recomendado.
-     *
-     * @param int $clienteId
-     * @param int $productoId
-     * @param string $tipo
-     * @return void
      */
     public function registrar(int $clienteId, int $productoId, string $tipo): void
     {
@@ -30,8 +25,6 @@ class FeedbackService
     /**
      * Obtiene feedback cacheado.
      *
-     * @param int $clienteId
-     * @param int $productoId
      * @return array<string, mixed>|null
      */
     public function obtener(int $clienteId, int $productoId): ?array
@@ -41,10 +34,6 @@ class FeedbackService
 
     /**
      * Llave de cache.
-     *
-     * @param int $clienteId
-     * @param int $productoId
-     * @return string
      */
     private function key(int $clienteId, int $productoId): string
     {
