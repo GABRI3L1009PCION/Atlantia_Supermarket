@@ -216,6 +216,14 @@ class CourierWalletService
     }
 
     /**
+     * Recalcula saldos manualmente desde servicios externos.
+     */
+    public function refresh(User $user): CourierWallet
+    {
+        return $this->syncWalletBalances($user);
+    }
+
+    /**
      * Registra un movimiento si no existe para el mismo origen/tipo.
      *
      * @param  array<string, mixed>  $data

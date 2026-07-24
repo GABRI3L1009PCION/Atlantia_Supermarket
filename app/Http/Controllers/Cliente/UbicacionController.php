@@ -12,22 +12,12 @@ use Illuminate\Validation\Rule;
  */
 class UbicacionController extends Controller
 {
-    /**
-     * @var array<int, string>
-     */
-    private const MUNICIPIOS = [
-        'Puerto Barrios',
-        'Santo Tomas',
-        'Morales',
-        'Los Amates',
-        'Livingston',
-        'El Estor',
-    ];
-
     public function store(Request $request): RedirectResponse
     {
+        $municipios = $this->marketplaceMunicipios();
+
         $data = $request->validate([
-            'municipio' => ['nullable', 'string', Rule::in(self::MUNICIPIOS)],
+            'municipio' => ['nullable', 'string', Rule::in($municipios)],
         ]);
 
         if (empty($data['municipio'])) {
@@ -37,5 +27,18 @@ class UbicacionController extends Controller
         }
 
         return back()->with('success', 'Ubicacion actualizada.');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function marketplaceMunicipios(): array
+    {
+        $municipios = config('atlantia.marketplace.municipios', ['Puerto Barrios', 'Santo Tomas']);
+
+        return array_values(array_filter(
+            array_map(static fn (mixed $municipio): string => trim((string) $municipio), (array) $municipios),
+            static fn (string $municipio): bool => $municipio !== ''
+        ));
     }
 }

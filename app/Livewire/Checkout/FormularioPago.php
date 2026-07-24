@@ -22,15 +22,14 @@ class FormularioPago extends Component
     public ?string $referenciaTransferencia = null;
 
     /**
-     * Campos de tarjeta para validacion visual.
+     * Indica si el cliente necesita cambio en efectivo.
      */
-    public string $cardNumberPreview = '';
+    public bool $solicitaCambio = false;
 
-    public string $cardExpPreview = '';
-
-    public string $cardCvvPreview = '';
-
-    public string $cardNamePreview = '';
+    /**
+     * Denominacion del billete para el cual se solicita cambio.
+     */
+    public ?string $cambioPara = null;
 
     /**
      * Indica si el cliente acepta terminos de compra.
@@ -61,34 +60,15 @@ class FormularioPago extends Component
         return [
             'metodoPago' => ['required', 'string', Rule::in($this->metodos)],
             'referenciaTransferencia' => [
-                Rule::requiredIf($this->metodoPago === 'transferencia'),
                 'nullable',
                 'string',
                 'max:80',
             ],
-            'cardNumberPreview' => [
-                Rule::requiredIf($this->metodoPago === 'tarjeta'),
+            'cambioPara' => [
+                Rule::requiredIf($this->metodoPago === 'efectivo' && $this->solicitaCambio),
                 'nullable',
-                'string',
-                'min:19',
-                'max:19',
-            ],
-            'cardExpPreview' => [
-                Rule::requiredIf($this->metodoPago === 'tarjeta'),
-                'nullable',
-                'regex:/^(0[1-9]|1[0-2])\s?\/\s?[0-9]{2}$/',
-            ],
-            'cardCvvPreview' => [
-                Rule::requiredIf($this->metodoPago === 'tarjeta'),
-                'nullable',
-                'digits_between:3,4',
-            ],
-            'cardNamePreview' => [
-                Rule::requiredIf($this->metodoPago === 'tarjeta'),
-                'nullable',
-                'string',
-                'min:4',
-                'max:120',
+                'numeric',
+                'min:1',
             ],
             'aceptaTerminos' => ['accepted'],
         ];
@@ -104,14 +84,10 @@ class FormularioPago extends Component
         return [
             'metodoPago.required' => 'Selecciona un metodo de pago.',
             'metodoPago.in' => 'El metodo de pago seleccionado no esta disponible.',
-            'referenciaTransferencia.required' => 'Ingresa la referencia de la transferencia.',
             'referenciaTransferencia.max' => 'La referencia no debe superar 80 caracteres.',
-            'cardNumberPreview.required' => 'Ingresa el numero de tarjeta.',
-            'cardExpPreview.required' => 'Ingresa la fecha de vencimiento.',
-            'cardExpPreview.regex' => 'Usa el formato MM / AA.',
-            'cardCvvPreview.required' => 'Ingresa el codigo de seguridad.',
-            'cardCvvPreview.digits_between' => 'El codigo de seguridad debe tener 3 o 4 digitos.',
-            'cardNamePreview.required' => 'Ingresa el nombre de la tarjeta.',
+            'cambioPara.required' => 'Indica para que billete necesitas cambio.',
+            'cambioPara.numeric' => 'El billete para cambio debe ser numerico.',
+            'cambioPara.min' => 'El billete para cambio debe ser mayor que cero.',
             'aceptaTerminos.accepted' => 'Debes aceptar las condiciones de compra.',
         ];
     }
@@ -126,42 +102,22 @@ class FormularioPago extends Component
     }
 
     /**
-     * Valida numero de tarjeta visible.
+     * Sincroniza la solicitud de cambio.
      */
-    public function updatedCardNumberPreview(): void
+    public function updatedSolicitaCambio(): void
     {
-        $digits = preg_replace('/\D+/', '', $this->cardNumberPreview) ?? '';
-        $this->cardNumberPreview = trim(chunk_split(substr($digits, 0, 16), 4, ' '));
-        $this->validateOnly('cardNumberPreview');
-        $this->markFieldAsValidated('cardNumberPreview');
+        if (! $this->solicitaCambio) {
+            $this->cambioPara = null;
+        }
     }
 
     /**
-     * Valida vencimiento de tarjeta.
+     * Valida el billete para cambio.
      */
-    public function updatedCardExpPreview(): void
+    public function updatedCambioPara(): void
     {
-        $this->validateOnly('cardExpPreview');
-        $this->markFieldAsValidated('cardExpPreview');
-    }
-
-    /**
-     * Valida CVV visible.
-     */
-    public function updatedCardCvvPreview(): void
-    {
-        $this->cardCvvPreview = substr(preg_replace('/\D+/', '', $this->cardCvvPreview) ?? '', 0, 4);
-        $this->validateOnly('cardCvvPreview');
-        $this->markFieldAsValidated('cardCvvPreview');
-    }
-
-    /**
-     * Valida nombre de tarjeta.
-     */
-    public function updatedCardNamePreview(): void
-    {
-        $this->validateOnly('cardNamePreview');
-        $this->markFieldAsValidated('cardNamePreview');
+        $this->validateOnly('cambioPara');
+        $this->markFieldAsValidated('cambioPara');
     }
 
     /**
@@ -185,6 +141,11 @@ class FormularioPago extends Component
 
         if ($this->metodoPago !== 'transferencia') {
             $this->referenciaTransferencia = null;
+        }
+
+        if ($this->metodoPago !== 'efectivo') {
+            $this->solicitaCambio = false;
+            $this->cambioPara = null;
         }
 
         $this->validarMetodoPago();

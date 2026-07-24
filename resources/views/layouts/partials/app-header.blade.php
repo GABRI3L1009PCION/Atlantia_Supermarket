@@ -47,6 +47,8 @@
         $user?->hasAnyRole($internalRoles) => [
             ['label' => 'Vista general', 'route' => route('empleado.dashboard'), 'active' => request()->routeIs('empleado.dashboard')],
             ['label' => 'Transferencias', 'route' => route('empleado.transferencias.index'), 'active' => request()->routeIs('empleado.transferencias.*')],
+            ['label' => 'Finanzas repartidor', 'route' => route('empleado.finanzas-repartidores.index'), 'active' => request()->routeIs('empleado.finanzas-repartidores.*')],
+            ['label' => 'Soporte repartidor', 'route' => route('empleado.soporte-repartidores.index'), 'active' => request()->routeIs('empleado.soporte-repartidores.*')],
             ['label' => 'Mensajes', 'route' => route('empleado.mensajes.index'), 'active' => request()->routeIs('empleado.mensajes.*')],
             ['label' => 'Resenas', 'route' => route('empleado.resenas.index'), 'active' => request()->routeIs('empleado.resenas.*')],
         ],
@@ -117,6 +119,8 @@
             'Operacion' => [
                 ['label' => 'Vista general', 'route' => route('empleado.dashboard'), 'active' => request()->routeIs('empleado.dashboard')],
                 ['label' => 'Transferencias', 'route' => route('empleado.transferencias.index'), 'active' => request()->routeIs('empleado.transferencias.*')],
+                ['label' => 'Finanzas repartidor', 'route' => route('empleado.finanzas-repartidores.index'), 'active' => request()->routeIs('empleado.finanzas-repartidores.*')],
+                ['label' => 'Soporte repartidor', 'route' => route('empleado.soporte-repartidores.index'), 'active' => request()->routeIs('empleado.soporte-repartidores.*')],
                 ['label' => 'Mensajes', 'route' => route('empleado.mensajes.index'), 'active' => request()->routeIs('empleado.mensajes.*')],
                 ['label' => 'Resenas', 'route' => route('empleado.resenas.index'), 'active' => request()->routeIs('empleado.resenas.*')],
             ],

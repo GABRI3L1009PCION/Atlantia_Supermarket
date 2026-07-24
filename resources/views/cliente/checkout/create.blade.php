@@ -11,10 +11,7 @@
             action="{{ route('cliente.checkout.store') }}"
             class="checkout-compact mx-auto grid w-full max-w-[1120px] gap-3 lg:grid-cols-[minmax(0,740px)_330px] lg:items-start lg:justify-center"
             data-disable-submit-guard
-            data-stripe-checkout
             data-checkout-wizard
-            data-stripe-publishable-key="{{ config('services.stripe.publishable_key') }}"
-            data-stripe-currency="{{ strtolower(config('services.stripe.currency', 'gtq')) }}"
         >
             @csrf
 
@@ -300,7 +297,7 @@
                         Siguiente &rarr;
                     </button>
                     <button type="submit" data-step-submit class="hidden rounded-md bg-atlantia-wine px-5 py-2 text-sm font-black text-white shadow-lg shadow-atlantia-wine/20 hover:bg-atlantia-wine-700 disabled:cursor-wait disabled:opacity-70">
-                        <span data-submit-label>Confirmar y pagar</span>
+                        <span data-submit-label>Confirmar pedido</span>
                     </button>
                 </footer>
             </section>
@@ -320,7 +317,6 @@
 @endsection
 
 @push('scripts')
-    <script src="https://js.stripe.com/v3/" @nonce></script>
     <script @nonce>
         (() => {
             const form = document.querySelector('[data-checkout-wizard]');

@@ -64,7 +64,16 @@ class AuthController extends Controller
             'last_login_ip' => $request->ip(),
         ])->save();
 
-        $token = $user->createToken($data['device_name'] ?? 'Atlantia Repartidor Android')->accessToken;
+        $deviceName = $data['device_name'] ?? 'Atlantia Repartidor Android';
+
+        $user->tokens()
+            ->where('name', $deviceName)
+            ->where('revoked', false)
+            ->update([
+                'revoked' => true,
+            ]);
+
+        $token = $user->createToken($deviceName)->accessToken;
 
         return response()->json([
             'message' => 'Sesion iniciada.',

@@ -31,9 +31,14 @@ Route::prefix('repartidor')
         Route::patch('/auto-aceptacion', [EstadoController::class, 'autoAcceptance'])->name('estado.auto-aceptacion');
 
         Route::get('/ganancias', GananciasController::class)->name('ganancias.index');
+        Route::patch('/ganancias/cuenta-bancaria', [GananciasController::class, 'updateBankAccount'])->name('ganancias.bank-account.update');
+        Route::post('/ganancias/retiros', [GananciasController::class, 'requestWithdrawal'])->name('ganancias.withdrawals.store');
+        Route::post('/ganancias/liquidaciones-efectivo', [GananciasController::class, 'requestCashSettlement'])->name('ganancias.cash-settlements.store');
         Route::get('/historial', HistorialController::class)->name('historial.index');
         Route::get('/soporte', [SoporteController::class, 'index'])->name('soporte.index');
         Route::post('/soporte/tickets', [SoporteController::class, 'store'])->name('soporte.tickets.store');
+        Route::post('/soporte/tickets/{ticket:uuid}/responder', [SoporteController::class, 'reply'])->name('soporte.tickets.reply');
+        Route::patch('/soporte/tickets/{ticket:uuid}/estado', [SoporteController::class, 'updateStatus'])->name('soporte.tickets.status');
         Route::post('/emergencia', [SoporteController::class, 'emergency'])
             ->middleware('throttle:10,1')
             ->name('emergencia.store');

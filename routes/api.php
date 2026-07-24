@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Repartidor\AuthController as RepartidorAuthControll
 use App\Http\Controllers\Api\Repartidor\DashboardController as RepartidorDashboardController;
 use App\Http\Controllers\Api\Repartidor\EstadoController as RepartidorEstadoController;
 use App\Http\Controllers\Api\Repartidor\ExternalDeliveryController as RepartidorExternalDeliveryController;
+use App\Http\Controllers\Api\Repartidor\FinanceController as RepartidorFinanceController;
 use App\Http\Controllers\Api\Repartidor\GpsController as RepartidorGpsController;
 use App\Http\Controllers\Api\Repartidor\HistoryController as RepartidorHistoryController;
 use App\Http\Controllers\Api\Repartidor\OfferController as RepartidorOfferController;
@@ -82,6 +83,9 @@ Route::as('api.')
 
                     Route::get('/dashboard', RepartidorDashboardController::class)->name('dashboard');
                     Route::get('/wallet', RepartidorWalletController::class)->name('wallet');
+                    Route::patch('/wallet/bank-account', [RepartidorFinanceController::class, 'updateBankAccount'])->name('wallet.bank-account.update');
+                    Route::post('/wallet/withdrawals', [RepartidorFinanceController::class, 'storeWithdrawal'])->name('wallet.withdrawals.store');
+                    Route::post('/wallet/cash-settlements', [RepartidorFinanceController::class, 'storeCashSettlement'])->name('wallet.cash-settlements.store');
                     Route::get('/history', RepartidorHistoryController::class)->name('history');
 
                     Route::patch('/availability', [RepartidorEstadoController::class, 'availability'])->name('availability');
@@ -121,6 +125,8 @@ Route::as('api.')
 
                     Route::get('/support', [RepartidorSupportController::class, 'index'])->name('support.index');
                     Route::post('/support/tickets', [RepartidorSupportController::class, 'store'])->name('support.tickets.store');
+                    Route::post('/support/tickets/{ticket:uuid}/reply', [RepartidorSupportController::class, 'reply'])->name('support.tickets.reply');
+                    Route::patch('/support/tickets/{ticket:uuid}/status', [RepartidorSupportController::class, 'updateStatus'])->name('support.tickets.status');
                     Route::post('/support/emergency', [RepartidorSupportController::class, 'emergency'])
                         ->middleware('throttle:10,1')
                         ->name('support.emergency');

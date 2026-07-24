@@ -62,23 +62,93 @@ class CatalogoPaginationTest extends TestCase
         $response->assertSee('Arroz Atlantia', false);
         $response->assertSee('Frijol Atlantia', false);
         $response->assertSee('Cafe Atlantia', false);
+        $response->assertSee('data-product-carousel', false);
+        $response->assertSee('data-carousel-track', false);
         $this->assertSame(3, substr_count($response->getContent(), 'Agregar'));
+    }
+
+    public function test_comercio_catalog_filters_real_products_by_search_and_offer(): void
+    {
+        $vendor = Vendor::factory()->approved()->create([
+            'business_name' => 'Mercado del Puerto',
+            'slug' => 'mercado-del-puerto',
+        ]);
+
+        Producto::factory()->publicado()->create([
+            'vendor_id' => $vendor->id,
+            'nombre' => 'Tomate fresco',
+            'precio_base' => 12,
+            'precio_oferta' => 9,
+        ]);
+        Producto::factory()->publicado()->create([
+            'vendor_id' => $vendor->id,
+            'nombre' => 'Arroz blanco',
+            'precio_base' => 18,
+            'precio_oferta' => null,
+        ]);
+
+        $response = $this->get(route('comercios.show', [
+            'vendor' => $vendor->slug,
+            'q' => 'Tomate',
+            'ofertas' => 1,
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('Tomate fresco', false);
+        $response->assertDontSee('Arroz blanco', false);
+        $response->assertSee('1 resultado(s)', false);
+    }
+
+    public function test_marketplace_mobile_navigation_and_product_detail_use_shared_layout(): void
+    {
+        $vendor = Vendor::factory()->approved()->create([
+            'business_name' => 'Tienda Responsive',
+            'slug' => 'tienda-responsive',
+        ]);
+        $producto = Producto::factory()->publicado()->create([
+            'vendor_id' => $vendor->id,
+            'nombre' => 'Producto Responsive',
+            'precio_base' => 24.50,
+        ]);
+
+        $home = $this->get(route('home'));
+        $home->assertOk();
+        $home->assertSee('Navegacion inferior', false);
+        $home->assertSee('Explora por Categoria', false);
+        $home->assertSee('Comercios disponibles', false);
+
+        $detail = $this->get(route('productos.show', ['producto' => $producto->uuid]));
+        $detail->assertOk();
+        $detail->assertSee('Producto Responsive', false);
+        $detail->assertSee('Tienda Responsive', false);
+        $detail->assertSee('Agregar al carrito', false);
+        $detail->assertSee('Navegacion inferior', false);
     }
 
     public function test_cliente_location_selector_stores_active_municipio(): void
     {
         $response = $this
             ->from(route('home'))
+            ->post(route('cliente.ubicacion.store'), ['municipio' => 'Santo Tomas']);
+
+        $response->assertRedirect(route('home'));
+        $response->assertSessionHas('cliente_municipio', 'Santo Tomas');
+
+        $this
+            ->withSession(['cliente_municipio' => 'Santo Tomas'])
+            ->get(route('home'))
+            ->assertOk()
+            ->assertSee('Santo Tomas', false);
+    }
+
+    public function test_cliente_location_selector_rejects_non_operational_municipio(): void
+    {
+        $response = $this
+            ->from(route('home'))
             ->post(route('cliente.ubicacion.store'), ['municipio' => 'Morales']);
 
         $response->assertRedirect(route('home'));
-        $response->assertSessionHas('cliente_municipio', 'Morales');
-
-        $this
-            ->withSession(['cliente_municipio' => 'Morales'])
-            ->get(route('home'))
-            ->assertOk()
-            ->assertSee('Morales', false);
+        $response->assertSessionHasErrors('municipio');
     }
 
     public function test_comercios_use_selected_municipio_from_session(): void

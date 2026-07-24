@@ -33,8 +33,7 @@ class CheckoutController extends Controller
     public function __construct(
         private readonly CheckoutService $checkoutService,
         private readonly CarritoService $carritoService
-    ) {
-    }
+    ) {}
 
     /**
      * Muestra la pantalla de checkout.
@@ -69,6 +68,7 @@ class CheckoutController extends Controller
             }
 
             $data['notas'] = $this->appendDeliveryScheduleToNotes($data);
+            $data['notas'] = $this->appendPaymentOperationToNotes($data);
 
             $pedido = $this->checkoutService->checkout(
                 $cliente,
@@ -104,7 +104,7 @@ class CheckoutController extends Controller
     /**
      * Crea el perfil minimo necesario para registrar el pedido de un visitante.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array{0: User, 1: Direccion}
      */
     private function prepareGuestCustomer(CheckoutRequest $request, array $data): array
@@ -112,7 +112,7 @@ class CheckoutController extends Controller
         $crearCuenta = $request->boolean('crear_cuenta');
         $email = $crearCuenta
             ? (string) $data['guest_email']
-            : 'guest-' . Str::uuid() . '@invitados.atlantia.local';
+            : 'guest-'.Str::uuid().'@invitados.atlantia.local';
 
         $cliente = User::query()->create([
             'uuid' => (string) Str::uuid(),
@@ -155,7 +155,7 @@ class CheckoutController extends Controller
     /**
      * Mantiene visible el correo real del invitado para operaciones internas.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function appendGuestContactToNotes(array $data): string
     {
@@ -167,13 +167,13 @@ class CheckoutController extends Controller
             $data['guest_telefono'] ?? 'sin telefono'
         );
 
-        return $notas === '' ? $contacto : $notas . "\n\n" . $contacto;
+        return $notas === '' ? $contacto : $notas."\n\n".$contacto;
     }
 
     /**
      * Agrega el tipo y horario elegido a las notas visibles del pedido.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function appendDeliveryScheduleToNotes(array $data): string
     {
@@ -189,6 +189,30 @@ class CheckoutController extends Controller
             default => sprintf('Tipo de entrega: domicilio. Ventana: %s.', $data['ventana_entrega'] ?? 'sin ventana'),
         };
 
-        return $notas === '' ? $entrega : $notas . "\n\n" . $entrega;
+        return $notas === '' ? $entrega : $notas."\n\n".$entrega;
+    }
+
+    /**
+     * Agrega instrucciones operativas del cobro real al pedido.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function appendPaymentOperationToNotes(array $data): string
+    {
+        $notas = trim((string) ($data['notas'] ?? ''));
+        $metodo = (string) ($data['metodo_pago'] ?? 'efectivo');
+
+        $detalle = match ($metodo) {
+            'tarjeta' => 'Cobro con POS al entregar. El repartidor debe llevar terminal para tarjeta.',
+            'transferencia' => 'Cobro por transferencia al entregar. Confirmar referencia con el cliente antes de cerrar la entrega.',
+            default => 'Cobro en efectivo al entregar.',
+        };
+
+        if ($metodo === 'efectivo' && (bool) ($data['solicita_cambio'] ?? false) && ! empty($data['cambio_para'])) {
+            $cambioPara = number_format((float) $data['cambio_para'], 2);
+            $detalle .= ' El cliente solicita cambio para Q '.$cambioPara.'.';
+        }
+
+        return $notas === '' ? $detalle : $notas."\n\n".$detalle;
     }
 }

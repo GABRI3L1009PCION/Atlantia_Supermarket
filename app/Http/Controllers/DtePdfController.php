@@ -31,11 +31,17 @@ class DtePdfController extends Controller
         $disk = $this->diskFor($path);
         abort_unless(Storage::disk($disk)->exists($path), 404);
 
-        return Storage::disk($disk)->response(
-            $path,
-            'factura-atlantia-'.$dte->numero_dte.'.pdf',
-            ['Content-Type' => 'application/pdf']
-        );
+        $filename = 'factura-atlantia-'.$dte->numero_dte.'.pdf';
+
+        if ($request->boolean('download')) {
+            return Storage::disk($disk)->download($path, $filename, [
+                'Content-Type' => 'application/pdf',
+            ]);
+        }
+
+        return Storage::disk($disk)->response($path, $filename, [
+            'Content-Type' => 'application/pdf',
+        ]);
     }
 
     /**

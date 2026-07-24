@@ -238,6 +238,36 @@ class User extends Authenticatable implements MustVerifyEmailContract
     }
 
     /**
+     * Tickets asignados al equipo interno.
+     *
+     * @return HasMany<CourierSupportTicket>
+     */
+    public function assignedCourierSupportTickets(): HasMany
+    {
+        return $this->hasMany(CourierSupportTicket::class, 'assigned_to_user_id');
+    }
+
+    /**
+     * Solicitudes de retiro del repartidor.
+     *
+     * @return HasMany<CourierWithdrawalRequest>
+     */
+    public function courierWithdrawalRequests(): HasMany
+    {
+        return $this->hasMany(CourierWithdrawalRequest::class);
+    }
+
+    /**
+     * Liquidaciones de efectivo del repartidor.
+     *
+     * @return HasMany<CourierCashSettlement>
+     */
+    public function courierCashSettlements(): HasMany
+    {
+        return $this->hasMany(CourierCashSettlement::class);
+    }
+
+    /**
      * Movimientos de puntos del cliente.
      *
      * @return HasMany<TransaccionPunto>
@@ -311,6 +341,24 @@ class User extends Authenticatable implements MustVerifyEmailContract
     public function isAdministrator(): bool
     {
         return $this->isSuperAdmin() || $this->hasRole('admin');
+    }
+
+    /**
+     * Indica si el usuario ya confirmo su segundo factor.
+     */
+    public function hasConfirmedTwoFactor(): bool
+    {
+        return $this->two_factor_enabled && $this->two_factor_confirmed_at !== null;
+    }
+
+    /**
+     * Determina si el usuario debe pasar forzosamente por 2FA.
+     */
+    public function requiresAdministrativeTwoFactor(): bool
+    {
+        $enforcedRoles = (array) config('atlantia.auth.enforce_2fa_roles', []);
+
+        return $this->isAdministrator() || ($enforcedRoles !== [] && $this->hasAnyRole($enforcedRoles));
     }
 
     /**

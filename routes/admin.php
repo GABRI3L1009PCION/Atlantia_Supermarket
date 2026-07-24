@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\MlMonitorController;
 use App\Http\Controllers\Admin\MlReentrenamientoController;
 use App\Http\Controllers\Admin\NominaController;
+use App\Http\Controllers\Admin\ObservabilityController;
 use App\Http\Controllers\Admin\PedidoController;
 use App\Http\Controllers\Admin\ProductoController;
 use App\Http\Controllers\Admin\RepartidorController;
@@ -150,6 +151,7 @@ Route::prefix('admin')
 
         Route::get('/auditoria', [AuditoriaController::class, 'index'])->name('auditoria.index');
         Route::get('/auditoria/{auditLog}', [AuditoriaController::class, 'show'])->name('auditoria.show');
+        Route::get('/observabilidad', ObservabilityController::class)->name('observabilidad.index');
 
         Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
 

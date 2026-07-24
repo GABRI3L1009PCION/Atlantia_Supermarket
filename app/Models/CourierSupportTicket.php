@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Ticket de soporte del repartidor.
@@ -23,13 +24,17 @@ class CourierSupportTicket extends Model
         'user_id',
         'pedido_id',
         'external_delivery_order_id',
+        'assigned_to_user_id',
         'type',
         'priority',
         'status',
+        'channel',
         'message',
         'support_response',
         'metadata',
+        'last_message_at',
         'resolved_at',
+        'closed_at',
     ];
 
     /**
@@ -41,7 +46,9 @@ class CourierSupportTicket extends Model
     {
         return [
             'metadata' => 'array',
+            'last_message_at' => 'datetime',
             'resolved_at' => 'datetime',
+            'closed_at' => 'datetime',
         ];
     }
 
@@ -63,6 +70,11 @@ class CourierSupportTicket extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function assignedTo(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to_user_id');
+    }
+
     /**
      * Pedido interno asociado.
      *
@@ -81,5 +93,10 @@ class CourierSupportTicket extends Model
     public function externalOrder(): BelongsTo
     {
         return $this->belongsTo(ExternalDeliveryOrder::class, 'external_delivery_order_id');
+    }
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(CourierSupportMessage::class)->orderBy('created_at');
     }
 }

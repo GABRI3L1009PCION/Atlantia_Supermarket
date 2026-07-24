@@ -27,6 +27,12 @@
 
             <div class="grid grid-cols-2 gap-2 sm:flex">
                 <a
+                    href="{{ route('admin.observabilidad.index') }}"
+                    class="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-white/10"
+                >
+                    Ver observabilidad
+                </a>
+                <a
                     href="{{ route('admin.ml.reentrenamiento.index') }}"
                     class="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-white/10"
                 >
@@ -130,6 +136,9 @@
                     </a>
                     <a href="{{ route('admin.roles-permisos.index') }}" class="rounded-lg border border-white/10 bg-white/5 px-3 py-4 text-center text-sm font-black text-white hover:bg-white/10">
                         Rotar accesos
+                    </a>
+                    <a href="{{ route('admin.observabilidad.index') }}" class="rounded-lg border border-white/10 bg-white/5 px-3 py-4 text-center text-sm font-black text-white hover:bg-white/10">
+                        Salud y alertas
                     </a>
                     <a href="{{ route('admin.ml.reentrenamiento.index') }}" class="rounded-lg border border-white/10 bg-white/5 px-3 py-4 text-center text-sm font-black text-white hover:bg-white/10">
                         Reentrenar modelos

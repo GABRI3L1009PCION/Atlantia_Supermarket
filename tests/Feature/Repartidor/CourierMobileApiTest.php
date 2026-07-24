@@ -90,6 +90,41 @@ class CourierMobileApiTest extends TestCase
             ->assertJsonPath('message', 'Esta app es solo para repartidores.');
     }
 
+    public function test_login_movil_revoca_token_previo_del_mismo_dispositivo(): void
+    {
+        $repartidor = User::factory()->repartidor()->create([
+            'email' => 'driver2@atlantia.test',
+            'password' => 'Atlantia2026!',
+        ]);
+        $repartidor->assignRole('repartidor');
+
+        $firstLogin = $this->postJson('/api/repartidor/login', [
+            'email' => 'driver2@atlantia.test',
+            'password' => 'Atlantia2026!',
+            'device_name' => 'Pixel 8 Atlantia',
+        ])->assertOk();
+
+        $firstToken = $firstLogin->json('data.access_token');
+        $this->assertNotEmpty($firstToken);
+
+        $secondLogin = $this->postJson('/api/repartidor/login', [
+            'email' => 'driver2@atlantia.test',
+            'password' => 'Atlantia2026!',
+            'device_name' => 'Pixel 8 Atlantia',
+        ])->assertOk();
+
+        $secondToken = $secondLogin->json('data.access_token');
+        $this->assertNotSame($firstToken, $secondToken);
+
+        $activeTokens = DB::table('oauth_access_tokens')
+            ->where('user_id', $repartidor->id)
+            ->where('name', 'Pixel 8 Atlantia')
+            ->where('revoked', false)
+            ->count();
+
+        $this->assertSame(1, $activeTokens);
+    }
+
     private function seedPassportClient(): void
     {
         DB::table('oauth_clients')->insert([

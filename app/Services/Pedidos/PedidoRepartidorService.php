@@ -133,6 +133,7 @@ class PedidoRepartidorService
                 'estimated_earning' => $route->estimated_earning ?: $this->defaultEarning($pedido, $route),
                 'payment_method' => $pedido->metodoPagoValor(),
                 'cash_to_collect' => $pedido->metodoPagoValor() === 'efectivo' ? (float) $pedido->total : 0,
+                'change_required' => $pedido->changeRequiredAmount(),
                 'confirmation_code' => $route->confirmation_code ?? $this->deliveryCode(),
             ]));
 

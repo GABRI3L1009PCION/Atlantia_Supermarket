@@ -11,24 +11,6 @@ use App\ValueObjects\Dinero;
  */
 final readonly class PedidoDTO
 {
-    /**
-     * @param int|null $pedidoId
-     * @param string|null $uuid
-     * @param string|null $numeroPedido
-     * @param int|null $clienteId
-     * @param int $direccionId
-     * @param MetodoPago $metodoPago
-     * @param Dinero $envio
-     * @param string|null $notas
-     * @param string|null $cardToken
-     * @param string|null $referenciaBancaria
-     * @param string|null $comprobantePath
-     * @param string|null $cuponCodigo
-     * @param string $facturacionTipo
-     * @param string|null $facturacionNombre
-     * @param string|null $facturacionNit
-     * @param string|null $facturacionEmail
-     */
     public function __construct(
         public ?int $pedidoId,
         public ?string $uuid,
@@ -40,20 +22,20 @@ final readonly class PedidoDTO
         public ?string $notas,
         public ?string $cardToken,
         public ?string $referenciaBancaria,
+        public ?float $cambioPara,
+        public bool $solicitaCambio,
         public ?string $comprobantePath,
         public ?string $cuponCodigo,
         public string $facturacionTipo = 'cf',
         public ?string $facturacionNombre = null,
         public ?string $facturacionNit = null,
         public ?string $facturacionEmail = null
-    ) {
-    }
+    ) {}
 
     /**
      * Crea DTO desde payload de checkout validado.
      *
-     * @param array<string, mixed> $data
-     * @return self
+     * @param  array<string, mixed>  $data
      */
     public static function fromCheckoutArray(array $data): self
     {
@@ -68,6 +50,8 @@ final readonly class PedidoDTO
             notas: isset($data['notas']) ? (string) $data['notas'] : null,
             cardToken: isset($data['card_token']) ? (string) $data['card_token'] : null,
             referenciaBancaria: isset($data['referencia_bancaria']) ? (string) $data['referencia_bancaria'] : null,
+            cambioPara: isset($data['cambio_para']) ? (float) $data['cambio_para'] : null,
+            solicitaCambio: (bool) ($data['solicita_cambio'] ?? false),
             comprobantePath: isset($data['comprobante_path']) ? (string) $data['comprobante_path'] : null,
             cuponCodigo: isset($data['coupon_code']) ? (string) $data['coupon_code'] : null,
             facturacionTipo: (string) ($data['facturacion_tipo'] ?? 'cf'),
@@ -79,9 +63,6 @@ final readonly class PedidoDTO
 
     /**
      * Crea DTO minimo desde un pedido persistido.
-     *
-     * @param Pedido $pedido
-     * @return self
      */
     public static function fromModel(Pedido $pedido): self
     {
@@ -96,6 +77,8 @@ final readonly class PedidoDTO
             notas: $pedido->notas,
             cardToken: null,
             referenciaBancaria: null,
+            cambioPara: null,
+            solicitaCambio: false,
             comprobantePath: null,
             cuponCodigo: null,
             facturacionTipo: (string) ($pedido->facturacion_tipo ?? 'cf'),
@@ -118,6 +101,8 @@ final readonly class PedidoDTO
             'notas' => $this->notas,
             'card_token' => $this->cardToken,
             'referencia_bancaria' => $this->referenciaBancaria,
+            'cambio_para' => $this->cambioPara,
+            'solicita_cambio' => $this->solicitaCambio,
             'comprobante_path' => $this->comprobantePath,
             'facturacion_tipo' => $this->facturacionTipo,
             'facturacion_nombre' => $this->facturacionNombre,

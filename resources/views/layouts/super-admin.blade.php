@@ -14,6 +14,7 @@
         'Usuarios' => 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8',
         'Roles y permisos' => 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z',
         'Auditoria', 'Antifraude' => 'M4 11h16v10H4ZM8 11V7a4 4 0 0 1 8 0v4',
+        'Observabilidad' => 'M3 12h3l2-5 4 10 3-6h4',
         'Reportes' => 'M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-8',
         'Vendedores' => 'M4 10h16l-1-5H5ZM6 10v10h12V10M9 20v-6h6v6',
         'Empleados' => 'M15 3H9a2 2 0 0 0-2 2v14l5-3 5 3V5a2 2 0 0 0-2-2Z',
@@ -36,6 +37,7 @@
             ['label' => 'Usuarios', 'route' => route('admin.usuarios.index'), 'active' => request()->routeIs('admin.usuarios.*')],
             ['label' => 'Roles y permisos', 'route' => route('admin.roles-permisos.index'), 'active' => request()->routeIs('admin.roles-permisos.*')],
             ['label' => 'Auditoria', 'route' => route('admin.auditoria.index'), 'active' => request()->routeIs('admin.auditoria.*')],
+            ['label' => 'Observabilidad', 'route' => route('admin.observabilidad.index'), 'active' => request()->routeIs('admin.observabilidad.*')],
             ['label' => 'Reportes', 'route' => route('admin.reportes.index'), 'active' => request()->routeIs('admin.reportes.*')],
         ],
         'Gestion' => [

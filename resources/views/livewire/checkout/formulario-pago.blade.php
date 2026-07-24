@@ -47,23 +47,23 @@
                     @checked($metodoPago === $metodo)
                     class="mt-1 border-atlantia-rose text-atlantia-wine focus:ring-atlantia-rose"
                 >
-                <span>
+                    <span>
                     <span class="block font-bold text-atlantia-ink">
                         @if ($metodo === 'efectivo')
                             Efectivo
                         @elseif ($metodo === 'transferencia')
-                            Transferencia bancaria
+                            Transferencia bancaria al entregar
                         @else
-                            Tarjeta de credito / debito
+                            Tarjeta con POS al entregar
                         @endif
                     </span>
                     <span class="mt-1 block text-sm leading-6 text-atlantia-ink/70">
                         @if ($metodo === 'efectivo')
-                            Pagas al recibir tu pedido. El repartidor lleva cambio hasta Q 500.
+                            Pagas cuando llegue el repartidor. Si necesitas cambio, indicanos para que billete.
                         @elseif ($metodo === 'transferencia')
-                            Un empleado validara tu comprobante antes de confirmar despacho.
+                            La transferencia se realiza al momento de la entrega y el repartidor valida el comprobante.
                         @else
-                            Pago seguro via pasarela. Se procesa al confirmar el pedido.
+                            El repartidor llevara terminal POS para cobrar con tarjeta en la entrega.
                         @endif
                     </span>
                 </span>
@@ -71,115 +71,46 @@
         @endforeach
     </div>
 
-    <div
-        class="mt-5 overflow-hidden rounded-lg border border-atlantia-wine/20 bg-[#14100f] p-1 shadow-2xl shadow-atlantia-wine/15 {{ $metodoPago === 'tarjeta' ? '' : 'hidden' }}"
-        data-stripe-card-panel
-    >
-        <input type="hidden" name="card_token" data-stripe-payment-method @disabled($metodoPago !== 'tarjeta')>
-
-        <div class="rounded-md border border-white/10 bg-gradient-to-br from-[#fffaf3] via-white to-[#f7eee7] p-5 sm:p-6">
-            <div class="mb-5 flex items-start justify-between gap-4 border-b border-atlantia-wine/10 pb-4">
-                <div
-                    class="flex h-10 w-10 items-center justify-center rounded-full border border-atlantia-wine/20 bg-atlantia-wine text-sm font-black text-white shadow-lg shadow-atlantia-wine/25"
-                    aria-hidden="true"
-                >
-                    S
+    @if ($metodoPago === 'tarjeta')
+        <div class="mt-4 rounded-lg border border-atlantia-rose/25 bg-atlantia-blush/35 p-4">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-sm font-bold text-atlantia-ink">Cobro con POS en la entrega</p>
+                    <p class="mt-1 text-xs leading-5 text-atlantia-ink/65">
+                        El repartidor llevara un POS {{ config('atlantia.payments.pos.provider', 'bancario') }} para cobrar con tarjeta cuando llegue con el pedido.
+                    </p>
                 </div>
-                <div class="min-w-0 flex-1">
-                    <p class="text-xs font-black uppercase tracking-[0.16em] text-atlantia-wine/70">Stripe</p>
-                    <h3 class="mt-1 text-lg font-black text-atlantia-ink">Pago seguro con tarjeta</h3>
-                </div>
-                <span class="rounded-full border border-emerald-600/20 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
-                    Seguro
+                <span class="rounded-full border border-emerald-500/25 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                    Cobro presencial
                 </span>
             </div>
-
-            <div class="grid gap-4">
-                <div>
-                    <label for="card_holder_name" class="text-sm font-black text-atlantia-ink">
-                        Nombre del titular de la tarjeta
-                    </label>
-                    <input
-                        id="card_holder_name"
-                        type="text"
-                        autocomplete="cc-name"
-                        data-stripe-cardholder-name
-                        @disabled($metodoPago !== 'tarjeta')
-                        placeholder="Como aparece en tu tarjeta"
-                        value="{{ old('razon_social', auth()->user()?->name) }}"
-                        class="mt-2 w-full rounded-md border border-atlantia-rose/30 bg-white px-4 py-3 text-sm font-semibold text-atlantia-ink shadow-lg shadow-atlantia-wine/5 focus:border-atlantia-wine focus:ring-atlantia-rose"
-                    >
-                </div>
-
-                <div
-                    class="grid gap-4"
-                    data-stripe-card-elements
-                >
-                    <div>
-                        <label for="stripe-card-number-element" class="text-sm font-black text-atlantia-ink">
-                            Numero de tarjeta
-                        </label>
-                        <div
-                            id="stripe-card-number-element"
-                            data-stripe-card-number-element
-                            wire:ignore
-                            class="mt-2 rounded-md border border-atlantia-rose/30 bg-white px-4 py-4 shadow-lg shadow-atlantia-wine/5"
-                        ></div>
-                    </div>
-
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <label for="stripe-card-expiry-element" class="text-sm font-black text-atlantia-ink">
-                                Fecha de vencimiento
-                            </label>
-                            <div
-                                id="stripe-card-expiry-element"
-                                data-stripe-card-expiry-element
-                                wire:ignore
-                                class="mt-2 rounded-md border border-atlantia-rose/30 bg-white px-4 py-4 shadow-lg shadow-atlantia-wine/5"
-                            ></div>
-                        </div>
-
-                        <div>
-                            <label for="stripe-card-cvc-element" class="text-sm font-black text-atlantia-ink">
-                                Codigo CVC
-                            </label>
-                            <div
-                                id="stripe-card-cvc-element"
-                                data-stripe-card-cvc-element
-                                wire:ignore
-                                class="mt-2 rounded-md border border-atlantia-rose/30 bg-white px-4 py-4 shadow-lg shadow-atlantia-wine/5"
-                            ></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <p class="mt-4 hidden rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" data-stripe-payment-errors></p>
-            <p class="mt-4 text-xs font-semibold text-atlantia-ink/55">
-                Tus datos se cifran y se validan directamente en Stripe antes de confirmar el pedido.
-            </p>
-
-            @error('card_token')
-                <p class="mt-3 text-sm font-semibold text-red-700">{{ $message }}</p>
-            @enderror
+            @if (config('atlantia.payments.pos.support_phone'))
+                <p class="mt-3 text-xs font-semibold text-atlantia-ink/60">
+                    Soporte POS: {{ config('atlantia.payments.pos.support_phone') }}
+                </p>
+            @endif
         </div>
-    </div>
+    @endif
 
     @if ($metodoPago === 'transferencia')
         <div class="mt-4 rounded-lg border border-atlantia-rose/25 bg-atlantia-blush/35 p-4">
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <label for="referencia_bancaria" class="block text-sm font-bold text-atlantia-ink">
-                        Referencia de transferencia
+                        Referencia de transferencia <span class="font-normal text-atlantia-ink/45">(opcional)</span>
                     </label>
                     <p class="mt-1 text-xs leading-5 text-atlantia-ink/60">
-                        Escribe el numero de boleta, referencia bancaria o los ultimos digitos de la operacion.
+                        Si ya la tienes, escribe el numero de boleta o los ultimos digitos. Si no, puedes completarla al momento de la entrega.
                     </p>
                 </div>
                 <span class="rounded-full border border-amber-500/25 bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
-                    Validacion manual
+                    Cobro al entregar
                 </span>
+            </div>
+            <div class="mt-3 rounded-lg border border-white/70 bg-white/80 px-4 py-3 text-xs leading-5 text-atlantia-ink/70">
+                <p><span class="font-bold text-atlantia-ink">Banco:</span> {{ config('atlantia.payments.transfer.bank_name', 'Pendiente de configurar') }}</p>
+                <p><span class="font-bold text-atlantia-ink">Cuenta:</span> {{ config('atlantia.payments.transfer.account_number', 'Pendiente de configurar') }}</p>
+                <p><span class="font-bold text-atlantia-ink">Titular:</span> {{ config('atlantia.payments.transfer.account_name', 'Pendiente de configurar') }}</p>
             </div>
             <div class="relative mt-3">
                 <input
@@ -188,7 +119,6 @@
                     type="text"
                     wire:model.live.debounce.250ms="referenciaTransferencia"
                     autocomplete="off"
-                    required
                     placeholder="Ej. BANRURAL-8842 o transferencia 123456"
                     class="w-full rounded-md border border-atlantia-rose/30 bg-white px-4 py-3 pr-11 text-sm font-semibold text-atlantia-ink focus:border-atlantia-wine focus:ring-atlantia-rose"
                 >
@@ -202,6 +132,50 @@
             @error('referencia_bancaria')
                 <p class="mt-2 text-sm font-semibold text-red-700">{{ $message }}</p>
             @enderror
+        </div>
+    @endif
+
+    @if ($metodoPago === 'efectivo')
+        <div class="mt-4 rounded-lg border border-atlantia-rose/25 bg-atlantia-blush/35 p-4">
+            <label class="flex items-start gap-3">
+                <input
+                    type="checkbox"
+                    name="solicita_cambio"
+                    value="1"
+                    wire:model.live="solicitaCambio"
+                    class="mt-1 rounded border-atlantia-rose text-atlantia-wine focus:ring-atlantia-rose"
+                >
+                <span>
+                    <span class="block text-sm font-bold text-atlantia-ink">Necesito cambio</span>
+                    <span class="block text-xs leading-5 text-atlantia-ink/60">
+                        Indica para que billete necesitas cambio. Monto recomendado hasta Q {{ number_format((float) config('atlantia.payments.cash.max_change_bill', 500), 2) }}.
+                    </span>
+                </span>
+            </label>
+
+            @if ($solicitaCambio)
+                <div class="relative mt-4">
+                    <label for="cambio_para" class="block text-sm font-bold text-atlantia-ink">
+                        Necesito cambio para
+                    </label>
+                    <input
+                        id="cambio_para"
+                        name="cambio_para"
+                        type="number"
+                        min="1"
+                        step="0.01"
+                        wire:model.live.debounce.250ms="cambioPara"
+                        placeholder="Ej. 200.00"
+                        class="mt-2 w-full rounded-md border border-atlantia-rose/30 bg-white px-4 py-3 text-sm font-semibold text-atlantia-ink focus:border-atlantia-wine focus:ring-atlantia-rose"
+                    >
+                    @error('cambioPara')
+                        <p class="mt-2 text-sm font-semibold text-red-700">{{ $message }}</p>
+                    @enderror
+                    @error('cambio_para')
+                        <p class="mt-2 text-sm font-semibold text-red-700">{{ $message }}</p>
+                    @enderror
+                </div>
+            @endif
         </div>
     @endif
 </section>

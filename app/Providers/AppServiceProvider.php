@@ -122,6 +122,16 @@ class AppServiceProvider extends ServiceProvider
             Passport::ignoreMigrations();
         }
 
+        Passport::tokensExpireIn(now()->addMinutes(
+            max(5, (int) config('atlantia.auth.passport.access_token_ttl_minutes', 10080))
+        ));
+        Passport::refreshTokensExpireIn(now()->addDays(
+            max(1, (int) config('atlantia.auth.passport.refresh_token_ttl_days', 30))
+        ));
+        Passport::personalAccessTokensExpireIn(now()->addDays(
+            max(1, (int) config('atlantia.auth.passport.personal_access_token_ttl_days', 30))
+        ));
+
         Gate::policy(Producto::class, ProductoPolicy::class);
         Gate::policy(Pedido::class, PedidoPolicy::class);
         Gate::policy(Vendor::class, VendorPolicy::class);

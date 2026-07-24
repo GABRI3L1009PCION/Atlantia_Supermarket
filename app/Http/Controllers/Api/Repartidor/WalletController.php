@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\Repartidor;
 
 use App\Http\Controllers\Controller;
-use App\Services\Repartidores\CourierWalletService;
+use App\Services\Repartidores\CourierFinanceService;
 use App\Services\Repartidores\MobileRepartidorPayloadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 class WalletController extends Controller
 {
     public function __construct(
-        private readonly CourierWalletService $walletService,
+        private readonly CourierFinanceService $financeService,
         private readonly MobileRepartidorPayloadService $payload
     ) {}
 
@@ -19,7 +19,7 @@ class WalletController extends Controller
     {
         return response()->json([
             'message' => 'Ganancias obtenidas.',
-            'data' => $this->payload->walletSummary($this->walletService->summary($request->user())),
+            'data' => $this->payload->walletSummary($this->financeService->summary($request->user())),
         ]);
     }
 }

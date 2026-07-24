@@ -78,6 +78,11 @@ class CourierProfile extends Model
         'bank_account_type',
         'bank_account_number',
         'bank_account_holder',
+        'payout_method',
+        'bank_document_path',
+        'bank_account_verified_at',
+        'bank_account_verified_by',
+        'bank_verification_notes',
         'last_online_at',
         'last_offline_at',
     ];
@@ -98,6 +103,7 @@ class CourierProfile extends Model
             'auto_accept_max_distance_km' => 'decimal:2',
             'safe_zones' => 'array',
             'insurance_active' => 'boolean',
+            'bank_account_verified_at' => 'datetime',
             'last_online_at' => 'datetime',
             'last_offline_at' => 'datetime',
         ];
@@ -111,6 +117,11 @@ class CourierProfile extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function bankVerifiedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'bank_account_verified_by');
     }
 
     /**

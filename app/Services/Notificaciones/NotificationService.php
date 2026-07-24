@@ -7,16 +7,20 @@ use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 
 /**
  * Servicio de lectura de notificaciones internas.
  */
 class NotificationService implements NotificacionContract
 {
+    public function __construct(
+        private readonly FirebasePushService $firebasePushService
+    ) {}
+
     /**
      * Lista notificaciones recientes del usuario.
      *
-     * @param User $user
      * @return Collection<int, object>
      */
     public function forUser(User $user, int $limit = 50): Collection
@@ -33,8 +37,6 @@ class NotificationService implements NotificacionContract
     /**
      * Obtiene ultimas notificaciones del usuario.
      *
-     * @param User $user
-     * @param int $limit
      * @return Collection<int, object>
      */
     public function latest(User $user, int $limit = 10): Collection
@@ -44,10 +46,6 @@ class NotificationService implements NotificacionContract
 
     /**
      * Busca una notificacion del usuario.
-     *
-     * @param User $user
-     * @param string $id
-     * @return object|null
      */
     public function findForUser(User $user, string $id): ?object
     {
@@ -62,9 +60,6 @@ class NotificationService implements NotificacionContract
 
     /**
      * Cuenta notificaciones no leidas.
-     *
-     * @param User $user
-     * @return int
      */
     public function unreadCount(User $user): int
     {
@@ -78,9 +73,7 @@ class NotificationService implements NotificacionContract
     /**
      * Marca notificaciones especificas como leidas.
      *
-     * @param User $user
-     * @param array<int, string> $ids
-     * @return int
+     * @param  array<int, string>  $ids
      */
     public function markAsRead(User $user, array $ids): int
     {
@@ -98,9 +91,6 @@ class NotificationService implements NotificacionContract
 
     /**
      * Marca todas las notificaciones del usuario como leidas.
-     *
-     * @param User $user
-     * @return int
      */
     public function markAllAsRead(User $user): int
     {
@@ -114,14 +104,11 @@ class NotificationService implements NotificacionContract
     /**
      * Crea una notificacion interna compatible con la tabla Laravel.
      *
-     * @param User $user
-     * @param string $type
-     * @param array<string, mixed> $data
-     * @return string
+     * @param  array<string, mixed>  $data
      */
     public function create(User $user, string $type, array $data): string
     {
-        $id = (string) \Illuminate\Support\Str::uuid();
+        $id = (string) Str::uuid();
 
         DB::table('notifications')->insert([
             'id' => $id,
@@ -140,22 +127,25 @@ class NotificationService implements NotificacionContract
     /**
      * Envia una notificacion interna compatible con el contrato de dominio.
      *
-     * @param User $user
-     * @param string $tipo
-     * @param array<string, mixed> $datos
-     * @return string
+     * @param  array<string, mixed>  $datos
      */
     public function enviar(User $user, string $tipo, array $datos): string
     {
-        return $this->create($user, $tipo, $datos);
+        $notificationId = $this->create($user, $tipo, $datos);
+
+        if ($user->hasRole('repartidor')) {
+            try {
+                $this->firebasePushService->sendToCourierDevices($user, $tipo, $datos);
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
+
+        return $notificationId;
     }
 
     /**
      * Normaliza el payload para vistas y API.
-     *
-     * @param object $notification
-     * @param User $user
-     * @return object
      */
     private function decorate(object $notification, User $user): object
     {
@@ -175,10 +165,7 @@ class NotificationService implements NotificacionContract
     /**
      * Genera una URL interna cuando la notificacion apunta a un recurso conocido.
      *
-     * @param string $type
-     * @param array<string, mixed> $data
-     * @param User $user
-     * @return string|null
+     * @param  array<string, mixed>  $data
      */
     private function resolveUrl(string $type, array $data, User $user): ?string
     {

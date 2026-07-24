@@ -11,9 +11,10 @@ use App\Exceptions\DireccionFueraDeZonaException;
 use App\Exceptions\PagoRechazadoException;
 use App\Exceptions\StockInsuficienteException;
 use App\Exceptions\TransaccionFallidaException;
-use App\Jobs\EnviarCorreoFactura;
 use App\Jobs\AnalizarFraudeOrden;
+use App\Jobs\EnviarCorreoFactura;
 use App\Models\Carrito;
+use App\Models\CarritoItem;
 use App\Models\Cliente\Direccion;
 use App\Models\Payment;
 use App\Models\Pedido;
@@ -23,11 +24,12 @@ use App\Services\Fel\DteGeneradorService;
 use App\Services\Geolocalizacion\DeliveryCoverageService;
 use App\Services\Inventario\StockService;
 use App\Services\Promociones\CuponService;
+use App\ValueObjects\Dinero;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
-use App\ValueObjects\Dinero;
 
 /**
  * Servicio de finalizacion de compra.
@@ -44,13 +46,11 @@ class CheckoutService
         private readonly EstadoPedidoService $estadoPedidoService,
         private readonly CuponService $cuponService,
         private readonly DeliveryCoverageService $deliveryCoverageService
-    ) {
-    }
+    ) {}
 
     /**
      * Devuelve resumen seguro del checkout.
      *
-     * @param Request $request
      * @return array<string, mixed>
      */
     public function summary(Request $request): array
@@ -66,9 +66,6 @@ class CheckoutService
     /**
      * Ejecuta checkout con validacion server-side de precios y stock.
      *
-     * @param User $cliente
-     * @param PedidoDTO $pedidoDTO
-     * @return Pedido
      *
      * @throws StockInsuficienteException
      * @throws TransaccionFallidaException
@@ -89,6 +86,7 @@ class CheckoutService
                 }
 
                 $this->assertDireccionDentroDeCobertura($direccion);
+                $this->assertValidCashChangeRequest($items, $pedidoDTO);
                 $this->stockService->assertAvailableForItems($items);
                 $this->stockService->reserveForItems($items);
 
@@ -184,9 +182,6 @@ class CheckoutService
 
     /**
      * Obtiene carrito activo para resumen.
-     *
-     * @param User|null $user
-     * @return Carrito|null
      */
     private function activeCartFor(?User $user, ?string $sessionId = null): ?Carrito
     {
@@ -197,9 +192,6 @@ class CheckoutService
 
     /**
      * Obtiene carrito activo con bloqueo.
-     *
-     * @param User $user
-     * @return Carrito
      */
     private function lockedCartFor(User $user): Carrito
     {
@@ -218,10 +210,6 @@ class CheckoutService
 
     /**
      * Obtiene direccion del cliente.
-     *
-     * @param User $cliente
-     * @param int $direccionId
-     * @return Direccion
      */
     private function direccionFor(User $cliente, int $direccionId): Direccion
     {
@@ -243,6 +231,29 @@ class CheckoutService
             throw new DireccionFueraDeZonaException(
                 'Captura tu ubicacion exacta para validar la entrega del pedido.'
             );
+        }
+    }
+
+    /**
+     * @param  Collection<int, CarritoItem>  $items
+     *
+     * @throws TransaccionFallidaException
+     */
+    private function assertValidCashChangeRequest($items, PedidoDTO $pedidoDTO): void
+    {
+        if ($pedidoDTO->metodoPago !== MetodoPago::Efectivo || ! $pedidoDTO->solicitaCambio) {
+            return;
+        }
+
+        if ($pedidoDTO->cambioPara === null) {
+            throw new TransaccionFallidaException('Debes indicar para que billete necesitas cambio.');
+        }
+
+        $subtotal = (float) $items->sum(fn ($item) => $item->precio_unitario_snapshot * $item->cantidad);
+        $estimatedTotal = round($subtotal + (float) $pedidoDTO->envio->toDecimal(), 2);
+
+        if ((float) $pedidoDTO->cambioPara <= $estimatedTotal) {
+            throw new TransaccionFallidaException('El billete indicado para cambio debe ser mayor al total estimado.');
         }
     }
 
@@ -295,7 +306,7 @@ class CheckoutService
     /**
      * Calcula totales confiando solo en precios actuales del servidor.
      *
-     * @param iterable<int, mixed> $items
+     * @param  iterable<int, mixed>  $items
      * @return array<string, mixed>
      */
     private function calculateTotals(iterable $items, Direccion $direccion, User $cliente, ?string $cuponCodigo = null): array

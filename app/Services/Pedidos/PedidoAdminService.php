@@ -227,7 +227,7 @@ class PedidoAdminService
             'estimated_earning' => $route?->estimated_earning ?: $earning,
             'cash_to_collect' => $pedido->metodoPagoValor() === 'efectivo' ? (float) $pedido->total : 0,
             'cash_to_pay_pickup' => 0,
-            'change_required' => 0,
+            'change_required' => $pedido->changeRequiredAmount(),
             'payment_method' => $pedido->metodoPagoValor(),
             'proof_type' => 'photo',
         ];

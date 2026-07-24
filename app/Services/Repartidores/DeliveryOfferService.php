@@ -368,13 +368,18 @@ class DeliveryOfferService
 
     private function notifyOffer(DeliveryOffer $offer, User $repartidor): void
     {
+        $businessName = $offer->pedido?->vendor?->business_name
+            ?? $offer->externalOrder?->store_name
+            ?? 'Atlantia';
+
         $this->notificationService->enviar($repartidor, 'entrega.oferta', [
             'titulo' => 'Nueva oferta de entrega',
-            'mensaje' => 'Tienes una nueva entrega disponible para aceptar.',
+            'mensaje' => sprintf('Tienes una entrega disponible de %s.', $businessName),
             'offer_uuid' => $offer->uuid,
             'pedido_uuid' => $offer->pedido?->uuid,
             'external_order_uuid' => $offer->externalOrder?->uuid,
             'source_type' => $offer->source_type,
+            'business_name' => $businessName,
             'estimated_gain' => (float) $offer->estimated_gain,
             'pickup_distance_km' => $offer->pickup_distance_km !== null ? (float) $offer->pickup_distance_km : null,
             'expires_at' => $offer->expires_at->toIso8601String(),

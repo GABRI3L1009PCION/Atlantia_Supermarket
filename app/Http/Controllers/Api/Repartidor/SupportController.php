@@ -20,9 +20,12 @@ class SupportController extends Controller
     {
         return response()->json([
             'message' => 'Soporte obtenido.',
-            'data' => $this->supportService->recentFor($request->user())
-                ->map(fn (CourierSupportTicket $ticket): array => $this->ticket($ticket))
-                ->values(),
+            'data' => [
+                'center' => $this->supportService->supportCenter(),
+                'tickets' => $this->supportService->recentFor($request->user())
+                    ->map(fn (CourierSupportTicket $ticket): array => $this->ticket($ticket))
+                    ->values(),
+            ],
         ]);
     }
 
@@ -46,6 +49,7 @@ class SupportController extends Controller
                 'insurance',
             ])],
             'priority' => ['nullable', Rule::in(['low', 'normal', 'high', 'critical'])],
+            'channel' => ['nullable', Rule::in(['app', 'whatsapp', 'phone', 'emergency'])],
             'message' => ['required', 'string', 'max:1500'],
         ]);
 
@@ -79,6 +83,43 @@ class SupportController extends Controller
         ], 201);
     }
 
+    public function reply(CourierSupportTicket $ticket, Request $request): JsonResponse
+    {
+        if ($ticket->user_id !== $request->user()->id) {
+            abort(404);
+        }
+
+        $data = $request->validate([
+            'message' => ['required', 'string', 'max:1500'],
+        ]);
+
+        $ticket = $this->supportService->replyAsCourier($ticket, $request->user(), $data);
+
+        return response()->json([
+            'message' => 'Mensaje enviado a soporte.',
+            'data' => $this->ticket($ticket),
+        ]);
+    }
+
+    public function updateStatus(CourierSupportTicket $ticket, Request $request): JsonResponse
+    {
+        if ($ticket->user_id !== $request->user()->id) {
+            abort(404);
+        }
+
+        $data = $request->validate([
+            'status' => ['required', Rule::in(['closed'])],
+            'note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $ticket = $this->supportService->updateStatus($ticket, $data['status'], $data['note'] ?? null, $request->user());
+
+        return response()->json([
+            'message' => 'Caso actualizado.',
+            'data' => $this->ticket($ticket),
+        ]);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -89,8 +130,19 @@ class SupportController extends Controller
             'type' => $ticket->type,
             'priority' => $ticket->priority,
             'status' => $ticket->status,
+            'channel' => $ticket->channel,
             'message' => $ticket->message,
+            'support_response' => $ticket->support_response,
+            'assigned_to' => $ticket->assignedTo?->name,
             'created_at' => $ticket->created_at?->toIso8601String(),
+            'last_message_at' => $ticket->last_message_at?->toIso8601String(),
+            'messages' => $ticket->messages->map(fn ($message): array => [
+                'sender_type' => $message->sender_type,
+                'sender_name' => $message->user?->name,
+                'message' => $message->message,
+                'is_internal' => (bool) $message->is_internal,
+                'created_at' => $message->created_at?->toIso8601String(),
+            ])->values(),
         ];
     }
 

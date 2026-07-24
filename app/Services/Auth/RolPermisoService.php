@@ -15,14 +15,12 @@ class RolPermisoService
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly PermissionRegistrar $permissionRegistrar)
-    {
-    }
+    public function __construct(private readonly PermissionRegistrar $permissionRegistrar) {}
 
     /**
      * Devuelve matriz de roles y permisos.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array<string, Collection<int, mixed>>
      */
     public function matrix(array $filters = []): array
@@ -38,8 +36,7 @@ class RolPermisoService
     /**
      * Crea un rol operativo y asigna permisos iniciales.
      *
-     * @param array<string, mixed> $data
-     * @return Role
+     * @param  array<string, mixed>  $data
      */
     public function createRole(array $data): Role
     {
@@ -48,7 +45,7 @@ class RolPermisoService
             'guard_name' => 'web',
         ]);
 
-        $role->syncPermissions($data['permissions'] ?? []);
+        $role->syncPermissions($this->sanitizePermissionsForRole($role->name, $data['permissions'] ?? []));
         $this->permissionRegistrar->forgetCachedPermissions();
 
         return $role->load('permissions');
@@ -57,8 +54,7 @@ class RolPermisoService
     /**
      * Crea un permiso personalizado para nuevos modulos escalables.
      *
-     * @param array<string, mixed> $data
-     * @return Permission
+     * @param  array<string, mixed>  $data
      */
     public function createPermission(array $data): Permission
     {
@@ -75,7 +71,7 @@ class RolPermisoService
     /**
      * Sincroniza permisos de un rol operativo.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function syncPermissions(Role $role, array $data): void
     {
@@ -83,17 +79,7 @@ class RolPermisoService
             return;
         }
 
-        $permissions = collect($data['permissions'] ?? []);
-
-        if ($role->name === 'admin') {
-            $permissions->push('admin.panel');
-        }
-
-        if ($permissions->contains('carrito.gestionar')) {
-            $permissions->push('carrito.crear');
-        }
-
-        $role->syncPermissions($permissions->unique()->values()->all());
+        $role->syncPermissions($this->sanitizePermissionsForRole($role->name, $data['permissions'] ?? []));
         $this->permissionRegistrar->forgetCachedPermissions();
     }
 
@@ -119,19 +105,7 @@ class RolPermisoService
      */
     private function protectedRoles(): array
     {
-        return [
-            'super_admin',
-            'admin',
-            'cliente',
-            'vendedor',
-            'bodeguero',
-            'proveedor',
-            'soporte',
-            'contabilidad_finanzas',
-            'supervisor_logistica',
-            'repartidor',
-            'empleado',
-        ];
+        return config('rbac.protected_roles', []);
     }
 
     /**
@@ -151,49 +125,40 @@ class RolPermisoService
      */
     private function permissionCatalog(): array
     {
-        return [
-            'admin.panel',
-            'sistema.configurar',
-            'auditoria.ver',
-            'catalogo.ver',
-            'categorias.gestionar',
-            'inventario.gestionar',
-            'checkout.crear',
-            'ordenes.ver',
-            'ordenes.procesar',
-            'comisiones.ver_propias',
-            'carrito.crear',
-            'carrito.gestionar',
-            'bodeguero.panel',
-            'inventario.ver_operativo',
-            'inventario.ajustar_stock',
-            'pedidos.preparar',
-            'recepciones.registrar',
-            'stock.reportar_incidencias',
-            'proveedor.panel',
-            'catalogo_mayorista.gestionar',
-            'cotizaciones.gestionar',
-            'abastecimiento.ver_solicitudes',
-            'ordenes_compra.ver',
-            'facturas_proveedor.gestionar',
-            'soporte.panel',
-            'tickets.atender',
-            'clientes.asistir',
-            'pedidos.seguimiento_soporte',
-            'devoluciones.gestionar_soporte',
-            'chatbot.supervisar',
-            'contabilidad.panel',
-            'pagos.conciliar',
-            'transferencias.validar',
-            'comisiones.liquidar',
-            'reportes_financieros.ver',
-            'facturacion.ver',
-            'logistica.panel',
-            'repartidores.supervisar',
-            'rutas.planificar',
-            'entregas.reasignar',
-            'incidencias_logistica.gestionar',
-            'zonas_entrega.supervisar',
-        ];
+        return config('rbac.catalog_permissions', []);
+    }
+
+    /**
+     * @param  array<int, string>  $permissions
+     * @return array<int, string>
+     */
+    private function sanitizePermissionsForRole(string $roleName, array $permissions): array
+    {
+        $catalog = collect($this->permissionCatalog());
+        $restrictions = collect(config('rbac.restricted_permissions', []));
+        $normalized = collect($permissions)
+            ->filter(fn ($permission): bool => is_string($permission) && $permission !== '')
+            ->unique()
+            ->values()
+            ->intersect($catalog);
+
+        if ($roleName === 'admin') {
+            $normalized->push('admin.panel');
+        }
+
+        if ($normalized->contains('carrito.gestionar')) {
+            $normalized->push('carrito.crear');
+        }
+
+        $normalized = $normalized->unique()->values();
+
+        return $normalized
+            ->reject(function (string $permission) use ($roleName, $restrictions): bool {
+                $allowedRoles = $restrictions->get($permission);
+
+                return is_array($allowedRoles) && ! in_array($roleName, $allowedRoles, true);
+            })
+            ->values()
+            ->all();
     }
 }

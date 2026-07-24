@@ -60,7 +60,7 @@ class LoginService
             ->where('status', 'active')
             ->firstOrFail();
 
-        if ($user->two_factor_enabled) {
+        if ($this->mustCompleteTwoFactor($user)) {
             $request->session()->regenerate();
             $request->session()->put('auth.2fa_user_id', $user->id);
             $request->session()->put('auth.2fa_remember', (bool) ($credentials['remember'] ?? false));
@@ -101,6 +101,14 @@ class LoginService
         $this->registerSuccessfulLogin($user, $request);
 
         return $this->redirectRouteFor($user);
+    }
+
+    /**
+     * Determina si el usuario debe completar 2FA antes de entrar.
+     */
+    private function mustCompleteTwoFactor(User $user): bool
+    {
+        return $user->two_factor_enabled || $user->requiresAdministrativeTwoFactor();
     }
 
     /**

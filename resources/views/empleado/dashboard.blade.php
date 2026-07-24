@@ -27,8 +27,10 @@
                 </div>
             </div>
 
-            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
                 <x-ui.stat-card label="Transferencias pendientes" :value="number_format($overview['transferencias_pendientes'])" hint="Pagos por validar" class="border-amber-500" />
+                <x-ui.stat-card label="Retiros pendientes" :value="number_format($overview['retiros_pendientes'])" hint="Solicitudes de repartidor" class="border-emerald-500" />
+                <x-ui.stat-card label="Tickets repartidor" :value="number_format($overview['tickets_repartidor_abiertos'])" hint="Casos abiertos y emergencias" class="border-fuchsia-500" />
                 <x-ui.stat-card label="Mensajes pendientes" :value="number_format($overview['mensajes_pendientes'])" hint="Clientes esperando respuesta" class="border-atlantia-wine" />
                 <x-ui.stat-card label="Flags ML" :value="number_format($overview['resenas_flaggeadas'])" hint="Revision de sospecha" class="border-rose-500" />
                 <x-ui.stat-card label="Resenas pendientes" :value="number_format($overview['resenas_pendientes'])" hint="Moderacion manual" class="border-sky-500" />

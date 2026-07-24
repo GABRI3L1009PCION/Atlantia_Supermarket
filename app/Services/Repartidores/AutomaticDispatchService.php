@@ -422,6 +422,7 @@ class AutomaticDispatchService
                 'aceptada_at' => null,
                 'estimated_earning' => round(max(15, ((float) $pedido->envio) * 0.75, 12 + ($deliveryDistance * 2.5)), 2),
                 'cash_to_collect' => $pedido->metodoPagoValor() === 'efectivo' ? (float) $pedido->total : 0,
+                'change_required' => $pedido->changeRequiredAmount(),
                 'payment_method' => $pedido->metodoPagoValor(),
                 'proof_type' => 'photo',
             ]

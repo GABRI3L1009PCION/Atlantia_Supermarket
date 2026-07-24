@@ -21,13 +21,29 @@ class PedidoController extends Controller
     }
 
     /**
-     * Lista pedidos del cliente autenticado.
+     * Muestra el historial de pedidos. Si el usuario es invitado,
+     * se presenta una pantalla publica de acceso restringido.
      */
     public function index(Request $request): View
     {
+        if ($request->user() === null) {
+            return view('cliente.pedidos.index', [
+                'pedidos' => collect(),
+                'summary' => [
+                    'total' => 0,
+                    'active' => 0,
+                    'closed' => 0,
+                    'cancelled' => 0,
+                ],
+            ]);
+        }
+
         $this->authorize('viewOwnOrders', Pedido::class);
 
-        return view('cliente.pedidos.index', ['pedidos' => $this->pedidoClienteService->paginate($request->user())]);
+        return view('cliente.pedidos.index', [
+            'pedidos' => collect(),
+            'summary' => [],
+        ]);
     }
 
     /**

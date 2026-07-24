@@ -13,8 +13,6 @@ class CheckoutRequest extends FormRequest
 {
     /**
      * Determina si el cliente puede ejecutar checkout.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -59,13 +57,15 @@ class CheckoutRequest extends FormRequest
             'password' => [Rule::requiredIf($guest && $crearCuenta), 'nullable', 'confirmed', Password::min(12)->letters()->numbers()->symbols()],
             'tipo_entrega' => ['required', Rule::in(['domicilio', 'recoger', 'programado'])],
             'ventana_entrega' => ['required_if:tipo_entrega,domicilio', 'nullable', 'string', 'max:40'],
-            'programado_fecha' => ['required_if:tipo_entrega,programado', 'nullable', 'date', 'after_or_equal:today', 'before_or_equal:' . now()->addDays(14)->toDateString()],
+            'programado_fecha' => ['required_if:tipo_entrega,programado', 'nullable', 'date', 'after_or_equal:today', 'before_or_equal:'.now()->addDays(14)->toDateString()],
             'programado_hora' => ['required_if:tipo_entrega,programado', 'nullable', 'date_format:H:i'],
             'metodo_pago' => ['required', Rule::in(['efectivo', 'transferencia', 'tarjeta'])],
             'envio' => ['nullable', 'numeric', 'min:0', 'max:9999.99', 'decimal:0,2'],
             'notas' => ['nullable', 'string', 'max:1000'],
-            'card_token' => ['required_if:metodo_pago,tarjeta', 'nullable', 'string', 'max:180'],
-            'referencia_bancaria' => ['required_if:metodo_pago,transferencia', 'nullable', 'string', 'max:120'],
+            'card_token' => ['nullable', 'string', 'max:180'],
+            'referencia_bancaria' => ['nullable', 'string', 'max:120'],
+            'solicita_cambio' => ['nullable', 'boolean'],
+            'cambio_para' => ['required_if:solicita_cambio,1', 'nullable', 'numeric', 'min:1', 'max:9999.99', 'decimal:0,2'],
             'comprobante_path' => ['nullable', 'string', 'max:500'],
             'coupon_code' => ['nullable', 'string', 'max:60'],
             'facturacion_tipo' => ['required', Rule::in(['datos', 'cf'])],
@@ -110,8 +110,8 @@ class CheckoutRequest extends FormRequest
             'envio.numeric' => 'El costo de envio debe ser numerico.',
             'envio.max' => 'El costo de envio no puede superar Q:max.',
             'notas.max' => 'Las notas no deben superar :max caracteres.',
-            'card_token.required_if' => 'No se recibio el token seguro de tarjeta.',
-            'referencia_bancaria.required_if' => 'Ingresa la referencia de la transferencia bancaria.',
+            'cambio_para.required_if' => 'Indica para cuanto efectivo necesitas cambio.',
+            'cambio_para.numeric' => 'La denominacion para cambio debe ser numerica.',
             'coupon_code.max' => 'El codigo del cupon no debe superar :max caracteres.',
             'correo_facturacion.required' => 'Ingresa el correo donde enviaremos la factura o comprobante.',
             'correo_facturacion.email' => 'Ingresa un correo de facturacion valido.',
@@ -145,6 +145,8 @@ class CheckoutRequest extends FormRequest
             'notas' => 'notas del pedido',
             'card_token' => 'token de tarjeta',
             'referencia_bancaria' => 'referencia bancaria',
+            'solicita_cambio' => 'solicitud de cambio',
+            'cambio_para' => 'cambio para billete',
             'comprobante_path' => 'comprobante de transferencia',
             'coupon_code' => 'codigo de cupon',
             'facturacion_tipo' => 'tipo de facturacion',
@@ -157,8 +159,6 @@ class CheckoutRequest extends FormRequest
 
     /**
      * Normaliza campos antes de validar.
-     *
-     * @return void
      */
     protected function prepareForValidation(): void
     {
@@ -172,6 +172,8 @@ class CheckoutRequest extends FormRequest
             'programado_hora' => $this->blankToNull($this->input('programado_hora')),
             'envio' => $this->input('envio') === null ? 0 : str_replace(',', '.', (string) $this->input('envio')),
             'notas' => $this->blankToNull($this->input('notas')),
+            'solicita_cambio' => $this->boolean('solicita_cambio'),
+            'cambio_para' => $this->input('cambio_para') === null ? null : str_replace(',', '.', (string) $this->input('cambio_para')),
             'guest_nombre' => $this->blankToNull($this->input('guest_nombre')),
             'guest_email' => $this->blankToNull($this->input('guest_email')),
             'guest_telefono' => $this->blankToNull(preg_replace('/[\s\-]/', '', (string) $this->input('guest_telefono'))),
@@ -180,6 +182,7 @@ class CheckoutRequest extends FormRequest
             'guest_direccion' => $this->blankToNull($this->input('guest_direccion')),
             'guest_referencia' => $this->blankToNull($this->input('guest_referencia')),
             'referencia_bancaria' => $this->blankToNull($this->input('referencia_bancaria')),
+            'card_token' => $this->blankToNull($this->input('card_token')),
             'coupon_code' => $this->blankToNull($this->input('coupon_code')),
             'facturacion_tipo' => $facturacionTipo,
             'nit_facturacion' => $this->blankToNull($facturacionTipo === 'cf' ? 'CF' : $this->input('nit_facturacion')),
@@ -190,9 +193,6 @@ class CheckoutRequest extends FormRequest
 
     /**
      * Convierte cadenas vacias a null.
-     *
-     * @param mixed $value
-     * @return string|null
      */
     private function blankToNull(mixed $value): ?string
     {

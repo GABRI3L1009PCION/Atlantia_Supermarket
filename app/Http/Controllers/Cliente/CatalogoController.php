@@ -64,6 +64,9 @@ class CatalogoController extends Controller
             ->withCount([
                 'productos as productos_publicados_count' => fn (Builder $query) => $query->publicados(),
             ])
+            ->withMin([
+                'vendorDeliveryZones as tiempo_entrega_min' => fn (Builder $query) => $query->where('activa', true),
+            ], 'tiempo_estimado_min')
             ->whereHas('productos', fn (Builder $query) => $query->publicados())
             ->when($municipioActivo !== '', fn (Builder $query) => $query->where('municipio', $municipioActivo))
             ->orderByDesc('productos_publicados_count')

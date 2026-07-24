@@ -2,9 +2,11 @@
 
 namespace App\Services\Repartidores;
 
+use App\Models\CourierCashSettlement;
 use App\Models\CourierProfile;
 use App\Models\CourierWallet;
 use App\Models\CourierWalletMovement;
+use App\Models\CourierWithdrawalRequest;
 use App\Models\DeliveryOffer;
 use App\Models\DeliveryRoute;
 use App\Models\DeliveryZone;
@@ -97,6 +99,8 @@ class MobileRepartidorPayloadService
             'auto_accept_max_distance_km' => (float) $profile->auto_accept_max_distance_km,
             'safe_zones' => $profile->safe_zones ?? [],
             'insurance_active' => (bool) $profile->insurance_active,
+            'payout_method' => $profile->payout_method ?: 'transfer',
+            'bank_account' => $this->bankAccount($profile),
             'last_online_at' => $profile->last_online_at?->toIso8601String(),
             'last_offline_at' => $profile->last_offline_at?->toIso8601String(),
         ];
@@ -132,12 +136,42 @@ class MobileRepartidorPayloadService
             'tip_earnings' => (float) ($summary['tip_earnings'] ?? 0),
             'transit_balance' => (float) ($summary['transit_balance'] ?? 0),
             'previous_week_earnings' => (float) ($summary['previous_week_earnings'] ?? 0),
+            'pending_withdrawal_amount' => (float) ($summary['pending_withdrawal_amount'] ?? 0),
+            'available_to_withdraw' => (float) ($summary['available_to_withdraw'] ?? 0),
+            'bank_account' => is_array($summary['bank_account'] ?? null) ? $summary['bank_account'] : null,
             'movements' => collect($summary['movements'] ?? [])->map(
                 fn (CourierWalletMovement $movement): array => $this->walletMovement($movement)
             )->values(),
             'cash_movements' => collect($summary['cash_movements'] ?? [])->map(
                 fn (CourierWalletMovement $movement): array => $this->walletMovement($movement)
             )->values(),
+            'withdrawals' => collect($summary['withdrawals'] ?? [])->map(
+                fn (CourierWithdrawalRequest $request): array => $this->withdrawal($request)
+            )->values(),
+            'cash_settlements' => collect($summary['cash_settlements'] ?? [])->map(
+                fn (CourierCashSettlement $settlement): array => $this->cashSettlement($settlement)
+            )->values(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function bankAccount(CourierProfile $profile): array
+    {
+        $digits = $profile->bank_account_number === null
+            ? null
+            : substr((preg_replace('/\D+/', '', $profile->bank_account_number) ?: $profile->bank_account_number), -4);
+
+        return [
+            'bank_name' => $profile->bank_name,
+            'bank_account_type' => $profile->bank_account_type,
+            'bank_account_number_last4' => $digits,
+            'bank_account_holder' => $profile->bank_account_holder,
+            'payout_method' => $profile->payout_method ?: 'transfer',
+            'document_path' => $profile->bank_document_path,
+            'verified_at' => $profile->bank_account_verified_at?->toIso8601String(),
+            'verification_notes' => $profile->bank_verification_notes,
         ];
     }
 
@@ -153,6 +187,52 @@ class MobileRepartidorPayloadService
             'status' => $movement->status,
             'description' => $movement->description,
             'created_at' => $movement->created_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function withdrawal(CourierWithdrawalRequest $request): array
+    {
+        return [
+            'id' => $request->uuid,
+            'status' => $request->status,
+            'payout_method' => $request->payout_method,
+            'requested_amount' => (float) $request->requested_amount,
+            'approved_amount' => $request->approved_amount === null ? null : (float) $request->approved_amount,
+            'transferred_amount' => $request->transferred_amount === null ? null : (float) $request->transferred_amount,
+            'transfer_reference' => $request->transfer_reference,
+            'receipt_path' => $request->receipt_path,
+            'bank_name' => $request->bank_name,
+            'bank_account_type' => $request->bank_account_type,
+            'bank_account_number_last4' => $request->bank_account_number_last4,
+            'bank_account_holder' => $request->bank_account_holder,
+            'notes' => $request->courier_notes,
+            'admin_notes' => $request->admin_notes,
+            'requested_at' => $request->requested_at?->toIso8601String(),
+            'approved_at' => $request->approved_at?->toIso8601String(),
+            'transferred_at' => $request->transferred_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function cashSettlement(CourierCashSettlement $settlement): array
+    {
+        return [
+            'id' => $settlement->uuid,
+            'status' => $settlement->status,
+            'expected_amount' => (float) $settlement->expected_amount,
+            'reported_amount' => (float) $settlement->reported_amount,
+            'approved_amount' => $settlement->approved_amount === null ? null : (float) $settlement->approved_amount,
+            'settlement_reference' => $settlement->settlement_reference,
+            'receipt_path' => $settlement->receipt_path,
+            'notes' => $settlement->courier_notes,
+            'admin_notes' => $settlement->admin_notes,
+            'requested_at' => $settlement->requested_at?->toIso8601String(),
+            'approved_at' => $settlement->approved_at?->toIso8601String(),
         ];
     }
 
@@ -186,8 +266,11 @@ class MobileRepartidorPayloadService
      */
     public function internalOrder(Pedido $pedido): array
     {
-        $pedido->loadMissing(['direccion', 'items.producto', 'deliveryRoute', 'cliente', 'vendor']);
+        $pedido->loadMissing(['direccion', 'items.producto', 'deliveryRoute', 'cliente', 'vendor', 'latestPayment']);
         $route = $pedido->deliveryRoute;
+        $paymentPayload = $pedido->paymentOperationalData();
+        $collectionFlow = $pedido->paymentCollectionFlow();
+        $changeRequestedFor = $pedido->changeRequestedForAmount();
 
         return [
             'id' => $pedido->uuid,
@@ -220,6 +303,21 @@ class MobileRepartidorPayloadService
                 'to_collect' => (float) ($route?->cash_to_collect ?? ($pedido->metodoPagoValor() === 'efectivo' ? $pedido->total : 0)),
                 'to_pay_pickup' => (float) ($route?->cash_to_pay_pickup ?? 0),
                 'change_required' => (float) ($route?->change_required ?? 0),
+                'change_requested_for' => $changeRequestedFor,
+            ],
+            'payment' => [
+                'collection_flow' => $collectionFlow,
+                'amount_due_on_delivery' => $pedido->amountDueOnDelivery(),
+                'requires_pos_terminal' => (bool) ($paymentPayload['requires_pos_terminal'] ?? false),
+                'requires_bank_transfer' => $collectionFlow === 'bank_transfer_on_delivery',
+                'change_requested' => (bool) ($paymentPayload['change_requested'] ?? false),
+                'change_requested_for' => $changeRequestedFor,
+                'provider' => $collectionFlow === 'pos_on_delivery'
+                    ? config('atlantia.payments.pos.provider')
+                    : ($collectionFlow === 'bank_transfer_on_delivery'
+                        ? config('atlantia.payments.transfer.bank_name')
+                        : null),
+                'instructions' => $this->paymentInstructions($collectionFlow, $pedido, $paymentPayload),
             ],
             'earning' => [
                 'estimated' => (float) ($route?->estimated_earning ?? 0),
@@ -392,8 +490,28 @@ class MobileRepartidorPayloadService
         ])->filter()->join(', '));
     }
 
+    /**
+     * @param  array<string, mixed>  $paymentPayload
+     */
+    private function paymentInstructions(string $collectionFlow, Pedido $pedido, array $paymentPayload): string
+    {
+        return match ($collectionFlow) {
+            'pos_on_delivery' => 'Cobrar con terminal POS '.$this->stringValue(config('atlantia.payments.pos.provider')).' al momento de la entrega.',
+            'bank_transfer_on_delivery' => 'Solicitar transferencia al entregar y validar el comprobante del cliente antes de cerrar la entrega.',
+            'cash_on_delivery' => $pedido->changeRequestedForAmount() !== null
+                ? 'Cobrar en efectivo y llevar cambio para Q '.number_format((float) $pedido->changeRequestedForAmount(), 2).'.'
+                : 'Cobrar en efectivo al entregar el pedido.',
+            default => (string) ($paymentPayload['customer_message'] ?? 'Confirmar el cobro al momento de la entrega.'),
+        };
+    }
+
     private function nullableFloat(mixed $value): ?float
     {
         return $value === null ? null : (float) $value;
+    }
+
+    private function stringValue(mixed $value): string
+    {
+        return is_string($value) ? trim($value) : '';
     }
 }

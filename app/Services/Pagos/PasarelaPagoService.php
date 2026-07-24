@@ -166,88 +166,46 @@ class PasarelaPagoService implements PasarelaPagoContract
     private function procesarSegunMetodo(Pedido $pedido, string $metodo, PedidoDTO $pedidoDTO): PagoResultado
     {
         return match ($metodo) {
-            MetodoPago::Tarjeta->value => $this->procesarTarjetaStripe($pedido, $pedidoDTO),
-            MetodoPago::Transferencia->value => new PagoResultado(
-                estado: EstadoPago::Validando,
-                referenciaBancaria: $pedidoDTO->referenciaBancaria,
+            MetodoPago::Tarjeta->value => new PagoResultado(
+                estado: EstadoPago::Pendiente,
+                transaccionIdPasarela: null,
+                hmacValidado: false,
+                validadoAt: null,
+                payload: [
+                    'gateway' => 'manual_pos',
+                    'collection_flow' => 'pos_on_delivery',
+                    'amount_due_on_delivery' => (float) $pedido->total,
+                    'requires_pos_terminal' => true,
+                    'customer_message' => 'El repartidor cobrara con terminal POS al momento de la entrega.',
+                ],
             ),
-            MetodoPago::Efectivo->value => new PagoResultado(estado: EstadoPago::Pendiente),
+            MetodoPago::Transferencia->value => new PagoResultado(
+                estado: EstadoPago::Pendiente,
+                referenciaBancaria: $pedidoDTO->referenciaBancaria,
+                payload: [
+                    'gateway' => 'manual_transfer',
+                    'collection_flow' => 'bank_transfer_on_delivery',
+                    'amount_due_on_delivery' => (float) $pedido->total,
+                    'reference_hint' => $pedidoDTO->referenciaBancaria,
+                    'customer_message' => 'La transferencia se confirma al momento de entregar el pedido.',
+                ],
+            ),
+            MetodoPago::Efectivo->value => new PagoResultado(
+                estado: EstadoPago::Pendiente,
+                payload: [
+                    'gateway' => 'cash_on_delivery',
+                    'collection_flow' => 'cash_on_delivery',
+                    'amount_due_on_delivery' => (float) $pedido->total,
+                    'change_requested' => $pedidoDTO->solicitaCambio,
+                    'change_requested_for' => $pedidoDTO->cambioPara,
+                    'change_required' => $this->calculateChangeRequired($pedido, $pedidoDTO),
+                    'customer_message' => $pedidoDTO->solicitaCambio && $pedidoDTO->cambioPara !== null
+                        ? 'El cliente solicito cambio para Q '.number_format($pedidoDTO->cambioPara, 2).'.'
+                        : 'Cobro en efectivo al entregar.',
+                ],
+            ),
             default => throw new PagoRechazadoException('Metodo de pago no soportado.'),
         };
-    }
-
-    /**
-     * Procesa tarjeta con Stripe Payment Intents.
-     *
-     * @return array<string, mixed>
-     *
-     * @throws PagoRechazadoException
-     */
-    private function procesarTarjetaStripe(Pedido $pedido, PedidoDTO $pedidoDTO): PagoResultado
-    {
-        $secret = (string) config('services.stripe.secret_key');
-
-        if ($secret === '') {
-            throw new PagoRechazadoException('Stripe no esta configurado para procesar tarjetas.');
-        }
-
-        $stripeCredential = (string) ($pedidoDTO->cardToken ?? '');
-
-        if ($stripeCredential === '') {
-            throw new PagoRechazadoException('No se recibio el metodo de pago seguro de Stripe.');
-        }
-
-        $usesConfirmationToken = ! str_starts_with($stripeCredential, 'pm_');
-        $payload = [
-            'amount' => (int) round(((float) $pedido->total) * 100),
-            'currency' => strtolower((string) config('services.stripe.currency', 'gtq')),
-            'confirm' => 'true',
-            'description' => 'Atlantia Supermarket pedido '.$pedido->numero_pedido,
-            'metadata[pedido_uuid]' => $pedido->uuid,
-            'metadata[numero_pedido]' => $pedido->numero_pedido,
-        ];
-
-        if ($usesConfirmationToken) {
-            $payload['confirmation_token'] = $stripeCredential;
-            $payload['automatic_payment_methods[enabled]'] = 'true';
-        } else {
-            $payload['payment_method'] = $stripeCredential;
-            $payload['payment_method_types[]'] = 'card';
-        }
-
-        $response = Http::asForm()
-            ->withToken($secret)
-            ->withHeaders(['Idempotency-Key' => 'pedido-'.$pedido->uuid])
-            ->timeout(20)
-            ->post('https://api.stripe.com/v1/payment_intents', $payload);
-
-        if (! $response->successful()) {
-            throw new PagoRechazadoException(
-                (string) ($response->json('error.message') ?: 'Stripe rechazo el pago.')
-            );
-        }
-
-        $payload = $response->json();
-        $status = (string) ($payload['status'] ?? '');
-
-        if (! in_array($status, ['succeeded', 'processing', 'requires_capture'], true)) {
-            throw new PagoRechazadoException('Stripe no aprobo el pago de la tarjeta.');
-        }
-
-        return new PagoResultado(
-            estado: EstadoPago::Aprobado,
-            transaccionIdPasarela: $payload['id'] ?? null,
-            hmacValidado: true,
-            validadoAt: now(),
-            payload: [
-                'gateway' => 'stripe',
-                'authorization' => $status,
-                'amount' => (float) $pedido->total,
-                'currency' => 'GTQ',
-                'stripe_payment_intent' => $payload['id'] ?? null,
-                'stripe_status' => $status,
-            ],
-        );
     }
 
     /**
@@ -372,5 +330,18 @@ class PasarelaPagoService implements PasarelaPagoContract
             'reversed', 'reversado', 'voided', 'anulado' => EstadoPago::Anulado,
             default => EstadoPago::Validando,
         };
+    }
+
+    private function calculateChangeRequired(Pedido $pedido, PedidoDTO $pedidoDTO): float
+    {
+        if (! $pedidoDTO->solicitaCambio || $pedidoDTO->cambioPara === null) {
+            return 0;
+        }
+
+        if ($pedidoDTO->cambioPara <= (float) $pedido->total) {
+            throw new PagoRechazadoException('La denominacion para cambio debe ser mayor al total del pedido.');
+        }
+
+        return round($pedidoDTO->cambioPara - (float) $pedido->total, 2);
     }
 }

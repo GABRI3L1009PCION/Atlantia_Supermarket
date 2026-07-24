@@ -11,6 +11,7 @@ use App\Enums\MetodoPago;
 use App\Exceptions\DireccionFueraDeZonaException;
 use App\Exceptions\PagoRechazadoException;
 use App\Exceptions\StockInsuficienteException;
+use App\Exceptions\TransaccionFallidaException;
 use App\Models\Carrito;
 use App\Models\CarritoItem;
 use App\Models\Categoria;
@@ -342,6 +343,31 @@ class CheckoutServiceTest extends TestCase
                 'direccion_id' => $direccion->id,
                 'metodo_pago' => MetodoPago::Efectivo->value,
                 'envio' => 15,
+            ])
+        );
+    }
+
+    /**
+     * Rechaza solicitudes de cambio invalidas antes de crear el pedido.
+     */
+    public function test_checkout_rechaza_cambio_si_el_billete_no_supera_el_total(): void
+    {
+        [$cliente, $direccion] = $this->createClienteConDireccion();
+        $producto = $this->createProductoConInventario(2);
+        $this->createCarritoActivo($cliente, $producto, 1);
+        $this->fakePasarelaAprobada();
+
+        $this->expectException(TransaccionFallidaException::class);
+        $this->expectExceptionMessage('El billete indicado para cambio debe ser mayor al total estimado.');
+
+        app(CheckoutService::class)->checkout(
+            $cliente,
+            PedidoDTO::fromCheckoutArray([
+                'direccion_id' => $direccion->id,
+                'metodo_pago' => MetodoPago::Efectivo->value,
+                'envio' => 15,
+                'solicita_cambio' => true,
+                'cambio_para' => 30,
             ])
         );
     }

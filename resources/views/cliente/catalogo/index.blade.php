@@ -10,15 +10,23 @@
         $deliveryHeroImage = file_exists(public_path('images/atlantia-delivery-hero.png'))
             ? asset('images/atlantia-delivery-hero.png')
             : null;
-        $mobileHeroImage = $deliveryHeroImage ?? $heroCard['mobile_image'] ?? $heroCard['desktop_image'] ?? asset('images/fondo.png');
+        $staticDesktopHeroImage = file_exists(public_path('images/atlantia-marketplace-hero-v2.png'))
+            ? asset('images/atlantia-marketplace-hero-v2.png')
+            : null;
+        $desktopHeroImage = $heroCard['desktop_image'] ?? $staticDesktopHeroImage ?? $deliveryHeroImage ?? asset('images/fondo.png');
+        $mobileHeroImage = $heroCard['mobile_image'] ?? $heroCard['desktop_image'] ?? $deliveryHeroImage ?? $desktopHeroImage;
+        $heroAlt = 'Banner promocional ' . ($heroCard['name'] ?? 'Fallback Atlantia');
     @endphp
 
     <div class="bg-white lg:hidden">
-        <div class="mx-auto w-full max-w-md px-4 pb-36 pt-4">
-            <section class="relative overflow-hidden rounded-2xl border border-atlantia-rose/15 bg-atlantia-blush shadow-sm">
-                <img src="{{ $mobileHeroImage }}" alt="Atlantia Delivery" class="h-64 w-full object-cover object-center">
-                <div class="absolute inset-0 bg-gradient-to-r from-white/95 via-white/72 to-transparent"></div>
-                <div class="absolute inset-0 flex flex-col justify-between p-5">
+        <div class="mx-auto w-full max-w-3xl px-4 pb-12 pt-4 sm:px-6">
+            <section class="relative min-h-32 overflow-hidden rounded-lg border border-atlantia-rose/15 bg-atlantia-blush shadow-sm sm:min-h-44">
+                <picture class="absolute inset-0">
+                    <img src="{{ $mobileHeroImage }}" alt="{{ $heroAlt }}" class="h-full w-full object-cover object-center md:hidden">
+                    <img src="{{ $desktopHeroImage }}" alt="{{ $heroAlt }}" class="hidden h-full w-full object-cover object-center md:block">
+                </picture>
+                <div class="hidden absolute inset-0 bg-gradient-to-r from-white/95 via-white/72 to-transparent"></div>
+                <div class="hidden absolute inset-0 flex-col justify-between p-5">
                     <div>
                         <span class="inline-flex items-center gap-2 rounded-lg bg-white/90 px-3 py-2 text-xs font-black uppercase text-atlantia-wine shadow-sm">
                             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -41,7 +49,14 @@
                 </div>
             </section>
 
-            <section class="mt-4 grid grid-cols-3 gap-3">
+            <div class="mt-3 flex justify-center gap-3" aria-label="Posicion del carrusel">
+                <span class="h-2.5 w-2.5 rounded-full bg-atlantia-wine"></span>
+                <span class="h-2.5 w-2.5 rounded-full bg-slate-200"></span>
+                <span class="h-2.5 w-2.5 rounded-full bg-slate-200"></span>
+                <span class="h-2.5 w-2.5 rounded-full bg-slate-200"></span>
+            </div>
+
+            <section class="hidden mt-4 grid-cols-3 gap-3">
                 @foreach ([
                     ['title' => 'Entrega rapida', 'text' => '30-60 min', 'icon' => 'ride'],
                     ['title' => 'Comercios verificados', 'text' => 'Locales aprobados', 'icon' => 'star'],
@@ -63,7 +78,7 @@
                 @endforeach
             </section>
 
-            <form action="{{ route('comercios.index') }}" method="GET" class="relative mt-5">
+            <form action="{{ route('comercios.index') }}" method="GET" class="hidden relative mt-5">
                 <input type="hidden" name="municipio" value="{{ $municipioActivo }}">
                 <svg class="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-atlantia-wine" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="m21 21-4.3-4.3M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
@@ -77,30 +92,63 @@
                 >
             </form>
 
-            <nav class="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Categorias">
-                <a href="{{ route('comercios.index', ['municipio' => $municipioActivo]) }}" class="inline-flex h-12 shrink-0 items-center gap-2 rounded-full bg-atlantia-wine px-5 text-sm font-black text-white">
-                    Todas
-                </a>
-                @foreach ($mobileCategories as $categoria)
-                    <a href="{{ $categoria['href'] }}" class="inline-flex h-12 shrink-0 items-center gap-2 rounded-full border border-atlantia-rose/15 bg-white px-4 text-sm font-bold text-atlantia-ink shadow-sm">
-                        <span class="grid h-6 w-6 place-items-center text-atlantia-wine">
-                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M4 7h16M7 4v16M17 4v16M4 17h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-                            </svg>
-                        </span>
-                        {{ $categoria['nombre'] }}
+            <section class="mt-7">
+                <div class="flex items-center justify-between gap-4">
+                    <h2 class="text-xl font-black text-atlantia-ink sm:text-2xl">Explora por Categoria</h2>
+                    <a href="{{ route('categorias.index') }}" class="inline-flex shrink-0 items-center gap-1 text-sm font-black text-atlantia-wine">
+                        Ver todas
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 5 7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </a>
-                @endforeach
-            </nav>
+                </div>
+
+                <nav class="mt-4 flex gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Categorias">
+                    <a href="{{ route('comercios.index', ['municipio' => $municipioActivo]) }}" class="flex w-24 shrink-0 flex-col items-center gap-2 text-center">
+                        <span class="grid h-20 w-20 place-items-center rounded-full border-2 border-atlantia-wine bg-white text-atlantia-wine shadow-sm sm:h-24 sm:w-24">
+                            <svg class="h-9 w-9" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z" stroke="currentColor" stroke-width="1.7"/></svg>
+                        </span>
+                        <span class="text-xs font-black leading-4 text-atlantia-ink">Todas las categorias</span>
+                    </a>
+                    @foreach ($categories as $categoria)
+                        <a href="{{ $categoria['href'] }}" class="flex w-24 shrink-0 flex-col items-center gap-2 text-center">
+                            <span class="grid h-20 w-20 place-items-center overflow-hidden rounded-full border-2 border-atlantia-wine bg-white p-3 text-atlantia-wine shadow-sm sm:h-24 sm:w-24">
+                                @if ($categoria['image'])
+                                    <img src="{{ $categoria['image'] }}" alt="{{ $categoria['nombre'] }}" class="h-full w-full object-contain" loading="lazy">
+                                @else
+                                    <svg class="h-9 w-9" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M7 4v16M17 4v16M4 17h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                                @endif
+                            </span>
+                            <span class="line-clamp-2 text-xs font-black leading-4 text-atlantia-ink">{{ $categoria['nombre'] }}</span>
+                        </a>
+                    @endforeach
+                </nav>
+            </section>
 
             <section class="mt-6 border-t border-atlantia-rose/10 pt-5">
                 <div class="mb-4 flex items-center justify-between gap-3">
-                    <h2 class="text-xl font-black text-atlantia-ink">Comercios cerca de ti</h2>
+                    <div>
+                        <h2 class="text-xl font-black text-atlantia-ink sm:text-2xl">Comercios disponibles</h2>
+                        <p class="mt-1 text-xs font-semibold leading-5 text-atlantia-ink/55">Comercios locales verificados en {{ $municipioActivo }}.</p>
+                    </div>
                     <a href="{{ route('comercios.index', ['municipio' => $municipioActivo]) }}" class="inline-flex items-center gap-1 text-sm font-black text-atlantia-wine">
                         Ver todos
                         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
+                    </a>
+                </div>
+
+                <div class="mb-3 grid grid-cols-[1fr_1fr_1.15fr] gap-2">
+                    <a href="{{ route('comercios.index', ['municipio' => $municipioActivo]) }}" class="flex h-10 items-center justify-center gap-1 rounded-lg border border-atlantia-rose/15 bg-white text-xs font-black text-atlantia-ink/65 shadow-sm">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h10M18 7h2M4 12h3M11 12h9M4 17h7M15 17h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                        Filtros
+                    </a>
+                    <a href="{{ route('comercios.index', ['municipio' => $municipioActivo, 'orden' => 'nombre']) }}" class="flex h-10 items-center justify-center gap-1 rounded-lg border border-atlantia-rose/15 bg-white text-xs font-black text-atlantia-ink/65 shadow-sm">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m8 5-3 3-3-3M5 8V3m11 16 3-3 3 3m-3-3v5M10 7h8M10 12h8M5 17h7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Ordenar
+                    </a>
+                    <a href="{{ route('comercios.index', ['municipio' => $municipioActivo, 'orden' => 'popularidad']) }}" class="flex h-10 items-center justify-between rounded-lg border border-atlantia-rose/15 bg-white px-3 text-xs font-black text-atlantia-ink/65 shadow-sm">
+                        Relevancia
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </a>
                 </div>
 
@@ -110,36 +158,41 @@
                         <p class="mt-1 text-sm text-atlantia-ink/60">Cuando apruebes negocios con productos visibles apareceran aqui.</p>
                     </div>
                 @else
-                    <div class="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
                         @foreach ($vendorsDestacados->take(6) as $vendor)
                             @php
                                 $rating = $ratingsDestacados->get($vendor->id, ['rating' => null, 'total' => 0]);
                                 $cover = $vendor->cover_url ?: asset('images/fondo.png');
                                 $category = $vendor->business_category ?: 'Comercio';
-                                $shippingPromo = max(50, (int) (ceil(((int) $vendor->id + 1) / 25) * 25));
+                                $deliveryLabel = $vendor->tiempo_entrega_min
+                                    ? number_format((int) $vendor->tiempo_entrega_min).' min'
+                                    : 'Por confirmar';
                             @endphp
-                            <article class="w-44 shrink-0 snap-start overflow-hidden rounded-2xl border border-atlantia-rose/15 bg-white shadow-sm">
+                            <article class="min-w-0 overflow-hidden rounded-lg border border-atlantia-rose/15 bg-white shadow-sm">
                                 <a href="{{ route('comercios.show', ['vendor' => $vendor->slug]) }}" class="block">
-                                    <div class="relative h-36 overflow-hidden bg-atlantia-blush">
+                                    <div class="relative h-24 overflow-hidden bg-atlantia-blush sm:h-32">
                                         <img src="{{ $cover }}" alt="{{ $vendor->business_name }}" class="h-full w-full object-cover" loading="lazy">
-                                        <span class="absolute bottom-2 left-2 rounded-md bg-white px-2 py-1 text-[11px] font-black text-atlantia-wine shadow-sm">{{ $category }}</span>
                                         <span class="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full bg-white text-atlantia-wine shadow-sm">
                                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                                 <path d="M12 20s-7-4.4-7-10a4.2 4.2 0 0 1 7-3.1A4.2 4.2 0 0 1 19 10c0 5.6-7 10-7 10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
                                             </svg>
                                         </span>
+                                        <span class="absolute bottom-2 left-2 grid h-12 w-12 place-items-center overflow-hidden rounded-full border-2 border-white bg-white text-xs font-black text-atlantia-wine shadow">
+                                            @if ($vendor->logo_url)
+                                                <img src="{{ $vendor->logo_url }}" alt="" class="h-full w-full object-contain" loading="lazy">
+                                            @else
+                                                {{ str($vendor->business_name)->substr(0, 2)->upper() }}
+                                            @endif
+                                        </span>
                                     </div>
                                     <div class="p-3">
-                                        <h3 class="line-clamp-2 min-h-10 text-base font-black leading-5 text-atlantia-ink">{{ $vendor->business_name }}</h3>
-                                        <p class="mt-1 text-sm font-semibold leading-5 text-atlantia-ink/55">25-35 min - {{ number_format(0.8 + (($vendor->id % 7) * 0.35), 1) }} km</p>
-                                        <div class="mt-2 flex items-center gap-1 text-sm">
-                                            <span class="font-black text-amber-500">*</span>
-                                            <span class="font-black text-atlantia-ink">{{ $rating['rating'] ? number_format((float) $rating['rating'], 1) : 'Nuevo' }}</span>
-                                            <span class="text-atlantia-ink/50">({{ number_format((int) $rating['total']) }})</span>
-                                        </div>
-                                        <div class="mt-3 rounded-lg bg-atlantia-blush px-3 py-2 text-xs font-black leading-4 text-atlantia-wine">
-                                            Envio gratis desde Q{{ number_format($shippingPromo) }}
-                                        </div>
+                                        <h3 class="truncate text-sm font-black leading-5 text-atlantia-ink sm:text-base">{{ $vendor->business_name }}</h3>
+                                        <p class="mt-0.5 truncate text-xs font-semibold text-atlantia-ink/50">{{ $category }}</p>
+                                        <p class="mt-2 flex items-center gap-2 text-[10px] font-bold text-atlantia-ink/55 sm:text-xs">
+                                            <span>{{ $deliveryLabel }}</span>
+                                            <span class="text-atlantia-rose">|</span>
+                                            <span class="truncate">{{ $vendor->municipio ?: $municipioActivo }}</span>
+                                        </p>
                                     </div>
                                 </a>
                             </article>
@@ -148,7 +201,7 @@
                 @endif
             </section>
 
-            <section class="mt-6 grid gap-4 rounded-2xl bg-atlantia-blush p-4">
+            <section class="hidden mt-6 gap-4 rounded-2xl bg-atlantia-blush p-4">
                 <div class="flex items-center gap-4">
                     <span class="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-atlantia-wine text-white">
                         <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -193,7 +246,7 @@
             </aside>
         @endif
 
-        <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-atlantia-rose/10 bg-white px-4 pb-safe shadow-[0_-12px_30px_rgba(42,16,24,0.08)]" aria-label="Navegacion inferior">
+        <nav class="hidden fixed inset-x-0 bottom-0 z-40 border-t border-atlantia-rose/10 bg-white px-4 pb-safe shadow-[0_-12px_30px_rgba(42,16,24,0.08)]" aria-label="Navegacion inferior">
             <div class="mx-auto grid h-20 max-w-md grid-cols-5 items-center text-center text-xs font-semibold text-atlantia-ink/70">
                 @foreach ([
                     ['label' => 'Inicio', 'href' => route('home'), 'active' => true, 'icon' => 'home'],
@@ -223,219 +276,197 @@
         </nav>
     </div>
 
-    <div class="hidden bg-white lg:block">
-        <div class="mx-auto w-full max-w-7xl bg-white p-4 sm:p-6">
-            <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_350px]">
-                <article class="relative min-h-[28rem] overflow-hidden rounded-2xl bg-atlantia-blush shadow-sm">
-                    @if ($heroCard)
-                        <img
-                            src="{{ $heroCard['desktop_image'] }}"
-                            alt="Banner promocional {{ $heroCard['name'] }}"
-                            class="hidden h-full w-full object-cover object-center md:block"
-                        >
-                        <img
-                            src="{{ $heroCard['mobile_image'] }}"
-                            alt="Banner promocional {{ $heroCard['name'] }}"
-                            class="h-full w-full object-cover object-center md:hidden"
-                        >
-                    @else
-                        <img
-                            src="{{ asset('images/fondo.png') }}"
-                            alt="Banner promocional Atlantia Delivery"
-                            class="hidden h-full w-full object-cover object-center md:block"
-                        >
-                        <img
-                            src="{{ asset('images/fondo.png') }}"
-                            alt="Banner promocional Atlantia Delivery"
-                            class="h-full w-full object-cover object-center md:hidden"
-                        >
-                    @endif
+    <div class="hidden bg-[#fff9fb] lg:block">
+        <div class="mx-auto w-full max-w-7xl px-4 py-3 xl:px-6">
+            <section class="relative h-[14rem] overflow-hidden rounded-xl border border-atlantia-rose/20 bg-atlantia-wine-900 shadow-[0_14px_36px_rgba(63,13,29,0.12)]">
+                <picture class="absolute inset-0">
+                    <img src="{{ $mobileHeroImage }}" alt="{{ $heroAlt }}" class="h-full w-full object-cover object-center md:hidden">
+                    <img src="{{ $desktopHeroImage }}" alt="{{ $heroAlt }}" class="hidden h-full w-full object-cover object-center md:block">
+                </picture>
+                <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(48,5,19,0.94)_0%,rgba(65,8,27,0.84)_38%,rgba(72,12,30,0.30)_70%,rgba(72,12,30,0.00)_100%)]"></div>
 
-                    <div class="absolute inset-0 bg-gradient-to-r from-white/95 via-white/72 to-black/10"></div>
-                    <div class="absolute inset-0 flex flex-col justify-between p-6 sm:p-8">
-                        <div class="max-w-xl">
-                            <span class="inline-flex items-center gap-2 rounded-lg bg-white/90 px-3 py-2 text-xs font-black uppercase text-atlantia-wine shadow-sm">
-                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                    <path d="M5 17h10l3-5H8l-3 5ZM3 17h2M15 17h3M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM17 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
+                <div class="relative z-10 grid h-full grid-cols-[40%_45%_15%]">
+                    <div class="col-start-1 flex h-full min-w-0 flex-col justify-between py-5 pl-8 pr-4 xl:pl-10">
+                        <div>
+                            <span class="inline-flex h-6 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 text-[9px] font-black uppercase text-white backdrop-blur-sm">
+                                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 16h9l3-6H7l-3 6ZM7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                 Delivery Atlantia
                             </span>
-                            <h1 class="mt-6 max-w-lg text-4xl font-black leading-tight text-atlantia-ink sm:text-5xl">
-                                Lo que necesitas, <span class="text-atlantia-wine">donde lo necesitas</span>
+                            <h1 class="mt-2 text-[2rem] font-black leading-none text-white xl:text-[2.35rem]">
+                                Lo que necesitas,
+                                <span class="block text-[#f4a7c5]">donde lo necesitas</span>
                             </h1>
-                            <p class="mt-5 max-w-md text-base font-semibold leading-7 text-atlantia-ink/70">
+                            <p class="mt-2 max-w-[22rem] text-[11px] font-semibold leading-4 text-white/90 xl:text-xs">
                                 Compra en comercios locales verificados y recibe tus productos en la puerta de tu casa.
                             </p>
                         </div>
 
-                        <div class="grid gap-3 sm:grid-cols-3">
-                            <div class="rounded-xl bg-white/92 p-4 shadow-sm">
-                                <p class="flex items-center gap-2 text-sm font-black text-atlantia-ink">
-                                    <svg class="h-6 w-6 text-atlantia-wine" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                        <path d="M4 16h9l3-6H7l-3 6ZM2 16h2M16 16h3M7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                    Entrega rapida
-                                </p>
-                                <p class="mt-1 text-xs font-bold text-atlantia-ink/55">30-60 min</p>
-                            </div>
-                            <div class="rounded-xl bg-white/92 p-4 shadow-sm">
-                                <p class="flex items-center gap-2 text-sm font-black text-atlantia-ink">
-                                    <svg class="h-6 w-6 text-atlantia-wine" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                        <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2 7.5 14 3 9.6l6.2-.9L12 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-                                    </svg>
-                                    Comercios verificados
-                                </p>
-                                <p class="mt-1 text-xs font-bold text-atlantia-ink/55">Locales aprobados</p>
-                            </div>
-                            <div class="rounded-xl bg-white/92 p-4 shadow-sm">
-                                <p class="flex items-center gap-2 text-sm font-black text-atlantia-ink">
-                                    <svg class="h-6 w-6 text-atlantia-wine" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                        <path d="M6 10V8a6 6 0 0 1 12 0v2M5 10h14v10H5V10Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-                                    </svg>
-                                    Pago seguro
-                                </p>
-                                <p class="mt-1 text-xs font-bold text-atlantia-ink/55">100% protegido</p>
-                            </div>
+                        <div class="grid max-w-[27rem] grid-cols-3 overflow-hidden rounded-lg border border-white/25 bg-white/95 shadow-lg">
+                            @foreach ([
+                                ['title' => 'Entrega rapida', 'text' => 'Servicio local', 'icon' => 'truck'],
+                                ['title' => 'Comercios verificados', 'text' => 'Locales aprobados', 'icon' => 'star'],
+                                ['title' => 'Pago seguro', 'text' => 'Opciones protegidas', 'icon' => 'lock'],
+                            ] as $benefit)
+                                <div class="{{ ! $loop->first ? 'border-l border-atlantia-rose/20' : '' }} min-w-0 px-3 py-2">
+                                    <p class="flex items-center gap-1.5 text-[10px] font-black leading-3 text-atlantia-ink">
+                                        @if ($benefit['icon'] === 'truck')
+                                            <svg class="h-3.5 w-3.5 shrink-0 text-atlantia-wine" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 16h9l3-6H7l-3 6ZM7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        @elseif ($benefit['icon'] === 'star')
+                                            <svg class="h-3.5 w-3.5 shrink-0 text-atlantia-wine" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2 7.5 14 3 9.6l6.2-.9L12 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                                        @else
+                                            <svg class="h-3.5 w-3.5 shrink-0 text-atlantia-wine" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2M5 10h14v10H5V10Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+                                        @endif
+                                        {{ $benefit['title'] }}
+                                    </p>
+                                    <p class="mt-1 truncate text-[9px] font-semibold text-atlantia-ink/55">{{ $benefit['text'] }}</p>
+                                </div>
+                            @endforeach
                         </div>
                     </div>
-                </article>
 
-                <aside class="rounded-2xl border border-atlantia-rose/15 bg-white p-6 shadow-[0_18px_42px_rgba(42,16,24,0.10)]">
-                    <h2 class="text-2xl font-black text-atlantia-ink">Que quieres pedir hoy?</h2>
-                    <form action="{{ route('comercios.index') }}" method="GET" class="mt-5 space-y-4">
-                        <label class="block text-sm font-bold text-atlantia-ink">
-                            Buscar
-                            <div class="relative mt-1">
-                                <input
-                                    type="search"
-                                    name="q"
-                                    value="{{ request('q') }}"
-                                    placeholder="Buscar en todo Atlantia..."
-                                    class="h-12 w-full rounded-lg border border-atlantia-rose/20 px-4 pr-11 text-sm font-semibold outline-none focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-blush"
-                                >
-                                <svg class="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-atlantia-wine" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                    <path d="m21 21-4.3-4.3M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
-                                </svg>
+                    <aside class="col-start-2 my-auto w-full rounded-2xl border border-atlantia-rose/30 bg-white/95 p-4 shadow-[0_18px_45px_rgba(63,13,29,0.18)] backdrop-blur-md">
+                        <h2 class="flex items-center gap-2 text-lg font-black text-atlantia-ink">
+                            <svg class="h-5 w-5 text-rose-500" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                            Que quieres pedir hoy?
+                        </h2>
+
+                        <form action="{{ route('comercios.index') }}" method="GET" class="mt-3 space-y-3">
+                            <div class="grid grid-cols-3 gap-3">
+                                <label class="block text-[9px] font-bold text-atlantia-ink/60">
+                                    Buscar
+                                    <div class="relative mt-1">
+                                        <input type="search" name="q" value="{{ request('q') }}" placeholder="Buscar en Atlantia..." class="h-10 w-full rounded-lg border border-atlantia-rose/20 bg-white px-3 pr-8 text-[10px] font-semibold text-atlantia-ink outline-none shadow-sm placeholder:text-atlantia-ink/40 focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-blush">
+                                        <svg class="absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-atlantia-wine" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m21 21-4.3-4.3M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+                                    </div>
+                                </label>
+
+                                <label class="block text-[9px] font-bold text-atlantia-ink/60">
+                                    Municipio
+                                    <select name="municipio" class="mt-1 h-10 w-full rounded-lg border border-atlantia-rose/20 bg-white px-3 text-[10px] font-semibold text-atlantia-ink outline-none shadow-sm focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-blush">
+                                        <option value="">Todos los municipios</option>
+                                        @foreach (['Puerto Barrios', 'Santo Tomas', 'Morales', 'Los Amates', 'Livingston', 'El Estor'] as $municipio)
+                                            <option value="{{ $municipio }}" @selected($municipioActivo === $municipio)>{{ $municipio }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+
+                                <label class="block text-[9px] font-bold text-atlantia-ink/60">
+                                    Categoria
+                                    <select name="categoria" class="mt-1 h-10 w-full rounded-lg border border-atlantia-rose/20 bg-white px-3 text-[10px] font-semibold text-atlantia-ink outline-none shadow-sm focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-blush">
+                                        <option value="">Todas las categorias</option>
+                                        @foreach ($categories as $categoria)
+                                            <option value="{{ $categoria['id'] }}">{{ $categoria['nombre'] }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
                             </div>
-                        </label>
 
-                        <label class="block text-sm font-bold text-atlantia-ink">
-                            Municipio
-                            <select name="municipio" class="mt-1 h-12 w-full rounded-lg border border-atlantia-rose/20 px-4 text-sm font-semibold outline-none focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-blush">
-                                <option value="">Todos los municipios</option>
-                                <option value="Puerto Barrios" @selected($municipioActivo === 'Puerto Barrios')>Puerto Barrios</option>
-                                <option value="Santo Tomas" @selected($municipioActivo === 'Santo Tomas')>Santo Tomas</option>
-                                <option value="Morales" @selected($municipioActivo === 'Morales')>Morales</option>
-                                <option value="Los Amates" @selected($municipioActivo === 'Los Amates')>Los Amates</option>
-                                <option value="Livingston" @selected($municipioActivo === 'Livingston')>Livingston</option>
-                                <option value="El Estor" @selected($municipioActivo === 'El Estor')>El Estor</option>
-                            </select>
-                        </label>
-
-                        <label class="block text-sm font-bold text-atlantia-ink">
-                            Categoria
-                            <select name="categoria" class="mt-1 h-12 w-full rounded-lg border border-atlantia-rose/20 px-4 text-sm font-semibold outline-none focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-blush">
-                                <option value="">Todas las categorias</option>
-                                @foreach ($categories as $categoria)
-                                    <option value="{{ $categoria['id'] }}">{{ $categoria['nombre'] }}</option>
-                                @endforeach
-                            </select>
-                        </label>
-
-                        <button class="h-12 w-full rounded-lg bg-atlantia-wine px-5 text-sm font-black text-white shadow-sm hover:bg-atlantia-wine-700">
-                            Buscar comercios
-                        </button>
-                    </form>
-                </aside>
+                            <button class="flex h-10 w-full items-center justify-center gap-3 rounded-lg bg-atlantia-wine px-5 text-xs font-black text-white shadow-[0_10px_24px_rgba(122,31,61,0.22)] transition hover:bg-atlantia-wine-700">
+                                Buscar comercios
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </button>
+                        </form>
+                    </aside>
+                </div>
             </section>
 
-            <section id="categorias" class="mt-8 rounded-2xl border border-atlantia-rose/15 bg-white p-5 shadow-sm">
-                <div class="mb-5 flex items-center justify-between gap-3">
-                    <h2 class="text-xl font-black text-atlantia-ink">Explora por categoria</h2>
-                    <a href="{{ route('comercios.index', ['municipio' => $municipioActivo]) }}" class="text-sm font-black text-atlantia-wine hover:underline">Ver todas</a>
+            <section id="categorias" class="mt-2.5 border-y border-atlantia-rose/15 bg-white px-4 py-2.5">
+                <div class="mb-2 flex items-center justify-between gap-3">
+                    <h2 class="flex items-center gap-2 text-sm font-black text-atlantia-ink">
+                        <svg class="h-4 w-4 text-rose-500" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                        Explora por categoria
+                    </h2>
+                    <a href="{{ route('comercios.index', ['municipio' => $municipioActivo]) }}" class="inline-flex h-6 items-center gap-1 rounded-full border border-atlantia-rose/20 px-3 text-[9px] font-black text-atlantia-wine hover:bg-atlantia-blush">Ver todas <span aria-hidden="true">&gt;</span></a>
                 </div>
 
-                <div class="flex snap-x snap-mandatory gap-5 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    <a href="{{ route('comercios.index', ['municipio' => $municipioActivo]) }}" class="group flex min-w-[7rem] snap-start flex-col items-center text-center">
-                        <span class="grid h-20 w-20 place-items-center rounded-full border-2 border-atlantia-wine bg-atlantia-wine text-white shadow-[0_14px_30px_rgba(135,22,61,0.16)]">
-                            <svg class="h-9 w-9" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M4 4h7v7H4V4ZM13 4h7v7h-7V4ZM4 13h7v7H4v-7ZM13 13h7v7h-7v-7Z" stroke="currentColor" stroke-width="1.8"/>
-                            </svg>
-                        </span>
-                        <span class="mt-3 text-xs font-black text-atlantia-wine">Todas</span>
+                <div class="grid grid-cols-9 gap-2">
+                    <a href="{{ route('comercios.index', ['municipio' => $municipioActivo]) }}" class="flex h-11 items-center justify-center gap-2 rounded-lg bg-atlantia-wine px-2 text-white shadow-[0_8px_20px_rgba(122,31,61,0.18)]">
+                        <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4h6v6H4V4ZM14 4h6v6h-6V4ZM4 14h6v6H4v-6ZM14 14h6v6h-6v-6Z" stroke="currentColor" stroke-width="1.7"/></svg>
+                        <span class="text-[10px] font-black">Todas</span>
                     </a>
 
-                    @foreach ($categories as $categoria)
-                        <a href="{{ $categoria['href'] }}" class="group flex min-w-[7rem] snap-start flex-col items-center text-center">
-                            <span class="grid h-20 w-20 place-items-center overflow-hidden rounded-full border border-atlantia-rose/25 bg-white p-4 text-atlantia-wine shadow-sm transition group-hover:border-atlantia-wine group-hover:bg-atlantia-blush">
-                                @if ($categoria['image'])
-                                    <img
-                                        src="{{ $categoria['image'] }}"
-                                        alt="{{ $categoria['nombre'] }}"
-                                        class="h-full w-full object-contain mix-blend-multiply"
-                                        loading="lazy"
-                                    >
+                    @foreach ($categories->take(8) as $categoria)
+                        @php
+                            $categoryKey = str($categoria['nombre'])->ascii()->lower()->toString();
+                        @endphp
+                        <a href="{{ $categoria['href'] }}" class="group flex h-11 min-w-0 items-center justify-center gap-2 px-1 text-atlantia-ink transition hover:text-atlantia-wine">
+                            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-atlantia-rose/20 bg-white text-rose-500 shadow-sm group-hover:bg-atlantia-blush">
+                                @if (str_contains($categoryKey, 'bebida'))
+                                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3h3v5l1 2v10H6V10l1-2V3ZM15 5h3v4l1 2v9h-5v-9l1-2V5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                                @elseif (str_contains($categoryKey, 'bebe'))
+                                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 5h3l2 10h8l2-7H9M11 19a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0ZM19 19a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                @elseif (str_contains($categoryKey, 'carne'))
+                                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 14c0-5 5-9 10-9 4 0 6 2 6 5 0 5-5 9-10 9-4 0-6-2-6-5Zm8-4c2-1 4 0 4 2s-2 3-4 2-2-3 0-4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                                @elseif (str_contains($categoryKey, 'pesc'))
+                                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12c3-4 7-6 12-4l4-3v14l-4-3c-5 2-9 0-12-4Zm4 0h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                @elseif (str_contains($categoryKey, 'congel'))
+                                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2v20M4 7l16 10M4 17 20 7M9 4l3 3 3-3M9 20l3-3 3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                @elseif (str_contains($categoryKey, 'cuidado') || str_contains($categoryKey, 'higiene'))
+                                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 4h4v4l1 2v10H5V10l1-2V4ZM15 3h3v5l1 2v10h-5V10l1-2V3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                                @elseif (str_contains($categoryKey, 'desay'))
+                                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h13v6a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6V7Zm13 2h2a2 2 0 0 1 0 4h-2M6 3h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                 @else
-                                    <svg class="h-9 w-9" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                        <path d="M4 7h16M7 4v16M17 4v16M4 17h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-                                    </svg>
+                                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 3h12l2 5-2 13H6L4 8l2-5ZM4 8h16M9 12v5M15 12v5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
                                 @endif
                             </span>
-                            <span class="mt-3 line-clamp-2 text-xs font-black text-atlantia-ink">{{ $categoria['nombre'] }}</span>
+                            <span class="line-clamp-2 text-[9px] font-black leading-3">{{ $categoria['nombre'] }}</span>
                         </a>
                     @endforeach
                 </div>
             </section>
 
-            <section id="comercios" class="mt-8 rounded-2xl border border-atlantia-rose/15 bg-white p-5 shadow-sm">
-                <div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <section id="comercios" class="mt-2.5 border-y border-atlantia-rose/15 bg-white px-4 py-2.5">
+                <div class="mb-2 flex items-end justify-between gap-3">
                     <div>
-                        <h2 class="text-xl font-black text-atlantia-ink">Comercios cerca de ti</h2>
-                        <p class="mt-1 text-sm text-atlantia-ink/60">Tiendas y restaurantes locales listos para llevarte lo mejor.</p>
+                        <h2 class="flex items-center gap-2 text-sm font-black text-atlantia-ink">Comercios cerca de ti <span class="text-rose-500" aria-hidden="true">&#9671;</span></h2>
+                        <p class="mt-0.5 text-[9px] font-semibold text-atlantia-ink/55">Tiendas y restaurantes locales disponibles en {{ $municipioActivo }}.</p>
                     </div>
-                    <a href="{{ route('comercios.index', ['municipio' => $municipioActivo]) }}" class="text-sm font-black text-atlantia-wine hover:underline">Ver todos -></a>
+                    <a href="{{ route('comercios.index', ['municipio' => $municipioActivo]) }}" class="inline-flex h-6 items-center gap-1 rounded-full border border-atlantia-rose/20 px-3 text-[9px] font-black text-atlantia-wine hover:bg-atlantia-blush">Ver todos los comercios <span aria-hidden="true">&gt;</span></a>
                 </div>
 
                 @if ($vendorsDestacados->isEmpty())
-                    <div class="rounded-2xl border border-dashed border-atlantia-rose/25 bg-atlantia-blush/40 p-8 text-center">
-                        <h3 class="font-black text-atlantia-ink">Aun no hay comercios publicados</h3>
-                        <p class="mt-1 text-sm text-atlantia-ink/60">Cuando apruebes negocios con productos visibles apareceran aqui.</p>
+                    <div class="grid h-[10rem] place-items-center rounded-lg border border-dashed border-atlantia-rose/25 bg-atlantia-blush/40 text-center">
+                        <div>
+                            <h3 class="text-sm font-black text-atlantia-ink">Aun no hay comercios publicados</h3>
+                            <p class="mt-1 text-xs text-atlantia-ink/60">Los comercios aprobados con productos visibles apareceran aqui.</p>
+                        </div>
                     </div>
                 @else
-                    <div class="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        @foreach ($vendorsDestacados->take(6) as $vendor)
+                    <div class="grid grid-cols-5 gap-3">
+                        @foreach ($vendorsDestacados->take(5) as $vendor)
                             @php
                                 $rating = $ratingsDestacados->get($vendor->id, ['rating' => null, 'total' => 0]);
                                 $cover = $vendor->cover_url ?: asset('images/fondo.png');
-                                $category = $vendor->business_category ?: 'Comercio';
-                                $shippingPromo = max(50, (int) (ceil(((int) $vendor->id + 1) / 25) * 25));
+                                $category = $vendor->business_category ?: 'Comercio local';
                             @endphp
-                            <article class="min-w-[17rem] snap-start overflow-hidden rounded-2xl border border-atlantia-rose/15 bg-white shadow-sm">
+                            <article class="min-w-0 overflow-hidden rounded-lg border border-atlantia-rose/20 bg-white shadow-[0_8px_22px_rgba(63,13,29,0.07)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(63,13,29,0.12)]">
                                 <a href="{{ route('comercios.show', ['vendor' => $vendor->slug]) }}" class="block">
-                                    <div class="relative h-44 overflow-hidden bg-atlantia-blush">
+                                    <div class="relative h-20 overflow-hidden bg-atlantia-blush">
                                         <img src="{{ $cover }}" alt="{{ $vendor->business_name }}" class="h-full w-full object-cover" loading="lazy">
-                                        <span class="absolute bottom-3 left-3 rounded-md bg-white px-2.5 py-1 text-xs font-black text-atlantia-wine shadow-sm">{{ $category }}</span>
-                                        <span class="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full bg-white text-atlantia-wine shadow-sm">
-                                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                                <path d="M12 20s-7-4.4-7-10a4.2 4.2 0 0 1 7-3.1A4.2 4.2 0 0 1 19 10c0 5.6-7 10-7 10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                                            </svg>
+                                        <div class="absolute inset-0 bg-gradient-to-t from-atlantia-wine-900/35 to-transparent"></div>
+                                        <span class="absolute bottom-1.5 left-2 rounded-full bg-white/95 px-2 py-0.5 text-[8px] font-bold text-atlantia-ink shadow-sm">{{ $category }}</span>
+                                        <span class="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full border border-white/70 bg-atlantia-wine-900/65 text-white backdrop-blur-sm">
+                                            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4.2 4.2 0 0 1 7-3.1A4.2 4.2 0 0 1 19 10c0 5.6-7 10-7 10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
                                         </span>
+                                        @if ($vendor->logo_url)
+                                            <span class="absolute bottom-1.5 right-2 grid h-11 w-11 place-items-center overflow-hidden rounded-full border-2 border-white bg-white shadow-md">
+                                                <img src="{{ $vendor->logo_url }}" alt="" class="h-full w-full object-cover" loading="lazy">
+                                            </span>
+                                        @endif
                                     </div>
                                 </a>
 
-                                <div class="space-y-3 p-4">
-                                    <div>
-                                        <h3 class="truncate text-lg font-black text-atlantia-ink">{{ $vendor->business_name }}</h3>
-                                        <p class="mt-1 truncate text-sm font-semibold text-atlantia-ink/55">{{ $category }} - 20-35 min - {{ $vendor->municipio ?: 'Atlantia' }}</p>
+                                <div class="px-2.5 py-2">
+                                    <h3 class="truncate text-xs font-black text-atlantia-ink">{{ $vendor->business_name }}</h3>
+                                    <div class="mt-1 flex min-w-0 items-center gap-1 text-[8px] font-semibold text-atlantia-ink/60">
+                                        <span class="font-black text-rose-500">{{ $rating['rating'] ? number_format((float) $rating['rating'], 1) : 'Nuevo' }}</span>
+                                        @if ((int) $rating['total'] > 0)<span>({{ number_format((int) $rating['total']) }})</span>@endif
+                                        <span aria-hidden="true">&#183;</span>
+                                        <span class="truncate">{{ $vendor->municipio ?: 'Atlantia' }}</span>
                                     </div>
-                                    <div class="flex items-center gap-2 text-sm">
-                                        <span class="font-black text-amber-500">*</span>
-                                        <span class="font-black text-atlantia-ink">{{ $rating['rating'] ? number_format((float) $rating['rating'], 1) : 'Nuevo' }}</span>
-                                        <span class="text-atlantia-ink/50">({{ number_format((int) $rating['total']) }})</span>
-                                        <span class="text-atlantia-ink/50">- Min. Q25</span>
-                                    </div>
-                                    <div class="rounded-lg bg-atlantia-blush px-3 py-2 text-xs font-black text-atlantia-wine">
-                                        Envio gratis desde Q{{ number_format($shippingPromo) }}
+                                    <div class="mt-1.5 flex items-center justify-between gap-2 border-t border-atlantia-rose/10 pt-1.5 text-[8px] font-black text-atlantia-wine">
+                                        <span>Entrega local disponible</span>
+                                        <span class="shrink-0 text-atlantia-ink/55">{{ number_format((int) $vendor->productos_publicados_count) }} productos</span>
                                     </div>
                                 </div>
                             </article>
@@ -444,79 +475,44 @@
                 @endif
             </section>
 
-            <section class="mt-8 grid gap-5 rounded-2xl bg-atlantia-blush p-5 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-                <div class="flex items-center gap-4">
-                    <span class="grid h-20 w-20 shrink-0 place-items-center rounded-full bg-atlantia-wine text-white">
-                        <svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path d="M4 16h9l3-6H7l-3 6ZM2 16h2M16 16h3M7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </span>
-                    <div>
-                        <h2 class="text-2xl font-black text-atlantia-wine">Envio rapido y seguro!</h2>
-                        <p class="mt-1 text-sm leading-6 text-atlantia-ink/70">Recibe tus productos en la puerta de tu casa de 30 a 60 minutos.</p>
-                        <a href="{{ route('comercios.index', ['municipio' => $municipioActivo]) }}" class="mt-3 inline-flex rounded-md bg-atlantia-wine px-4 py-2 text-sm font-black text-white">Conocer mas</a>
-                    </div>
-                </div>
-
-                <div class="grid gap-3 rounded-xl bg-white p-4 shadow-sm sm:grid-cols-4">
-                    @foreach ([
-                        ['label' => 'Elige tus productos', 'icon' => 'bag'],
-                        ['label' => 'Confirmamos tu pedido', 'icon' => 'check'],
-                        ['label' => 'En camino', 'icon' => 'ride'],
-                        ['label' => 'Listo! A disfrutar', 'icon' => 'home'],
-                    ] as $step)
-                        <div class="text-center">
-                            <span class="mx-auto grid h-14 w-14 place-items-center rounded-full bg-atlantia-blush text-atlantia-wine">
-                                @if ($step['icon'] === 'bag')
-                                    <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 8h12l1 13H5L6 8ZM9 8a3 3 0 0 1 6 0" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
-                                @elseif ($step['icon'] === 'check')
-                                    <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 4h12v16H6V4ZM9 12l2 2 4-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                @elseif ($step['icon'] === 'ride')
-                                    <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 16h9l3-6H7l-3 6ZM7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                @else
-                                    <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
-                                @endif
-                            </span>
-                            <p class="mt-3 text-xs font-black text-atlantia-ink">{{ $step['label'] }}</p>
-                        </div>
-                    @endforeach
-                </div>
-            </section>
-
-            <section class="mt-8 grid gap-4 rounded-2xl border border-atlantia-rose/15 bg-white p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+            <section class="mt-2.5 grid grid-cols-5 divide-x divide-atlantia-rose/15 border-y border-atlantia-rose/15 bg-atlantia-blush/50 px-3 py-2">
                 @foreach ([
-                    ['title' => 'Comercios verificados', 'text' => 'Todos nuestros aliados pasan por un proceso de verificacion.'],
-                    ['title' => 'Pago seguro', 'text' => 'Tus pagos estan protegidos con los mas altos estandares.'],
-                    ['title' => 'Atencion 24/7', 'text' => 'Estamos aqui para ayudarte en cualquier momento que lo necesites.'],
-                    ['title' => 'Garantia Atlantia', 'text' => 'Si algo no esta bien, te ayudamos con soporte y seguimiento.'],
+                    ['title' => 'Entrega rapida', 'text' => 'Cobertura local'],
+                    ['title' => 'Comercios verificados', 'text' => 'Locales aprobados'],
+                    ['title' => 'Pago seguro', 'text' => 'Opciones protegidas'],
+                    ['title' => 'Atencion 24/7', 'text' => 'Estamos para ayudarte'],
+                    ['title' => 'Garantia Atlantia', 'text' => 'Soporte y seguimiento'],
                 ] as $trust)
-                    <article class="flex gap-4">
-                        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-atlantia-blush text-atlantia-wine">
-                            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M12 3 19 6v5c0 4.5-2.8 8.4-7 10-4.2-1.6-7-5.5-7-10V6l7-3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-                                <path d="M9 12l2 2 4-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
+                    <div class="flex min-w-0 items-center justify-center gap-2 px-2">
+                        <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-atlantia-wine shadow-sm">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 19 6v5c0 4.5-2.8 8.4-7 10-4.2-1.6-7-5.5-7-10V6l7-3ZM9 12l2 2 4-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         </span>
-                        <div>
-                            <h3 class="text-sm font-black text-atlantia-ink">{{ $trust['title'] }}</h3>
-                            <p class="mt-1 text-sm leading-5 text-atlantia-ink/60">{{ $trust['text'] }}</p>
+                        <div class="min-w-0">
+                            <p class="truncate text-[9px] font-black text-atlantia-ink">{{ $trust['title'] }}</p>
+                            <p class="truncate text-[8px] font-semibold text-atlantia-ink/55">{{ $trust['text'] }}</p>
                         </div>
-                    </article>
+                    </div>
                 @endforeach
             </section>
 
-            <section class="mt-8 overflow-hidden rounded-2xl bg-atlantia-wine p-6 text-white shadow-sm">
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h2 class="text-2xl font-black">Listo para tu primer pedido?</h2>
-                        <p class="mt-1 text-sm font-semibold text-white/75">Unete a miles de clientes satisfechos en Atlantia Delivery.</p>
+            <section class="relative mt-2.5 h-[4.75rem] overflow-hidden rounded-xl bg-[linear-gradient(100deg,#4a071c_0%,#7a1238_48%,#a20f4b_100%)] px-6 text-white shadow-[0_12px_28px_rgba(63,13,29,0.14)]">
+                <div class="absolute -right-12 -top-16 h-48 w-48 rounded-full border border-white/10"></div>
+                <div class="relative z-10 flex h-full items-center justify-between gap-5">
+                    <div class="flex items-center gap-4">
+                        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-white/25 bg-white/10 shadow-[0_0_24px_rgba(255,104,161,0.28)]">
+                            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 8h12l1 13H5L6 8ZM9 8a3 3 0 0 1 6 0" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+                        </span>
+                        <div>
+                            <h2 class="text-lg font-black">Listo para tu primer pedido?</h2>
+                            <p class="mt-0.5 text-[10px] font-semibold text-white/75">Explora los comercios disponibles y encuentra lo que necesitas.</p>
+                        </div>
                     </div>
-                    <a href="{{ route('comercios.index', ['municipio' => $municipioActivo]) }}" class="inline-flex h-12 items-center justify-center rounded-md bg-white px-6 text-sm font-black text-atlantia-wine">
-                        Explorar comercios
-                    </a>
+                    <div class="flex items-center gap-3 pr-16">
+                        <a href="{{ route('comercios.index', ['municipio' => $municipioActivo]) }}" class="inline-flex h-10 items-center gap-3 rounded-lg bg-white px-5 text-xs font-black text-atlantia-wine shadow-lg">Explorar comercios <span aria-hidden="true">&rarr;</span></a>
+                        <a href="{{ route('comercios.index', ['municipio' => $municipioActivo]) }}" class="inline-flex h-10 items-center gap-3 rounded-lg border border-white/20 bg-white/5 px-5 text-xs font-bold text-white hover:bg-white/10">Hacer mi primer pedido <span aria-hidden="true">&#9734;</span></a>
+                    </div>
                 </div>
             </section>
-
         </div>
     </div>
 @endsection

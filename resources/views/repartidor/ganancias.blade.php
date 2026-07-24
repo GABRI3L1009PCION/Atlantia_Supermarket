@@ -11,6 +11,11 @@
         $bonusEarnings = (float) ($summary['bonus_earnings'] ?? 0);
         $tipEarnings = (float) ($summary['tip_earnings'] ?? 0);
         $transitBalance = (float) ($summary['transit_balance'] ?? $wallet->pending_balance);
+        $bankAccount = $summary['bank_account'] ?? [];
+        $withdrawals = $summary['withdrawals'] ?? collect();
+        $cashSettlements = $summary['cash_settlements'] ?? collect();
+        $availableToWithdraw = (float) ($summary['available_to_withdraw'] ?? $wallet->available_balance);
+        $pendingWithdrawalAmount = (float) ($summary['pending_withdrawal_amount'] ?? 0);
         $movementLabel = static function (string $type): string {
             return match ($type) {
                 'earning' => 'Pago por pedido',
@@ -272,7 +277,86 @@
                 </div>
                 <div class="mt-4 rounded-lg bg-atlantia-blush/60 p-3">
                     <p class="text-sm font-black text-atlantia-ink">Cuenta bancaria</p>
-                    <p class="mt-1 text-sm text-atlantia-ink/60">Configurable desde administracion del repartidor.</p>
+                    <p class="mt-1 text-sm text-atlantia-ink/60">{{ ($bankAccount['verified_at'] ?? null) ? 'Cuenta validada para retiros.' : 'Pendiente de validacion por finanzas.' }}</p>
+                </div>
+            </article>
+        </div>
+
+        <div class="grid gap-4 lg:grid-cols-2">
+            <article class="rounded-lg border border-atlantia-rose/15 bg-white p-4 shadow-sm">
+                <h2 class="text-lg font-black text-atlantia-ink">Cuenta bancaria</h2>
+                <p class="mt-1 text-sm text-atlantia-ink/60">Disponible para retirar: {{ $money($availableToWithdraw) }}. Pendiente: {{ $money($pendingWithdrawalAmount) }}.</p>
+                <form method="POST" action="{{ route('repartidor.ganancias.bank-account.update') }}" class="mt-4 grid gap-3">
+                    @csrf
+                    @method('PATCH')
+                    <div class="grid gap-3 md:grid-cols-2">
+                        <input name="bank_name" value="{{ old('bank_name', $bankAccount['bank_name'] ?? '') }}" placeholder="Banco" class="rounded-lg border border-atlantia-rose/20 px-3 py-2 text-sm">
+                        <select name="bank_account_type" class="rounded-lg border border-atlantia-rose/20 px-3 py-2 text-sm">
+                            @foreach (['monetaria' => 'Monetaria', 'ahorro' => 'Ahorro'] as $value => $label)
+                                <option value="{{ $value }}" @selected(old('bank_account_type', $bankAccount['bank_account_type'] ?? '') === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="grid gap-3 md:grid-cols-2">
+                        <input name="bank_account_number" placeholder="Numero de cuenta" class="rounded-lg border border-atlantia-rose/20 px-3 py-2 text-sm">
+                        <input name="bank_account_holder" value="{{ old('bank_account_holder', $bankAccount['bank_account_holder'] ?? '') }}" placeholder="Titular de la cuenta" class="rounded-lg border border-atlantia-rose/20 px-3 py-2 text-sm">
+                    </div>
+                    <input type="hidden" name="payout_method" value="transfer">
+                    <div class="rounded-lg bg-slate-50 px-3 py-2 text-sm font-bold text-atlantia-ink/70">
+                        {{ ($bankAccount['verified_at'] ?? null) ? 'Cuenta verificada' : 'Pendiente de verificacion' }}
+                        @if (! empty($bankAccount['bank_account_number_last4']))
+                            · Terminacion {{ $bankAccount['bank_account_number_last4'] }}
+                        @endif
+                    </div>
+                    <button class="rounded-lg border border-atlantia-wine px-4 py-2 text-sm font-black text-atlantia-wine">Guardar cuenta</button>
+                </form>
+            </article>
+
+            <article class="rounded-lg border border-atlantia-rose/15 bg-white p-4 shadow-sm">
+                <h2 class="text-lg font-black text-atlantia-ink">Retiros y liquidaciones</h2>
+                <form method="POST" action="{{ route('repartidor.ganancias.withdrawals.store') }}" class="mt-4 grid gap-3">
+                    @csrf
+                    <div class="grid gap-3 md:grid-cols-[1fr_1.6fr_auto]">
+                        <input type="number" name="amount" min="0.01" step="0.01" placeholder="Monto de retiro" class="rounded-lg border border-atlantia-rose/20 px-3 py-2 text-sm">
+                        <input name="notes" placeholder="Notas para finanzas" class="rounded-lg border border-atlantia-rose/20 px-3 py-2 text-sm">
+                        <button class="rounded-lg bg-atlantia-wine px-4 py-2 text-sm font-black text-white">Solicitar retiro</button>
+                    </div>
+                </form>
+                <form method="POST" action="{{ route('repartidor.ganancias.cash-settlements.store') }}" class="mt-4 grid gap-3">
+                    @csrf
+                    <div class="grid gap-3 md:grid-cols-[1fr_1.6fr_auto]">
+                        <input type="number" name="reported_amount" min="0.01" step="0.01" placeholder="Monto a liquidar" class="rounded-lg border border-atlantia-rose/20 px-3 py-2 text-sm">
+                        <input name="notes" placeholder="Referencia o comentario" class="rounded-lg border border-atlantia-rose/20 px-3 py-2 text-sm">
+                        <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-black text-white">Liquidar efectivo</button>
+                    </div>
+                </form>
+                <div class="mt-4 grid gap-3 md:grid-cols-2">
+                    <div class="rounded-lg bg-slate-50 p-3">
+                        <p class="text-sm font-black text-atlantia-ink">Retiros recientes</p>
+                        <div class="mt-2 space-y-2 text-sm">
+                            @forelse ($withdrawals as $withdrawal)
+                                <div class="flex items-center justify-between gap-2">
+                                    <span>{{ $money($withdrawal->requested_amount) }}</span>
+                                    <span class="font-black text-atlantia-ink/60">{{ $withdrawal->status }}</span>
+                                </div>
+                            @empty
+                                <p class="text-atlantia-ink/55">Sin retiros.</p>
+                            @endforelse
+                        </div>
+                    </div>
+                    <div class="rounded-lg bg-slate-50 p-3">
+                        <p class="text-sm font-black text-atlantia-ink">Liquidaciones recientes</p>
+                        <div class="mt-2 space-y-2 text-sm">
+                            @forelse ($cashSettlements as $settlement)
+                                <div class="flex items-center justify-between gap-2">
+                                    <span>{{ $money($settlement->reported_amount) }}</span>
+                                    <span class="font-black text-atlantia-ink/60">{{ $settlement->status }}</span>
+                                </div>
+                            @empty
+                                <p class="text-atlantia-ink/55">Sin liquidaciones.</p>
+                            @endforelse
+                        </div>
+                    </div>
                 </div>
             </article>
         </div>

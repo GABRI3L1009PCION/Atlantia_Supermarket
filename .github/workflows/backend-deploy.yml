@@ -1,0 +1,49 @@
+name: backend-deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: Ambiente a desplegar
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      image_tag:
+        description: Tag inmutable que ya existe en GHCR
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target_environment }}
+
+    steps:
+      - name: Deploy using production scripts
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          DEPLOY_PATH: ${{ secrets.ATLANTIA_DEPLOY_PATH }}
+        with:
+          host: ${{ secrets.ATLANTIA_DEPLOY_HOST }}
+          username: ${{ secrets.ATLANTIA_DEPLOY_USER }}
+          key: ${{ secrets.ATLANTIA_DEPLOY_KEY }}
+          port: ${{ secrets.ATLANTIA_DEPLOY_PORT || 22 }}
+          envs: IMAGE_TAG,DEPLOY_PATH
+          script: |
+            set -euo pipefail
+            cd "$DEPLOY_PATH"
+            if grep -q '^APP_IMAGE_TAG=' docker/env/compose.env; then
+              sed -i "s/^APP_IMAGE_TAG=.*/APP_IMAGE_TAG=$IMAGE_TAG/" docker/env/compose.env
+            else
+              printf '\nAPP_IMAGE_TAG=%s\n' "$IMAGE_TAG" >> docker/env/compose.env
+            fi
+            git fetch --all --tags
+            git pull --ff-only
+            make prod-preflight
+            make prod-deploy

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Billetera operativa del repartidor.
@@ -51,5 +52,15 @@ class CourierWallet extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function withdrawalRequests(): HasMany
+    {
+        return $this->hasMany(CourierWithdrawalRequest::class);
+    }
+
+    public function cashSettlements(): HasMany
+    {
+        return $this->hasMany(CourierCashSettlement::class);
     }
 }

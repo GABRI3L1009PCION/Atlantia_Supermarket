@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Cliente\CarritoController;
 use App\Http\Controllers\Cliente\CatalogoController;
+use App\Http\Controllers\Cliente\CategoriaController;
 use App\Http\Controllers\Cliente\CheckoutController;
 use App\Http\Controllers\Cliente\ComercioController;
 use App\Http\Controllers\Cliente\DevolucionController;
@@ -27,6 +28,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/catalogo', [CatalogoController::class, 'index'])->name('catalogo.index');
+Route::get('/categorias', [CategoriaController::class, 'index'])->name('categorias.index');
 Route::get('/comercios', [ComercioController::class, 'index'])->name('comercios.index');
 Route::get('/comercios/{vendor:slug}', [ComercioController::class, 'show'])->name('comercios.show');
 Route::get('/productos/{producto:uuid}', [ProductoController::class, 'show'])->name('productos.show');
@@ -50,6 +52,7 @@ Route::prefix('cliente')
         Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
         Route::post('/wishlist/{producto:uuid}/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
         Route::post('/wishlist/agregar-todo', [WishlistController::class, 'addAllToCart'])->name('wishlist.add-all');
+        Route::get('/pedidos', [PedidoController::class, 'index'])->name('pedidos.index');
 
         Route::get('/pedidos/{pedido:uuid}/confirmacion', [PedidoController::class, 'guestShow'])
             ->name('pedidos.guest-show');
@@ -59,7 +62,6 @@ Route::prefix('cliente')
     ->as('cliente.')
     ->middleware(['auth', 'verified', 'role:cliente', 'throttle:120,1'])
     ->group(function (): void {
-        Route::get('/pedidos', [PedidoController::class, 'index'])->name('pedidos.index');
         Route::get('/pedidos/{pedido:uuid}', [PedidoController::class, 'show'])->name('pedidos.show');
         Route::get('/pedidos/{pedido:uuid}/devolucion', [DevolucionController::class, 'create'])
             ->name('devoluciones.create');

@@ -203,6 +203,16 @@ class Pedido extends Model
     }
 
     /**
+     * Pago mas reciente asociado al pedido.
+     *
+     * @return HasOne<Payment>
+     */
+    public function latestPayment(): HasOne
+    {
+        return $this->hasOne(Payment::class)->latestOfMany();
+    }
+
+    /**
      * Devoluciones solicitadas sobre el pedido.
      *
      * @return HasMany<Devolucion>
@@ -220,6 +230,51 @@ class Pedido extends Model
     public function deliveryRoute(): HasOne
     {
         return $this->hasOne(DeliveryRoute::class);
+    }
+
+    /**
+     * Datos operativos del cobro configurados en el pago.
+     *
+     * @return array<string, mixed>
+     */
+    public function paymentOperationalData(): array
+    {
+        $payment = $this->relationLoaded('latestPayment')
+            ? $this->getRelation('latestPayment')
+            : $this->latestPayment()->first();
+
+        $payload = $payment?->pasarela_payload;
+
+        return is_array($payload) ? $payload : [];
+    }
+
+    public function amountDueOnDelivery(): float
+    {
+        $payload = $this->paymentOperationalData();
+
+        return (float) ($payload['amount_due_on_delivery'] ?? 0);
+    }
+
+    public function changeRequiredAmount(): float
+    {
+        $payload = $this->paymentOperationalData();
+
+        return (float) ($payload['change_required'] ?? 0);
+    }
+
+    public function changeRequestedForAmount(): ?float
+    {
+        $payload = $this->paymentOperationalData();
+        $value = $payload['change_requested_for'] ?? null;
+
+        return is_numeric($value) ? (float) $value : null;
+    }
+
+    public function paymentCollectionFlow(): string
+    {
+        $payload = $this->paymentOperationalData();
+
+        return (string) ($payload['collection_flow'] ?? 'unknown');
     }
 
     /**

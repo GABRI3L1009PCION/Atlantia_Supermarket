@@ -80,6 +80,14 @@ return [
         'webhook_secret' => env('COURIER_WEBHOOK_SECRET'),
     ],
 
+    'firebase' => [
+        'enabled' => (bool) env('FIREBASE_ENABLED', false),
+        'project_id' => env('FIREBASE_PROJECT_ID'),
+        'service_account_email' => env('FIREBASE_SERVICE_ACCOUNT_EMAIL'),
+        'private_key' => env('FIREBASE_PRIVATE_KEY'),
+        'token_uri' => env('FIREBASE_TOKEN_URI', 'https://oauth2.googleapis.com/token'),
+    ],
+
     'recaptcha' => [
         'site_key' => env('RECAPTCHA_SITE_KEY'),
         'secret_key' => env('RECAPTCHA_SECRET_KEY'),

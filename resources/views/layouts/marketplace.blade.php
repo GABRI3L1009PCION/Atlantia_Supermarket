@@ -13,7 +13,7 @@
 <body class="flex min-h-screen flex-col overflow-x-hidden bg-white text-atlantia-ink antialiased">
     @include('layouts.partials.header')
 
-    <main id="contenido-principal" class="flex-1" tabindex="-1">
+    <main id="contenido-principal" class="flex-1 pb-20 lg:pb-0" tabindex="-1">
         @include('layouts.partials.flash')
 
         {{ $slot ?? '' }}
@@ -21,6 +21,7 @@
     </main>
 
     @include('layouts.partials.footer')
+    @include('layouts.partials.mobile-bottom-nav')
     <x-toast />
 
     <div
