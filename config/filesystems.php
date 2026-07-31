@@ -58,6 +58,7 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'use_instance_profile' => (bool) env('AWS_USE_INSTANCE_PROFILE', false),
             'throw' => env('FILESYSTEM_THROW', false),
             'report' => env('FILESYSTEM_REPORT', true),
         ],

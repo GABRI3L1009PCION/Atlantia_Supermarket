@@ -5,6 +5,7 @@ use App\Jobs\LimpiarTokensExpirados;
 use App\Jobs\ProcesarDespachoAutomatico;
 use App\Models\User;
 use App\Services\Auditoria\ProductionReadinessAuditService;
+use App\Services\Integrations\ProductionIntegrationReadinessService;
 use App\Services\Observability\PlatformHealthService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -174,6 +175,43 @@ Artisan::command('atlantia:operational-readiness {--json}', function (Production
 
     return $report['status'] === 'error' ? 1 : 0;
 })->purpose('Revisar alistamiento operativo de vendedor, cliente y administrador');
+
+Artisan::command(
+    'atlantia:integrations-readiness {--json} {--probe}',
+    function (ProductionIntegrationReadinessService $readinessService): int {
+        $report = $readinessService->audit((bool) $this->option('probe'));
+
+        if ($this->option('json')) {
+            $this->line(json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+            return $report['status'] === 'error' ? 1 : 0;
+        }
+
+        $this->info('Integrations readiness status: '.$report['status']);
+        $this->table(
+            ['Integracion', 'Estado', 'Variables faltantes', 'Configuracion invalida', 'Prueba externa'],
+            collect($report['checks'])->map(fn (array $check): array => [
+                $check['label'],
+                $check['status'],
+                $check['missing'] === [] ? '-' : implode(', ', $check['missing']),
+                $check['invalid'] === [] ? '-' : implode(' ', $check['invalid']),
+                $check['probe']['detail'] ?? ($report['probe_enabled'] ? 'No ejecutada' : 'Omitida'),
+            ])->all()
+        );
+
+        foreach ($report['checks'] as $check) {
+            foreach ($check['notes'] as $note) {
+                $this->line(sprintf(' - %s: %s', $check['label'], $note));
+            }
+        }
+
+        if (! $report['probe_enabled']) {
+            $this->comment('Usa --probe para comprobar conectividad sin enviar correos, facturas ni cobros.');
+        }
+
+        return $report['status'] === 'error' ? 1 : 0;
+    }
+)->purpose('Validar INFILE, SMTP, S3, FCM, mapas, soporte y POS sin revelar secretos');
 
 Artisan::command('atlantia:ops-snapshot {--json}', function (PlatformHealthService $platformHealthService): int {
     $snapshot = $platformHealthService->operationsSnapshot();

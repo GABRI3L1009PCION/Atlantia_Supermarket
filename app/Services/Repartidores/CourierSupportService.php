@@ -41,6 +41,7 @@ class CourierSupportService
     public function supportCenter(): array
     {
         return [
+            'email' => config('atlantia.support.email'),
             'phone' => config('atlantia.support.phone'),
             'emergency_phone' => config('atlantia.support.emergency_phone'),
             'whatsapp' => config('atlantia.support.whatsapp'),

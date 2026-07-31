@@ -156,8 +156,8 @@ class InfileCertificadorService implements CertificadorFelInterface
         return [
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
-            'X-FEL-Usuario' => (string) $profile?->fel_usuario,
-            'X-FEL-Llave' => (string) $profile?->fel_llave_certificador,
+            'X-FEL-Usuario' => (string) ($profile?->fel_usuario ?: config('services.infile.username')),
+            'X-FEL-Llave' => (string) ($profile?->fel_llave_certificador ?: config('services.infile.password')),
         ];
     }
 

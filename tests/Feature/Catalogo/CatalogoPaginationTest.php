@@ -64,7 +64,12 @@ class CatalogoPaginationTest extends TestCase
         $response->assertSee('Cafe Atlantia', false);
         $response->assertSee('data-product-carousel', false);
         $response->assertSee('data-carousel-track', false);
-        $this->assertSame(3, substr_count($response->getContent(), 'Agregar'));
+
+        $document = new \DOMDocument;
+        @$document->loadHTML($response->getContent());
+        $productCards = (new \DOMXPath($document))->query('//article[@data-product-card]');
+
+        $this->assertSame(3, $productCards->length);
     }
 
     public function test_comercio_catalog_filters_real_products_by_search_and_offer(): void

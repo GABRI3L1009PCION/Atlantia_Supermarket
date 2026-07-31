@@ -54,6 +54,7 @@ For real production, do not run the `stateful-local` profile except as a tempora
 Create these files on the production host or map them from your secret manager:
 
 - `/opt/atlantia/shared/marketplace.env`
+- `/opt/atlantia/shared/integrations.env`
 - `/opt/atlantia/shared/ml.env`
 - `/opt/atlantia/shared/mysql.env` only when using the local-stateful profile
 - `/opt/atlantia/shared/redis.env` only when using the local-stateful profile
@@ -62,6 +63,7 @@ Create these files on the production host or map them from your secret manager:
 Use these templates:
 
 - `.env.production.example`
+- `docker/env/integrations.env.example`
 - `ml-service/.env.production.example`
 - `docker/env/*.env.example`
 
@@ -78,6 +80,11 @@ Minimum production overrides:
 - `QUEUE_CONNECTION=redis`
 - `FILESYSTEM_DISK=s3`
 - real webhook secrets for payment, FEL, courier and ML
+
+INFILE, SMTP, S3, FCM, mapas, soporte y POS se completan en
+`/opt/atlantia/shared/integrations.env`. Consulta
+`docs/integraciones-produccion.md` y valida con
+`php artisan atlantia:integrations-readiness`.
 
 ## Network Security
 

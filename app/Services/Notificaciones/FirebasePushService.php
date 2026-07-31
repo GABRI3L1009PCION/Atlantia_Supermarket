@@ -12,6 +12,14 @@ use Illuminate\Support\Facades\Log;
 class FirebasePushService
 {
     /**
+     * Valida que la cuenta de servicio pueda obtener un token OAuth.
+     */
+    public function canAuthenticate(): bool
+    {
+        return $this->isConfigured() && $this->accessToken() !== null;
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      */
     public function sendToCourierDevices(User $user, string $type, array $data): void

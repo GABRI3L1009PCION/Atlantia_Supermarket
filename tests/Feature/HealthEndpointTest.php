@@ -19,12 +19,16 @@ class HealthEndpointTest extends TestCase
             'services.firebase.service_account_email' => 'firebase@test.iam.gserviceaccount.com',
             'services.firebase.private_key' => "-----BEGIN PRIVATE KEY-----\nTEST\n-----END PRIVATE KEY-----\n",
             'services.mapbox.token' => 'pk.test.mapbox',
+            'services.google_maps.api_key' => 'google-maps-test-key',
+            'atlantia.support.email' => 'soporte@atlantia.test',
             'atlantia.support.phone' => '+50255550101',
             'atlantia.support.emergency_phone' => '+50255550191',
             'atlantia.support.channels' => ['app', 'phone'],
+            'atlantia.payments.pos.enabled' => true,
             'atlantia.payments.pos.provider' => 'POS bancario',
-            'atlantia.payments.transfer.bank_name' => 'Banco Industrial',
-            'atlantia.payments.transfer.account_number' => '0000-000000-000',
+            'atlantia.payments.pos.support_phone' => '+50255550181',
+            'atlantia.payments.pos.merchant_id' => 'ATLANTIA-TEST',
+            'atlantia.payments.pos.terminal_ids' => ['POS-TEST-01'],
         ]);
 
         Redis::shouldReceive('connection->ping')->once()->andReturn('PONG');

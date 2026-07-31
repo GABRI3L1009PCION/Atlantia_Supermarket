@@ -20,10 +20,13 @@ En el repositorio del servidor:
 cp docker/env/compose.env.example docker/env/compose.env
 sudo install -d -m 700 /opt/atlantia/shared
 sudo install -m 600 .env.production.example /opt/atlantia/shared/marketplace.env
+sudo install -m 600 docker/env/integrations.env.example /opt/atlantia/shared/integrations.env
 sudo install -m 600 ml-service/.env.production.example /opt/atlantia/shared/ml.env
 ```
 
-Reemplaza todos los valores `CHANGE_ME`. Genera secretos independientes con:
+Reemplaza todos los valores `CHANGE_ME`. Las instrucciones para obtener y
+restringir las credenciales externas estan en
+`docs/integraciones-produccion.md`. Genera secretos independientes con:
 
 ```bash
 openssl rand -base64 48

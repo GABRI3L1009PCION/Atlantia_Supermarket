@@ -17,7 +17,8 @@ x-php-service: &php-service
   <<: *service-defaults
   image: ${REGISTRY_IMAGE}/marketplace:${APP_IMAGE_TAG}
   env_file:
-    - /opt/atlantia/shared/marketplace.env
+    - ${ATLANTIA_SHARED_DIR:-/opt/atlantia/shared}/marketplace.env
+    - ${ATLANTIA_SHARED_DIR:-/opt/atlantia/shared}/integrations.env
   environment:
     APP_ENV: production
     APP_DEBUG: "false"
@@ -142,7 +143,7 @@ services:
     <<: *service-defaults
     image: ${REGISTRY_IMAGE}/ml-api:${APP_IMAGE_TAG}
     env_file:
-      - /opt/atlantia/shared/ml.env
+      - ${ATLANTIA_SHARED_DIR:-/opt/atlantia/shared}/ml.env
     read_only: true
     cap_drop:
       - ALL
@@ -165,7 +166,7 @@ services:
     <<: *service-defaults
     image: ${REGISTRY_IMAGE}/ml-worker:${APP_IMAGE_TAG}
     env_file:
-      - /opt/atlantia/shared/ml.env
+      - ${ATLANTIA_SHARED_DIR:-/opt/atlantia/shared}/ml.env
     read_only: true
     cap_drop:
       - ALL
@@ -188,7 +189,7 @@ services:
       - --innodb-buffer-pool-size=${MYSQL_BUFFER_POOL_SIZE:-1G}
       - --max-connections=${MYSQL_MAX_CONNECTIONS:-300}
     env_file:
-      - /opt/atlantia/shared/mysql.env
+      - ${ATLANTIA_SHARED_DIR:-/opt/atlantia/shared}/mysql.env
     expose:
       - "3306"
     volumes:
@@ -207,7 +208,7 @@ services:
     expose:
       - "6379"
     env_file:
-      - /opt/atlantia/shared/redis.env
+      - ${ATLANTIA_SHARED_DIR:-/opt/atlantia/shared}/redis.env
     volumes:
       - redis-data:/data
     healthcheck:
@@ -221,7 +222,7 @@ services:
     image: getmeili/meilisearch:v1.12
     profiles: ["stateful-local"]
     env_file:
-      - /opt/atlantia/shared/search.env
+      - ${ATLANTIA_SHARED_DIR:-/opt/atlantia/shared}/search.env
     environment:
       MEILI_ENV: production
       MEILI_NO_ANALYTICS: "true"

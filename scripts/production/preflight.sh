@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 COMPOSE_FILE="$ROOT_DIR/docker-compose.prod.yml"
 COMPOSE_ENV="$ROOT_DIR/docker/env/compose.env"
 SHARED_DIR="${ATLANTIA_SHARED_DIR:-/opt/atlantia/shared}"
+export ATLANTIA_SHARED_DIR="$SHARED_DIR"
 
 fail() {
     echo "Preflight failed: $1" >&2
@@ -40,10 +41,12 @@ if grep -Eiq 'CHANGE_ME|example\.invalid|replace[_ -]?me' "$COMPOSE_ENV"; then
 fi
 
 check_secret_file "$SHARED_DIR/marketplace.env"
+check_secret_file "$SHARED_DIR/integrations.env"
 check_secret_file "$SHARED_DIR/ml.env"
 
 docker compose --env-file "$COMPOSE_ENV" -f "$COMPOSE_FILE" config --quiet
 docker compose --env-file "$COMPOSE_ENV" -f "$COMPOSE_FILE" pull --quiet app nginx ml-api ml-worker
 docker compose --env-file "$COMPOSE_ENV" -f "$COMPOSE_FILE" run --rm --no-deps app php artisan about --only=environment
+docker compose --env-file "$COMPOSE_ENV" -f "$COMPOSE_FILE" run --rm --no-deps app php artisan atlantia:integrations-readiness
 
 echo "Production preflight completed successfully."

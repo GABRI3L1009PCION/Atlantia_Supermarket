@@ -53,6 +53,10 @@ return [
         'username' => env('INFILE_USERNAME'),
         'password' => env('INFILE_PASSWORD'),
         'webhook_secret' => env('INFILE_WEBHOOK_SECRET'),
+        'mock' => (bool) env(
+            'INFILE_MOCK',
+            in_array(env('APP_ENV', 'production'), ['local', 'testing'], true)
+        ),
     ],
 
     'payment_gateway' => [

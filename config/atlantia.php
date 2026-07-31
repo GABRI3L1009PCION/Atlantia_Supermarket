@@ -62,6 +62,7 @@ return [
     ],
 
     'support' => [
+        'email' => env('ATLANTIA_SUPPORT_EMAIL'),
         'phone' => env('ATLANTIA_SUPPORT_PHONE', '+502 5555-0101'),
         'emergency_phone' => env('ATLANTIA_SUPPORT_EMERGENCY_PHONE', '+502 5555-0191'),
         'whatsapp' => env('ATLANTIA_SUPPORT_WHATSAPP'),
@@ -87,8 +88,16 @@ return [
             'enabled' => (bool) env('ATLANTIA_POS_ENABLED', true),
             'provider' => env('ATLANTIA_POS_PROVIDER', 'POS bancario'),
             'support_phone' => env('ATLANTIA_POS_SUPPORT_PHONE'),
+            'merchant_id' => env('ATLANTIA_POS_MERCHANT_ID'),
+            'terminal_ids' => array_values(array_filter(array_map(
+                static fn (string $terminalId): string => trim($terminalId),
+                explode(',', (string) env('ATLANTIA_POS_TERMINAL_IDS', ''))
+            ))),
+            'currency' => env('ATLANTIA_POS_CURRENCY', 'GTQ'),
+            'receipt_required' => (bool) env('ATLANTIA_POS_RECEIPT_REQUIRED', true),
         ],
         'transfer' => [
+            'enabled' => (bool) env('ATLANTIA_TRANSFER_ENABLED', false),
             'bank_name' => env('ATLANTIA_TRANSFER_BANK_NAME'),
             'account_name' => env('ATLANTIA_TRANSFER_ACCOUNT_NAME'),
             'account_number' => env('ATLANTIA_TRANSFER_ACCOUNT_NUMBER'),

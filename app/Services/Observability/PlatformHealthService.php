@@ -217,9 +217,9 @@ class PlatformHealthService
         $mapboxToken = trim((string) config('services.mapbox.token'));
         $googleMapsKey = trim((string) config('services.google_maps.api_key'));
 
-        return $mapboxToken !== '' || $googleMapsKey !== ''
-            ? $this->makeCheck('maps_config', 'Mapas y navegacion', 'ok', 'Al menos una llave de mapas esta configurada.')
-            : $this->makeCheck('maps_config', 'Mapas y navegacion', 'warning', 'No hay llaves reales de mapas.');
+        return $mapboxToken !== '' && $googleMapsKey !== ''
+            ? $this->makeCheck('maps_config', 'Mapas y navegacion', 'ok', 'Mapbox y Google Maps estan configurados.')
+            : $this->makeCheck('maps_config', 'Mapas y navegacion', 'warning', 'Falta configurar Mapbox o Google Maps.');
     }
 
     /**
@@ -227,11 +227,16 @@ class PlatformHealthService
      */
     private function supportCenterCheck(): array
     {
+        $email = trim((string) config('atlantia.support.email'));
         $phone = trim((string) config('atlantia.support.phone'));
         $emergencyPhone = trim((string) config('atlantia.support.emergency_phone'));
         $channels = config('atlantia.support.channels', []);
 
-        return $phone !== '' && $emergencyPhone !== '' && is_array($channels) && $channels !== []
+        return filter_var($email, FILTER_VALIDATE_EMAIL)
+            && $phone !== ''
+            && $emergencyPhone !== ''
+            && is_array($channels)
+            && $channels !== []
             ? $this->makeCheck('support_center', 'Centro de soporte', 'ok', 'Canales de soporte configurados.')
             : $this->makeCheck('support_center', 'Centro de soporte', 'warning', 'Soporte operativo incompleto.');
     }
@@ -241,13 +246,20 @@ class PlatformHealthService
      */
     private function onsitePaymentsCheck(): array
     {
+        $posEnabled = (bool) config('atlantia.payments.pos.enabled');
         $posProvider = trim((string) config('atlantia.payments.pos.provider'));
-        $transferBank = trim((string) config('atlantia.payments.transfer.bank_name'));
-        $transferAccount = trim((string) config('atlantia.payments.transfer.account_number'));
+        $posSupportPhone = trim((string) config('atlantia.payments.pos.support_phone'));
+        $posMerchantId = trim((string) config('atlantia.payments.pos.merchant_id'));
+        $posTerminalIds = config('atlantia.payments.pos.terminal_ids', []);
 
-        return $posProvider !== '' && $transferBank !== '' && $transferAccount !== ''
-            ? $this->makeCheck('onsite_payments', 'Cobros presenciales', 'ok', 'POS y transferencia configurados.')
-            : $this->makeCheck('onsite_payments', 'Cobros presenciales', 'warning', 'Falta completar cobros contra entrega.');
+        return $posEnabled
+            && $posProvider !== ''
+            && $posSupportPhone !== ''
+            && $posMerchantId !== ''
+            && is_array($posTerminalIds)
+            && $posTerminalIds !== []
+                ? $this->makeCheck('onsite_payments', 'Cobros presenciales', 'ok', 'Terminales POS configuradas.')
+                : $this->makeCheck('onsite_payments', 'Cobros presenciales', 'warning', 'Falta completar la operacion POS.');
     }
 
     /**
