@@ -63,7 +63,7 @@ class MlTrainingJob extends Model
     /**
      * Filtra jobs completados.
      *
-     * @param Builder<MlTrainingJob> $query
+     * @param  Builder<MlTrainingJob>  $query
      * @return Builder<MlTrainingJob>
      */
     public function scopeCompleted(Builder $query): Builder
@@ -74,7 +74,7 @@ class MlTrainingJob extends Model
     /**
      * Filtra jobs fallidos.
      *
-     * @param Builder<MlTrainingJob> $query
+     * @param  Builder<MlTrainingJob>  $query
      * @return Builder<MlTrainingJob>
      */
     public function scopeFailed(Builder $query): Builder
@@ -85,7 +85,7 @@ class MlTrainingJob extends Model
     /**
      * Filtra jobs activos.
      *
-     * @param Builder<MlTrainingJob> $query
+     * @param  Builder<MlTrainingJob>  $query
      * @return Builder<MlTrainingJob>
      */
     public function scopeActive(Builder $query): Builder

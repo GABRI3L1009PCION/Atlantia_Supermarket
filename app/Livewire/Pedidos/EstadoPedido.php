@@ -23,4 +23,3 @@ class EstadoPedido extends Component
         return view('livewire.pedidos.estado-pedido');
     }
 }
-

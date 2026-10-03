@@ -23,18 +23,19 @@ class LoginService
     private const MAX_ATTEMPTS = 5;
 
     /**
+     * Segundos de bloqueo tras exceder los intentos permitidos.
+     */
+    private const LOCKOUT_SECONDS = 900;
+
+    /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly CarritoService $carritoService)
-    {
-    }
+    public function __construct(private readonly CarritoService $carritoService) {}
 
     /**
      * Autentica al usuario y devuelve la ruta destino.
      *
-     * @param array<string, mixed> $credentials
-     * @param Request $request
-     * @return string
+     * @param  array<string, mixed>  $credentials
      */
     public function authenticate(array $credentials, Request $request): string
     {
@@ -47,7 +48,7 @@ class LoginService
         }
 
         if (! Auth::validate($this->onlyCredentials($credentials))) {
-            RateLimiter::hit($key, 900);
+            RateLimiter::hit($key, self::LOCKOUT_SECONDS);
             $this->recordAttempt($credentials['email'] ?? '', $request, false, 'invalid_credentials');
             throw new RuntimeException('Credenciales invalidas.');
         }
@@ -59,7 +60,7 @@ class LoginService
             ->where('status', 'active')
             ->firstOrFail();
 
-        if ($user->two_factor_enabled) {
+        if ($this->mustCompleteTwoFactor($user)) {
             $request->session()->regenerate();
             $request->session()->put('auth.2fa_user_id', $user->id);
             $request->session()->put('auth.2fa_remember', (bool) ($credentials['remember'] ?? false));
@@ -73,8 +74,6 @@ class LoginService
 
     /**
      * Cierra la sesion actual.
-     *
-     * @param Request $request
      */
     public function logout(Request $request): void
     {
@@ -85,12 +84,6 @@ class LoginService
 
     /**
      * Completa la sesion autenticada y devuelve la ruta final.
-     *
-     * @param User $user
-     * @param Request $request
-     * @param bool $remember
-     * @param string|null $guestSessionId
-     * @return string
      */
     public function completeAuthenticatedSession(
         User $user,
@@ -111,9 +104,17 @@ class LoginService
     }
 
     /**
+     * Determina si el usuario debe completar 2FA antes de entrar.
+     */
+    private function mustCompleteTwoFactor(User $user): bool
+    {
+        return $user->two_factor_enabled || $user->requiresAdministrativeTwoFactor();
+    }
+
+    /**
      * Extrae credenciales validas para Auth::attempt.
      *
-     * @param array<string, mixed> $credentials
+     * @param  array<string, mixed>  $credentials
      * @return array<string, mixed>
      */
     private function onlyCredentials(array $credentials): array
@@ -127,9 +128,6 @@ class LoginService
 
     /**
      * Registra un login exitoso.
-     *
-     * @param User $user
-     * @param Request $request
      */
     private function registerSuccessfulLogin(User $user, Request $request): void
     {
@@ -144,12 +142,6 @@ class LoginService
 
     /**
      * Registra un intento de login cuando la tabla existe en el dominio.
-     *
-     * @param string $email
-     * @param Request $request
-     * @param bool $successful
-     * @param string|null $failureReason
-     * @param User|null $user
      */
     private function recordAttempt(
         string $email,
@@ -175,21 +167,14 @@ class LoginService
 
     /**
      * Genera la llave de throttling.
-     *
-     * @param string $email
-     * @param Request $request
-     * @return string
      */
     private function throttleKey(string $email, Request $request): string
     {
-        return Str::lower($email) . '|' . $request->ip();
+        return Str::lower($email).'|'.$request->ip();
     }
 
     /**
      * Determina la ruta de destino segun el rol.
-     *
-     * @param User $user
-     * @return string
      */
     private function redirectRouteFor(User $user): string
     {
@@ -197,17 +182,13 @@ class LoginService
             $user->isAdministrator() => 'admin.dashboard',
             $user->hasRole('vendedor') => 'vendedor.dashboard',
             $user->hasRole('repartidor') => 'repartidor.dashboard',
-            $user->hasRole('empleado') => 'empleado.dashboard',
+            $user->hasAnyRole(['empleado', 'bodeguero', 'soporte', 'contabilidad_finanzas', 'supervisor_logistica']) => 'empleado.dashboard',
             default => 'catalogo.index',
         };
     }
 
     /**
      * Registra auditoria de autenticacion.
-     *
-     * @param User $user
-     * @param string $event
-     * @param Request $request
      */
     private function audit(User $user, string $event, Request $request): void
     {

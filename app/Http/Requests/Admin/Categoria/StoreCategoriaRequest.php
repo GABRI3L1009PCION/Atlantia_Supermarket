@@ -19,10 +19,12 @@ class StoreCategoriaRequest extends FormRequest
             'slug' => ['nullable', 'string', 'max:140', 'unique:categorias,slug'],
             'descripcion' => ['nullable', 'string', 'max:500'],
             'icon' => ['nullable', 'string', 'max:80'],
+            'imagen' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'orden' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

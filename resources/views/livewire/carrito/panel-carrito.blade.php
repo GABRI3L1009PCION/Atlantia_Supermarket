@@ -41,7 +41,7 @@
                     <div class="h-20 w-20 shrink-0 overflow-hidden rounded-md bg-slate-100">
                         @if ($item->producto?->imagenPrincipal?->path)
                             <img
-                                src="{{ asset('storage/' . $item->producto->imagenPrincipal->path) }}"
+                                src="{{ str_starts_with($item->producto->imagenPrincipal->path, 'http') ? $item->producto->imagenPrincipal->path : asset('storage/' . $item->producto->imagenPrincipal->path) }}"
                                 alt="{{ $item->producto->nombre }}"
                                 class="h-full w-full object-cover"
                                 loading="lazy"

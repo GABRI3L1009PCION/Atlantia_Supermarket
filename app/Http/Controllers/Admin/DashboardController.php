@@ -15,9 +15,7 @@ class DashboardController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly DashboardService $dashboardService)
-    {
-    }
+    public function __construct(private readonly DashboardService $dashboardService) {}
 
     /**
      * Muestra metricas consolidadas de Atlantia.

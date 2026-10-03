@@ -21,9 +21,7 @@ class VerificarOwnership
     /**
      * Verifica que el usuario tenga relacion directa con los recursos de ruta.
      *
-     * @param Request $request
-     * @param Closure(Request): Response $next
-     * @return Response
+     * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -48,10 +46,6 @@ class VerificarOwnership
 
     /**
      * Evalua ownership segun el modelo recibido.
-     *
-     * @param mixed $user
-     * @param Model $model
-     * @return bool
      */
     private function owns(mixed $user, Model $model): bool
     {
@@ -68,10 +62,6 @@ class VerificarOwnership
 
     /**
      * Verifica ownership por vendor_id.
-     *
-     * @param mixed $user
-     * @param int|null $vendorId
-     * @return bool
      */
     private function ownsVendorId(mixed $user, ?int $vendorId): bool
     {
@@ -82,10 +72,6 @@ class VerificarOwnership
 
     /**
      * Verifica ownership de pedidos por cliente, vendedor o repartidor.
-     *
-     * @param mixed $user
-     * @param Pedido $pedido
-     * @return bool
      */
     private function ownsPedido(mixed $user, Pedido $pedido): bool
     {
@@ -104,10 +90,6 @@ class VerificarOwnership
 
     /**
      * Verifica ownership de resenas.
-     *
-     * @param mixed $user
-     * @param Resena $resena
-     * @return bool
      */
     private function ownsResena(mixed $user, Resena $resena): bool
     {
@@ -122,10 +104,6 @@ class VerificarOwnership
 
     /**
      * Verifica ownership de DTE por cliente o vendedor.
-     *
-     * @param mixed $user
-     * @param DteFactura $dte
-     * @return bool
      */
     private function ownsDte(mixed $user, DteFactura $dte): bool
     {
@@ -140,10 +118,6 @@ class VerificarOwnership
 
     /**
      * Verifica ownership de items de carrito.
-     *
-     * @param mixed $user
-     * @param CarritoItem $item
-     * @return bool
      */
     private function ownsCarritoItem(mixed $user, CarritoItem $item): bool
     {

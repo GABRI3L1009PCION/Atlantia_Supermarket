@@ -19,7 +19,7 @@ class StockServiceTest extends TestCase
     /**
      * Reserva stock sin modificar el stock fisico.
      */
-    public function testReserveIncreasesReservedStockOnly(): void
+    public function test_reserve_increases_reserved_stock_only(): void
     {
         $producto = Producto::factory()->publicado()->create();
         Inventario::query()->create([
@@ -40,7 +40,7 @@ class StockServiceTest extends TestCase
     /**
      * Impide reservar mas unidades que el disponible real.
      */
-    public function testReserveFailsWhenAvailableStockIsNotEnough(): void
+    public function test_reserve_fails_when_available_stock_is_not_enough(): void
     {
         $producto = Producto::factory()->publicado()->create();
         Inventario::query()->create([
@@ -60,7 +60,7 @@ class StockServiceTest extends TestCase
     /**
      * Calcula disponibilidad para catalogo sin exponer stock negativo.
      */
-    public function testAvailabilityNeverReturnsNegativeStock(): void
+    public function test_availability_never_returns_negative_stock(): void
     {
         $producto = Producto::factory()->publicado()->create();
         Inventario::query()->create([

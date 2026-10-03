@@ -18,9 +18,7 @@ class ModeracionResenaController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly AnalisisResenaService $analisisResenaService)
-    {
-    }
+    public function __construct(private readonly AnalisisResenaService $analisisResenaService) {}
 
     /**
      * Lista resenas pendientes o marcadas por ML.

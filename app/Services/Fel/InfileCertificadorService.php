@@ -16,7 +16,6 @@ class InfileCertificadorService implements CertificadorFelInterface
     /**
      * Certifica una factura electronica ante INFILE o el mock local.
      *
-     * @param DteFactura $dte
      * @return array<string, mixed>
      *
      * @throws DteCertificadorException
@@ -29,7 +28,7 @@ class InfileCertificadorService implements CertificadorFelInterface
 
         $response = Http::timeout(20)
             ->withHeaders($this->headers($dte))
-            ->post($this->baseUrl() . '/v1/dte/certificar', [
+            ->post($this->baseUrl().'/v1/dte/certificar', [
                 'xml_dte' => $dte->xml_dte,
                 'numero_dte' => $dte->numero_dte,
                 'tipo_dte' => $dte->tipo_dte,
@@ -45,7 +44,6 @@ class InfileCertificadorService implements CertificadorFelInterface
     /**
      * Solicita anulacion fiscal ante INFILE o el mock local.
      *
-     * @param DteAnulacion $anulacion
      * @return array<string, mixed>
      *
      * @throws DteCertificadorException
@@ -60,7 +58,7 @@ class InfileCertificadorService implements CertificadorFelInterface
 
         $response = Http::timeout(20)
             ->withHeaders($this->headers($anulacion->dteFactura))
-            ->post($this->baseUrl() . '/v1/dte/anular', [
+            ->post($this->baseUrl().'/v1/dte/anular', [
                 'uuid_sat' => $anulacion->dteFactura->uuid_sat,
                 'motivo' => $anulacion->motivo,
                 'fecha_anulacion' => $anulacion->fecha_anulacion?->toIso8601String(),
@@ -76,7 +74,6 @@ class InfileCertificadorService implements CertificadorFelInterface
     /**
      * Consulta estado del DTE en INFILE o el mock local.
      *
-     * @param string $uuidSat
      * @return array<string, mixed>
      */
     public function consultar(string $uuidSat): array
@@ -89,7 +86,7 @@ class InfileCertificadorService implements CertificadorFelInterface
             ];
         }
 
-        $response = Http::timeout(15)->get($this->baseUrl() . '/v1/dte/' . $uuidSat);
+        $response = Http::timeout(15)->get($this->baseUrl().'/v1/dte/'.$uuidSat);
 
         return [
             'estado' => $response->successful() ? 'certificado' : 'desconocido',
@@ -101,9 +98,8 @@ class InfileCertificadorService implements CertificadorFelInterface
     /**
      * Procesa webhook recibido desde el certificador.
      *
-     * @param array<string, mixed> $payload
-     * @param array<string, mixed> $headers
-     * @return DteFactura|null
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $headers
      */
     public function procesarWebhook(array $payload, array $headers = []): ?DteFactura
     {
@@ -134,8 +130,6 @@ class InfileCertificadorService implements CertificadorFelInterface
 
     /**
      * Devuelve URL base de INFILE.
-     *
-     * @return string
      */
     private function baseUrl(): string
     {
@@ -144,8 +138,6 @@ class InfileCertificadorService implements CertificadorFelInterface
 
     /**
      * Indica si se usa mock inteligente local.
-     *
-     * @return bool
      */
     private function usarMock(): bool
     {
@@ -155,7 +147,6 @@ class InfileCertificadorService implements CertificadorFelInterface
     /**
      * Headers de autenticacion por vendedor.
      *
-     * @param DteFactura $dte
      * @return array<string, string>
      */
     private function headers(DteFactura $dte): array
@@ -165,28 +156,27 @@ class InfileCertificadorService implements CertificadorFelInterface
         return [
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
-            'X-FEL-Usuario' => (string) $profile?->fel_usuario,
-            'X-FEL-Llave' => (string) $profile?->fel_llave_certificador,
+            'X-FEL-Usuario' => (string) ($profile?->fel_usuario ?: config('services.infile.username')),
+            'X-FEL-Llave' => (string) ($profile?->fel_llave_certificador ?: config('services.infile.password')),
         ];
     }
 
     /**
      * Respuesta mock compatible con el contrato normalizado.
      *
-     * @param DteFactura $dte
      * @return array<string, mixed>
      */
     private function mockCertificacion(DteFactura $dte): array
     {
-        $seed = $dte->numero_dte . '|' . $dte->vendor_id . '|' . $dte->monto_total;
+        $seed = $dte->numero_dte.'|'.$dte->vendor_id.'|'.$dte->monto_total;
 
         return [
             'estado' => 'certificado',
             'uuid_sat' => (string) Str::uuid(),
-            'serie' => 'ATL-' . now()->format('Ym'),
+            'serie' => 'ATL-'.now()->format('Ym'),
             'numero' => abs(crc32($seed)),
             'fecha_certificacion' => now(),
-            'pdf_path' => 'fel/dtes/' . $dte->uuid . '.pdf',
+            'pdf_path' => 'fel/dtes/'.$dte->uuid.'.pdf',
             'respuesta_original' => [
                 'mock' => true,
                 'certificador' => 'infile',
@@ -198,7 +188,6 @@ class InfileCertificadorService implements CertificadorFelInterface
     /**
      * Respuesta mock de anulacion compatible con el contrato normalizado.
      *
-     * @param DteAnulacion $anulacion
      * @return array<string, mixed>
      */
     private function mockAnulacion(DteAnulacion $anulacion): array
@@ -217,7 +206,7 @@ class InfileCertificadorService implements CertificadorFelInterface
     /**
      * Normaliza respuesta real de certificacion.
      *
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
     private function normalizarCertificacion(array $payload): array
@@ -236,7 +225,7 @@ class InfileCertificadorService implements CertificadorFelInterface
     /**
      * Normaliza respuesta real de anulacion.
      *
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
     private function normalizarAnulacion(array $payload): array

@@ -12,10 +12,6 @@ class ResenaPolicy
 {
     /**
      * Permite acceso global a administradores.
-     *
-     * @param User $user
-     * @param string $ability
-     * @return bool|null
      */
     public function before(User $user, string $ability): ?bool
     {
@@ -28,9 +24,6 @@ class ResenaPolicy
 
     /**
      * Determina si el usuario puede listar resenas.
-     *
-     * @param User $user
-     * @return bool
      */
     public function viewAny(User $user): bool
     {
@@ -40,10 +33,6 @@ class ResenaPolicy
 
     /**
      * Determina si el usuario puede ver una resena.
-     *
-     * @param User|null $user
-     * @param Resena $resena
-     * @return bool
      */
     public function view(?User $user, Resena $resena): bool
     {
@@ -63,9 +52,6 @@ class ResenaPolicy
 
     /**
      * Determina si el usuario puede crear resenas.
-     *
-     * @param User $user
-     * @return bool
      */
     public function create(User $user): bool
     {
@@ -75,10 +61,6 @@ class ResenaPolicy
 
     /**
      * Determina si el usuario puede actualizar una resena.
-     *
-     * @param User $user
-     * @param Resena $resena
-     * @return bool
      */
     public function update(User $user, Resena $resena): bool
     {
@@ -89,10 +71,6 @@ class ResenaPolicy
 
     /**
      * Determina si el usuario puede eliminar una resena.
-     *
-     * @param User $user
-     * @param Resena $resena
-     * @return bool
      */
     public function delete(User $user, Resena $resena): bool
     {
@@ -103,9 +81,6 @@ class ResenaPolicy
 
     /**
      * Determina si el usuario puede listar resenas de productos propios.
-     *
-     * @param User $user
-     * @return bool
      */
     public function viewVendorReviews(User $user): bool
     {
@@ -115,9 +90,6 @@ class ResenaPolicy
 
     /**
      * Determina si el usuario puede moderar cualquier resena.
-     *
-     * @param User $user
-     * @return bool
      */
     public function moderateAny(User $user): bool
     {
@@ -127,10 +99,6 @@ class ResenaPolicy
 
     /**
      * Determina si el usuario puede moderar una resena especifica.
-     *
-     * @param User $user
-     * @param Resena $resena
-     * @return bool
      */
     public function moderate(User $user, Resena $resena): bool
     {
@@ -140,10 +108,6 @@ class ResenaPolicy
 
     /**
      * Determina si el usuario puede revisar flags ML de una resena.
-     *
-     * @param User $user
-     * @param Resena $resena
-     * @return bool
      */
     public function reviewMlFlag(User $user, Resena $resena): bool
     {
@@ -153,10 +117,6 @@ class ResenaPolicy
 
     /**
      * Verifica si la resena pertenece al cliente autenticado.
-     *
-     * @param User $user
-     * @param Resena $resena
-     * @return bool
      */
     private function ownsResena(User $user, Resena $resena): bool
     {
@@ -165,10 +125,6 @@ class ResenaPolicy
 
     /**
      * Verifica si la resena corresponde a un producto del vendedor autenticado.
-     *
-     * @param User $user
-     * @param Resena $resena
-     * @return bool
      */
     private function ownsReviewedProduct(User $user, Resena $resena): bool
     {

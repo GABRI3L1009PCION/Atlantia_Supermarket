@@ -28,8 +28,6 @@ class IconoCarrito extends Component
 
     /**
      * Inicializa el conteo del carrito.
-     *
-     * @return void
      */
     public function mount(): void
     {
@@ -38,9 +36,6 @@ class IconoCarrito extends Component
 
     /**
      * Agrega un producto solicitado desde catalogo.
-     *
-     * @param int $productoId
-     * @return void
      */
     #[On('carrito.agregar-producto')]
     public function agregarProducto(int $productoId): void
@@ -86,8 +81,6 @@ class IconoCarrito extends Component
 
     /**
      * Actualiza conteo y total visible del carrito.
-     *
-     * @return void
      */
     #[On('carrito.actualizado')]
     public function actualizarConteo(): void
@@ -111,8 +104,6 @@ class IconoCarrito extends Component
 
     /**
      * Renderiza el icono del carrito.
-     *
-     * @return View
      */
     public function render(): View
     {
@@ -121,8 +112,6 @@ class IconoCarrito extends Component
 
     /**
      * Obtiene o crea el carrito activo del usuario o visitante.
-     *
-     * @return Carrito
      */
     private function carritoActual(): Carrito
     {
@@ -142,8 +131,6 @@ class IconoCarrito extends Component
 
     /**
      * Busca el carrito activo sin crearlo.
-     *
-     * @return Carrito|null
      */
     private function buscarCarritoActivo(): ?Carrito
     {
@@ -157,9 +144,6 @@ class IconoCarrito extends Component
 
     /**
      * Calcula stock disponible para compra.
-     *
-     * @param Producto $producto
-     * @return int
      */
     private function stockDisponible(Producto $producto): int
     {
@@ -174,9 +158,6 @@ class IconoCarrito extends Component
 
     /**
      * Obtiene el precio vigente validado en servidor.
-     *
-     * @param Producto $producto
-     * @return float
      */
     private function precioActual(Producto $producto): float
     {

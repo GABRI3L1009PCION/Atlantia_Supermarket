@@ -16,10 +16,6 @@ class DriftDetectado
 
     /**
      * Crea el evento.
-     *
-     * @param MlMetric $metric
      */
-    public function __construct(public readonly MlMetric $metric)
-    {
-    }
+    public function __construct(public readonly MlMetric $metric) {}
 }

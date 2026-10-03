@@ -15,8 +15,7 @@ class AuditoriaService
     /**
      * Pagina registros de auditoria.
      *
-     * @param array<string, mixed> $filters
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
     public function paginate(array $filters = []): LengthAwarePaginator
     {
@@ -28,12 +27,12 @@ class AuditoriaService
             ->when($filters['request_id'] ?? null, fn ($query, $requestId) => $query->where('request_id', $requestId))
             ->when($filters['q'] ?? null, function ($query, string $search): void {
                 $query->where(function ($builder) use ($search): void {
-                    $builder->where('event', 'like', '%' . $search . '%')
-                        ->orWhere('url', 'like', '%' . $search . '%')
-                        ->orWhere('request_id', 'like', '%' . $search . '%')
+                    $builder->where('event', 'like', '%'.$search.'%')
+                        ->orWhere('url', 'like', '%'.$search.'%')
+                        ->orWhere('request_id', 'like', '%'.$search.'%')
                         ->orWhereHas('user', function ($userQuery) use ($search): void {
-                            $userQuery->where('name', 'like', '%' . $search . '%')
-                                ->orWhere('email', 'like', '%' . $search . '%');
+                            $userQuery->where('name', 'like', '%'.$search.'%')
+                                ->orWhere('email', 'like', '%'.$search.'%');
                         });
                 });
             })
@@ -53,7 +52,7 @@ class AuditoriaService
     /**
      * Resume actividad del panel de auditoria.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array<string, mixed>
      */
     public function dashboard(array $filters = []): array

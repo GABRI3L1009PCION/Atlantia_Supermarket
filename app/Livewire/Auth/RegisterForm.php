@@ -16,12 +16,19 @@ use Livewire\Component;
 class RegisterForm extends Component
 {
     public string $name = '';
+
     public string $email = '';
+
     public string $phone = '';
+
     public string $password = '';
+
     public string $password_confirmation = '';
+
     public bool $acepta_terminos = false;
+
     public bool $acepta_privacidad = false;
+
     public bool $acepta_marketing = false;
 
     /**
@@ -40,7 +47,7 @@ class RegisterForm extends Component
     {
         return [
             'name' => ['required', 'string', 'min:3', 'max:160'],
-            'email' => ['required', 'string', 'email:rfc,dns', 'max:190', 'unique:users,email'],
+            'email' => ['required', 'string', 'email:rfc', 'max:190', 'unique:users,email'],
             'phone' => ['required', 'string', 'min:8', 'max:15', 'regex:/^\+?[1-9][0-9]{7,14}$/'],
             'password' => ['required', Password::min(12)->letters()->numbers()->symbols()],
             'password_confirmation' => ['required', 'same:password'],

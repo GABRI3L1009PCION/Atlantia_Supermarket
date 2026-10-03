@@ -64,7 +64,7 @@ class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('Atlantia2026!'),
-            'phone' => '+502 ' . fake()->numerify('####-####'),
+            'phone' => '+502 '.fake()->numerify('####-####'),
             'status' => 'active',
             'is_system_user' => false,
             'last_login_at' => fake()->optional(0.65)->dateTimeBetween('-30 days', 'now'),
@@ -77,8 +77,6 @@ class UserFactory extends Factory
 
     /**
      * Estado para cliente final.
-     *
-     * @return static
      */
     public function cliente(): static
     {
@@ -90,8 +88,6 @@ class UserFactory extends Factory
 
     /**
      * Estado para vendedor local.
-     *
-     * @return static
      */
     public function vendedor(): static
     {
@@ -103,8 +99,6 @@ class UserFactory extends Factory
 
     /**
      * Estado para administrador con 2FA.
-     *
-     * @return static
      */
     public function admin(): static
     {
@@ -118,8 +112,6 @@ class UserFactory extends Factory
 
     /**
      * Estado para repartidor.
-     *
-     * @return static
      */
     public function repartidor(): static
     {
@@ -130,8 +122,6 @@ class UserFactory extends Factory
 
     /**
      * Estado para empleado interno.
-     *
-     * @return static
      */
     public function empleado(): static
     {
@@ -142,8 +132,6 @@ class UserFactory extends Factory
 
     /**
      * Estado para cuenta suspendida.
-     *
-     * @return static
      */
     public function suspended(): static
     {

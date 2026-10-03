@@ -31,8 +31,6 @@ class BarraBusqueda extends Component
 
     /**
      * Emite la busqueda actual.
-     *
-     * @return void
      */
     public function buscar(): void
     {
@@ -43,8 +41,6 @@ class BarraBusqueda extends Component
 
     /**
      * Limpia la busqueda actual.
-     *
-     * @return void
      */
     public function limpiar(): void
     {
@@ -55,8 +51,6 @@ class BarraBusqueda extends Component
 
     /**
      * Sincroniza cambios mientras el usuario escribe.
-     *
-     * @return void
      */
     public function updatedSearch(): void
     {
@@ -65,8 +59,6 @@ class BarraBusqueda extends Component
 
     /**
      * Renderiza la barra de busqueda.
-     *
-     * @return View
      */
     public function render(): View
     {

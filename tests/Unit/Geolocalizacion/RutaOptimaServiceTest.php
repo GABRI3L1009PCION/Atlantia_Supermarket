@@ -15,10 +15,10 @@ class RutaOptimaServiceTest extends TestCase
     /**
      * Calcula una ruta local determinista en ambiente de pruebas.
      */
-    public function testCalculatesLocalRouteWhenMapboxIsDisabled(): void
+    public function test_calculates_local_route_when_mapbox_is_disabled(): void
     {
         config(['services.mapbox.token' => null]);
-        $service = new RutaOptimaService(new EtaCalculadorService(), new TspOptimizadorService());
+        $service = new RutaOptimaService(new EtaCalculadorService, new TspOptimizadorService);
 
         $route = $service->calcularEntrePuntos(
             ['latitude' => 15.7309, 'longitude' => -88.5944],
@@ -32,5 +32,30 @@ class RutaOptimaServiceTest extends TestCase
         $this->assertGreaterThan(0, $route['distancia_km']);
         $this->assertGreaterThan(0, $route['tiempo_estimado_min']);
         $this->assertSame('LineString', $route['geometry']['type']);
+    }
+
+    /**
+     * Usa el centro operativo por defecto cuando un job antiguo no trae origen.
+     */
+    public function test_uses_default_origin_when_origin_is_missing(): void
+    {
+        config([
+            'services.mapbox.token' => null,
+            'services.google_maps.default_lat' => 15.7309,
+            'services.google_maps.default_lng' => -88.5944,
+        ]);
+
+        $service = new RutaOptimaService(new EtaCalculadorService, new TspOptimizadorService);
+
+        $route = $service->calcularEntrePuntos(
+            [],
+            [
+                ['lat' => 15.6969, 'lng' => -88.6206, 'label' => 'Santo Tomas'],
+            ],
+        );
+
+        $this->assertSame('local_haversine', $route['provider']);
+        $this->assertSame([-88.5944, 15.7309], $route['geometry']['coordinates'][0]);
+        $this->assertSame('Santo Tomas', $route['paradas'][0]['label']);
     }
 }

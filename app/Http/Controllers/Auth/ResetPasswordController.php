@@ -17,19 +17,11 @@ class ResetPasswordController extends Controller
 {
     /**
      * Crea una instancia del controlador.
-     *
-     * @param PasswordResetService $passwordResetService
      */
-    public function __construct(private readonly PasswordResetService $passwordResetService)
-    {
-    }
+    public function __construct(private readonly PasswordResetService $passwordResetService) {}
 
     /**
      * Muestra el formulario de nuevo password.
-     *
-     * @param Request $request
-     * @param string $token
-     * @return View
      */
     public function create(Request $request, string $token): View
     {
@@ -38,9 +30,6 @@ class ResetPasswordController extends Controller
 
     /**
      * Actualiza el password del usuario.
-     *
-     * @param ResetPasswordRequest $request
-     * @return RedirectResponse
      */
     public function store(ResetPasswordRequest $request): RedirectResponse
     {

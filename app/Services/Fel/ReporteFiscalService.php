@@ -3,12 +3,12 @@
 namespace App\Services\Fel;
 
 use App\Models\Dte\DteFactura;
-use App\Models\Dte\DteAnulacion;
 use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Servicio de reportes fiscales por vendedor y administracion.
@@ -21,14 +21,12 @@ class ReporteFiscalService
     public function __construct(
         private readonly DteGeneradorService $dteGeneradorService,
         private readonly InfileCertificadorService $certificadorFel
-    ) {
-    }
+    ) {}
 
     /**
      * Pagina DTE globales para administracion.
      *
-     * @param array<string, mixed> $filters
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
     public function paginateGlobal(array $filters = []): LengthAwarePaginator
     {
@@ -38,9 +36,7 @@ class ReporteFiscalService
     /**
      * Pagina DTE propios del vendedor autenticado.
      *
-     * @param User $user
-     * @param array<string, mixed> $filters
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
     public function paginateForVendor(User $user, array $filters = []): LengthAwarePaginator
     {
@@ -51,9 +47,6 @@ class ReporteFiscalService
 
     /**
      * Carga detalle fiscal completo de un DTE.
-     *
-     * @param DteFactura $dte
-     * @return DteFactura
      */
     public function detail(DteFactura $dte): DteFactura
     {
@@ -63,7 +56,7 @@ class ReporteFiscalService
     /**
      * Resume indicadores del panel fiscal.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array<string, mixed>
      */
     public function dashboard(array $filters = []): array
@@ -116,9 +109,6 @@ class ReporteFiscalService
     /**
      * Resume montos fiscales por vendedor y periodo.
      *
-     * @param Vendor $vendor
-     * @param string $fechaInicio
-     * @param string $fechaFin
      * @return array<string, mixed>
      */
     public function resumenVendor(Vendor $vendor, string $fechaInicio, string $fechaFin): array
@@ -135,8 +125,8 @@ class ReporteFiscalService
     /**
      * Construye query filtrada de DTE.
      *
-     * @param array<string, mixed> $filters
-     * @return \Illuminate\Database\Eloquent\Builder<DteFactura>
+     * @param  array<string, mixed>  $filters
+     * @return Builder<DteFactura>
      */
     private function queryWithFilters(array $filters)
     {
@@ -153,7 +143,7 @@ class ReporteFiscalService
     /**
      * Resume montos a partir de una coleccion de DTE.
      *
-     * @param Collection<int, DteFactura> $dtes
+     * @param  Collection<int, DteFactura>  $dtes
      * @return array<string, mixed>
      */
     private function resumen(Collection $dtes): array

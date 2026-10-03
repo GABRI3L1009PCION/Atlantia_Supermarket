@@ -33,9 +33,7 @@ class AuditoriaRequest
     /**
      * Registra contexto minimo de la solicitud.
      *
-     * @param Request $request
-     * @param Closure(Request): Response $next
-     * @return Response
+     * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -54,9 +52,6 @@ class AuditoriaRequest
 
     /**
      * Determina si la solicitud debe auditarse.
-     *
-     * @param Request $request
-     * @return bool
      */
     private function shouldAudit(Request $request): bool
     {
@@ -68,11 +63,6 @@ class AuditoriaRequest
 
     /**
      * Persiste el evento de auditoria sin interrumpir la respuesta principal.
-     *
-     * @param Request $request
-     * @param Response $response
-     * @param string $requestId
-     * @return void
      */
     private function storeAuditLog(Request $request, Response $response, string $requestId): void
     {
@@ -99,13 +89,10 @@ class AuditoriaRequest
 
     /**
      * Genera nombre estable del evento.
-     *
-     * @param Request $request
-     * @return string
      */
     private function eventName(Request $request): string
     {
-        $event = 'request.' . mb_strtolower($request->method()) . '.';
+        $event = 'request.'.mb_strtolower($request->method()).'.';
         $event .= $request->route()?->getName() ?? 'anon';
 
         return mb_substr($event, 0, 120);
@@ -114,7 +101,6 @@ class AuditoriaRequest
     /**
      * Remueve datos sensibles del input.
      *
-     * @param Request $request
      * @return array<string, mixed>
      */
     private function safeInput(Request $request): array

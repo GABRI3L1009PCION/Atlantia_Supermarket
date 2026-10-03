@@ -32,6 +32,7 @@ class BatchModerateResenaRequest extends FormRequest
             'notas' => ['nullable', 'string', 'max:1000'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

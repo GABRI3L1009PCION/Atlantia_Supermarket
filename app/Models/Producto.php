@@ -42,6 +42,7 @@ class Producto extends Model implements HasMedia
         'vendor_id',
         'categoria_id',
         'sku',
+        'codigo_barras',
         'nombre',
         'slug',
         'descripcion',
@@ -197,7 +198,7 @@ class Producto extends Model implements HasMedia
     /**
      * Filtra productos activos.
      *
-     * @param Builder<Producto> $query
+     * @param  Builder<Producto>  $query
      * @return Builder<Producto>
      */
     public function scopeActive(Builder $query): Builder
@@ -208,7 +209,7 @@ class Producto extends Model implements HasMedia
     /**
      * Filtra productos visibles en catalogo.
      *
-     * @param Builder<Producto> $query
+     * @param  Builder<Producto>  $query
      * @return Builder<Producto>
      */
     public function scopeVisibleCatalogo(Builder $query): Builder
@@ -219,7 +220,7 @@ class Producto extends Model implements HasMedia
     /**
      * Filtra productos publicados.
      *
-     * @param Builder<Producto> $query
+     * @param  Builder<Producto>  $query
      * @return Builder<Producto>
      */
     public function scopePublicados(Builder $query): Builder
@@ -230,8 +231,7 @@ class Producto extends Model implements HasMedia
     /**
      * Filtra productos por vendedor.
      *
-     * @param Builder<Producto> $query
-     * @param int $vendorId
+     * @param  Builder<Producto>  $query
      * @return Builder<Producto>
      */
     public function scopeForVendor(Builder $query, int $vendorId): Builder
@@ -252,6 +252,7 @@ class Producto extends Model implements HasMedia
             'vendor_id' => $this->vendor_id,
             'categoria_id' => $this->categoria_id,
             'sku' => $this->sku,
+            'codigo_barras' => $this->codigo_barras,
             'nombre' => $this->nombre,
             'descripcion' => $this->descripcion,
             'precio_base' => $this->precio_base,
@@ -263,9 +264,6 @@ class Producto extends Model implements HasMedia
 
     /**
      * Registra conversiones WebP para catalogo responsive.
-     *
-     * @param Media|null $media
-     * @return void
      */
     public function registerMediaConversions(?Media $media = null): void
     {

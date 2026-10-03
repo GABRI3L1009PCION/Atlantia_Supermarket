@@ -9,12 +9,16 @@
                 </p>
             </div>
 
-            <a
-                href="{{ route('admin.impersonation.stop') }}"
-                class="inline-flex items-center justify-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-black text-white transition hover:bg-amber-700"
-            >
-                Salir de impersonacion
-            </a>
+            <form method="POST" action="{{ route('admin.impersonation.stop') }}">
+                @csrf
+                @method('DELETE')
+                <button
+                    type="submit"
+                    class="inline-flex items-center justify-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-black text-white transition hover:bg-amber-700"
+                >
+                    Salir de impersonacion
+                </button>
+            </form>
         </div>
     </section>
 @endif

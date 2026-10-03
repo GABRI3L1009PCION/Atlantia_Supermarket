@@ -32,6 +32,7 @@ class Categoria extends Model
         'slug',
         'descripcion',
         'icon',
+        'imagen',
         'orden',
         'is_active',
     ];
@@ -47,6 +48,7 @@ class Categoria extends Model
             'orden' => 'integer',
             'is_active' => 'boolean',
             'deleted_at' => 'datetime',
+            'imagen' => 'string',
         ];
     }
 
@@ -83,7 +85,7 @@ class Categoria extends Model
     /**
      * Filtra categorias activas.
      *
-     * @param Builder<Categoria> $query
+     * @param  Builder<Categoria>  $query
      * @return Builder<Categoria>
      */
     public function scopeActive(Builder $query): Builder
@@ -94,7 +96,7 @@ class Categoria extends Model
     /**
      * Filtra categorias raiz.
      *
-     * @param Builder<Categoria> $query
+     * @param  Builder<Categoria>  $query
      * @return Builder<Categoria>
      */
     public function scopeRoot(Builder $query): Builder
@@ -105,7 +107,7 @@ class Categoria extends Model
     /**
      * Ordena categorias para navegacion.
      *
-     * @param Builder<Categoria> $query
+     * @param  Builder<Categoria>  $query
      * @return Builder<Categoria>
      */
     public function scopeOrdered(Builder $query): Builder

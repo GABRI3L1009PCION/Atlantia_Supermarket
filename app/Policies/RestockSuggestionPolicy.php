@@ -20,4 +20,3 @@ class RestockSuggestionPolicy
         return (int) $suggestion->vendor_id === (int) $user->vendor?->id && ! $suggestion->aceptada;
     }
 }
-

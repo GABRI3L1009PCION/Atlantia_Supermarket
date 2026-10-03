@@ -21,7 +21,7 @@ class PerfilClienteService
     /**
      * Actualiza perfil del cliente.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(User $user, array $data): User
     {

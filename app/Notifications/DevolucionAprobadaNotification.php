@@ -13,9 +13,7 @@ class DevolucionAprobadaNotification extends Notification
 {
     use Queueable;
 
-    public function __construct(private readonly Devolucion $devolucion)
-    {
-    }
+    public function __construct(private readonly Devolucion $devolucion) {}
 
     public function via(object $notifiable): array
     {

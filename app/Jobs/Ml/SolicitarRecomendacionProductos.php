@@ -18,22 +18,13 @@ class SolicitarRecomendacionProductos implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-
     /**
      * Crea el job.
-     *
-     * @param int $clienteId
-     * @param int $limit
      */
-    public function __construct(private readonly int $clienteId, private readonly int $limit = 12)
-    {
-    }
+    public function __construct(private readonly int $clienteId, private readonly int $limit = 12) {}
 
     /**
      * Genera recomendaciones para el cliente.
-     *
-     * @param RecomendacionService $recomendacionService
-     * @return void
      */
     public function handle(RecomendacionService $recomendacionService): void
     {

@@ -18,15 +18,12 @@ class RecomendacionService
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly MlServiceContract $mlClient)
-    {
-    }
+    public function __construct(private readonly MlServiceContract $mlClient) {}
 
     /**
      * Devuelve recomendaciones para un cliente.
      *
-     * @param User $user
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return EloquentCollection<int, ProductRecommendation>
      */
     public function forCustomer(User $user, array $data = []): EloquentCollection
@@ -55,10 +52,6 @@ class RecomendacionService
 
     /**
      * Genera recomendaciones personalizadas.
-     *
-     * @param User $user
-     * @param int $limit
-     * @return int
      */
     public function generarParaCliente(User $user, int $limit = 12): int
     {
@@ -98,7 +91,6 @@ class RecomendacionService
     /**
      * Fallback con productos publicados populares por compras.
      *
-     * @param int $limit
      * @return array<int, array<string, mixed>>
      */
     private function fallbackItems(int $limit): array

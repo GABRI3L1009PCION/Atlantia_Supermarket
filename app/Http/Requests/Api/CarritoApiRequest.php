@@ -46,4 +46,3 @@ class CarritoApiRequest extends FormRequest
         ];
     }
 }
-

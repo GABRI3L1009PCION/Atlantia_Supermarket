@@ -51,7 +51,6 @@ class SeguimientoPedidoService
     /**
      * Devuelve coordenadas del destino o una referencia municipal.
      *
-     * @param Pedido $pedido
      * @return array<string, mixed>
      */
     private function destino(Pedido $pedido): array
@@ -87,7 +86,6 @@ class SeguimientoPedidoService
     /**
      * Convierte una ubicacion GPS a arreglo serializable.
      *
-     * @param MarketCourierStatus|null $status
      * @return array<string, mixed>|null
      */
     private function ubicacion(?MarketCourierStatus $status): ?array
@@ -108,7 +106,7 @@ class SeguimientoPedidoService
     /**
      * Normaliza puntos de ruta para Mapbox.
      *
-     * @param Collection<int, mixed> $puntos
+     * @param  Collection<int, mixed>  $puntos
      * @return array<int, array{latitude: float, longitude: float}>
      */
     private function normalizarPuntos(Collection $puntos): array
@@ -135,8 +133,7 @@ class SeguimientoPedidoService
     /**
      * Calcula centro inicial del mapa.
      *
-     * @param MarketCourierStatus|null $ultimaUbicacion
-     * @param array<string, mixed> $destino
+     * @param  array<string, mixed>  $destino
      * @return array{latitude: float, longitude: float}
      */
     private function centro(?MarketCourierStatus $ultimaUbicacion, array $destino): array

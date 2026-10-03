@@ -20,16 +20,12 @@ class RateLimitCheckout
     /**
      * Crea una instancia del middleware.
      */
-    public function __construct(private readonly RateLimiter $limiter)
-    {
-    }
+    public function __construct(private readonly RateLimiter $limiter) {}
 
     /**
      * Limita intentos de checkout por usuario o IP.
      *
-     * @param Request $request
-     * @param Closure(Request): Response $next
-     * @return Response
+     * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -62,12 +58,9 @@ class RateLimitCheckout
 
     /**
      * Construye la llave de rate limit.
-     *
-     * @param Request $request
-     * @return string
      */
     private function key(Request $request): string
     {
-        return 'checkout:' . ($request->user()?->id ?? $request->ip());
+        return 'checkout:'.($request->user()?->id ?? $request->ip());
     }
 }

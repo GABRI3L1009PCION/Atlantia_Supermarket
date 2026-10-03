@@ -44,7 +44,7 @@ class PagoFactory extends Factory
                 EstadoPago::Validando->value,
                 EstadoPago::Aprobado->value,
             ]),
-            'transaccion_id_pasarela' => 'txn_' . Str::lower(Str::random(18)),
+            'transaccion_id_pasarela' => 'txn_'.Str::lower(Str::random(18)),
             'hmac_validado' => true,
             'referencia_bancaria' => null,
             'validado_por' => null,

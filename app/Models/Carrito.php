@@ -67,7 +67,7 @@ class Carrito extends Model
     /**
      * Filtra carritos activos.
      *
-     * @param Builder<Carrito> $query
+     * @param  Builder<Carrito>  $query
      * @return Builder<Carrito>
      */
     public function scopeActive(Builder $query): Builder
@@ -78,7 +78,7 @@ class Carrito extends Model
     /**
      * Filtra carritos expirados.
      *
-     * @param Builder<Carrito> $query
+     * @param  Builder<Carrito>  $query
      * @return Builder<Carrito>
      */
     public function scopeExpired(Builder $query): Builder

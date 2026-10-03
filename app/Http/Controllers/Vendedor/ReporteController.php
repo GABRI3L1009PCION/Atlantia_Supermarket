@@ -15,9 +15,7 @@ class ReporteController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly ReporteVendedorService $reporteVendedorService)
-    {
-    }
+    public function __construct(private readonly ReporteVendedorService $reporteVendedorService) {}
 
     /**
      * Muestra reportes del vendedor.
@@ -26,6 +24,8 @@ class ReporteController extends Controller
     {
         $this->authorize('viewVendorReports', $request->user());
 
-        return view('vendedor.reportes.index', ['reportes' => $this->reporteVendedorService->summary($request->user())]);
+        return view('vendedor.reportes.index', [
+            'reportes' => $this->reporteVendedorService->summary($request->user(), $request->all()),
+        ]);
     }
 }

@@ -16,9 +16,7 @@ class ImpersonationController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly ImpersonationService $impersonationService)
-    {
-    }
+    public function __construct(private readonly ImpersonationService $impersonationService) {}
 
     /**
      * Inicia la impersonacion de un usuario.

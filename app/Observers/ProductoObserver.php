@@ -13,9 +13,6 @@ class ProductoObserver
 {
     /**
      * Asigna UUID antes de crear.
-     *
-     * @param Producto $producto
-     * @return void
      */
     public function creating(Producto $producto): void
     {
@@ -26,9 +23,6 @@ class ProductoObserver
 
     /**
      * Sincroniza producto publicado con Scout.
-     *
-     * @param Producto $producto
-     * @return void
      */
     public function saved(Producto $producto): void
     {
@@ -46,9 +40,6 @@ class ProductoObserver
 
     /**
      * Retira producto eliminado del indice.
-     *
-     * @param Producto $producto
-     * @return void
      */
     public function deleted(Producto $producto): void
     {
@@ -61,8 +52,6 @@ class ProductoObserver
 
     /**
      * Incrementa version de cache de busqueda sin depender de flush global.
-     *
-     * @return void
      */
     private function bumpSearchVersion(): void
     {

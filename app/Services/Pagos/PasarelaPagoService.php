@@ -6,10 +6,13 @@ use App\Contracts\PasarelaPagoContract;
 use App\DTOs\PagoResultado;
 use App\DTOs\PedidoDTO;
 use App\Enums\EstadoPago;
+use App\Enums\EstadoPedido;
 use App\Enums\MetodoPago;
 use App\Exceptions\PagoRechazadoException;
 use App\Models\Payment;
 use App\Models\Pedido;
+use App\Services\Inventario\StockService;
+use App\Services\Pedidos\EstadoPedidoService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -22,16 +25,14 @@ class PasarelaPagoService implements PasarelaPagoContract
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly VerificadorHmacService $verificadorHmacService)
-    {
-    }
+    public function __construct(
+        private readonly StockService $stockService,
+        private readonly EstadoPedidoService $estadoPedidoService
+    ) {}
 
     /**
      * Registra el pago del checkout.
      *
-     * @param Pedido $pedido
-     * @param PedidoDTO $pedidoDTO
-     * @return Payment
      *
      * @throws PagoRechazadoException
      */
@@ -58,7 +59,7 @@ class PasarelaPagoService implements PasarelaPagoContract
                 'pasarela_payload' => $resultado->toArray(),
             ]);
 
-            $pedido->update(['estado_pago' => $this->estadoPedidoPago($payment->estado)->value]);
+            $this->syncPedidoTreeEstadoPago($pedido, $this->estadoPedidoPago($payment->estado));
 
             return $payment;
         });
@@ -67,8 +68,7 @@ class PasarelaPagoService implements PasarelaPagoContract
     /**
      * Procesa un pago segun el contrato intercambiable.
      *
-     * @param array<string, mixed> $datos
-     * @return PagoResultado
+     * @param  array<string, mixed>  $datos
      */
     public function procesar(array $datos): PagoResultado
     {
@@ -85,23 +85,38 @@ class PasarelaPagoService implements PasarelaPagoContract
     /**
      * Registra confirmacion desde webhook de pasarela.
      *
-     * @param array<string, mixed> $payload
-     * @param array<string, mixed> $headers
-     * @return Payment|null
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $headers
      */
     public function confirmarDesdeWebhook(array $payload, array $headers): ?Payment
     {
-        $secret = (string) config('services.payment_gateway.webhook_secret', '');
-        $body = json_encode($payload, JSON_THROW_ON_ERROR);
-        $signature = (string) ($headers['x-atlantia-signature'][0] ?? $headers['X-Atlantia-Signature'][0] ?? '');
+        $paymentUuid = (string) ($payload['payment_uuid'] ?? '');
+        $transactionId = (string) (
+            $payload['transaction_id']
+            ?? $payload['transaccion_id_pasarela']
+            ?? $payload['payment_intent']
+            ?? data_get($payload, 'payload.transaction_id')
+            ?? data_get($payload, 'payload.payment_intent')
+            ?? data_get($payload, 'payload.data.object.id')
+            ?? ''
+        );
 
-        if (! $this->verificadorHmacService->verify($body, $signature, $secret)) {
+        if ($paymentUuid === '' && $transactionId === '') {
             return null;
         }
 
-        return DB::transaction(function () use ($payload): ?Payment {
+        return DB::transaction(function () use ($payload, $paymentUuid, $transactionId): ?Payment {
             $payment = Payment::query()
-                ->where('transaccion_id_pasarela', $payload['transaction_id'] ?? null)
+                ->with(['pedido.pedidosHijos'])
+                ->where(function ($query) use ($paymentUuid, $transactionId): void {
+                    if ($paymentUuid !== '') {
+                        $query->where('uuid', $paymentUuid);
+                    }
+
+                    if ($transactionId !== '') {
+                        $query->orWhere('transaccion_id_pasarela', $transactionId);
+                    }
+                })
                 ->lockForUpdate()
                 ->first();
 
@@ -109,15 +124,33 @@ class PasarelaPagoService implements PasarelaPagoContract
                 return null;
             }
 
+            $estado = $this->estadoDesdeWebhook($payload);
+            $payloadAnterior = $payment->pasarela_payload ?? [];
+
             $payment->update([
-                'estado' => ($payload['status'] ?? null) === 'approved'
-                    ? EstadoPago::Aprobado->value
-                    : EstadoPago::Rechazado->value,
+                'estado' => $estado->value,
+                'transaccion_id_pasarela' => $payment->transaccion_id_pasarela ?: ($transactionId ?: null),
                 'hmac_validado' => true,
-                'validado_at' => now(),
-                'pasarela_payload' => $payload,
+                'validado_at' => in_array($estado, [
+                    EstadoPago::Aprobado,
+                    EstadoPago::Pagado,
+                    EstadoPago::Rechazado,
+                    EstadoPago::Anulado,
+                    EstadoPago::Reembolsado,
+                ], true) ? now() : $payment->validado_at,
+                'pasarela_payload' => [
+                    ...$payloadAnterior,
+                    'webhook' => $payload,
+                ],
             ]);
-            $payment->pedido()->update(['estado_pago' => $this->estadoPedidoPago($payment->estado)->value]);
+            if ($payment->pedido !== null) {
+                $this->syncPedidoTreeEstadoPago($payment->pedido, $this->estadoPedidoPago($payment->estado));
+
+                if (in_array($estado, [EstadoPago::Rechazado, EstadoPago::Anulado], true)) {
+                    $this->stockService->releaseForPedido($payment->pedido);
+                    $this->cancelPedidoTree($payment->pedido, 'Pedido cancelado por webhook de pago rechazado.');
+                }
+            }
 
             return $payment->refresh();
         });
@@ -126,9 +159,6 @@ class PasarelaPagoService implements PasarelaPagoContract
     /**
      * Procesa pago segun metodo.
      *
-     * @param Pedido $pedido
-     * @param string $metodo
-     * @param PedidoDTO $pedidoDTO
      * @return array<string, mixed>
      *
      * @throws PagoRechazadoException
@@ -136,80 +166,46 @@ class PasarelaPagoService implements PasarelaPagoContract
     private function procesarSegunMetodo(Pedido $pedido, string $metodo, PedidoDTO $pedidoDTO): PagoResultado
     {
         return match ($metodo) {
-            MetodoPago::Tarjeta->value => $this->procesarTarjetaStripe($pedido, $pedidoDTO),
-            MetodoPago::Transferencia->value => new PagoResultado(
-                estado: EstadoPago::Validando,
-                referenciaBancaria: $pedidoDTO->referenciaBancaria,
+            MetodoPago::Tarjeta->value => new PagoResultado(
+                estado: EstadoPago::Pendiente,
+                transaccionIdPasarela: null,
+                hmacValidado: false,
+                validadoAt: null,
+                payload: [
+                    'gateway' => 'manual_pos',
+                    'collection_flow' => 'pos_on_delivery',
+                    'amount_due_on_delivery' => (float) $pedido->total,
+                    'requires_pos_terminal' => true,
+                    'customer_message' => 'El repartidor cobrara con terminal POS al momento de la entrega.',
+                ],
             ),
-            MetodoPago::Efectivo->value => new PagoResultado(estado: EstadoPago::Pendiente),
+            MetodoPago::Transferencia->value => new PagoResultado(
+                estado: EstadoPago::Pendiente,
+                referenciaBancaria: $pedidoDTO->referenciaBancaria,
+                payload: [
+                    'gateway' => 'manual_transfer',
+                    'collection_flow' => 'bank_transfer_on_delivery',
+                    'amount_due_on_delivery' => (float) $pedido->total,
+                    'reference_hint' => $pedidoDTO->referenciaBancaria,
+                    'customer_message' => 'La transferencia se confirma al momento de entregar el pedido.',
+                ],
+            ),
+            MetodoPago::Efectivo->value => new PagoResultado(
+                estado: EstadoPago::Pendiente,
+                payload: [
+                    'gateway' => 'cash_on_delivery',
+                    'collection_flow' => 'cash_on_delivery',
+                    'amount_due_on_delivery' => (float) $pedido->total,
+                    'change_requested' => $pedidoDTO->solicitaCambio,
+                    'change_requested_for' => $pedidoDTO->cambioPara,
+                    'change_required' => $this->calculateChangeRequired($pedido, $pedidoDTO),
+                    'customer_message' => $pedidoDTO->solicitaCambio && $pedidoDTO->cambioPara !== null
+                        ? 'El cliente solicito cambio para Q '.number_format($pedidoDTO->cambioPara, 2).'.'
+                        : 'Cobro en efectivo al entregar.',
+                ],
+            ),
             default => throw new PagoRechazadoException('Metodo de pago no soportado.'),
         };
-    }
-
-    /**
-     * Procesa tarjeta con Stripe Payment Intents.
-     *
-     * @param Pedido $pedido
-     * @param PedidoDTO $pedidoDTO
-     * @return array<string, mixed>
-     *
-     * @throws PagoRechazadoException
-     */
-    private function procesarTarjetaStripe(Pedido $pedido, PedidoDTO $pedidoDTO): PagoResultado
-    {
-        $secret = (string) config('services.stripe.secret_key');
-
-        if ($secret === '') {
-            throw new PagoRechazadoException('Stripe no esta configurado para procesar tarjetas.');
-        }
-
-        $paymentMethod = (string) ($pedidoDTO->cardToken ?? '');
-
-        if ($paymentMethod === '') {
-            throw new PagoRechazadoException('No se recibio el metodo de pago seguro de Stripe.');
-        }
-
-        $response = Http::asForm()
-            ->withToken($secret)
-            ->withHeaders(['Idempotency-Key' => 'pedido-' . $pedido->uuid])
-            ->timeout(20)
-            ->post('https://api.stripe.com/v1/payment_intents', [
-                'amount' => (int) round(((float) $pedido->total) * 100),
-                'currency' => strtolower((string) config('services.stripe.currency', 'gtq')),
-                'payment_method' => $paymentMethod,
-                'confirm' => 'true',
-                'description' => 'Atlantia Supermarket pedido ' . $pedido->numero_pedido,
-                'metadata[pedido_uuid]' => $pedido->uuid,
-                'metadata[numero_pedido]' => $pedido->numero_pedido,
-            ]);
-
-        if (! $response->successful()) {
-            throw new PagoRechazadoException(
-                (string) ($response->json('error.message') ?: 'Stripe rechazo el pago.')
-            );
-        }
-
-        $payload = $response->json();
-        $status = (string) ($payload['status'] ?? '');
-
-        if (! in_array($status, ['succeeded', 'processing', 'requires_capture'], true)) {
-            throw new PagoRechazadoException('Stripe no aprobo el pago de la tarjeta.');
-        }
-
-        return new PagoResultado(
-            estado: EstadoPago::Aprobado,
-            transaccionIdPasarela: $payload['id'] ?? null,
-            hmacValidado: true,
-            validadoAt: now(),
-            payload: [
-                'gateway' => 'stripe',
-                'authorization' => $status,
-                'amount' => (float) $pedido->total,
-                'currency' => 'GTQ',
-                'stripe_payment_intent' => $payload['id'] ?? null,
-                'stripe_status' => $status,
-            ],
-        );
     }
 
     /**
@@ -249,16 +245,48 @@ class PasarelaPagoService implements PasarelaPagoContract
                 'estado' => EstadoPago::Reembolsado->value,
                 'pasarela_payload' => $payload,
             ]);
-            $payment->pedido()->update(['estado_pago' => EstadoPago::Reembolsado->value]);
+            if ($payment->pedido !== null) {
+                $this->syncPedidoTreeEstadoPago($payment->pedido, EstadoPago::Reembolsado);
+            }
 
             return $payment->refresh();
         });
     }
 
     /**
+     * Sincroniza el estado de pago del pedido padre y sus pedidos por vendedor.
+     */
+    private function syncPedidoTreeEstadoPago(Pedido $pedido, EstadoPago $estado): void
+    {
+        $pedido->update(['estado_pago' => $estado->value]);
+        $pedido->pedidosHijos()->update(['estado_pago' => $estado->value]);
+    }
+
+    /**
+     * Cancela el pedido padre y sus hijos sin liberar stock mas de una vez.
+     */
+    private function cancelPedidoTree(Pedido $pedido, string $nota): void
+    {
+        $pedido->loadMissing('pedidosHijos');
+        $pedidos = collect([$pedido])->merge($pedido->pedidosHijos);
+
+        foreach ($pedidos as $pedidoTreeItem) {
+            if (in_array($pedidoTreeItem->estadoValor(), [
+                EstadoPedido::Cancelado->value,
+                EstadoPedido::Rechazado->value,
+                EstadoPedido::Entregado->value,
+            ], true)) {
+                continue;
+            }
+
+            $this->estadoPedidoService->registrar($pedidoTreeItem, EstadoPedido::Cancelado, $nota);
+        }
+    }
+
+    /**
      * Mapea estado de payment a estado_pago del pedido.
      *
-     * @param string $estado
+     * @param  string  $estado
      * @return string
      */
     private function estadoPedidoPago(string|EstadoPago $estado): EstadoPago
@@ -267,10 +295,53 @@ class PasarelaPagoService implements PasarelaPagoContract
 
         return match ($estadoValue) {
             EstadoPago::Aprobado->value => EstadoPago::Pagado,
+            EstadoPago::Pagado->value => EstadoPago::Pagado,
             EstadoPago::Validando->value => EstadoPago::Validando,
             EstadoPago::Rechazado->value => EstadoPago::Rechazado,
+            EstadoPago::Anulado->value => EstadoPago::Anulado,
             EstadoPago::Reembolsado->value => EstadoPago::Reembolsado,
             default => EstadoPago::Pendiente,
         };
+    }
+
+    /**
+     * Normaliza estados de pasarelas externas al enum interno.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function estadoDesdeWebhook(array $payload): EstadoPago
+    {
+        $status = Str::of((string) (
+            $payload['status']
+            ?? $payload['estado']
+            ?? data_get($payload, 'payload.status')
+            ?? data_get($payload, 'payload.data.object.status')
+            ?? ''
+        ))
+            ->lower()
+            ->replace([' ', '-'], '_')
+            ->toString();
+
+        return match ($status) {
+            'approved', 'aprobado', 'paid', 'pagado', 'succeeded', 'processing', 'requires_capture' => EstadoPago::Aprobado,
+            'pending', 'pendiente', 'validando', 'in_review', 'review' => EstadoPago::Validando,
+            'rejected', 'rechazado', 'failed', 'declined', 'canceled', 'cancelled', 'cancelado' => EstadoPago::Rechazado,
+            'refunded', 'reembolsado' => EstadoPago::Reembolsado,
+            'reversed', 'reversado', 'voided', 'anulado' => EstadoPago::Anulado,
+            default => EstadoPago::Validando,
+        };
+    }
+
+    private function calculateChangeRequired(Pedido $pedido, PedidoDTO $pedidoDTO): float
+    {
+        if (! $pedidoDTO->solicitaCambio || $pedidoDTO->cambioPara === null) {
+            return 0;
+        }
+
+        if ($pedidoDTO->cambioPara <= (float) $pedido->total) {
+            throw new PagoRechazadoException('La denominacion para cambio debe ser mayor al total del pedido.');
+        }
+
+        return round($pedidoDTO->cambioPara - (float) $pedido->total, 2);
     }
 }

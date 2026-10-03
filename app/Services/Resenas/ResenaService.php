@@ -27,7 +27,7 @@ class ResenaService
     /**
      * Crea resena para producto comprado.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function create(Pedido $pedido, array $data, User $user): Resena
     {
@@ -59,4 +59,3 @@ class ResenaService
         $resena->delete();
     }
 }
-

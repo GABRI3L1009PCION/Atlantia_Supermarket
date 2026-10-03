@@ -19,6 +19,7 @@ class BusquedaRequest extends FormRequest
             'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

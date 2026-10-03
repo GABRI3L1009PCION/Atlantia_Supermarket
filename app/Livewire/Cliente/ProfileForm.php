@@ -12,10 +12,15 @@ use Livewire\Component;
 class ProfileForm extends Component
 {
     public string $name = '';
+
     public string $email = '';
+
     public string $phone = '';
+
     public string $dpi = '';
+
     public string $telefono = '';
+
     public string $fecha_nacimiento = '';
 
     /**

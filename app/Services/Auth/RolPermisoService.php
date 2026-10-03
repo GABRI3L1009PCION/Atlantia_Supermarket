@@ -15,18 +15,18 @@ class RolPermisoService
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly PermissionRegistrar $permissionRegistrar)
-    {
-    }
+    public function __construct(private readonly PermissionRegistrar $permissionRegistrar) {}
 
     /**
      * Devuelve matriz de roles y permisos.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array<string, Collection<int, mixed>>
      */
     public function matrix(array $filters = []): array
     {
+        $this->ensurePermissionCatalog();
+
         return [
             'roles' => Role::query()->with('permissions')->withCount('users')->orderBy('name')->get(),
             'permissions' => Permission::query()->orderBy('name')->get(),
@@ -36,8 +36,7 @@ class RolPermisoService
     /**
      * Crea un rol operativo y asigna permisos iniciales.
      *
-     * @param array<string, mixed> $data
-     * @return Role
+     * @param  array<string, mixed>  $data
      */
     public function createRole(array $data): Role
     {
@@ -46,7 +45,7 @@ class RolPermisoService
             'guard_name' => 'web',
         ]);
 
-        $role->syncPermissions($data['permissions'] ?? []);
+        $role->syncPermissions($this->sanitizePermissionsForRole($role->name, $data['permissions'] ?? []));
         $this->permissionRegistrar->forgetCachedPermissions();
 
         return $role->load('permissions');
@@ -55,8 +54,7 @@ class RolPermisoService
     /**
      * Crea un permiso personalizado para nuevos modulos escalables.
      *
-     * @param array<string, mixed> $data
-     * @return Permission
+     * @param  array<string, mixed>  $data
      */
     public function createPermission(array $data): Permission
     {
@@ -73,7 +71,7 @@ class RolPermisoService
     /**
      * Sincroniza permisos de un rol operativo.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function syncPermissions(Role $role, array $data): void
     {
@@ -81,7 +79,7 @@ class RolPermisoService
             return;
         }
 
-        $role->syncPermissions($data['permissions'] ?? []);
+        $role->syncPermissions($this->sanitizePermissionsForRole($role->name, $data['permissions'] ?? []));
         $this->permissionRegistrar->forgetCachedPermissions();
     }
 
@@ -107,13 +105,60 @@ class RolPermisoService
      */
     private function protectedRoles(): array
     {
-        return [
-            'super_admin',
-            'admin',
-            'cliente',
-            'vendedor',
-            'repartidor',
-            'empleado',
-        ];
+        return config('rbac.protected_roles', []);
+    }
+
+    /**
+     * Garantiza que los permisos documentados por la UI existan en Spatie.
+     */
+    private function ensurePermissionCatalog(): void
+    {
+        foreach ($this->permissionCatalog() as $permissionName) {
+            Permission::findOrCreate($permissionName, 'web');
+        }
+    }
+
+    /**
+     * Catalogo base mostrado en la vista de gestion granular.
+     *
+     * @return array<int, string>
+     */
+    private function permissionCatalog(): array
+    {
+        return config('rbac.catalog_permissions', []);
+    }
+
+    /**
+     * @param  array<int, string>  $permissions
+     * @return array<int, string>
+     */
+    private function sanitizePermissionsForRole(string $roleName, array $permissions): array
+    {
+        $catalog = collect($this->permissionCatalog());
+        $restrictions = collect(config('rbac.restricted_permissions', []));
+        $normalized = collect($permissions)
+            ->filter(fn ($permission): bool => is_string($permission) && $permission !== '')
+            ->unique()
+            ->values()
+            ->intersect($catalog);
+
+        if ($roleName === 'admin') {
+            $normalized->push('admin.panel');
+        }
+
+        if ($normalized->contains('carrito.gestionar')) {
+            $normalized->push('carrito.crear');
+        }
+
+        $normalized = $normalized->unique()->values();
+
+        return $normalized
+            ->reject(function (string $permission) use ($roleName, $restrictions): bool {
+                $allowedRoles = $restrictions->get($permission);
+
+                return is_array($allowedRoles) && ! in_array($roleName, $allowedRoles, true);
+            })
+            ->values()
+            ->all();
     }
 }

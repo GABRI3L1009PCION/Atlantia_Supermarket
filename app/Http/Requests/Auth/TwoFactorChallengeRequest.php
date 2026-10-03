@@ -15,6 +15,7 @@ class TwoFactorChallengeRequest extends FormRequest
     {
         return ['code' => ['required', 'digits:6']];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

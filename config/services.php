@@ -40,11 +40,23 @@ return [
         'base_url' => env('MAPBOX_BASE_URL', 'https://api.mapbox.com'),
     ],
 
+    'google_maps' => [
+        'api_key' => env('GOOGLE_MAPS_API_KEY'),
+        'map_id' => env('GOOGLE_MAPS_MAP_ID'),
+        'default_lat' => (float) env('GOOGLE_MAPS_DEFAULT_LAT', 15.7309),
+        'default_lng' => (float) env('GOOGLE_MAPS_DEFAULT_LNG', -88.5944),
+        'default_zoom' => (int) env('GOOGLE_MAPS_DEFAULT_ZOOM', 13),
+    ],
+
     'infile' => [
         'base_url' => env('INFILE_BASE_URL'),
         'username' => env('INFILE_USERNAME'),
         'password' => env('INFILE_PASSWORD'),
         'webhook_secret' => env('INFILE_WEBHOOK_SECRET'),
+        'mock' => (bool) env(
+            'INFILE_MOCK',
+            in_array(env('APP_ENV', 'production'), ['local', 'testing'], true)
+        ),
     ],
 
     'payment_gateway' => [
@@ -62,7 +74,7 @@ return [
     ],
 
     'ml' => [
-        'base_url' => env('ML_SERVICE_URL', 'http://ml-api:8000'),
+        'base_url' => env('ML_SERVICE_URL', 'http://ml-api:8000/api/v1'),
         'service_token' => env('ML_SERVICE_TOKEN'),
         'webhook_secret' => env('ML_WEBHOOK_SECRET'),
         'timeout_seconds' => (int) env('ML_TIMEOUT_SECONDS', 10),
@@ -70,6 +82,14 @@ return [
 
     'courier' => [
         'webhook_secret' => env('COURIER_WEBHOOK_SECRET'),
+    ],
+
+    'firebase' => [
+        'enabled' => (bool) env('FIREBASE_ENABLED', false),
+        'project_id' => env('FIREBASE_PROJECT_ID'),
+        'service_account_email' => env('FIREBASE_SERVICE_ACCOUNT_EMAIL'),
+        'private_key' => env('FIREBASE_PRIVATE_KEY'),
+        'token_uri' => env('FIREBASE_TOKEN_URI', 'https://oauth2.googleapis.com/token'),
     ],
 
     'recaptcha' => [

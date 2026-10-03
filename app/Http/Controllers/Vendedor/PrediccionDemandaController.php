@@ -15,9 +15,7 @@ class PrediccionDemandaController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly PrediccionDemandaService $prediccionDemandaService)
-    {
-    }
+    public function __construct(private readonly PrediccionDemandaService $prediccionDemandaService) {}
 
     /**
      * Lista predicciones por producto propio.
@@ -27,7 +25,8 @@ class PrediccionDemandaController extends Controller
         $this->authorize('viewOwnPredictions', $request->user());
 
         return view('vendedor.predicciones.index', [
-            'predicciones' => $this->prediccionDemandaService->forVendor($request->user()),
+            'predicciones' => $this->prediccionDemandaService->forVendor($request->user(), $request->all()),
+            'dashboard' => $this->prediccionDemandaService->dashboard($request->user(), $request->all()),
         ]);
     }
 }

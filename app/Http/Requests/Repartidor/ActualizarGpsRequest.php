@@ -12,8 +12,6 @@ class ActualizarGpsRequest extends FormRequest
 {
     /**
      * Determina si el usuario puede enviar ubicacion GPS.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -31,8 +29,11 @@ class ActualizarGpsRequest extends FormRequest
         return [
             'pedido_id' => [
                 'nullable',
+                'prohibits:pedido_uuid,external_order_uuid',
                 Rule::exists('delivery_routes', 'pedido_id')->where('repartidor_id', $this->user()?->id),
             ],
+            'pedido_uuid' => ['nullable', 'uuid', 'prohibits:pedido_id,external_order_uuid', 'exists:pedidos,uuid'],
+            'external_order_uuid' => ['nullable', 'uuid', 'prohibits:pedido_id,pedido_uuid', 'exists:external_delivery_orders,uuid'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
             'timestamp_gps' => ['nullable', 'date', 'before_or_equal:now'],
@@ -58,6 +59,8 @@ class ActualizarGpsRequest extends FormRequest
     {
         return [
             'pedido_id.exists' => 'El pedido no esta asignado a tu ruta activa.',
+            'pedido_uuid.exists' => 'El pedido no existe.',
+            'external_order_uuid.exists' => 'La entrega externa no existe.',
             'latitude.required' => 'La latitud es obligatoria.',
             'latitude.between' => 'La latitud no es valida.',
             'longitude.required' => 'La longitud es obligatoria.',
@@ -82,6 +85,8 @@ class ActualizarGpsRequest extends FormRequest
     {
         return [
             'pedido_id' => 'pedido asignado',
+            'pedido_uuid' => 'pedido asignado',
+            'external_order_uuid' => 'entrega externa asignada',
             'latitude' => 'latitud',
             'longitude' => 'longitud',
             'timestamp_gps' => 'fecha GPS',
@@ -94,8 +99,6 @@ class ActualizarGpsRequest extends FormRequest
 
     /**
      * Normaliza datos GPS antes de validar.
-     *
-     * @return void
      */
     protected function prepareForValidation(): void
     {
@@ -110,9 +113,6 @@ class ActualizarGpsRequest extends FormRequest
 
     /**
      * Normaliza decimales escritos con coma.
-     *
-     * @param mixed $value
-     * @return string|null
      */
     private function normalizarDecimal(mixed $value): ?string
     {
@@ -121,9 +121,6 @@ class ActualizarGpsRequest extends FormRequest
 
     /**
      * Convierte cadenas vacias en null.
-     *
-     * @param mixed $value
-     * @return string|null
      */
     private function blankToNull(mixed $value): ?string
     {

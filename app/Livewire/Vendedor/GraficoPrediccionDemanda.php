@@ -9,8 +9,8 @@ use App\Models\Producto;
 use App\Services\Ml\PrediccionDemandaService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
-use Throwable;
 use Livewire\Component;
+use Throwable;
 
 class GraficoPrediccionDemanda extends Component
 {
@@ -41,6 +41,7 @@ class GraficoPrediccionDemanda extends Component
 
         if (! $vendor) {
             $this->error = 'No encontramos un perfil de vendedor activo para generar predicciones.';
+
             return;
         }
 
@@ -53,6 +54,7 @@ class GraficoPrediccionDemanda extends Component
 
         if ($productos->isEmpty()) {
             $this->error = 'No hay productos activos suficientes para generar predicciones.';
+
             return;
         }
 
@@ -103,7 +105,10 @@ class GraficoPrediccionDemanda extends Component
     private function mlHasRecentFailures(): bool
     {
         return MlPredictionLog::query()
-            ->where('endpoint', 'like', '%forecast%')
+            ->where(function ($query): void {
+                $query->where('endpoint', 'like', '%predict/demand%')
+                    ->orWhere('endpoint', 'like', '%forecast%');
+            })
             ->where('estado', 'failed')
             ->where('created_at', '>=', now()->subDay())
             ->exists();

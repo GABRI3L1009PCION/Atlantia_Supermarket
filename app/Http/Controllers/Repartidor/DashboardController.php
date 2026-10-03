@@ -15,9 +15,7 @@ class DashboardController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly DashboardRepartidorService $dashboardRepartidorService)
-    {
-    }
+    public function __construct(private readonly DashboardRepartidorService $dashboardRepartidorService) {}
 
     /**
      * Muestra resumen operativo del repartidor.

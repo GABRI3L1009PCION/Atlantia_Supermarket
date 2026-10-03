@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class ProductoImagen extends Model
 {
@@ -34,7 +34,7 @@ class ProductoImagen extends Model
     }
 
     /**
-     * @param Builder<ProductoImagen> $query
+     * @param  Builder<ProductoImagen>  $query
      * @return Builder<ProductoImagen>
      */
     public function scopePrincipales(Builder $query): Builder
@@ -43,7 +43,7 @@ class ProductoImagen extends Model
     }
 
     /**
-     * @param Builder<ProductoImagen> $query
+     * @param  Builder<ProductoImagen>  $query
      * @return Builder<ProductoImagen>
      */
     public function scopeOrdenadas(Builder $query): Builder

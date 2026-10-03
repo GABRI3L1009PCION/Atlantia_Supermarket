@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Cliente;
 use App\DTOs\CarritoItemDTO;
 use App\Http\Controllers\Controller;
 use App\Models\Producto;
-use App\Models\Wishlist;
 use App\Services\Carrito\CarritoService;
+use App\Support\WishlistStore;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -22,11 +22,7 @@ class WishlistController extends Controller
     public function index(Request $request): View
     {
         return view('cliente.wishlist.index', [
-            'items' => Wishlist::query()
-                ->with(['producto.vendor', 'producto.categoria', 'producto.inventario', 'producto.imagenPrincipal'])
-                ->where('user_id', $request->user()->id)
-                ->latest()
-                ->paginate(20),
+            'productos' => WishlistStore::paginateProducts($request, $request->user(), 20),
         ]);
     }
 
@@ -35,23 +31,11 @@ class WishlistController extends Controller
      */
     public function toggle(Request $request, Producto $producto): RedirectResponse
     {
-        $registro = Wishlist::query()
-            ->where('user_id', $request->user()->id)
-            ->where('producto_id', $producto->id)
-            ->first();
+        $guardado = WishlistStore::toggle($request, $producto->id, $request->user());
 
-        if ($registro !== null) {
-            $registro->delete();
-
-            return back()->with('success', 'Producto retirado de tu wishlist.');
-        }
-
-        Wishlist::query()->create([
-            'user_id' => $request->user()->id,
-            'producto_id' => $producto->id,
-        ]);
-
-        return back()->with('success', 'Producto agregado a tu wishlist.');
+        return back()->with('success', $guardado
+            ? 'Producto agregado a tus favoritos.'
+            : 'Producto retirado de tus favoritos.');
     }
 
     /**
@@ -59,23 +43,20 @@ class WishlistController extends Controller
      */
     public function addAllToCart(Request $request, CarritoService $carritoService): RedirectResponse
     {
-        $items = Wishlist::query()
-            ->with('producto.inventario')
-            ->where('user_id', $request->user()->id)
-            ->get();
+        $productos = WishlistStore::products($request, $request->user());
 
-        foreach ($items as $item) {
-            if ($item->producto === null) {
+        foreach ($productos as $producto) {
+            if ($producto === null) {
                 continue;
             }
 
             $carritoService->addItem($request, new CarritoItemDTO(
-                productoId: $item->producto_id,
+                productoId: $producto->id,
                 cantidad: 1,
-                precioUnitarioSnapshot: (float) ($item->producto->precio_oferta ?? $item->producto->precio_base)
+                precioUnitarioSnapshot: (float) ($producto->precio_oferta ?? $producto->precio_base)
             ));
         }
 
-        return redirect()->route('cliente.carrito.index')->with('success', 'Tu wishlist se agrego al carrito.');
+        return redirect()->route('cliente.carrito.index')->with('success', 'Tus favoritos se agregaron al carrito.');
     }
 }

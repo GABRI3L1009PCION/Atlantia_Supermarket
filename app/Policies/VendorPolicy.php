@@ -12,10 +12,6 @@ class VendorPolicy
 {
     /**
      * Permite acceso global a administradores.
-     *
-     * @param User $user
-     * @param string $ability
-     * @return bool|null
      */
     public function before(User $user, string $ability): ?bool
     {
@@ -28,9 +24,6 @@ class VendorPolicy
 
     /**
      * Determina si el usuario puede listar vendedores.
-     *
-     * @param User $user
-     * @return bool
      */
     public function viewAny(User $user): bool
     {
@@ -40,10 +33,6 @@ class VendorPolicy
 
     /**
      * Determina si el usuario puede ver un vendedor.
-     *
-     * @param User $user
-     * @param Vendor $vendor
-     * @return bool
      */
     public function view(User $user, Vendor $vendor): bool
     {
@@ -54,9 +43,6 @@ class VendorPolicy
 
     /**
      * Determina si el usuario puede solicitar perfil de vendedor.
-     *
-     * @param User $user
-     * @return bool
      */
     public function create(User $user): bool
     {
@@ -67,10 +53,6 @@ class VendorPolicy
 
     /**
      * Determina si el usuario puede actualizar un vendedor.
-     *
-     * @param User $user
-     * @param Vendor $vendor
-     * @return bool
      */
     public function update(User $user, Vendor $vendor): bool
     {
@@ -81,10 +63,6 @@ class VendorPolicy
 
     /**
      * Determina si el usuario puede eliminar un vendedor.
-     *
-     * @param User $user
-     * @param Vendor $vendor
-     * @return bool
      */
     public function delete(User $user, Vendor $vendor): bool
     {
@@ -93,10 +71,6 @@ class VendorPolicy
 
     /**
      * Determina si el usuario puede aprobar solicitudes de vendedor.
-     *
-     * @param User $user
-     * @param Vendor $vendor
-     * @return bool
      */
     public function approve(User $user, Vendor $vendor): bool
     {
@@ -107,10 +81,6 @@ class VendorPolicy
 
     /**
      * Determina si el usuario puede suspender un vendedor.
-     *
-     * @param User $user
-     * @param Vendor $vendor
-     * @return bool
      */
     public function suspend(User $user, Vendor $vendor): bool
     {
@@ -121,10 +91,6 @@ class VendorPolicy
 
     /**
      * Determina si el usuario puede reactivar un vendedor suspendido.
-     *
-     * @param User $user
-     * @param Vendor $vendor
-     * @return bool
      */
     public function reactivate(User $user, Vendor $vendor): bool
     {
@@ -134,10 +100,6 @@ class VendorPolicy
 
     /**
      * Determina si el usuario puede administrar el perfil fiscal del vendedor.
-     *
-     * @param User $user
-     * @param Vendor $vendor
-     * @return bool
      */
     public function manageFiscalProfile(User $user, Vendor $vendor): bool
     {
@@ -148,10 +110,6 @@ class VendorPolicy
 
     /**
      * Determina si el usuario puede administrar zonas de entrega del vendedor.
-     *
-     * @param User $user
-     * @param Vendor $vendor
-     * @return bool
      */
     public function manageDeliveryZones(User $user, Vendor $vendor): bool
     {
@@ -162,10 +120,6 @@ class VendorPolicy
 
     /**
      * Determina si el usuario puede ver metricas del vendedor.
-     *
-     * @param User $user
-     * @param Vendor $vendor
-     * @return bool
      */
     public function viewMetrics(User $user, Vendor $vendor): bool
     {
@@ -176,10 +130,6 @@ class VendorPolicy
 
     /**
      * Verifica si el vendedor pertenece al usuario autenticado.
-     *
-     * @param User $user
-     * @param Vendor $vendor
-     * @return bool
      */
     private function ownsVendor(User $user, Vendor $vendor): bool
     {

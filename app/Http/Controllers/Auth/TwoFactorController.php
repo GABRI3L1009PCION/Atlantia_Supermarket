@@ -17,28 +17,21 @@ class TwoFactorController extends Controller
 {
     /**
      * Crea una instancia del controlador.
-     *
-     * @param TwoFactorService $twoFactorService
      */
-    public function __construct(private readonly TwoFactorService $twoFactorService)
-    {
-    }
+    public function __construct(private readonly TwoFactorService $twoFactorService) {}
 
     /**
      * Muestra el desafio 2FA.
-     *
-     * @return View
      */
-    public function challenge(): View
+    public function challenge(Request $request): View
     {
-        return view('auth.two-factor-challenge');
+        return view('auth.two-factor-challenge', [
+            'challenge' => $this->twoFactorService->challengeData($request),
+        ]);
     }
 
     /**
      * Verifica el desafio 2FA.
-     *
-     * @param TwoFactorChallengeRequest $request
-     * @return RedirectResponse
      */
     public function verify(TwoFactorChallengeRequest $request): RedirectResponse
     {
@@ -53,23 +46,17 @@ class TwoFactorController extends Controller
 
     /**
      * Activa 2FA para el usuario autenticado.
-     *
-     * @param Request $request
-     * @return RedirectResponse
      */
     public function enable(Request $request): RedirectResponse
     {
         $this->authorize('update', $request->user());
         $this->twoFactorService->enable($request->user());
 
-        return back()->with('success', 'Autenticacion de dos factores activada.');
+        return back()->with('success', 'Segundo factor preparado. Abre tu app autenticadora y confirma el codigo para terminar la activacion.');
     }
 
     /**
      * Desactiva 2FA para el usuario autenticado.
-     *
-     * @param Request $request
-     * @return RedirectResponse
      */
     public function disable(Request $request): RedirectResponse
     {

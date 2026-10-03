@@ -19,24 +19,15 @@ class SolicitarPrediccionDemanda implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-
     public int $tries = 3;
 
     /**
      * Crea el job.
-     *
-     * @param int $productoId
-     * @param int $horizonteDias
      */
-    public function __construct(private readonly int $productoId, private readonly int $horizonteDias = 14)
-    {
-    }
+    public function __construct(private readonly int $productoId, private readonly int $horizonteDias = 14) {}
 
     /**
      * Genera la prediccion y emite evento.
-     *
-     * @param PrediccionDemandaService $prediccionDemandaService
-     * @return void
      */
     public function handle(PrediccionDemandaService $prediccionDemandaService): void
     {

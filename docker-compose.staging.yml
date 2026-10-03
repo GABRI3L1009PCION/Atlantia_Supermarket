@@ -1,0 +1,165 @@
+name: atlantia-staging
+
+x-service-defaults: &service-defaults
+  init: true
+  restart: unless-stopped
+  networks:
+    - atlantia-staging
+  logging:
+    driver: json-file
+    options:
+      max-size: "20m"
+      max-file: "3"
+
+x-php-service: &php-service
+  <<: *service-defaults
+  image: atlantia-staging-app:local
+  build:
+    context: .
+    dockerfile: Dockerfile
+    target: base
+  env_file:
+    - .env.staging.docker.local
+  volumes:
+    - app-storage:/var/www/html/storage
+  depends_on:
+    mysql:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    meilisearch:
+      condition: service_healthy
+
+services:
+  mysql:
+    <<: *service-defaults
+    image: mysql:8.4
+    command:
+      - --innodb-buffer-pool-size=256M
+      - --max-connections=150
+    env_file:
+      - .env.staging.docker.local
+    ports:
+      - "127.0.0.1:13306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$${MYSQL_ROOT_PASSWORD} >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  redis:
+    <<: *service-defaults
+    image: redis:7.2-alpine
+    env_file:
+      - .env.staging.docker.local
+    command: sh -c 'exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"'
+    ports:
+      - "127.0.0.1:16379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping 2>/dev/null | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  meilisearch:
+    <<: *service-defaults
+    image: getmeili/meilisearch:v1.12
+    env_file:
+      - .env.staging.docker.local
+    environment:
+      MEILI_ENV: production
+      MEILI_NO_ANALYTICS: "true"
+      MEILI_MASTER_KEY: ${MEILISEARCH_KEY}
+    ports:
+      - "127.0.0.1:17700:7700"
+    volumes:
+      - meili-data:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  ml-api:
+    <<: *service-defaults
+    image: atlantia-staging-ml-api:local
+    build:
+      context: ./ml-service
+      dockerfile: docker/Dockerfile.api
+    env_file:
+      - ./ml-service/.env.staging.docker.local
+    ports:
+      - "127.0.0.1:18000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  ml-worker:
+    <<: *service-defaults
+    image: atlantia-staging-ml-worker:local
+    build:
+      context: ./ml-service
+      dockerfile: docker/Dockerfile.worker
+    env_file:
+      - ./ml-service/.env.staging.docker.local
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  app:
+    <<: *php-service
+    expose:
+      - "9000"
+    healthcheck:
+      test: ["CMD-SHELL", "php-fpm -t >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    <<: *php-service
+    command: php artisan queue:work redis --queue=critical,checkout,payments,default,notifications,mail,ml,reports --sleep=2 --tries=3 --backoff=5 --timeout=180 --memory=512 --max-jobs=1000 --max-time=3600
+    stop_grace_period: 3m
+
+  scheduler:
+    <<: *php-service
+    command: php artisan schedule:work --no-interaction
+    stop_grace_period: 70s
+
+  nginx:
+    <<: *service-defaults
+    image: atlantia-staging-web:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web
+    ports:
+      - "127.0.0.1:8180:80"
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/nginx-health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  app-storage:
+  mysql-data:
+  redis-data:
+  meili-data:
+
+networks:
+  atlantia-staging:
+    driver: bridge

@@ -31,7 +31,7 @@ class AdminCrudOperationsTest extends TestCase
     /**
      * Aprueba un vendedor y guarda sus condiciones operativas.
      */
-    public function testAdminCanApproveVendorAndPersistCommercialConfiguration(): void
+    public function test_admin_can_approve_vendor_and_persist_commercial_configuration(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -62,7 +62,7 @@ class AdminCrudOperationsTest extends TestCase
     /**
      * Crea un producto administrativo con inventario inicial.
      */
-    public function testAdminCanCreateProductAndInventory(): void
+    public function test_admin_can_create_product_and_inventory(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -108,9 +108,134 @@ class AdminCrudOperationsTest extends TestCase
     }
 
     /**
+     * Respeta la cantidad de productos por pagina seleccionada.
+     */
+    public function test_admin_product_index_honors_allowed_per_page_options(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('admin');
+
+        Producto::factory()->count(50)->create();
+
+        foreach ([24, 48] as $perPage) {
+            $response = $this->actingAs($admin)->get(route('admin.productos.index', [
+                'per_page' => $perPage,
+            ]));
+
+            $response->assertOk();
+            $this->assertSame($perPage, $response->viewData('productos')->perPage());
+        }
+    }
+
+    /**
+     * Aplica el filtro de categoria del catalogo administrativo.
+     */
+    public function test_admin_product_index_filters_by_category(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('admin');
+
+        $pescado = Categoria::query()->create([
+            'nombre' => 'Pescado y mariscos',
+            'slug' => 'pescado-y-mariscos',
+            'descripcion' => 'Categoria de prueba',
+            'icon' => 'fish',
+            'orden' => 1,
+            'is_active' => true,
+        ]);
+        $abarrotes = Categoria::query()->create([
+            'nombre' => 'Abarrotes',
+            'slug' => 'abarrotes-test',
+            'descripcion' => 'Categoria de prueba',
+            'icon' => 'bag',
+            'orden' => 2,
+            'is_active' => true,
+        ]);
+
+        Producto::factory()->count(3)->create(['categoria_id' => $pescado->id]);
+        Producto::factory()->count(2)->create(['categoria_id' => $abarrotes->id]);
+
+        $response = $this->actingAs($admin)->get(route('admin.productos.index', [
+            'categoria_id' => $pescado->id,
+            'per_page' => 48,
+        ]));
+
+        $response->assertOk();
+        $productos = $response->viewData('productos');
+
+        $this->assertSame(3, $productos->total());
+        $this->assertSame(48, $productos->perPage());
+    }
+
+    /**
+     * El formulario solo ofrece vendedores externos aprobados.
+     */
+    public function test_admin_product_form_does_not_expose_internal_atlantia_vendor_as_local_vendor(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('admin');
+
+        $systemUser = User::factory()->create(['is_system_user' => true]);
+        $internalVendor = Vendor::factory()->approved()->create([
+            'user_id' => $systemUser->id,
+            'business_name' => 'Atlantia Supermarket',
+            'slug' => 'atlantia-supermarket',
+        ]);
+        $externalVendor = Vendor::factory()->approved()->create([
+            'business_name' => 'Vendedor Externo',
+            'slug' => 'vendedor-externo',
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.productos.index'));
+
+        $response->assertOk();
+        $vendors = $response->viewData('vendors');
+
+        $this->assertFalse($vendors->contains('id', $internalVendor->id));
+        $this->assertTrue($vendors->contains('id', $externalVendor->id));
+    }
+
+    /**
+     * No permite asignar el vendedor interno como vendedor externo.
+     */
+    public function test_admin_cannot_use_internal_atlantia_vendor_as_external_product_owner(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('admin');
+
+        $systemUser = User::factory()->create(['is_system_user' => true]);
+        $internalVendor = Vendor::factory()->approved()->create([
+            'user_id' => $systemUser->id,
+            'business_name' => 'Atlantia Supermarket',
+            'slug' => 'atlantia-supermarket',
+        ]);
+        $categoria = Categoria::query()->create([
+            'nombre' => 'Abarrotes validacion',
+            'slug' => 'abarrotes-validacion',
+            'descripcion' => 'Categoria de prueba',
+            'icon' => 'bag',
+            'orden' => 3,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.productos.store'), [
+            'owner_type' => 'vendor',
+            'vendor_id' => $internalVendor->id,
+            'categoria_id' => $categoria->id,
+            'sku' => 'ATL-INVALIDO',
+            'nombre' => 'Producto invalido',
+            'precio_base' => '10.00',
+            'unidad_medida' => 'unidad',
+            'stock_actual' => 1,
+        ]);
+
+        $response->assertSessionHasErrors('vendor_id');
+    }
+
+    /**
      * Suspender un vendedor oculta su catalogo activo.
      */
-    public function testSuspendingVendorDisablesVisibleProducts(): void
+    public function test_suspending_vendor_disables_visible_products(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -154,7 +279,7 @@ class AdminCrudOperationsTest extends TestCase
     /**
      * Modera resenas por lote desde el panel administrativo.
      */
-    public function testAdminCanModerateReviewsInBatch(): void
+    public function test_admin_can_moderate_reviews_in_batch(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');

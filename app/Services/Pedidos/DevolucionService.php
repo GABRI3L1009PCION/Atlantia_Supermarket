@@ -25,8 +25,7 @@ class DevolucionService
     public function __construct(
         private readonly StockService $stockService,
         private readonly PasarelaPagoService $pasarelaPagoService
-    ) {
-    }
+    ) {}
 
     /**
      * Lista devoluciones pendientes para administracion.
@@ -43,7 +42,7 @@ class DevolucionService
     /**
      * Crea una solicitud de devolucion del cliente.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function solicitar(Pedido $pedido, User $cliente, array $data): Devolucion
     {
@@ -78,7 +77,7 @@ class DevolucionService
     /**
      * Resuelve una devolucion desde administracion.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function resolver(Devolucion $devolucion, User $admin, array $data): Devolucion
     {

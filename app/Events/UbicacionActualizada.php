@@ -16,10 +16,6 @@ class UbicacionActualizada
 
     /**
      * Crea el evento.
-     *
-     * @param MarketCourierStatus $status
      */
-    public function __construct(public readonly MarketCourierStatus $status)
-    {
-    }
+    public function __construct(public readonly MarketCourierStatus $status) {}
 }

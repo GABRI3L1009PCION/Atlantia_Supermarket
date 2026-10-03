@@ -70,7 +70,7 @@ class PaymentSplit extends Model
     /**
      * Filtra splits pendientes.
      *
-     * @param Builder<PaymentSplit> $query
+     * @param  Builder<PaymentSplit>  $query
      * @return Builder<PaymentSplit>
      */
     public function scopePending(Builder $query): Builder
@@ -81,7 +81,7 @@ class PaymentSplit extends Model
     /**
      * Filtra splits liquidados.
      *
-     * @param Builder<PaymentSplit> $query
+     * @param  Builder<PaymentSplit>  $query
      * @return Builder<PaymentSplit>
      */
     public function scopeLiquidado(Builder $query): Builder

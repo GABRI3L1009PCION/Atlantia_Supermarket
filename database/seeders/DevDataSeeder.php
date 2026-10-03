@@ -19,6 +19,7 @@ use App\Models\Payment;
 use App\Models\PaymentSplit;
 use App\Models\Pedido;
 use App\Models\PedidoEstado;
+use App\Models\PedidoItem;
 use App\Models\Producto;
 use App\Models\ProductoImagen;
 use App\Models\Resena;
@@ -57,9 +58,6 @@ class DevDataSeeder extends Seeder
 
     /**
      * Obtiene un usuario por correo.
-     *
-     * @param string $email
-     * @return User
      */
     private function user(string $email): User
     {
@@ -69,7 +67,6 @@ class DevDataSeeder extends Seeder
     /**
      * Crea vendedores aprobados y sus perfiles fiscales.
      *
-     * @param User $admin
      * @return array<int, Vendor>
      */
     private function createVendors(User $admin): array
@@ -134,8 +131,8 @@ class DevDataSeeder extends Seeder
                 'user_id' => $user->id,
                 'business_name' => $data['business_name'],
                 'descripcion' => 'Vendedor local aprobado con productos de alta rotacion para familias de Izabal.',
-                'logo_path' => 'vendors/logos/' . $data['slug'] . '.webp',
-                'cover_path' => 'vendors/covers/' . $data['slug'] . '.webp',
+                'logo_path' => 'vendors/logos/'.$data['slug'].'.webp',
+                'cover_path' => 'vendors/covers/'.$data['slug'].'.webp',
                 'telefono_publico' => $data['user']['phone'],
                 'email_publico' => $data['user']['email'],
                 'municipio' => $data['municipio'],
@@ -165,14 +162,14 @@ class DevDataSeeder extends Seeder
                     'nombre_comercial_sat' => $data['business_name'],
                     'direccion_fiscal' => $data['direccion'],
                     'regimen_sat' => $index === 2 ? 'pequeno_contribuyente' : 'general',
-                    'codigo_establecimiento' => 'EST-' . str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT),
+                    'codigo_establecimiento' => 'EST-'.str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT),
                     'afiliacion_iva' => 'GEN',
                     'certificador_fel' => 'infile',
-                    'fel_usuario' => 'sandbox-' . $data['slug'],
-                    'fel_llave_firma' => 'sandbox-firma-' . $data['slug'],
-                    'fel_llave_certificador' => 'sandbox-certificador-' . $data['slug'],
+                    'fel_usuario' => 'sandbox-'.$data['slug'],
+                    'fel_llave_firma' => 'sandbox-firma-'.$data['slug'],
+                    'fel_llave_certificador' => 'sandbox-certificador-'.$data['slug'],
                     'banco_nombre' => 'Banco Industrial',
-                    'cuenta_bancaria' => 'GTQ-0001000200' . ($index + 1),
+                    'cuenta_bancaria' => 'GTQ-0001000200'.($index + 1),
                     'cuenta_bancaria_tipo' => 'monetaria',
                     'cuenta_bancaria_titular' => $data['razon'],
                     'fel_activo' => true,
@@ -204,8 +201,6 @@ class DevDataSeeder extends Seeder
 
     /**
      * Crea perfil y direccion principal del cliente demo.
-     *
-     * @param User $cliente
      */
     private function createClienteData(User $cliente): void
     {
@@ -245,7 +240,7 @@ class DevDataSeeder extends Seeder
     /**
      * Crea productos, imagenes e inventario.
      *
-     * @param array<int, Vendor> $vendors
+     * @param  array<int, Vendor>  $vendors
      * @return array<int, Producto>
      */
     private function createProductos(array $vendors): array
@@ -287,7 +282,7 @@ class DevDataSeeder extends Seeder
             ProductoImagen::query()->updateOrCreate(
                 ['producto_id' => $producto->id, 'orden' => 1],
                 [
-                    'path' => 'productos/' . $slug . '.webp',
+                    'path' => 'productos/'.$slug.'.webp',
                     'alt_text' => $data['nombre'],
                     'es_principal' => true,
                 ]
@@ -313,11 +308,7 @@ class DevDataSeeder extends Seeder
     /**
      * Crea un flujo de comercio completo y navegable.
      *
-     * @param User $cliente
-     * @param User $repartidor
-     * @param Vendor $vendor
-     * @param array<int, Producto> $productos
-     * @return Pedido
+     * @param  array<int, Producto>  $productos
      */
     private function createCommerceFlow(User $cliente, User $repartidor, Vendor $vendor, array $productos): Pedido
     {
@@ -367,7 +358,7 @@ class DevDataSeeder extends Seeder
             ['notas' => 'Entrega completada con evidencia digital.', 'usuario_id' => $repartidor->id]
         );
 
-        $item = \App\Models\PedidoItem::query()->updateOrCreate(
+        $item = PedidoItem::query()->updateOrCreate(
             ['pedido_id' => $pedido->id, 'producto_id' => $producto->id],
             [
                 'producto_nombre_snapshot' => $producto->nombre,
@@ -479,11 +470,6 @@ class DevDataSeeder extends Seeder
 
     /**
      * Crea resenas y mensajes de soporte.
-     *
-     * @param User $cliente
-     * @param User $empleado
-     * @param Pedido $pedido
-     * @param Producto $producto
      */
     private function createSocialAndSupport(User $cliente, User $empleado, Pedido $pedido, Producto $producto): void
     {
@@ -544,9 +530,6 @@ class DevDataSeeder extends Seeder
 
     /**
      * Crea eventos minimos de auditoria.
-     *
-     * @param User $admin
-     * @param Pedido $pedido
      */
     private function createAuditSamples(User $admin, Pedido $pedido): void
     {

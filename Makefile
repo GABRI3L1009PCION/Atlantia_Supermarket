@@ -3,7 +3,7 @@ SHELL := /usr/bin/env bash
 COMPOSE := docker compose
 COMPOSE_PROD := docker compose -f docker-compose.prod.yml
 
-.PHONY: help setup setup-local up down logs ps shell artisan migrate seed test phpstan ml-test build prod-config
+.PHONY: help setup setup-local up down logs ps shell artisan migrate seed test phpstan ml-test build prod-config prod-preflight prod-deploy prod-status
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "%-18s %s\n", $$1, $$2}'
@@ -56,4 +56,13 @@ build: ## Construye imagenes locales.
 	$(COMPOSE) build app worker scheduler ml-api ml-worker
 
 prod-config: ## Valida compose de produccion.
-	$(COMPOSE_PROD) config
+	$(COMPOSE_PROD) --env-file docker/env/compose.env config
+
+prod-preflight: ## Valida archivos, secretos e imagenes antes de desplegar.
+	bash scripts/production/preflight.sh
+
+prod-deploy: ## Despliega produccion con migracion unica y comprobacion de salud.
+	bash scripts/production/deploy.sh
+
+prod-status: ## Muestra el estado de servicios productivos.
+	$(COMPOSE_PROD) --env-file docker/env/compose.env ps

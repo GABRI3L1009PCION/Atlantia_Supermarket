@@ -16,10 +16,6 @@ class PedidoCreado
 
     /**
      * Crea el evento.
-     *
-     * @param Pedido $pedido
      */
-    public function __construct(public readonly Pedido $pedido)
-    {
-    }
+    public function __construct(public readonly Pedido $pedido) {}
 }

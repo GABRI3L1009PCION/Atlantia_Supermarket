@@ -16,10 +16,6 @@ class ModeloReentrenado
 
     /**
      * Crea el evento.
-     *
-     * @param MlTrainingJob $trainingJob
      */
-    public function __construct(public readonly MlTrainingJob $trainingJob)
-    {
-    }
+    public function __construct(public readonly MlTrainingJob $trainingJob) {}
 }

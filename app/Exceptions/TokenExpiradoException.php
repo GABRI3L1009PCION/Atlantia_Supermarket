@@ -23,4 +23,3 @@ class TokenExpiradoException extends AtlantiaDomainException
         return 'La sesion o token de acceso expiro.';
     }
 }
-

@@ -8,6 +8,7 @@ use App\Models\PaymentSplit;
 use App\Models\Pedido;
 use App\Models\PedidoItem;
 use App\Models\User;
+use App\Services\Geolocalizacion\DeliveryCoverageService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -19,12 +20,9 @@ class SplitMultivendedorService
     /**
      * Crea pedido padre y pedidos hijos por vendedor desde el carrito.
      *
-     * @param User $cliente
-     * @param Direccion $direccion
-     * @param Collection<int, mixed> $items
-     * @param array<string, float> $totals
-     * @param array<string, mixed> $data
-     * @return Pedido
+     * @param  Collection<int, mixed>  $items
+     * @param  array<string, float>  $totals
+     * @param  array<string, mixed>  $data
      */
     public function crearPedidoDesdeCarrito(
         User $cliente,
@@ -37,9 +35,13 @@ class SplitMultivendedorService
         $pedidoPadre = $this->crearPedidoBase($cliente, $direccion, null, null, $totals, $data);
 
         foreach ($items->groupBy('producto.vendor_id') as $vendorId => $vendorItems) {
+            $envioVendedor = app(DeliveryCoverageService::class)->deliveryCostForVendor(
+                $direccion,
+                $vendorId === '' ? null : (int) $vendorId
+            ) ?? ((float) $totals['envio'] / max(1, $vendorIds->count()));
             $vendorTotals = $this->totalsForItems(
                 $vendorItems,
-                (float) $totals['envio'] / max(1, $vendorIds->count()),
+                $envioVendedor,
                 (float) ($totals['descuento'] ?? 0),
                 (float) ($totals['subtotal'] ?? 0)
             );
@@ -53,9 +55,6 @@ class SplitMultivendedorService
 
     /**
      * Crea splits de pago por vendedor.
-     *
-     * @param Payment $payment
-     * @param Pedido $pedidoPadre
      */
     public function crearSplitsDePago(Payment $payment, Pedido $pedidoPadre): void
     {
@@ -79,13 +78,8 @@ class SplitMultivendedorService
     /**
      * Crea un pedido base.
      *
-     * @param User $cliente
-     * @param Direccion $direccion
-     * @param int|null $vendorId
-     * @param Pedido|null $pedidoPadre
-     * @param array<string, float> $totals
-     * @param array<string, mixed> $data
-     * @return Pedido
+     * @param  array<string, float>  $totals
+     * @param  array<string, mixed>  $data
      */
     private function crearPedidoBase(
         User $cliente,
@@ -110,6 +104,10 @@ class SplitMultivendedorService
             'estado' => 'pendiente',
             'metodo_pago' => $data['metodo_pago'],
             'estado_pago' => 'pendiente',
+            'facturacion_tipo' => $data['facturacion_tipo'] ?? 'cf',
+            'facturacion_nombre' => $data['facturacion_nombre'] ?? null,
+            'facturacion_nit' => $data['facturacion_nit'] ?? null,
+            'facturacion_email' => $data['facturacion_email'] ?? null,
             'notas' => $data['notas'] ?? null,
         ]);
     }
@@ -117,8 +115,7 @@ class SplitMultivendedorService
     /**
      * Crea items del pedido con snapshot de precio.
      *
-     * @param Pedido $pedido
-     * @param Collection<int, mixed> $items
+     * @param  Collection<int, mixed>  $items
      */
     private function crearItems(Pedido $pedido, Collection $items): void
     {
@@ -143,10 +140,7 @@ class SplitMultivendedorService
     /**
      * Calcula totales para un grupo de items.
      *
-     * @param Collection<int, mixed> $items
-     * @param float $envio
-     * @param float $descuentoGlobal
-     * @param float $subtotalGlobal
+     * @param  Collection<int, mixed>  $items
      * @return array<string, float>
      */
     private function totalsForItems(
@@ -154,8 +148,7 @@ class SplitMultivendedorService
         float $envio,
         float $descuentoGlobal = 0,
         float $subtotalGlobal = 0
-    ): array
-    {
+    ): array {
         $subtotal = $items->sum(function ($item): float {
             return (float) ($item->producto->precio_oferta ?? $item->producto->precio_base) * (int) $item->cantidad;
         });
@@ -176,11 +169,9 @@ class SplitMultivendedorService
 
     /**
      * Genera numero humano de pedido.
-     *
-     * @return string
      */
     private function numeroPedido(): string
     {
-        return 'ATL-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6));
+        return 'ATL-'.now()->format('Ymd').'-'.Str::upper(Str::random(6));
     }
 }

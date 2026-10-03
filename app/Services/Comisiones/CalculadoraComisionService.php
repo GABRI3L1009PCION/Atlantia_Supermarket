@@ -8,8 +8,8 @@ use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorCommission;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -23,8 +23,7 @@ class CalculadoraComisionService
     /**
      * Pagina comisiones para administracion.
      *
-     * @param array<string, mixed> $filters
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
     public function paginate(array $filters = []): LengthAwarePaginator
     {
@@ -41,7 +40,7 @@ class CalculadoraComisionService
     /**
      * Resume indicadores del panel de comisiones.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array<string, mixed>
      */
     public function dashboard(array $filters = []): array
@@ -64,9 +63,6 @@ class CalculadoraComisionService
 
     /**
      * Pagina comisiones del vendedor autenticado.
-     *
-     * @param User $user
-     * @return LengthAwarePaginator
      */
     public function paginateForVendor(User $user): LengthAwarePaginator
     {
@@ -79,9 +75,6 @@ class CalculadoraComisionService
 
     /**
      * Devuelve la comision activa reciente del vendedor con cache corto.
-     *
-     * @param Vendor $vendor
-     * @return VendorCommission|null
      */
     public function activeForVendorCached(Vendor $vendor): ?VendorCommission
     {
@@ -98,9 +91,6 @@ class CalculadoraComisionService
 
     /**
      * Carga detalle de una comision.
-     *
-     * @param VendorCommission $commission
-     * @return VendorCommission
      */
     public function detail(VendorCommission $commission): VendorCommission
     {
@@ -110,10 +100,6 @@ class CalculadoraComisionService
     /**
      * Calcula o actualiza comision mensual de un vendedor.
      *
-     * @param Vendor $vendor
-     * @param int $anio
-     * @param int $mes
-     * @return VendorCommission
      *
      * @throws TransaccionFallidaException
      */
@@ -154,10 +140,6 @@ class CalculadoraComisionService
 
     /**
      * Calcula comisiones para todos los vendedores aprobados.
-     *
-     * @param int $anio
-     * @param int $mes
-     * @return int
      */
     public function calcularPeriodoGlobal(int $anio, int $mes): int
     {
@@ -178,10 +160,7 @@ class CalculadoraComisionService
     /**
      * Actualiza datos administrativos de una comision.
      *
-     * @param VendorCommission $commission
-     * @param array<string, mixed> $data
-     * @param User $user
-     * @return VendorCommission
+     * @param  array<string, mixed>  $data
      */
     public function update(VendorCommission $commission, array $data, User $user): VendorCommission
     {
@@ -202,7 +181,7 @@ class CalculadoraComisionService
     /**
      * Devuelve coleccion resumida de vendedores con mayor comision.
      *
-     * @param Collection<int, VendorCommission> $comisiones
+     * @param  Collection<int, VendorCommission>  $comisiones
      * @return Collection<int, array<string, mixed>>
      */
     private function topVendedores(Collection $comisiones): Collection
@@ -222,10 +201,6 @@ class CalculadoraComisionService
 
     /**
      * Marca la comision como facturada al asociar su DTE.
-     *
-     * @param VendorCommission $commission
-     * @param int $dteId
-     * @return VendorCommission
      */
     public function marcarFacturada(VendorCommission $commission, int $dteId): VendorCommission
     {
@@ -241,9 +216,6 @@ class CalculadoraComisionService
     /**
      * Calcula totales cobrables del periodo usando splits aprobados/liquidados.
      *
-     * @param Vendor $vendor
-     * @param Carbon $inicio
-     * @param Carbon $fin
      * @return array<string, float>
      */
     private function totalesPeriodo(Vendor $vendor, Carbon $inicio, Carbon $fin): array
@@ -260,8 +232,6 @@ class CalculadoraComisionService
     /**
      * Devuelve rango de fechas mensual.
      *
-     * @param int $anio
-     * @param int $mes
      * @return array<string, Carbon>
      */
     private function periodo(int $anio, int $mes): array

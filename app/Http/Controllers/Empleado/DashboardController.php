@@ -15,9 +15,7 @@ class DashboardController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly DashboardEmpleadoService $dashboardEmpleadoService)
-    {
-    }
+    public function __construct(private readonly DashboardEmpleadoService $dashboardEmpleadoService) {}
 
     /**
      * Muestra resumen operativo del empleado.

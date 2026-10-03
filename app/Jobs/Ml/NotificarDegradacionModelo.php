@@ -19,21 +19,13 @@ class NotificarDegradacionModelo implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-
     /**
      * Crea el job.
-     *
-     * @param int $metricId
      */
-    public function __construct(private readonly int $metricId)
-    {
-    }
+    public function __construct(private readonly int $metricId) {}
 
     /**
      * Envia notificacion interna a administradores.
-     *
-     * @param NotificationService $notificationService
-     * @return void
      */
     public function handle(NotificationService $notificationService): void
     {

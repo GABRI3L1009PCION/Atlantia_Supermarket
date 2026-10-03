@@ -18,9 +18,6 @@ class RegistrarAuditoria implements ShouldQueue
 
     /**
      * Registra evento serializable.
-     *
-     * @param object $event
-     * @return void
      */
     public function handle(object $event): void
     {
@@ -31,7 +28,7 @@ class RegistrarAuditoria implements ShouldQueue
             AuditLog::query()->create([
                 'uuid' => (string) Str::uuid(),
                 'user_id' => null,
-                'event' => 'event.' . Str::snake($reflection->getShortName()),
+                'event' => 'event.'.Str::snake($reflection->getShortName()),
                 'auditable_type' => $model ? $model::class : null,
                 'auditable_id' => $model?->getKey(),
                 'metadata' => ['event_class' => $event::class],
@@ -46,9 +43,6 @@ class RegistrarAuditoria implements ShouldQueue
 
     /**
      * Obtiene el primer modelo publico del evento.
-     *
-     * @param object $event
-     * @return mixed
      */
     private function firstModelProperty(object $event): mixed
     {

@@ -129,7 +129,7 @@ class Resena extends Model
     /**
      * Filtra resenas aprobadas.
      *
-     * @param Builder<Resena> $query
+     * @param  Builder<Resena>  $query
      * @return Builder<Resena>
      */
     public function scopeAprobadas(Builder $query): Builder
@@ -140,7 +140,7 @@ class Resena extends Model
     /**
      * Filtra resenas pendientes de moderacion.
      *
-     * @param Builder<Resena> $query
+     * @param  Builder<Resena>  $query
      * @return Builder<Resena>
      */
     public function scopePendientes(Builder $query): Builder
@@ -151,7 +151,7 @@ class Resena extends Model
     /**
      * Filtra resenas marcadas por ML.
      *
-     * @param Builder<Resena> $query
+     * @param  Builder<Resena>  $query
      * @return Builder<Resena>
      */
     public function scopeFlaggedMl(Builder $query): Builder

@@ -23,7 +23,7 @@ class UserSeeder extends Seeder
         if (! $email || ! $password) {
             $this->command?->warn(
                 'No se creo super admin. Define ATLANTIA_SUPER_ADMIN_EMAIL y ATLANTIA_SUPER_ADMIN_PASSWORD, '
-                . 'o ejecuta php artisan atlantia:create-super-admin.'
+                .'o ejecuta php artisan atlantia:create-super-admin.'
             );
 
             return;
@@ -40,7 +40,7 @@ class UserSeeder extends Seeder
                 'status' => 'active',
                 'is_system_user' => true,
                 'two_factor_enabled' => true,
-                'two_factor_confirmed_at' => now(),
+                'two_factor_confirmed_at' => null,
             ]
         );
 

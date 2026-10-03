@@ -18,22 +18,13 @@ class DispararReentrenamientoModelo implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-
     /**
      * Crea el job.
-     *
-     * @param string $modeloNombre
-     * @param int $userId
      */
-    public function __construct(private readonly string $modeloNombre, private readonly int $userId)
-    {
-    }
+    public function __construct(private readonly string $modeloNombre, private readonly int $userId) {}
 
     /**
      * Inicia el entrenamiento en el servicio ML.
-     *
-     * @param MlTrainingService $trainingService
-     * @return void
      */
     public function handle(MlTrainingService $trainingService): void
     {

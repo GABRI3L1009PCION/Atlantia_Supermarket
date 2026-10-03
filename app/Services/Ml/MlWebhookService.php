@@ -10,16 +10,13 @@ class MlWebhookService
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly MonitorDriftService $monitorDriftService)
-    {
-    }
+    public function __construct(private readonly MonitorDriftService $monitorDriftService) {}
 
     /**
      * Procesa webhook ML.
      *
-     * @param array<string, mixed> $payload
-     * @param array<string, mixed> $headers
-     * @return void
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $headers
      */
     public function handle(array $payload, array $headers = []): void
     {

@@ -13,7 +13,7 @@ class EstadoPedidoTest extends TestCase
     /**
      * Permite transiciones validas del flujo operativo.
      */
-    public function testPermiteTransicionesValidas(): void
+    public function test_permite_transiciones_validas(): void
     {
         $this->assertTrue(EstadoPedido::Pendiente->puedeTransicionarA(EstadoPedido::Confirmado));
         $this->assertTrue(EstadoPedido::Confirmado->puedeTransicionarA(EstadoPedido::EnPreparacion));
@@ -24,7 +24,7 @@ class EstadoPedidoTest extends TestCase
     /**
      * Impide saltos de estado que rompen el flujo.
      */
-    public function testNoPermiteSaltarEstados(): void
+    public function test_no_permite_saltar_estados(): void
     {
         $this->assertFalse(EstadoPedido::Pendiente->puedeTransicionarA(EstadoPedido::Entregado));
         $this->assertFalse(EstadoPedido::Confirmado->puedeTransicionarA(EstadoPedido::Entregado));

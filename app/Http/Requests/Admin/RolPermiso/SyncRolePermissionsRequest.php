@@ -18,6 +18,7 @@ class SyncRolePermissionsRequest extends FormRequest
             'permissions.*' => ['string', 'exists:permissions,name'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

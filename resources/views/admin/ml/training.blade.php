@@ -1,13 +1,32 @@
 @extends(auth()->user()?->isSuperAdmin() && request()->routeIs('admin.*') ? 'layouts.super-admin' : 'layouts.app')
 
 @section('content')
+    @php
+        $modelName = fn (?string $name): string => match ($name) {
+            'demand_forecast', 'demand_forecast_prophet' => 'Pronostico de demanda',
+            'product_recommendation', 'product_recommendation_hybrid' => 'Recomendador de productos',
+            'restock_suggestion' => 'Sugerencia de reabasto',
+            'fraud_detection', 'fraud_review_xgboost' => 'Deteccion de fraude',
+            'review_nlp' => 'Analisis de resenas',
+            default => $name ? Illuminate\Support\Str::headline(str_replace('_', ' ', $name)) : 'Modelo sin nombre',
+        };
+        $jobStatus = fn (?string $status): string => match ($status) {
+            'queued' => 'En cola',
+            'running' => 'En proceso',
+            'completed' => 'Completado',
+            'failed' => 'Fallido',
+            'cancelled' => 'Cancelado',
+            default => $status ? Illuminate\Support\Str::headline(str_replace('_', ' ', $status)) : 'Sin estado',
+        };
+    @endphp
+
     <section class="mx-auto max-w-full py-2">
         <div class="space-y-6 rounded-2xl border border-atlantia-rose/20 bg-white p-6 shadow-sm">
-            <x-page-header title="Reentrenamiento ML" subtitle="Programa jobs, revisa ejecuciones recientes y empuja mejoras de modelos." />
+            <x-page-header title="Reentrenamiento ML" subtitle="Programa procesos, revisa ejecuciones recientes y mejora los modelos inteligentes." />
 
             <div class="grid gap-4 md:grid-cols-3">
                 <div class="rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-4">
-                    <p class="text-sm text-atlantia-ink/55">Jobs activos</p>
+                    <p class="text-sm text-atlantia-ink/55">Procesos activos</p>
                     <p class="mt-2 text-2xl font-bold text-atlantia-wine">{{ $dashboard['jobs_activos'] }}</p>
                 </div>
                 <div class="rounded-xl border border-emerald-200 bg-white p-4">
@@ -27,22 +46,22 @@
 
                     <div class="mt-4 grid gap-4">
                         <div>
-                            <label class="text-sm font-semibold text-atlantia-ink">Modelo</label>
+                                <label class="text-sm font-semibold text-atlantia-ink">Modelo</label>
                             <select name="modelo_nombre" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
-                                <option value="demand_forecast">Demand forecast</option>
-                                <option value="product_recommendation">Product recommendation</option>
-                                <option value="restock_suggestion">Restock suggestion</option>
-                                <option value="fraud_detection">Fraud detection</option>
-                                <option value="review_nlp">Review NLP</option>
+                                <option value="demand_forecast">Pronostico de demanda</option>
+                                <option value="product_recommendation">Recomendador de productos</option>
+                                <option value="restock_suggestion">Sugerencia de reabasto</option>
+                                <option value="fraud_detection">Deteccion de fraude</option>
+                                <option value="review_nlp">Analisis de resenas</option>
                             </select>
                         </div>
                         <div class="grid gap-4 md:grid-cols-2">
                             <div>
-                                <label class="text-sm font-semibold text-atlantia-ink">Fecha inicio dataset</label>
+                                <label class="text-sm font-semibold text-atlantia-ink">Fecha inicial de datos</label>
                                 <input name="fecha_inicio_dataset" type="date" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2">
                             </div>
                             <div>
-                                <label class="text-sm font-semibold text-atlantia-ink">Fecha fin dataset</label>
+                                <label class="text-sm font-semibold text-atlantia-ink">Fecha final de datos</label>
                                 <input name="fecha_fin_dataset" type="date" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2">
                             </div>
                         </div>
@@ -61,7 +80,7 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="text-sm font-semibold text-atlantia-ink">Max trials</label>
+                                <label class="text-sm font-semibold text-atlantia-ink">Intentos maximos</label>
                                 <input name="parametros[max_trials]" type="number" min="1" max="100" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2">
                             </div>
                         </div>
@@ -74,22 +93,22 @@
                         </label>
                         <label class="inline-flex items-center gap-2">
                             <input type="checkbox" name="usar_staging" value="1" checked class="rounded border-atlantia-rose text-atlantia-wine">
-                            <span>Desplegar en staging</span>
+                            <span>Publicar primero en pruebas</span>
                         </label>
                     </div>
 
-                    <x-ui.button type="submit" class="mt-5 w-full">Lanzar job</x-ui.button>
+                    <x-ui.button type="submit" class="mt-5 w-full">Iniciar proceso</x-ui.button>
                 </form>
 
                 <div class="rounded-xl border border-atlantia-rose/20 bg-white p-5">
                     <div class="flex items-center justify-between gap-3">
-                        <h2 class="text-lg font-bold text-atlantia-wine">Historial de jobs</h2>
+                        <h2 class="text-lg font-bold text-atlantia-wine">Historial de procesos</h2>
                         <form method="GET" class="flex gap-2">
                             <input type="search" name="modelo_nombre" value="{{ $filters['modelo_nombre'] ?? '' }}" placeholder="Filtrar por modelo" class="rounded-md border border-atlantia-rose/35 px-3 py-2">
                             <select name="estado" class="rounded-md border border-atlantia-rose/35 px-3 py-2">
                                 <option value="">Todos</option>
                                 @foreach (['queued', 'running', 'completed', 'failed', 'cancelled'] as $estado)
-                                    <option value="{{ $estado }}" @selected(($filters['estado'] ?? '') === $estado)>{{ $estado }}</option>
+                                    <option value="{{ $estado }}" @selected(($filters['estado'] ?? '') === $estado)>{{ $jobStatus($estado) }}</option>
                                 @endforeach
                             </select>
                             <x-ui.button type="submit" variant="secondary">Filtrar</x-ui.button>
@@ -102,7 +121,7 @@
                                 <tr class="border-b border-atlantia-rose/20 text-left text-atlantia-ink/55">
                                     <th class="pb-3">Modelo</th>
                                     <th class="pb-3">Estado</th>
-                                    <th class="pb-3">Dataset</th>
+                                    <th class="pb-3">Datos</th>
                                     <th class="pb-3">Inicio</th>
                                     <th class="pb-3">Fin</th>
                                 </tr>
@@ -111,11 +130,11 @@
                                 @forelse ($jobs as $job)
                                     <tr>
                                         <td class="py-3">
-                                            <p class="font-semibold text-atlantia-ink">{{ $job->modelo_nombre }}</p>
+                                            <p class="font-semibold text-atlantia-ink">{{ $modelName($job->modelo_nombre) }}</p>
                                             <p class="text-xs text-atlantia-ink/55">{{ $job->uuid }}</p>
                                         </td>
                                         <td class="py-3">
-                                            <span class="rounded-md bg-atlantia-blush px-3 py-1 text-xs font-bold text-atlantia-wine">{{ $job->estado }}</span>
+                                            <span class="rounded-md bg-atlantia-blush px-3 py-1 text-xs font-bold text-atlantia-wine">{{ $jobStatus($job->estado) }}</span>
                                         </td>
                                         <td class="py-3 text-atlantia-ink/70">{{ $job->dataset_size ?? 0 }}</td>
                                         <td class="py-3 text-atlantia-ink/70">{{ $job->inicio_at?->format('d/m/Y H:i') ?? 'Pendiente' }}</td>
@@ -132,7 +151,7 @@
                                     @endif
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="py-6 text-center text-atlantia-ink/60">No hay jobs registrados para esos filtros.</td>
+                                        <td colspan="5" class="py-6 text-center text-atlantia-ink/60">No hay procesos registrados para esos filtros.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

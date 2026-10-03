@@ -17,7 +17,5 @@ class DevolucionAprobada
     /**
      * Crea el evento.
      */
-    public function __construct(public readonly Devolucion $devolucion)
-    {
-    }
+    public function __construct(public readonly Devolucion $devolucion) {}
 }

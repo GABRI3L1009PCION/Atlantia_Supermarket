@@ -79,8 +79,7 @@ class ProductRecommendation extends Model
     /**
      * Filtra recomendaciones por algoritmo.
      *
-     * @param Builder<ProductRecommendation> $query
-     * @param string $algoritmo
+     * @param  Builder<ProductRecommendation>  $query
      * @return Builder<ProductRecommendation>
      */
     public function scopeAlgoritmo(Builder $query, string $algoritmo): Builder
@@ -91,7 +90,7 @@ class ProductRecommendation extends Model
     /**
      * Ordena recomendaciones por posicion.
      *
-     * @param Builder<ProductRecommendation> $query
+     * @param  Builder<ProductRecommendation>  $query
      * @return Builder<ProductRecommendation>
      */
     public function scopeOrdenadas(Builder $query): Builder

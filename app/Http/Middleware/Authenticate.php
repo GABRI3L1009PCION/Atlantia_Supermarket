@@ -12,9 +12,6 @@ class Authenticate extends Middleware
 {
     /**
      * Obtiene la ruta de redireccion para usuarios no autenticados.
-     *
-     * @param Request $request
-     * @return string|null
      */
     protected function redirectTo(Request $request): ?string
     {

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Webhook;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class PasarelaPagoWebhookRequest extends FormRequest
 {
@@ -14,12 +15,37 @@ class PasarelaPagoWebhookRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'payment_uuid' => ['required', 'string', 'max:36'],
-            'estado' => ['required', 'in:aprobado,rechazado,pendiente,reversado'],
+            'payment_uuid' => ['nullable', 'string', 'max:36', 'required_without_all:transaction_id,transaccion_id_pasarela,payment_intent,payload.transaction_id,payload.payment_intent,payload.data.object.id'],
+            'transaction_id' => ['nullable', 'string', 'max:120'],
             'transaccion_id_pasarela' => ['nullable', 'string', 'max:120'],
+            'payment_intent' => ['nullable', 'string', 'max:120'],
+            'estado' => ['nullable', 'in:aprobado,rechazado,pendiente,validando,pagado,reversado,anulado,reembolsado'],
+            'status' => ['nullable', 'string', 'max:80'],
             'payload' => ['nullable', 'array'],
         ];
     }
+
+    /**
+     * Requiere al menos un estado reconocible del proveedor.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $payload = $this->input('payload', []);
+
+            if (
+                $this->filled('estado')
+                || $this->filled('status')
+                || data_get($payload, 'status')
+                || data_get($payload, 'data.object.status')
+            ) {
+                return;
+            }
+
+            $validator->errors()->add('estado', 'El webhook debe incluir estado o status.');
+        });
+    }
+
     /**
      * Mensajes personalizados de validacion.
      *

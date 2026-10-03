@@ -17,14 +17,10 @@ class DetectorResenaFalsaService
     public function __construct(
         private readonly MlServiceClient $mlClient,
         private readonly AnalisisResenaService $analisisResenaService
-    ) {
-    }
+    ) {}
 
     /**
      * Evalua una resena con ML y fallback local.
-     *
-     * @param Resena $resena
-     * @return ReviewFlag|null
      */
     public function evaluar(Resena $resena): ?ReviewFlag
     {

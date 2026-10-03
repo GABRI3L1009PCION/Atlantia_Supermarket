@@ -20,6 +20,7 @@ class RoutePreviewRequest extends FormRequest
             'destino_longitude' => ['required', 'numeric', 'between:-180,180'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

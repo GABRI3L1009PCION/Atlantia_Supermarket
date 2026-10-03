@@ -21,18 +21,12 @@ class EstadoPedidoService
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly PuntosService $puntosService)
-    {
-    }
+    public function __construct(private readonly PuntosService $puntosService) {}
 
     /**
      * Registra un estado y actualiza el pedido.
      *
-     * @param Pedido $pedido
-     * @param string $estado
-     * @param string|null $notas
-     * @param User|null $usuario
-     * @return Pedido
+     * @param  string  $estado
      */
     public function registrar(Pedido $pedido, string|EstadoPedido $estado, ?string $notas = null, ?User $usuario = null): Pedido
     {
@@ -70,9 +64,6 @@ class EstadoPedidoService
 
     /**
      * Marca un pedido como pagado.
-     *
-     * @param Pedido $pedido
-     * @return Pedido
      */
     public function marcarPagado(Pedido $pedido): Pedido
     {
@@ -84,7 +75,7 @@ class EstadoPedidoService
     /**
      * Construye payload de estado.
      *
-     * @param string $estado
+     * @param  string  $estado
      * @return array<string, mixed>
      */
     private function payloadEstado(string|EstadoPedido $estado): array
@@ -100,10 +91,6 @@ class EstadoPedidoService
 
     /**
      * Dispara notificaciones in-app segun el estado alcanzado.
-     *
-     * @param Pedido $pedido
-     * @param string $estado
-     * @return void
      */
     private function notificarCambio(Pedido $pedido, string $estado): void
     {

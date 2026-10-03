@@ -17,9 +17,7 @@ class PerfilController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly PerfilClienteService $perfilClienteService)
-    {
-    }
+    public function __construct(private readonly PerfilClienteService $perfilClienteService) {}
 
     /**
      * Muestra el perfil del cliente.

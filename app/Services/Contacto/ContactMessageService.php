@@ -14,8 +14,7 @@ class ContactMessageService
     /**
      * Pagina mensajes de contacto.
      *
-     * @param array<string, mixed> $filters
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
     public function paginate(array $filters = []): LengthAwarePaginator
     {
@@ -29,7 +28,7 @@ class ContactMessageService
     /**
      * Marca mensaje como atendido.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function respond(ContactMessage $message, array $data, User $user): ContactMessage
     {
@@ -42,4 +41,3 @@ class ContactMessageService
         return $message->refresh();
     }
 }
-

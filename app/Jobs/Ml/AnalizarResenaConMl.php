@@ -19,21 +19,13 @@ class AnalizarResenaConMl implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-
     /**
      * Crea el job.
-     *
-     * @param int $resenaId
      */
-    public function __construct(private readonly int $resenaId)
-    {
-    }
+    public function __construct(private readonly int $resenaId) {}
 
     /**
      * Ejecuta el analisis ML.
-     *
-     * @param DetectorResenaFalsaService $detector
-     * @return void
      */
     public function handle(DetectorResenaFalsaService $detector): void
     {

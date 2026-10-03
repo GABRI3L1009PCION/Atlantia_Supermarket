@@ -30,7 +30,7 @@ async def ready() -> HealthResponse:
         version=settings.app_version,
         timestamp=datetime.now(UTC),
         dependencies={
-            "mlflow": registry.tracking_uri(),
-            "redis": settings.redis_url,
+            "mlflow": "configured" if registry.tracking_uri() else "missing",
+            "redis": "configured" if settings.redis_url else "missing",
         },
     )

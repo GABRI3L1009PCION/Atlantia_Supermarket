@@ -52,8 +52,7 @@ class PedidoEstado extends Model
     /**
      * Filtra historial por estado.
      *
-     * @param Builder<PedidoEstado> $query
-     * @param string $estado
+     * @param  Builder<PedidoEstado>  $query
      * @return Builder<PedidoEstado>
      */
     public function scopeEstado(Builder $query, string $estado): Builder

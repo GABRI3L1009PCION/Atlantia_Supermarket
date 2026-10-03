@@ -38,7 +38,7 @@ class DteFacturaFactory extends Factory
             'uuid' => (string) Str::uuid(),
             'pedido_id' => fn (): ?int => Pedido::query()->inRandomOrder()->value('id'),
             'vendor_id' => fn (): int => (int) (Vendor::query()->inRandomOrder()->value('id') ?? Vendor::factory()->approved()->create()->id),
-            'numero_dte' => 'DTE-' . now()->format('Y') . '-' . fake()->unique()->numerify('######'),
+            'numero_dte' => 'DTE-'.now()->format('Y').'-'.fake()->unique()->numerify('######'),
             'uuid_sat' => (string) Str::uuid(),
             'serie' => $serie,
             'numero' => fake()->unique()->numberBetween(1000, 999999),
@@ -48,7 +48,7 @@ class DteFacturaFactory extends Factory
             'monto_total' => $total,
             'moneda' => 'GTQ',
             'xml_dte' => '<dte><emisor>Atlantia vendedor local</emisor><moneda>GTQ</moneda></dte>',
-            'pdf_path' => 'dte/facturas/' . now()->format('Y/m') . '/' . Str::uuid() . '.pdf',
+            'pdf_path' => 'dte/facturas/'.now()->format('Y/m').'/'.Str::uuid().'.pdf',
             'estado' => 'certificado',
             'fecha_certificacion' => now()->subDays(fake()->numberBetween(0, 30)),
             'certificador_respuesta' => [
@@ -62,8 +62,6 @@ class DteFacturaFactory extends Factory
 
     /**
      * Estado para DTE certificado.
-     *
-     * @return static
      */
     public function certificado(): static
     {
@@ -75,8 +73,6 @@ class DteFacturaFactory extends Factory
 
     /**
      * Estado para DTE rechazado.
-     *
-     * @return static
      */
     public function rechazado(): static
     {

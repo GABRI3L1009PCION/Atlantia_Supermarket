@@ -17,6 +17,7 @@ class StockAvailabilityRequest extends FormRequest
             'cantidad' => ['nullable', 'integer', 'min:1', 'max:99'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

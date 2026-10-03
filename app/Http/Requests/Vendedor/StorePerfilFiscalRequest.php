@@ -13,8 +13,6 @@ class StorePerfilFiscalRequest extends FormRequest
 {
     /**
      * Determina si el vendedor puede gestionar su perfil fiscal.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -105,8 +103,6 @@ class StorePerfilFiscalRequest extends FormRequest
 
     /**
      * Normaliza datos fiscales.
-     *
-     * @return void
      */
     protected function prepareForValidation(): void
     {

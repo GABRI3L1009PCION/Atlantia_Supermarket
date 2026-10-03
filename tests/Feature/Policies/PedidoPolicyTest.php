@@ -34,7 +34,7 @@ class PedidoPolicyTest extends TestCase
     /**
      * Cliente solo puede ver sus propios pedidos.
      */
-    public function testClienteSoloVeSusPropiosPedidos(): void
+    public function test_cliente_solo_ve_sus_propios_pedidos(): void
     {
         [$clienteA, $pedidoA] = $this->createPedidoParaCliente();
         [$clienteB] = $this->createPedidoParaCliente();
@@ -46,7 +46,7 @@ class PedidoPolicyTest extends TestCase
     /**
      * Vendedor solo ve pedidos de su catalogo.
      */
-    public function testVendedorSoloVePedidosConSusProductos(): void
+    public function test_vendedor_solo_ve_pedidos_con_sus_productos(): void
     {
         [$cliente, $pedido, $vendorA, $vendorB] = $this->createPedidoParaDosVendedores();
 
@@ -57,7 +57,7 @@ class PedidoPolicyTest extends TestCase
     /**
      * Repartidor solo actualiza estado de sus pedidos asignados.
      */
-    public function testRepartidorSoloActualizaEstadoDeSusPedidosAsignados(): void
+    public function test_repartidor_solo_actualiza_estado_de_sus_pedidos_asignados(): void
     {
         [$cliente, $pedido] = $this->createPedidoParaCliente();
 

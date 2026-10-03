@@ -18,9 +18,7 @@ class PedidoController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly PedidoVendedorService $pedidoVendedorService)
-    {
-    }
+    public function __construct(private readonly PedidoVendedorService $pedidoVendedorService) {}
 
     /**
      * Lista pedidos recibidos.
@@ -29,7 +27,10 @@ class PedidoController extends Controller
     {
         $this->authorize('viewOwnVendorOrders', Pedido::class);
 
-        return view('vendedor.pedidos.index', ['pedidos' => $this->pedidoVendedorService->paginate($request->user())]);
+        return view('vendedor.pedidos.index', [
+            'pedidos' => $this->pedidoVendedorService->paginate($request->user(), $request->all()),
+            'dashboard' => $this->pedidoVendedorService->dashboard($request->user()),
+        ]);
     }
 
     /**

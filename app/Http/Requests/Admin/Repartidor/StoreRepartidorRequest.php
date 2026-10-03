@@ -25,6 +25,7 @@ class StoreRepartidorRequest extends FormRequest
             'status' => ['required', 'in:active,inactive,suspended'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

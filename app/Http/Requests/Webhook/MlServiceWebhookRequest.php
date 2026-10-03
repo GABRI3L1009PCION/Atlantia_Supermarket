@@ -18,6 +18,7 @@ class MlServiceWebhookRequest extends FormRequest
             'payload' => ['required', 'array'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

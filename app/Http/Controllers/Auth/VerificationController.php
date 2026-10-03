@@ -7,8 +7,8 @@ use App\Services\Auth\EmailVerificationService;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 use Throwable;
 
 /**
@@ -18,17 +18,11 @@ class VerificationController extends Controller
 {
     /**
      * Crea una instancia del controlador.
-     *
-     * @param EmailVerificationService $emailVerificationService
      */
-    public function __construct(private readonly EmailVerificationService $emailVerificationService)
-    {
-    }
+    public function __construct(private readonly EmailVerificationService $emailVerificationService) {}
 
     /**
      * Muestra el aviso de verificacion pendiente.
-     *
-     * @return View
      */
     public function notice(): View
     {
@@ -37,9 +31,6 @@ class VerificationController extends Controller
 
     /**
      * Marca el correo como verificado.
-     *
-     * @param EmailVerificationRequest $request
-     * @return RedirectResponse
      */
     public function verify(EmailVerificationRequest $request): RedirectResponse
     {
@@ -51,8 +42,6 @@ class VerificationController extends Controller
     /**
      * Verifica el correo con codigo enviado al email.
      *
-     * @param Request $request
-     * @return RedirectResponse
      *
      * @throws ValidationException
      */
@@ -72,9 +61,6 @@ class VerificationController extends Controller
 
     /**
      * Reenvia la notificacion de verificacion.
-     *
-     * @param Request $request
-     * @return RedirectResponse
      */
     public function resend(Request $request): RedirectResponse
     {

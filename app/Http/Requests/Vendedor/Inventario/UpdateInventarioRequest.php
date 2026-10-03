@@ -19,6 +19,7 @@ class UpdateInventarioRequest extends FormRequest
             'stock_maximo' => ['nullable', 'integer', 'gte:stock_minimo'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

@@ -19,9 +19,7 @@ class RepartidorController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly RepartidorService $repartidorService)
-    {
-    }
+    public function __construct(private readonly RepartidorService $repartidorService) {}
 
     /**
      * Lista repartidores.

@@ -49,6 +49,10 @@ class Pedido extends Model
         'estado',
         'metodo_pago',
         'estado_pago',
+        'facturacion_tipo',
+        'facturacion_nombre',
+        'facturacion_nit',
+        'facturacion_email',
         'fraud_score',
         'fraud_revisado',
         'notas',
@@ -82,8 +86,6 @@ class Pedido extends Model
 
     /**
      * Usa UUID para rutas publicas del pedido.
-     *
-     * @return string
      */
     public function getRouteKeyName(): string
     {
@@ -201,6 +203,16 @@ class Pedido extends Model
     }
 
     /**
+     * Pago mas reciente asociado al pedido.
+     *
+     * @return HasOne<Payment>
+     */
+    public function latestPayment(): HasOne
+    {
+        return $this->hasOne(Payment::class)->latestOfMany();
+    }
+
+    /**
      * Devoluciones solicitadas sobre el pedido.
      *
      * @return HasMany<Devolucion>
@@ -221,6 +233,71 @@ class Pedido extends Model
     }
 
     /**
+     * Datos operativos del cobro configurados en el pago.
+     *
+     * @return array<string, mixed>
+     */
+    public function paymentOperationalData(): array
+    {
+        $payment = $this->relationLoaded('latestPayment')
+            ? $this->getRelation('latestPayment')
+            : $this->latestPayment()->first();
+
+        $payload = $payment?->pasarela_payload;
+
+        return is_array($payload) ? $payload : [];
+    }
+
+    public function amountDueOnDelivery(): float
+    {
+        $payload = $this->paymentOperationalData();
+
+        return (float) ($payload['amount_due_on_delivery'] ?? 0);
+    }
+
+    public function changeRequiredAmount(): float
+    {
+        $payload = $this->paymentOperationalData();
+
+        return (float) ($payload['change_required'] ?? 0);
+    }
+
+    public function changeRequestedForAmount(): ?float
+    {
+        $payload = $this->paymentOperationalData();
+        $value = $payload['change_requested_for'] ?? null;
+
+        return is_numeric($value) ? (float) $value : null;
+    }
+
+    public function paymentCollectionFlow(): string
+    {
+        $payload = $this->paymentOperationalData();
+
+        return (string) ($payload['collection_flow'] ?? 'unknown');
+    }
+
+    /**
+     * Ofertas de entrega emitidas para el pedido.
+     *
+     * @return HasMany<DeliveryOffer>
+     */
+    public function deliveryOffers(): HasMany
+    {
+        return $this->hasMany(DeliveryOffer::class);
+    }
+
+    /**
+     * Tickets de soporte asociados al pedido.
+     *
+     * @return HasMany<CourierSupportTicket>
+     */
+    public function courierSupportTickets(): HasMany
+    {
+        return $this->hasMany(CourierSupportTicket::class);
+    }
+
+    /**
      * Resenas originadas por el pedido.
      *
      * @return HasMany<Resena>
@@ -233,8 +310,7 @@ class Pedido extends Model
     /**
      * Filtra pedidos por estado.
      *
-     * @param Builder<Pedido> $query
-     * @param string $estado
+     * @param  Builder<Pedido>  $query
      * @return Builder<Pedido>
      */
     public function scopeEstado(Builder $query, string $estado): Builder
@@ -245,7 +321,7 @@ class Pedido extends Model
     /**
      * Filtra pedidos pendientes.
      *
-     * @param Builder<Pedido> $query
+     * @param  Builder<Pedido>  $query
      * @return Builder<Pedido>
      */
     public function scopePending(Builder $query): Builder
@@ -256,7 +332,7 @@ class Pedido extends Model
     /**
      * Filtra pedidos padres multivendedor.
      *
-     * @param Builder<Pedido> $query
+     * @param  Builder<Pedido>  $query
      * @return Builder<Pedido>
      */
     public function scopePadres(Builder $query): Builder
@@ -267,7 +343,7 @@ class Pedido extends Model
     /**
      * Filtra pedidos hijos por vendedor.
      *
-     * @param Builder<Pedido> $query
+     * @param  Builder<Pedido>  $query
      * @return Builder<Pedido>
      */
     public function scopeHijos(Builder $query): Builder

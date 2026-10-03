@@ -7,6 +7,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Meilisearch\Client;
 use Throwable;
 
 /**
@@ -17,21 +18,21 @@ class MeilisearchService
     /**
      * Ejecuta busqueda de catalogo con filtros seguros.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array<string, mixed>
      */
     public function search(array $filters): array
     {
-        $perPage = min(50, max(12, (int) ($filters['per_page'] ?? 24)));
+        $perPage = min(48, max(12, (int) ($filters['per_page'] ?? 48)));
         $query = trim((string) ($filters['q'] ?? ''));
-        $page = (int) ($filters['page'] ?? request('page', 1));
+        $page = max(1, (int) ($filters['page'] ?? request('page', 1)));
         $cacheVersion = Cache::get('search:version', 1);
-        $cacheKey = 'search:' . $cacheVersion . ':' . sha1(json_encode($this->normalizeFilters($filters)) . ":{$page}:{$perPage}");
+        $cacheKey = 'search:'.$cacheVersion.':'.sha1(json_encode($this->normalizeFilters($filters)).":{$page}:{$perPage}");
 
-        $payload = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($query, $filters, $perPage): array {
+        $payload = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($query, $filters, $perPage, $page): array {
             $results = $query !== ''
-                ? $this->searchWithScout($query, $filters, $perPage)
-                : $this->searchWithEloquent($filters, $perPage);
+                ? $this->searchWithScout($query, $filters, $perPage, $page)
+                : $this->searchWithEloquent($filters, $perPage, $page);
 
             return [
                 'product_ids' => collect($results->items())
@@ -56,8 +57,6 @@ class MeilisearchService
 
     /**
      * Sincroniza productos publicados hacia el indice de busqueda.
-     *
-     * @return int
      */
     public function reindexCatalogo(): int
     {
@@ -76,8 +75,6 @@ class MeilisearchService
 
     /**
      * Elimina del indice productos no visibles.
-     *
-     * @return int
      */
     public function purgeNoPublicados(): int
     {
@@ -99,12 +96,10 @@ class MeilisearchService
 
     /**
      * Configura indice Meilisearch cuando el cliente esta disponible.
-     *
-     * @return bool
      */
     public function configurarIndice(): bool
     {
-        if (! class_exists(\Meilisearch\Client::class)) {
+        if (! class_exists(Client::class)) {
             return false;
         }
 
@@ -115,8 +110,8 @@ class MeilisearchService
             return false;
         }
 
-        $client = new \Meilisearch\Client($host, $key);
-        $index = $client->index((new Producto())->searchableAs());
+        $client = new Client($host, $key);
+        $index = $client->index((new Producto)->searchableAs());
         $index->updateFilterableAttributes([
             'vendor_id',
             'categoria_id',
@@ -133,12 +128,9 @@ class MeilisearchService
     /**
      * Busca con Scout y usa Eloquent si el motor no responde.
      *
-     * @param string $query
-     * @param array<string, mixed> $filters
-     * @param int $perPage
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
-    private function searchWithScout(string $query, array $filters, int $perPage): LengthAwarePaginator
+    private function searchWithScout(string $query, array $filters, int $perPage, int $page): LengthAwarePaginator
     {
         try {
             return Producto::search($query, function ($engine, string $query, array $options) use ($filters): mixed {
@@ -147,20 +139,18 @@ class MeilisearchService
                 return $engine->search($query, $options);
             })
                 ->query(fn (Builder $builder) => $this->applyEloquentFilters($builder, $filters))
-                ->paginate($perPage);
+                ->paginate($perPage, 'page', $page);
         } catch (Throwable) {
-            return $this->searchWithEloquent($filters + ['q' => $query], $perPage);
+            return $this->searchWithEloquent($filters + ['q' => $query], $perPage, $page);
         }
     }
 
     /**
      * Busca con Eloquent como respaldo local y para listados sin texto.
      *
-     * @param array<string, mixed> $filters
-     * @param int $perPage
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
-    private function searchWithEloquent(array $filters, int $perPage): LengthAwarePaginator
+    private function searchWithEloquent(array $filters, int $perPage, int $page): LengthAwarePaginator
     {
         $builder = Producto::query()
             ->with(['categoria', 'vendor', 'inventario', 'imagenPrincipal', 'media'])
@@ -170,14 +160,14 @@ class MeilisearchService
         $this->applyEloquentFilters($builder, $filters);
         $this->applySort($builder, (string) ($filters['orden'] ?? 'relevancia'));
 
-        return $builder->paginate($perPage);
+        return $builder->paginate($perPage, ['*'], 'page', $page);
     }
 
     /**
      * Aplica filtros SQL equivalentes a los filtros del indice.
      *
-     * @param Builder<Producto> $builder
-     * @param array<string, mixed> $filters
+     * @param  Builder<Producto>  $builder
+     * @param  array<string, mixed>  $filters
      * @return Builder<Producto>
      */
     private function applyEloquentFilters(Builder $builder, array $filters): Builder
@@ -224,7 +214,7 @@ class MeilisearchService
     /**
      * Construye filtros para Meilisearch.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array<int, string>
      */
     private function buildMeilisearchFilters(array $filters): array
@@ -233,20 +223,20 @@ class MeilisearchService
 
         foreach (['categoria_id', 'vendor_id'] as $field) {
             if (! empty($filters[$field])) {
-                $meiliFilters[] = "{$field} = " . (int) $filters[$field];
+                $meiliFilters[] = "{$field} = ".(int) $filters[$field];
             }
         }
 
         foreach ((array) ($filters['categoria_ids'] ?? []) as $categoriaId) {
-            $meiliFilters[] = 'categoria_id = ' . (int) $categoriaId;
+            $meiliFilters[] = 'categoria_id = '.(int) $categoriaId;
         }
 
         if (! empty($filters['precio_min'])) {
-            $meiliFilters[] = 'precio_base >= ' . (float) $filters['precio_min'];
+            $meiliFilters[] = 'precio_base >= '.(float) $filters['precio_min'];
         }
 
         if (! empty($filters['precio_max'])) {
-            $meiliFilters[] = 'precio_base <= ' . (float) $filters['precio_max'];
+            $meiliFilters[] = 'precio_base <= '.(float) $filters['precio_max'];
         }
 
         return $meiliFilters;
@@ -255,7 +245,7 @@ class MeilisearchService
     /**
      * Normaliza filtros devueltos al cliente.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array<string, mixed>
      */
     private function normalizeFilters(array $filters): array
@@ -278,9 +268,7 @@ class MeilisearchService
     /**
      * Aplica orden seguro para resultados locales.
      *
-     * @param Builder<Producto> $builder
-     * @param string $orden
-     * @return void
+     * @param  Builder<Producto>  $builder
      */
     private function applySort(Builder $builder, string $orden): void
     {
@@ -296,7 +284,7 @@ class MeilisearchService
     /**
      * Rehidrata productos cacheados sin serializar modelos completos.
      *
-     * @param array<int, int> $productIds
+     * @param  array<int, int>  $productIds
      * @return Collection<int, Producto>
      */
     private function hydrateCachedProducts(array $productIds): Collection

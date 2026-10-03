@@ -23,8 +23,7 @@ class DteController extends Controller
     public function __construct(
         private readonly ReporteFiscalService $reporteFiscalService,
         private readonly DteAnulacionService $dteAnulacionService
-    ) {
-    }
+    ) {}
 
     /**
      * Lista facturas DTE.

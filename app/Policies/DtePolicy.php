@@ -12,10 +12,6 @@ class DtePolicy
 {
     /**
      * Permite acceso global a administradores.
-     *
-     * @param User $user
-     * @param string $ability
-     * @return bool|null
      */
     public function before(User $user, string $ability): ?bool
     {
@@ -28,9 +24,6 @@ class DtePolicy
 
     /**
      * Determina si el usuario puede listar DTE.
-     *
-     * @param User $user
-     * @return bool
      */
     public function viewAny(User $user): bool
     {
@@ -40,10 +33,6 @@ class DtePolicy
 
     /**
      * Determina si el usuario puede ver un DTE.
-     *
-     * @param User $user
-     * @param DteFactura $dte
-     * @return bool
      */
     public function view(User $user, DteFactura $dte): bool
     {
@@ -55,9 +44,6 @@ class DtePolicy
 
     /**
      * Determina si el usuario puede emitir DTE.
-     *
-     * @param User $user
-     * @return bool
      */
     public function create(User $user): bool
     {
@@ -71,10 +57,6 @@ class DtePolicy
 
     /**
      * Determina si el usuario puede actualizar metadatos internos de un DTE.
-     *
-     * @param User $user
-     * @param DteFactura $dte
-     * @return bool
      */
     public function update(User $user, DteFactura $dte): bool
     {
@@ -84,10 +66,6 @@ class DtePolicy
 
     /**
      * Determina si el usuario puede eliminar un DTE.
-     *
-     * @param User $user
-     * @param DteFactura $dte
-     * @return bool
      */
     public function delete(User $user, DteFactura $dte): bool
     {
@@ -97,9 +75,6 @@ class DtePolicy
 
     /**
      * Determina si el vendedor puede listar sus DTE.
-     *
-     * @param User $user
-     * @return bool
      */
     public function viewOwnDtes(User $user): bool
     {
@@ -112,10 +87,6 @@ class DtePolicy
 
     /**
      * Determina si el usuario puede anular un DTE certificado.
-     *
-     * @param User $user
-     * @param DteFactura $dte
-     * @return bool
      */
     public function anular(User $user, DteFactura $dte): bool
     {
@@ -126,10 +97,6 @@ class DtePolicy
 
     /**
      * Determina si el usuario puede descargar el XML fiscal.
-     *
-     * @param User $user
-     * @param DteFactura $dte
-     * @return bool
      */
     public function downloadXml(User $user, DteFactura $dte): bool
     {
@@ -144,10 +111,6 @@ class DtePolicy
 
     /**
      * Determina si el usuario puede descargar el PDF fiscal.
-     *
-     * @param User $user
-     * @param DteFactura $dte
-     * @return bool
      */
     public function downloadPdf(User $user, DteFactura $dte): bool
     {
@@ -162,9 +125,6 @@ class DtePolicy
 
     /**
      * Determina si el usuario puede ver reportes fiscales.
-     *
-     * @param User $user
-     * @return bool
      */
     public function viewFiscalReports(User $user): bool
     {
@@ -174,10 +134,6 @@ class DtePolicy
 
     /**
      * Verifica si el DTE pertenece al vendedor autenticado.
-     *
-     * @param User $user
-     * @param DteFactura $dte
-     * @return bool
      */
     private function ownsDteAsVendor(User $user, DteFactura $dte): bool
     {
@@ -194,10 +150,6 @@ class DtePolicy
 
     /**
      * Verifica si el DTE pertenece a un pedido del cliente autenticado.
-     *
-     * @param User $user
-     * @param DteFactura $dte
-     * @return bool
      */
     private function ownsDteAsCustomer(User $user, DteFactura $dte): bool
     {

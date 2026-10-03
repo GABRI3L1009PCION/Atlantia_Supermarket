@@ -8,6 +8,7 @@ use App\Services\Auth\LoginService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -17,17 +18,11 @@ class LoginController extends Controller
 {
     /**
      * Crea una instancia del controlador.
-     *
-     * @param LoginService $loginService
      */
-    public function __construct(private readonly LoginService $loginService)
-    {
-    }
+    public function __construct(private readonly LoginService $loginService) {}
 
     /**
      * Muestra el formulario de inicio de sesion.
-     *
-     * @return View
      */
     public function create(): View
     {
@@ -36,9 +31,6 @@ class LoginController extends Controller
 
     /**
      * Procesa el inicio de sesion.
-     *
-     * @param LoginRequest $request
-     * @return RedirectResponse
      */
     public function store(LoginRequest $request): RedirectResponse
     {
@@ -46,16 +38,17 @@ class LoginController extends Controller
             $redirectRoute = $this->loginService->authenticate($request->validated(), $request);
 
             return redirect()->route($redirectRoute)->with('success', 'Sesion iniciada correctamente.');
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            if ($exception instanceof RuntimeException && $exception->getMessage() === 'Demasiados intentos de inicio de sesion.') {
+                abort(429, $exception->getMessage());
+            }
+
             return back()->withInput($request->only('email'))->with('error', 'No fue posible iniciar sesion.');
         }
     }
 
     /**
      * Cierra la sesion activa.
-     *
-     * @param Request $request
-     * @return RedirectResponse
      */
     public function destroy(Request $request): RedirectResponse
     {

@@ -67,7 +67,7 @@ class VendorDeliveryZone extends Model
     /**
      * Filtra relaciones activas.
      *
-     * @param Builder<VendorDeliveryZone> $query
+     * @param  Builder<VendorDeliveryZone>  $query
      * @return Builder<VendorDeliveryZone>
      */
     public function scopeActive(Builder $query): Builder

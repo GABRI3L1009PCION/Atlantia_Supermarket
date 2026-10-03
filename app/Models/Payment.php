@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\EstadoPago;
 use App\Enums\MetodoPago;
+use Database\Factories\PagoFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -25,9 +26,9 @@ class Payment extends Model
     /**
      * Asocia la factory local con el modelo.
      */
-    protected static function newFactory(): \Database\Factories\PagoFactory
+    protected static function newFactory(): PagoFactory
     {
-        return \Database\Factories\PagoFactory::new();
+        return PagoFactory::new();
     }
 
     /**
@@ -99,7 +100,7 @@ class Payment extends Model
     /**
      * Filtra pagos aprobados.
      *
-     * @param Builder<Payment> $query
+     * @param  Builder<Payment>  $query
      * @return Builder<Payment>
      */
     public function scopeApproved(Builder $query): Builder
@@ -110,19 +111,18 @@ class Payment extends Model
     /**
      * Filtra pagos pendientes.
      *
-     * @param Builder<Payment> $query
+     * @param  Builder<Payment>  $query
      * @return Builder<Payment>
      */
     public function scopePending(Builder $query): Builder
     {
-        return $query->where('estado', 'pendiente');
+        return $query->whereIn('estado', [EstadoPago::Pendiente->value, EstadoPago::Validando->value]);
     }
 
     /**
      * Filtra pagos por metodo.
      *
-     * @param Builder<Payment> $query
-     * @param string $metodo
+     * @param  Builder<Payment>  $query
      * @return Builder<Payment>
      */
     public function scopeMetodo(Builder $query, string $metodo): Builder

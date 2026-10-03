@@ -17,9 +17,6 @@ class AlimentarDatasetTrasPedido implements ShouldQueue
 
     /**
      * Procesa pedido entregado.
-     *
-     * @param PedidoEntregado $event
-     * @return void
      */
     public function handle(PedidoEntregado $event): void
     {

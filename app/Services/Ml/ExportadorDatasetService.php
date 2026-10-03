@@ -14,7 +14,7 @@ class ExportadorDatasetService
     /**
      * Exporta ventas historicas por producto.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return Collection<int, array<string, mixed>>
      */
     public function ventas(array $filters = []): Collection

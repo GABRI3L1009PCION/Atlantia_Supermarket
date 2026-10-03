@@ -15,9 +15,6 @@ class AlertaStockService
 {
     /**
      * Lista alertas de stock para el vendedor autenticado.
-     *
-     * @param User $user
-     * @return LengthAwarePaginator
      */
     public function forVendor(User $user): LengthAwarePaginator
     {
@@ -28,8 +25,6 @@ class AlertaStockService
 
     /**
      * Lista alertas globales para administracion.
-     *
-     * @return LengthAwarePaginator
      */
     public function global(): LengthAwarePaginator
     {
@@ -39,7 +34,6 @@ class AlertaStockService
     /**
      * Calcula datos de alerta para un inventario especifico.
      *
-     * @param Inventario $inventario
      * @return array<string, mixed>
      */
     public function evaluate(Inventario $inventario): array
@@ -62,9 +56,6 @@ class AlertaStockService
 
     /**
      * Cuenta productos bajo minimo por vendedor.
-     *
-     * @param Vendor $vendor
-     * @return int
      */
     public function countForVendor(Vendor $vendor): int
     {
@@ -89,10 +80,6 @@ class AlertaStockService
 
     /**
      * Determina urgencia operativa segun disponibilidad.
-     *
-     * @param Inventario $inventario
-     * @param int $disponible
-     * @return string
      */
     private function urgencia(Inventario $inventario, int $disponible): string
     {

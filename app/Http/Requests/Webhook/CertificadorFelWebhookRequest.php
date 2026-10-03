@@ -20,6 +20,7 @@ class CertificadorFelWebhookRequest extends FormRequest
             'respuesta' => ['nullable', 'array'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

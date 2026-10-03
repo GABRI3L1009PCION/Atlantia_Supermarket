@@ -19,6 +19,7 @@ class StoreIncidenciaRequest extends FormRequest
             'foto_path' => ['nullable', 'string', 'max:255'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

@@ -19,9 +19,6 @@ class FiltroCategorias extends Component
 
     /**
      * Selecciona una categoria y notifica a la lista de productos.
-     *
-     * @param int|null $categoriaId
-     * @return void
      */
     public function seleccionarCategoria(?int $categoriaId): void
     {
@@ -32,8 +29,6 @@ class FiltroCategorias extends Component
 
     /**
      * Renderiza el filtro de categorias.
-     *
-     * @return View
      */
     public function render(): View
     {

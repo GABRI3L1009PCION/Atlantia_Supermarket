@@ -33,6 +33,7 @@ class Empleado extends Model
         'codigo_empleado',
         'departamento',
         'puesto',
+        'salario_base',
         'telefono_interno',
         'fecha_contratacion',
         'status',
@@ -49,6 +50,7 @@ class Empleado extends Model
     {
         return [
             'fecha_contratacion' => 'date',
+            'salario_base' => 'decimal:2',
             'permisos_operativos' => 'array',
             'deleted_at' => 'datetime',
         ];
@@ -85,6 +87,14 @@ class Empleado extends Model
     }
 
     /**
+     * Pagos historicos incluidos en planillas.
+     */
+    public function nominaDetalles(): HasMany
+    {
+        return $this->hasMany(NominaDetalle::class);
+    }
+
+    /**
      * Mensajes de contacto atendidos por el empleado.
      *
      * @return HasMany<ContactMessage>
@@ -97,7 +107,7 @@ class Empleado extends Model
     /**
      * Filtra empleados activos.
      *
-     * @param Builder<Empleado> $query
+     * @param  Builder<Empleado>  $query
      * @return Builder<Empleado>
      */
     public function scopeActive(Builder $query): Builder
@@ -108,8 +118,7 @@ class Empleado extends Model
     /**
      * Filtra empleados por departamento.
      *
-     * @param Builder<Empleado> $query
-     * @param string $departamento
+     * @param  Builder<Empleado>  $query
      * @return Builder<Empleado>
      */
     public function scopeDepartamento(Builder $query, string $departamento): Builder

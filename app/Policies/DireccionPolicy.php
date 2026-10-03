@@ -25,4 +25,3 @@ class DireccionPolicy
         return $this->update($user, $direccion);
     }
 }
-

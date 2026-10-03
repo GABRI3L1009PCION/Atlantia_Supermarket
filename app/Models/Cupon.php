@@ -16,6 +16,13 @@ class Cupon extends Model
     use HasFactory;
 
     /**
+     * Nombre real de la tabla en base de datos.
+     *
+     * @var string
+     */
+    protected $table = 'cupones';
+
+    /**
      * Atributos asignables masivamente.
      *
      * @var array<int, string>
@@ -85,7 +92,7 @@ class Cupon extends Model
     /**
      * Filtra cupones vigentes.
      *
-     * @param Builder<Cupon> $query
+     * @param  Builder<Cupon>  $query
      * @return Builder<Cupon>
      */
     public function scopeVigentes(Builder $query): Builder

@@ -17,6 +17,7 @@ class RecommendationRequest extends FormRequest
             'limit' => ['nullable', 'integer', 'min:1', 'max:30'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

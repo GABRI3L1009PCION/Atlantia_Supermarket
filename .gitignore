@@ -5,6 +5,9 @@
 .env.production
 .env.local
 .env.*.local
+.env.staging.docker.local
+ml-service/.env.staging.docker.local
+docker/env/compose.env
 .phpactor.json
 .phpunit.result.cache
 
@@ -35,6 +38,14 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
+# Laravel / local extras
+/.claude
+/.claude/
+ppt_administracion_proyectos/node_modules/
+ppt_administracion_proyectos/scratch/
+ml_service/atlantia_ml_service.egg-info/
+products_export.csv
+
 # ML service
 /ml-service/.env
 /ml-service/.venv
@@ -51,3 +62,21 @@ __pycache__/
 # OS / temp
 *.tmp
 *.temp
+
+# Archivos de documentación y pruebas locales
+*.docx
+~$*.docx
+qa_render_entregable_despliegue/
+ppt_administracion_proyectos/
+
+# Scripts locales temporales
+examine_data.py
+export_productos.py
+read_excel.py
+verify_db.py
+verify_products.php
+ngrok-start.bat
+productos_export.csv
+
+# ML service extras
+ml-service/atlantia_ml_service.egg-info/

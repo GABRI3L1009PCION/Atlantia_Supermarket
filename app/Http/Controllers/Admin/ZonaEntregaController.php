@@ -19,9 +19,7 @@ class ZonaEntregaController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly ZonaEntregaService $zonaEntregaService)
-    {
-    }
+    public function __construct(private readonly ZonaEntregaService $zonaEntregaService) {}
 
     /**
      * Lista zonas de entrega.
@@ -30,7 +28,11 @@ class ZonaEntregaController extends Controller
     {
         $this->authorize('viewAny', DeliveryZone::class);
 
-        return view('admin.zonas-entrega.index', ['zonas' => $this->zonaEntregaService->paginate($request->all())]);
+        return view('admin.zonas-entrega.index', [
+            'zonas' => $this->zonaEntregaService->paginate($request->all()),
+            'zonasActivas' => $this->zonaEntregaService->activeCached(),
+            'zonasBusqueda' => $this->zonaEntregaService->searchable(),
+        ]);
     }
 
     /**

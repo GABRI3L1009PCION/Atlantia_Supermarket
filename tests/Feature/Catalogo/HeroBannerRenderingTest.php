@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Catalogo;
 
+use App\Models\Categoria;
 use App\Models\HeroBanner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -20,7 +21,7 @@ class HeroBannerRenderingTest extends TestCase
         Storage::fake('public');
     }
 
-    public function testHomeUsesActiveCurrentHeroBannerWhenAvailable(): void
+    public function test_home_uses_active_current_hero_banner_when_available(): void
     {
         $inactive = HeroBanner::factory()->create([
             'nombre' => 'Banner inactivo',
@@ -41,17 +42,36 @@ class HeroBannerRenderingTest extends TestCase
         $response = $this->get(route('home'));
 
         $response->assertOk();
-        $response->assertSee('data-hero-banner="Banner vigente principal"', false);
-        $response->assertSee('data-hero-banner-fallback="0"', false);
         $response->assertSee($active->getFirstMediaUrl('hero_desktop'), false);
+        $response->assertSee('class="hidden h-full w-full object-cover object-center md:block"', false);
+        $response->assertSee('alt="Banner promocional Banner vigente principal"', false);
     }
 
-    public function testHomeFallsBackWhenNoActiveBannerExists(): void
+    public function test_home_falls_back_when_no_active_banner_exists(): void
     {
         $response = $this->get(route('home'));
 
         $response->assertOk();
-        $response->assertSee('data-hero-banner="Fallback Atlantia"', false);
-        $response->assertSee('data-hero-banner-fallback="1"', false);
+        $response->assertSee('https://images.unsplash.com/photo-1604719312566-8912e9227c6a', false);
+        $response->assertSee('alt="Banner promocional Fallback Atlantia"', false);
+    }
+
+    public function test_home_renders_category_images_in_carousel(): void
+    {
+        Storage::disk('public')->put('categorias/frutas.png', 'category-image');
+
+        Categoria::query()->create([
+            'nombre' => 'Frutas y Verduras',
+            'slug' => 'frutas-y-verduras',
+            'imagen' => 'categorias/frutas.png',
+            'orden' => 0,
+            'is_active' => true,
+        ]);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $response->assertSee('/storage/categorias/frutas.png', false);
+        $response->assertSee('alt="Frutas y Verduras"', false);
     }
 }

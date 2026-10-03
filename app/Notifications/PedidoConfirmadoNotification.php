@@ -13,12 +13,7 @@ class PedidoConfirmadoNotification extends Notification
 {
     use Queueable;
 
-    /**
-     * @param Pedido $pedido
-     */
-    public function __construct(private readonly Pedido $pedido)
-    {
-    }
+    public function __construct(private readonly Pedido $pedido) {}
 
     /**
      * Canales utilizados.

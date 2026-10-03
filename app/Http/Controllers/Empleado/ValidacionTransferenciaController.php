@@ -18,9 +18,7 @@ class ValidacionTransferenciaController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly ValidadorTransferenciaService $validadorTransferenciaService)
-    {
-    }
+    public function __construct(private readonly ValidadorTransferenciaService $validadorTransferenciaService) {}
 
     /**
      * Lista transferencias pendientes.

@@ -11,12 +11,6 @@ class EtaCalculadorService
 
     /**
      * Calcula distancia Haversine en kilometros.
-     *
-     * @param float $latOrigen
-     * @param float $lngOrigen
-     * @param float $latDestino
-     * @param float $lngDestino
-     * @return float
      */
     public function distanciaKm(float $latOrigen, float $lngOrigen, float $latDestino, float $lngDestino): float
     {
@@ -31,10 +25,6 @@ class EtaCalculadorService
 
     /**
      * Calcula ETA en minutos para reparto local.
-     *
-     * @param float $distanciaKm
-     * @param int $paradas
-     * @return int
      */
     public function etaMinutos(float $distanciaKm, int $paradas = 1): int
     {
@@ -46,10 +36,6 @@ class EtaCalculadorService
 
     /**
      * Calcula progreso aproximado hacia destino.
-     *
-     * @param float $distanciaRestanteKm
-     * @param float $distanciaTotalKm
-     * @return int
      */
     public function progresoPorcentaje(float $distanciaRestanteKm, float $distanciaTotalKm): int
     {

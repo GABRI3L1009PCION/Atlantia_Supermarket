@@ -12,9 +12,6 @@ class CategoriaObserver
 {
     /**
      * Invalida cache al guardar una categoria.
-     *
-     * @param Categoria $categoria
-     * @return void
      */
     public function saved(Categoria $categoria): void
     {
@@ -23,9 +20,6 @@ class CategoriaObserver
 
     /**
      * Invalida cache al eliminar una categoria.
-     *
-     * @param Categoria $categoria
-     * @return void
      */
     public function deleted(Categoria $categoria): void
     {

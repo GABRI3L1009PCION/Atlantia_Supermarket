@@ -25,7 +25,7 @@ class HeroBannerService
     /**
      * Guarda un banner nuevo.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data): HeroBanner
     {
@@ -47,7 +47,7 @@ class HeroBannerService
     /**
      * Actualiza un banner existente.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(HeroBanner $banner, array $data): HeroBanner
     {
@@ -83,36 +83,59 @@ class HeroBannerService
      */
     public function resolveForStorefront(): array
     {
-        $banner = HeroBanner::query()
+        return $this->resolveCollectionForStorefront()[0];
+    }
+
+    /**
+     * Devuelve todos los banners vigentes para el carrusel del storefront.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function resolveCollectionForStorefront(): array
+    {
+        $banners = HeroBanner::query()
             ->active()
             ->current()
             ->ordered()
-            ->first();
+            ->get();
 
-        $desktopImage = $banner?->getFirstMediaUrl('hero_desktop');
-        $mobileImage = $banner?->getFirstMediaUrl('hero_mobile') ?: $desktopImage;
+        $resolved = $banners
+            ->map(function (HeroBanner $banner): ?array {
+                $desktopImage = $banner->getFirstMediaUrl('hero_desktop');
 
-        if ($banner === null || $desktopImage === '') {
+                if ($desktopImage === '') {
+                    return null;
+                }
+
+                return [
+                    'name' => $banner->nombre,
+                    'desktop_image' => $desktopImage,
+                    'mobile_image' => $banner->getFirstMediaUrl('hero_mobile') ?: $desktopImage,
+                    'is_fallback' => false,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($resolved === []) {
             return [
-                'name' => 'Fallback Atlantia',
-                'desktop_image' => 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=1800&q=80',
-                'mobile_image' => 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=900&q=80',
-                'is_fallback' => true,
+                [
+                    'name' => 'Fallback Atlantia',
+                    'desktop_image' => 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=1800&q=80',
+                    'mobile_image' => 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=900&q=80',
+                    'is_fallback' => true,
+                ],
             ];
         }
 
-        return [
-            'name' => $banner->nombre,
-            'desktop_image' => $desktopImage,
-            'mobile_image' => $mobileImage,
-            'is_fallback' => false,
-        ];
+        return $resolved;
     }
 
     /**
      * Guarda las imagenes del banner.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function syncImages(HeroBanner $banner, array $data): void
     {

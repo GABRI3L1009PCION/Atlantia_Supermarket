@@ -20,9 +20,7 @@ class PedidoController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly PedidoAdminService $pedidoAdminService)
-    {
-    }
+    public function __construct(private readonly PedidoAdminService $pedidoAdminService) {}
 
     /**
      * Lista pedidos del sistema.
@@ -31,7 +29,10 @@ class PedidoController extends Controller
     {
         $this->authorize('viewAny', Pedido::class);
 
-        return view('admin.pedidos.index', ['pedidos' => $this->pedidoAdminService->paginate($request->all())]);
+        return view('admin.pedidos.index', [
+            'pedidos' => $this->pedidoAdminService->paginate($request->all()),
+            'pedidoMetrics' => $this->pedidoAdminService->metrics(),
+        ]);
     }
 
     /**

@@ -5,8 +5,8 @@ namespace App\Livewire\Checkout;
 use App\Models\Carrito;
 use App\Models\CarritoItem;
 use App\Models\Cliente\Direccion;
-use App\Models\DeliveryZone;
 use App\Services\Fidelizacion\PuntosService;
+use App\Services\Geolocalizacion\DeliveryCoverageService;
 use App\Services\Promociones\CuponService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -52,8 +52,6 @@ class ResumenMultivendedor extends Component
 
     /**
      * Inicializa la direccion usada para estimar envio.
-     *
-     * @return void
      */
     public function mount(): void
     {
@@ -67,9 +65,6 @@ class ResumenMultivendedor extends Component
 
     /**
      * Actualiza direccion seleccionada.
-     *
-     * @param int $direccionId
-     * @return void
      */
     #[On('checkout.direccion-actualizada')]
     public function actualizarDireccion(int $direccionId): void
@@ -79,9 +74,6 @@ class ResumenMultivendedor extends Component
 
     /**
      * Actualiza metodo de pago seleccionado.
-     *
-     * @param string $metodoPago
-     * @return void
      */
     #[On('checkout.metodo-pago-actualizado')]
     public function actualizarMetodoPago(string $metodoPago): void
@@ -91,8 +83,6 @@ class ResumenMultivendedor extends Component
 
     /**
      * Punto de refresco cuando cambia el carrito.
-     *
-     * @return void
      */
     #[On('carrito.actualizado')]
     public function recalcular(): void
@@ -114,8 +104,6 @@ class ResumenMultivendedor extends Component
 
     /**
      * Valida un cupon en tiempo real.
-     *
-     * @return void
      */
     public function aplicarCupon(): void
     {
@@ -131,8 +119,6 @@ class ResumenMultivendedor extends Component
 
     /**
      * Elimina el cupon activo del resumen.
-     *
-     * @return void
      */
     public function quitarCupon(): void
     {
@@ -147,8 +133,6 @@ class ResumenMultivendedor extends Component
 
     /**
      * Renderiza resumen multivendedor.
-     *
-     * @return View
      */
     public function render(): View
     {
@@ -176,16 +160,16 @@ class ResumenMultivendedor extends Component
     }
 
     /**
-     * Obtiene items actuales del carrito autenticado.
+     * Obtiene items actuales del carrito autenticado o visitante.
      *
      * @return Collection<int, CarritoItem>
      */
     private function items(): Collection
     {
-        $carrito = Carrito::query()
-            ->where('user_id', auth()->id())
-            ->active()
-            ->first();
+        $carritoQuery = Carrito::query()->active();
+        $carrito = auth()->check()
+            ? $carritoQuery->where('user_id', auth()->id())->first()
+            : $carritoQuery->where('session_id', session()->getId())->first();
 
         return $carrito?->items()
             ->with(['producto.vendor', 'producto.imagenPrincipal'])
@@ -195,7 +179,7 @@ class ResumenMultivendedor extends Component
     /**
      * Agrupa items por vendedor para mostrar split operacional.
      *
-     * @param Collection<int, CarritoItem> $items
+     * @param  Collection<int, CarritoItem>  $items
      * @return Collection<int, array<string, mixed>>
      */
     private function gruposPorVendedor(Collection $items): Collection
@@ -219,8 +203,7 @@ class ResumenMultivendedor extends Component
     /**
      * Calcula subtotal confiando en precios snapshot del carrito.
      *
-     * @param Collection<int, CarritoItem> $items
-     * @return float
+     * @param  Collection<int, CarritoItem>  $items
      */
     private function subtotal(Collection $items): float
     {
@@ -231,8 +214,6 @@ class ResumenMultivendedor extends Component
 
     /**
      * Estima envio con zona global activa del municipio de entrega.
-     *
-     * @return float
      */
     private function envioEstimado(): float
     {
@@ -249,10 +230,12 @@ class ResumenMultivendedor extends Component
             return 0.0;
         }
 
-        return (float) (DeliveryZone::query()
-            ->active()
-            ->municipio($direccion->municipio)
-            ->orderBy('costo_base')
-            ->value('costo_base') ?? 0);
+        $vendorIds = $this->items()
+            ->pluck('producto.vendor_id')
+            ->unique()
+            ->values()
+            ->all();
+
+        return app(DeliveryCoverageService::class)->deliveryCostForVendors($direccion, $vendorIds) ?? 0.0;
     }
 }

@@ -16,9 +16,6 @@ class DispararAnalisisMlTrasResena implements ShouldQueue
 
     /**
      * Procesa el modelo resena recibido desde observer.
-     *
-     * @param Resena $resena
-     * @return void
      */
     public function handle(Resena $resena): void
     {

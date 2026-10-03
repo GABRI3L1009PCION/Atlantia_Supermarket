@@ -1,9 +1,9 @@
 <?php
 
+use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
-use Monolog\Formatter\JsonFormatter;
 use Monolog\Processor\PsrLogMessageProcessor;
 
 return [
@@ -56,6 +56,24 @@ return [
         'stack' => [
             'driver' => 'stack',
             'channels' => explode(',', (string) env('LOG_STACK', 'single')),
+            'ignore_exceptions' => false,
+        ],
+
+        'operations' => [
+            'driver' => 'stack',
+            'channels' => array_values(array_filter(array_map(
+                static fn (string $channel): string => trim($channel),
+                explode(',', (string) env('ATLANTIA_LOG_STACK', 'daily,stderr'))
+            ))),
+            'ignore_exceptions' => false,
+        ],
+
+        'incidents' => [
+            'driver' => 'stack',
+            'channels' => array_values(array_filter(array_map(
+                static fn (string $channel): string => trim($channel),
+                explode(',', (string) env('ATLANTIA_INCIDENT_CHANNELS', 'slack,stderr'))
+            ))),
             'ignore_exceptions' => false,
         ],
 

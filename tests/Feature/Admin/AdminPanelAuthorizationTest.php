@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\DeliveryZone;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -24,7 +26,7 @@ class AdminPanelAuthorizationTest extends TestCase
     /**
      * Permite acceso al dashboard administrativo para admin.
      */
-    public function testAdminCanAccessAdminDashboard(): void
+    public function test_admin_can_access_admin_dashboard(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -37,7 +39,7 @@ class AdminPanelAuthorizationTest extends TestCase
     /**
      * Permite acceso al dashboard administrativo para super admin.
      */
-    public function testSuperAdminCanAccessAdminDashboard(): void
+    public function test_super_admin_can_access_admin_dashboard(): void
     {
         $superAdmin = User::factory()->admin()->create(['email' => 'root.panel@atlantia.test']);
         $superAdmin->assignRole('super_admin');
@@ -48,9 +50,105 @@ class AdminPanelAuthorizationTest extends TestCase
     }
 
     /**
+     * Permite abrir la pantalla de zonas de entrega sin errores de vista.
+     */
+    public function test_admin_can_access_delivery_zones_page(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('admin');
+        config()->set('services.google_maps.api_key', 'test-key');
+
+        $response = $this->actingAs($admin)->get(route('admin.zonas-entrega.index'));
+
+        $response->assertOk();
+        $response->assertSee('Zonas de entrega');
+        $response->assertSee('Cobertura definida por colonia o barrio');
+        $response->assertDontSee('delivery-zone-picker-map');
+        $response->assertDontSee('create-zone-location-search');
+    }
+
+    /**
+     * Mantiene disponibles para el mapa las zonas que quedan fuera de la pagina actual.
+     */
+    public function test_delivery_zone_map_search_includes_zones_outside_paginated_list(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('admin');
+        config()->set('services.google_maps.api_key', 'test-key');
+
+        foreach (range(1, 25) as $index) {
+            DeliveryZone::query()->create([
+                'uuid' => (string) Str::uuid(),
+                'nombre' => sprintf('Zona %02d', $index),
+                'slug' => sprintf('zona-%02d', $index),
+                'municipio' => 'Puerto Barrios',
+                'costo_base' => 15,
+                'activa' => true,
+            ]);
+        }
+
+        DeliveryZone::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'nombre' => 'ZZZ BANVI I',
+            'slug' => 'stc-banvi-i',
+            'municipio' => 'Puerto Barrios',
+            'costo_base' => 20,
+            'activa' => true,
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.zonas-entrega.index'));
+
+        $response->assertOk();
+        $response->assertSee('Buscar zona guardada');
+        $response->assertSee('stc-banvi-i');
+        $response->assertSee('No se encontró ninguna zona con ese nombre');
+    }
+
+    /**
+     * Permite reutilizar una zona eliminada sin dejar nombres bloqueados invisibles.
+     */
+    public function test_admin_can_recreate_deleted_delivery_zone(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('admin');
+
+        $deletedZone = DeliveryZone::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'nombre' => 'Colonia El Inde',
+            'slug' => 'colonia-el-inde',
+            'municipio' => 'Puerto Barrios',
+            'costo_base' => 12,
+            'activa' => false,
+        ]);
+        $deletedZone->delete();
+
+        $response = $this->actingAs($admin)->post(route('admin.zonas-entrega.store'), [
+            'nombre' => 'Colonia El Inde',
+            'slug' => 'colonia-el-inde',
+            'descripcion' => 'Cobertura residencial actualizada.',
+            'municipio' => 'Puerto Barrios',
+            'costo_base' => 15,
+            'tiempo_estimado_min' => 45,
+            'capacidad_diaria' => 80,
+            'activa' => true,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('delivery_zones', 1);
+        $this->assertDatabaseHas('delivery_zones', [
+            'id' => $deletedZone->id,
+            'nombre' => 'Colonia El Inde',
+            'costo_base' => 15,
+            'activa' => true,
+            'deleted_at' => null,
+        ]);
+    }
+
+    /**
      * Bloquea acceso al dashboard administrativo para clientes.
      */
-    public function testClienteCannotAccessAdminDashboard(): void
+    public function test_cliente_cannot_access_admin_dashboard(): void
     {
         $cliente = User::factory()->cliente()->create();
         $cliente->assignRole('cliente');
@@ -63,7 +161,7 @@ class AdminPanelAuthorizationTest extends TestCase
     /**
      * Impide que un admin operativo cree otra cuenta admin.
      */
-    public function testAdminCannotCreateAnotherAdminUser(): void
+    public function test_admin_cannot_create_another_admin_user(): void
     {
         $admin = User::factory()->admin()->create();
         $admin->assignRole('admin');
@@ -88,7 +186,7 @@ class AdminPanelAuthorizationTest extends TestCase
     /**
      * Permite que el super admin cree una cuenta admin.
      */
-    public function testSuperAdminCanCreateAdminUser(): void
+    public function test_super_admin_can_create_admin_user(): void
     {
         $superAdmin = User::factory()->admin()->create(['email' => 'root@atlantia.test']);
         $superAdmin->assignRole('super_admin');
@@ -113,7 +211,7 @@ class AdminPanelAuthorizationTest extends TestCase
     /**
      * Bloquea a un admin operativo cuando intenta editar otro admin.
      */
-    public function testAdminCannotUpdateExistingAdminUser(): void
+    public function test_admin_cannot_update_existing_admin_user(): void
     {
         $admin = User::factory()->admin()->create(['email' => 'operaciones@atlantia.test']);
         $admin->assignRole('admin');

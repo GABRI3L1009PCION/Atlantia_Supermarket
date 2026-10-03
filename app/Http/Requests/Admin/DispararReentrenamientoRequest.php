@@ -12,8 +12,6 @@ class DispararReentrenamientoRequest extends FormRequest
 {
     /**
      * Determina si el usuario puede disparar entrenamientos ML.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -89,8 +87,6 @@ class DispararReentrenamientoRequest extends FormRequest
 
     /**
      * Normaliza banderas y nombre del modelo.
-     *
-     * @return void
      */
     protected function prepareForValidation(): void
     {

@@ -38,7 +38,7 @@ class PedidoFactory extends Factory
 
         return [
             'uuid' => (string) Str::uuid(),
-            'numero_pedido' => 'ATL-' . now()->format('Ymd') . '-' . fake()->unique()->numerify('####'),
+            'numero_pedido' => 'ATL-'.now()->format('Ymd').'-'.fake()->unique()->numerify('####'),
             'pedido_padre_id' => null,
             'cliente_id' => fn (): int => $this->clienteId(),
             'vendor_id' => fn (): ?int => Vendor::query()->inRandomOrder()->value('id'),
@@ -64,8 +64,6 @@ class PedidoFactory extends Factory
 
     /**
      * Estado para pedido entregado.
-     *
-     * @return static
      */
     public function entregado(): static
     {
@@ -78,8 +76,6 @@ class PedidoFactory extends Factory
 
     /**
      * Estado para pedido pendiente.
-     *
-     * @return static
      */
     public function pendiente(): static
     {
@@ -92,8 +88,6 @@ class PedidoFactory extends Factory
 
     /**
      * Obtiene o crea un cliente base.
-     *
-     * @return int
      */
     private function clienteId(): int
     {
@@ -102,9 +96,6 @@ class PedidoFactory extends Factory
 
     /**
      * Obtiene o crea una direccion para el cliente.
-     *
-     * @param int $clienteId
-     * @return int
      */
     private function direccionId(int $clienteId): int
     {

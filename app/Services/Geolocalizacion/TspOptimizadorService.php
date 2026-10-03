@@ -10,8 +10,8 @@ class TspOptimizadorService
     /**
      * Ordena paradas para minimizar recorrido aproximado.
      *
-     * @param array<string, float> $origen
-     * @param array<int, array<string, mixed>> $paradas
+     * @param  array<string, float>  $origen
+     * @param  array<int, array<string, mixed>>  $paradas
      * @return array<int, array<string, mixed>>
      */
     public function ordenarParadas(array $origen, array $paradas): array
@@ -34,9 +34,8 @@ class TspOptimizadorService
     /**
      * Encuentra la parada mas cercana al punto actual.
      *
-     * @param array<string, float> $actual
-     * @param array<int, array<string, mixed>> $paradas
-     * @return int
+     * @param  array<string, float>  $actual
+     * @param  array<int, array<string, mixed>>  $paradas
      */
     private function indiceCercano(array $actual, array $paradas): int
     {

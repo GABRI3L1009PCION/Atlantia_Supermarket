@@ -17,13 +17,9 @@ class FraudeDetectado
 
     /**
      * Crea el evento.
-     *
-     * @param Pedido $pedido
-     * @param FraudAlert $alerta
      */
     public function __construct(
         public readonly Pedido $pedido,
         public readonly FraudAlert $alerta
-    ) {
-    }
+    ) {}
 }

@@ -9,19 +9,17 @@ class VerificadorHmacService
 {
     /**
      * Verifica una firma HMAC SHA-256.
-     *
-     * @param string $payload
-     * @param string $signature
-     * @param string $secret
-     * @return bool
      */
-    public function verify(string $payload, string $signature, string $secret): bool
+    public function verify(string $payload, string $signature, string $secret, ?string $timestamp = null): bool
     {
         if ($payload === '' || $signature === '' || $secret === '') {
             return false;
         }
 
-        $expected = hash_hmac('sha256', $payload, $secret);
+        $signedPayload = $timestamp !== null && $timestamp !== ''
+            ? $timestamp.'.'.$payload
+            : $payload;
+        $expected = hash_hmac('sha256', $signedPayload, $secret);
         $normalized = str_starts_with($signature, 'sha256=')
             ? substr($signature, 7)
             : $signature;
@@ -31,13 +29,13 @@ class VerificadorHmacService
 
     /**
      * Genera una firma HMAC SHA-256 para pruebas controladas.
-     *
-     * @param string $payload
-     * @param string $secret
-     * @return string
      */
-    public function sign(string $payload, string $secret): string
+    public function sign(string $payload, string $secret, ?string $timestamp = null): string
     {
-        return 'sha256=' . hash_hmac('sha256', $payload, $secret);
+        $signedPayload = $timestamp !== null && $timestamp !== ''
+            ? $timestamp.'.'.$payload
+            : $payload;
+
+        return 'sha256='.hash_hmac('sha256', $signedPayload, $secret);
     }
 }

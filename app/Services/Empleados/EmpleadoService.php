@@ -17,8 +17,7 @@ class EmpleadoService
     /**
      * Pagina empleados.
      *
-     * @param array<string, mixed> $filters
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
     public function paginate(array $filters = []): LengthAwarePaginator
     {
@@ -26,12 +25,12 @@ class EmpleadoService
             ->with(['user', 'supervisor.user'])
             ->when($filters['q'] ?? null, function ($query, string $search): void {
                 $query->where(function ($builder) use ($search): void {
-                    $builder->where('codigo_empleado', 'like', '%' . $search . '%')
-                        ->orWhere('departamento', 'like', '%' . $search . '%')
-                        ->orWhere('puesto', 'like', '%' . $search . '%')
+                    $builder->where('codigo_empleado', 'like', '%'.$search.'%')
+                        ->orWhere('departamento', 'like', '%'.$search.'%')
+                        ->orWhere('puesto', 'like', '%'.$search.'%')
                         ->orWhereHas('user', function ($userQuery) use ($search): void {
-                            $userQuery->where('name', 'like', '%' . $search . '%')
-                                ->orWhere('email', 'like', '%' . $search . '%');
+                            $userQuery->where('name', 'like', '%'.$search.'%')
+                                ->orWhere('email', 'like', '%'.$search.'%');
                         });
                 });
             })
@@ -51,7 +50,7 @@ class EmpleadoService
     /**
      * Crea empleado.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function create(array $data): Empleado
     {
@@ -76,6 +75,7 @@ class EmpleadoService
                 'codigo_empleado' => $data['codigo_empleado'],
                 'departamento' => $data['departamento'],
                 'puesto' => $data['puesto'],
+                'salario_base' => $data['salario_base'] ?? 0,
                 'telefono_interno' => $data['telefono_interno'] ?? null,
                 'fecha_contratacion' => $data['fecha_contratacion'],
                 'status' => $data['status'],
@@ -88,7 +88,7 @@ class EmpleadoService
     /**
      * Actualiza empleado.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(Empleado $empleado, array $data): Empleado
     {
@@ -109,6 +109,7 @@ class EmpleadoService
                 'codigo_empleado' => $data['codigo_empleado'],
                 'departamento' => $data['departamento'],
                 'puesto' => $data['puesto'],
+                'salario_base' => $data['salario_base'] ?? 0,
                 'telefono_interno' => $data['telefono_interno'] ?? null,
                 'fecha_contratacion' => $data['fecha_contratacion'],
                 'status' => $data['status'],

@@ -10,8 +10,10 @@ use App\Models\Ml\SalesPrediction;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Services\Notificaciones\NotificadorSugerenciaMlService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -23,28 +25,72 @@ class ReabastoInteligenteService
 {
     /**
      * Lista sugerencias de reabastecimiento para el vendedor autenticado.
-     *
-     * @param User $user
-     * @return LengthAwarePaginator
      */
-    public function forVendor(User $user): LengthAwarePaginator
+    public function forVendor(User $user, array $filters = []): LengthAwarePaginator
     {
         return RestockSuggestion::query()
-            ->with(['producto.inventario', 'producto.categoria'])
+            ->with(['producto.inventario', 'producto.categoria', 'producto.imagenPrincipal', 'producto.salesPredictions'])
             ->where('vendor_id', $user->vendor?->id)
+            ->when($filters['q'] ?? null, function ($query, string $term): void {
+                $query->whereHas('producto', fn ($query) => $query->where('nombre', 'like', "%{$term}%")->orWhere('sku', 'like', "%{$term}%"));
+            })
+            ->when($filters['categoria'] ?? null, fn ($query, string $categoriaId) => $query->whereHas('producto', fn ($query) => $query->where('categoria_id', (int) $categoriaId)))
+            ->when($filters['urgencia'] ?? null, fn ($query, string $urgencia) => $query->where('urgencia', $urgencia))
+            ->orderByRaw("CASE urgencia WHEN 'critica' THEN 1 WHEN 'alta' THEN 2 WHEN 'media' THEN 3 ELSE 4 END")
             ->latest()
-            ->paginate(25);
+            ->paginate(8)
+            ->withQueryString();
+    }
+
+    /**
+     * Resumen operativo para la vista de reabasto.
+     *
+     * @return array<string, mixed>
+     */
+    public function dashboard(User $user): array
+    {
+        $suggestions = RestockSuggestion::query()
+            ->with(['producto.categoria'])
+            ->where('vendor_id', $user->vendor?->id)
+            ->where('aceptada', false)
+            ->get();
+
+        return [
+            'activas' => $suggestions->count(),
+            'criticas' => $suggestions->where('urgencia', 'critica')->count(),
+            'unidades_sugeridas' => (int) $suggestions->sum('stock_sugerido'),
+            'productos_en_riesgo' => $suggestions->whereIn('urgencia', ['critica', 'alta'])->pluck('producto_id')->unique()->count(),
+            'demanda_total' => $this->demandaTotal($suggestions),
+            'categorias' => $suggestions
+                ->pluck('producto.categoria')
+                ->filter()
+                ->unique('id')
+                ->sortBy('nombre')
+                ->values(),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, RestockSuggestion>  $suggestions
+     */
+    private function demandaTotal(Collection $suggestions): int
+    {
+        return (int) $suggestions->sum(function (RestockSuggestion $suggestion): int {
+            $stock = (int) $suggestion->stock_actual;
+            $suggested = (int) $suggestion->stock_sugerido;
+
+            return max($suggested, $stock + $suggested);
+        });
     }
 
     /**
      * Genera sugerencias para todos los productos activos de un vendedor.
      *
-     * @param Vendor $vendor
      * @return EloquentCollection<int, RestockSuggestion>
      */
     public function generarParaVendor(Vendor $vendor): EloquentCollection
     {
-        $sugerencias = new EloquentCollection();
+        $sugerencias = new EloquentCollection;
 
         $vendor->productos()
             ->with(['inventario'])
@@ -64,9 +110,6 @@ class ReabastoInteligenteService
 
     /**
      * Genera o actualiza una sugerencia para un producto.
-     *
-     * @param Producto $producto
-     * @return RestockSuggestion|null
      */
     public function generarParaProducto(Producto $producto): ?RestockSuggestion
     {
@@ -82,7 +125,7 @@ class ReabastoInteligenteService
             return null;
         }
 
-        return RestockSuggestion::query()->updateOrCreate(
+        $suggestion = RestockSuggestion::query()->updateOrCreate(
             [
                 'producto_id' => $producto->id,
                 'vendor_id' => $producto->vendor_id,
@@ -96,15 +139,18 @@ class ReabastoInteligenteService
                 'modelo_version_id' => $calculo['modelo_version_id'],
             ]
         );
+
+        if (in_array($suggestion->urgencia, ['alta', 'critica'], true)) {
+            app(NotificadorSugerenciaMlService::class)->sugerenciaReabasto($suggestion);
+        }
+
+        return $suggestion;
     }
 
     /**
      * Acepta una sugerencia y actualiza stock fisico recibido.
      *
-     * @param RestockSuggestion $suggestion
-     * @param array<string, mixed> $data
-     * @param User $user
-     * @return RestockSuggestion
+     * @param  array<string, mixed>  $data
      *
      * @throws TransaccionFallidaException
      */
@@ -139,8 +185,6 @@ class ReabastoInteligenteService
     /**
      * Calcula cantidad sugerida usando prediccion ML o regla conservadora.
      *
-     * @param Producto $producto
-     * @param Inventario $inventario
      * @return array<string, mixed>
      */
     private function calcularSugerencia(Producto $producto, Inventario $inventario): array
@@ -171,11 +215,6 @@ class ReabastoInteligenteService
 
     /**
      * Define urgencia segun dias de cobertura.
-     *
-     * @param int $diasHastaQuiebre
-     * @param int $stockDisponible
-     * @param int $stockMinimo
-     * @return string
      */
     private function urgencia(int $diasHastaQuiebre, int $stockDisponible, int $stockMinimo): string
     {
@@ -196,9 +235,6 @@ class ReabastoInteligenteService
 
     /**
      * Obtiene inventario bloqueado para aceptar reabastecimiento.
-     *
-     * @param Producto $producto
-     * @return Inventario
      */
     private function lockedInventario(Producto $producto): Inventario
     {
@@ -211,12 +247,8 @@ class ReabastoInteligenteService
     /**
      * Registra auditoria append-only del reabastecimiento.
      *
-     * @param Inventario $inventario
-     * @param User $user
-     * @param array<string, mixed> $oldValues
-     * @param array<string, mixed> $newValues
-     * @param int $suggestionId
-     * @return void
+     * @param  array<string, mixed>  $oldValues
+     * @param  array<string, mixed>  $newValues
      */
     private function audit(
         Inventario $inventario,

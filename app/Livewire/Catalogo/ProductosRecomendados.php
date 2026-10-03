@@ -20,9 +20,6 @@ class ProductosRecomendados extends Component
 
     /**
      * Solicita agregar un producto recomendado al carrito.
-     *
-     * @param int $productoId
-     * @return void
      */
     public function agregarAlCarrito(int $productoId): void
     {
@@ -34,8 +31,6 @@ class ProductosRecomendados extends Component
 
     /**
      * Renderiza recomendaciones del cliente o productos populares.
-     *
-     * @return View
      */
     public function render(): View
     {
@@ -47,7 +42,6 @@ class ProductosRecomendados extends Component
     /**
      * Obtiene productos recomendados con fallback seguro.
      *
-     * @param RecomendacionService $recomendacionService
      * @return Collection<int, Producto>
      */
     private function productos(RecomendacionService $recomendacionService): Collection

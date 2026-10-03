@@ -9,6 +9,7 @@ use App\Models\Vendor;
 use App\Models\VendorFiscalProfile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -19,12 +20,13 @@ class RegistroService
     /**
      * Registra un usuario y sus perfiles asociados.
      *
-     * @param array<string, mixed> $data
-     * @return User
+     * @param  array<string, mixed>  $data
      */
     public function register(array $data): User
     {
-        return DB::transaction(function () use ($data): User {
+        // La transaccion solo crea registros en BD — el envio de correo va fuera
+        // para que un fallo de SMTP no revierta el registro completo.
+        $user = DB::transaction(function () use ($data): User {
             $user = User::query()->create([
                 'uuid' => (string) Str::uuid(),
                 'name' => $data['name'],
@@ -48,19 +50,28 @@ class RegistroService
 
             $this->audit($user, 'auth.registered', ['role' => $role]);
 
+            return $user;
+        });
+
+        // Envio de verificacion fuera de la transaccion: si falla el SMTP
+        // el usuario ya esta creado y puede iniciar sesion sin problema.
+        try {
             if (method_exists($user, 'sendEmailVerificationNotification')) {
                 $user->sendEmailVerificationNotification();
             }
+        } catch (\Throwable $e) {
+            Log::warning('Email de verificacion no enviado: '.$e->getMessage(), [
+                'user_id' => $user->id,
+            ]);
+        }
 
-            return $user;
-        });
+        return $user;
     }
 
     /**
      * Crea detalle de cliente.
      *
-     * @param User $user
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function createClienteDetalle(User $user, array $data): void
     {
@@ -80,8 +91,7 @@ class RegistroService
     /**
      * Crea solicitud inicial de vendedor.
      *
-     * @param User $user
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function createVendorRequest(User $user, array $data): void
     {
@@ -90,7 +100,7 @@ class RegistroService
             'uuid' => (string) Str::uuid(),
             'user_id' => $user->id,
             'business_name' => $businessName,
-            'slug' => Str::slug($businessName) . '-' . Str::lower(Str::random(6)),
+            'slug' => Str::slug($businessName).'-'.Str::lower(Str::random(6)),
             'descripcion' => $data['descripcion'] ?? null,
             'logo_path' => null,
             'cover_path' => null,
@@ -109,7 +119,7 @@ class RegistroService
             'accepts_card' => true,
         ]);
 
-        $fallbackNit = 'CF-' . $vendor->id;
+        $fallbackNit = 'CF-'.$vendor->id;
 
         VendorFiscalProfile::query()->create([
             'vendor_id' => $vendor->id,
@@ -117,7 +127,7 @@ class RegistroService
             'razon_social' => $data['razon_social'] ?? $businessName,
             'direccion_fiscal' => $data['direccion_fiscal'] ?? $vendor->direccion_comercial,
             'regimen_sat' => $data['regimen_sat'] ?? 'general',
-            'codigo_establecimiento' => $data['codigo_establecimiento'] ?? 'PEND-' . $vendor->id,
+            'codigo_establecimiento' => $data['codigo_establecimiento'] ?? 'PEND-'.$vendor->id,
             'certificador_fel' => 'infile',
             'fel_activo' => false,
         ]);
@@ -126,9 +136,7 @@ class RegistroService
     /**
      * Registra auditoria de registro.
      *
-     * @param User $user
-     * @param string $event
-     * @param array<string, mixed> $metadata
+     * @param  array<string, mixed>  $metadata
      */
     private function audit(User $user, string $event, array $metadata): void
     {

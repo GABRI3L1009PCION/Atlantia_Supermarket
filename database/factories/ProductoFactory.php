@@ -46,7 +46,7 @@ class ProductoFactory extends Factory
             'categoria_id' => fn (): int => $this->categoriaId(),
             'sku' => strtoupper(fake()->bothify('ATL-####-??')),
             'nombre' => $producto['nombre'],
-            'slug' => Str::slug($producto['nombre'] . '-' . fake()->unique()->numberBetween(100, 999)),
+            'slug' => Str::slug($producto['nombre'].'-'.fake()->unique()->numberBetween(100, 999)),
             'descripcion' => fake()->randomElement([
                 'Producto seleccionado para consumo familiar en Izabal.',
                 'Disponible para entrega local por vendedor aprobado de Atlantia.',
@@ -66,8 +66,6 @@ class ProductoFactory extends Factory
 
     /**
      * Estado para productos publicados.
-     *
-     * @return static
      */
     public function publicado(): static
     {
@@ -80,8 +78,6 @@ class ProductoFactory extends Factory
 
     /**
      * Estado para productos no visibles.
-     *
-     * @return static
      */
     public function oculto(): static
     {
@@ -92,8 +88,6 @@ class ProductoFactory extends Factory
 
     /**
      * Obtiene o crea una categoria base para pruebas.
-     *
-     * @return int
      */
     private function categoriaId(): int
     {

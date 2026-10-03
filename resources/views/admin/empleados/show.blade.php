@@ -3,6 +3,14 @@
 @section('content')
     @php
         $permisosDisponibles = ['contacto', 'transferencias', 'moderacion', 'reportes', 'soporte'];
+        $departamentos = [
+            'administracion' => 'Administracion',
+            'operaciones' => 'Operaciones',
+            'soporte_cliente' => 'Atencion al cliente',
+            'finanzas' => 'Finanzas',
+            'logistica' => 'Logistica',
+            'moderacion' => 'Moderacion',
+        ];
     @endphp
 
     <section class="mx-auto max-w-full py-2">
@@ -54,8 +62,8 @@
                         <div>
                             <label class="text-sm font-semibold text-atlantia-ink">Departamento</label>
                             <select name="departamento" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
-                                @foreach (['Operaciones', 'Atencion al cliente', 'Finanzas', 'Logistica', 'Calidad', 'Tecnologia'] as $departamento)
-                                    <option value="{{ $departamento }}" @selected(old('departamento', $empleado->departamento) === $departamento)>{{ $departamento }}</option>
+                                @foreach ($departamentos as $value => $label)
+                                    <option value="{{ $value }}" @selected(old('departamento', $empleado->departamento) === $value)>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -71,6 +79,15 @@
                                 @endforeach
                             </select>
                         </div>
+                    </div>
+
+                    <div>
+                        <label class="text-sm font-semibold text-atlantia-ink">Salario base mensual</label>
+                        <div class="mt-1 flex overflow-hidden rounded-md border border-atlantia-rose/35 bg-white">
+                            <span class="grid w-12 place-items-center bg-atlantia-blush text-sm font-black text-atlantia-wine">Q</span>
+                            <input name="salario_base" type="number" step="0.01" min="0" value="{{ old('salario_base', $empleado->salario_base) }}" class="w-full border-0 px-3 py-2 outline-none" required>
+                        </div>
+                        <p class="mt-1 text-xs text-atlantia-ink/55">Este monto se usa al generar nuevas nominas. No altera periodos ya creados.</p>
                     </div>
 
                     <div>

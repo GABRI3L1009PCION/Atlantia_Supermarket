@@ -81,7 +81,7 @@ class DeliveryZone extends Model
     /**
      * Filtra zonas activas.
      *
-     * @param Builder<DeliveryZone> $query
+     * @param  Builder<DeliveryZone>  $query
      * @return Builder<DeliveryZone>
      */
     public function scopeActive(Builder $query): Builder
@@ -92,8 +92,7 @@ class DeliveryZone extends Model
     /**
      * Filtra zonas por municipio.
      *
-     * @param Builder<DeliveryZone> $query
-     * @param string $municipio
+     * @param  Builder<DeliveryZone>  $query
      * @return Builder<DeliveryZone>
      */
     public function scopeMunicipio(Builder $query, string $municipio): Builder

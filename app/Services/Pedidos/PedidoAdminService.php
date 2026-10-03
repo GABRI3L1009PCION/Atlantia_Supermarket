@@ -4,13 +4,13 @@ namespace App\Services\Pedidos;
 
 use App\Enums\EstadoPago;
 use App\Enums\EstadoPedido;
-use App\Events\RepartidorAsignado;
 use App\Models\DeliveryRoute;
 use App\Models\Pedido;
 use App\Models\PedidoEstado;
 use App\Models\PedidoHistorialEstado;
 use App\Models\User;
 use App\Services\Notificaciones\NotificadorPedidoService;
+use App\Services\Repartidores\DeliveryOfferService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -23,15 +23,15 @@ class PedidoAdminService
     /**
      * Crea una instancia del servicio.
      */
-    public function __construct(private readonly EstadoPedidoService $estadoPedidoService)
-    {
-    }
+    public function __construct(
+        private readonly EstadoPedidoService $estadoPedidoService,
+        private readonly DeliveryOfferService $deliveryOfferService
+    ) {}
 
     /**
      * Pagina pedidos globales.
      *
-     * @param array<string, mixed> $filters
-     * @return LengthAwarePaginator
+     * @param  array<string, mixed>  $filters
      */
     public function paginate(array $filters = []): LengthAwarePaginator
     {
@@ -39,14 +39,14 @@ class PedidoAdminService
             ->with(['cliente', 'vendor', 'items.producto', 'deliveryRoute.repartidor', 'payments'])
             ->when($filters['q'] ?? null, function ($query, string $search): void {
                 $query->where(function ($builder) use ($search): void {
-                    $builder->where('numero_pedido', 'like', '%' . $search . '%')
-                        ->orWhere('uuid', 'like', '%' . $search . '%')
+                    $builder->where('numero_pedido', 'like', '%'.$search.'%')
+                        ->orWhere('uuid', 'like', '%'.$search.'%')
                         ->orWhereHas('cliente', function ($clienteQuery) use ($search): void {
-                            $clienteQuery->where('name', 'like', '%' . $search . '%')
-                                ->orWhere('email', 'like', '%' . $search . '%');
+                            $clienteQuery->where('name', 'like', '%'.$search.'%')
+                                ->orWhere('email', 'like', '%'.$search.'%');
                         })
                         ->orWhereHas('vendor', function ($vendorQuery) use ($search): void {
-                            $vendorQuery->where('business_name', 'like', '%' . $search . '%');
+                            $vendorQuery->where('business_name', 'like', '%'.$search.'%');
                         });
                 });
             })
@@ -58,6 +58,21 @@ class PedidoAdminService
     }
 
     /**
+     * Metricas reales para la bandeja administrativa de pedidos.
+     *
+     * @return array<string, int>
+     */
+    public function metrics(): array
+    {
+        return [
+            'today' => Pedido::query()->whereDate('created_at', today())->count(),
+            'pending' => Pedido::query()->whereIn('estado', ['pendiente', 'confirmado', 'preparando', 'en_ruta'])->count(),
+            'delivered' => Pedido::query()->where('estado', 'entregado')->count(),
+            'paid' => Pedido::query()->where('estado_pago', 'pagado')->count(),
+        ];
+    }
+
+    /**
      * Detalle de pedido.
      */
     public function detail(Pedido $pedido): Pedido
@@ -66,7 +81,7 @@ class PedidoAdminService
             'cliente',
             'vendor',
             'direccion',
-            'items.producto',
+            'items.producto.imagenPrincipal',
             'payments.splits.vendor',
             'estados.usuario',
             'historialEstados.usuario',
@@ -78,7 +93,7 @@ class PedidoAdminService
     /**
      * Actualiza el flujo operativo del pedido.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function update(Pedido $pedido, array $data, User $usuario): Pedido
     {
@@ -136,31 +151,26 @@ class PedidoAdminService
             if (array_key_exists('repartidor_id', $data)) {
                 if ($data['repartidor_id'] === null && $pedido->deliveryRoute !== null) {
                     $pedido->deliveryRoute->update([
-                        'repartidor_id' => null,
-                        'estado' => 'pendiente',
+                        'estado' => 'cancelada',
+                        'aceptada_at' => null,
                     ]);
                 }
 
                 if (! empty($data['repartidor_id'])) {
                     $repartidorAnterior = $pedido->deliveryRoute?->repartidor_id;
+                    $routePayload = $this->deliveryRoutePayload($pedido, (int) $data['repartidor_id'], $repartidorAnterior);
 
-                    DeliveryRoute::query()->updateOrCreate(
+                    $route = DeliveryRoute::query()->updateOrCreate(
                         ['pedido_id' => $pedido->id],
-                        [
-                            'uuid' => $pedido->deliveryRoute?->uuid ?? (string) Str::uuid(),
-                            'repartidor_id' => $data['repartidor_id'],
-                            'estado' => in_array($pedido->estado, [EstadoPedido::EnRuta, EstadoPedido::Entregado], true)
-                                ? 'iniciada'
-                                : 'asignada',
-                            'asignada_at' => $pedido->deliveryRoute?->asignada_at ?? now(),
-                            'aceptada_at' => $repartidorAnterior === (int) $data['repartidor_id']
-                                ? $pedido->deliveryRoute?->aceptada_at
-                                : null,
-                        ]
+                        $routePayload
                     );
 
                     if ($repartidorAnterior !== (int) $data['repartidor_id']) {
-                        RepartidorAsignado::dispatch($pedido->fresh(), User::query()->findOrFail($data['repartidor_id']));
+                        $repartidor = User::query()->findOrFail($data['repartidor_id']);
+                        $this->deliveryOfferService->createForPedido($pedido->fresh(), $repartidor, [
+                            'estimated_gain' => $route->estimated_earning,
+                            'ttl_seconds' => 120,
+                        ]);
                     }
                 }
             }
@@ -172,7 +182,7 @@ class PedidoAdminService
     /**
      * Actualiza pedidos por lote.
      *
-     * @param array<int, string> $uuids
+     * @param  array<int, string>  $uuids
      */
     public function updateBatch(array $uuids, array $data, User $usuario): int
     {
@@ -185,5 +195,41 @@ class PedidoAdminService
         }
 
         return $pedidos->count();
+    }
+
+    /**
+     * Construye payload operativo para ruta interna/emprendedor.
+     *
+     * @return array<string, mixed>
+     */
+    private function deliveryRoutePayload(Pedido $pedido, int $repartidorId, ?int $repartidorAnterior): array
+    {
+        $pedido->loadMissing(['vendor', 'direccion']);
+        $route = $pedido->deliveryRoute;
+        $vendor = $pedido->vendor;
+        $distance = (float) ($route?->distancia_km ?? 0);
+        $earning = round(max(15, ((float) $pedido->envio) * 0.75, 12 + ($distance * 2.5)), 2);
+
+        return [
+            'uuid' => $route?->uuid ?? (string) Str::uuid(),
+            'repartidor_id' => $repartidorId,
+            'source_type' => $vendor === null ? 'internal' : 'entrepreneurs',
+            'pickup_name' => $vendor?->business_name ?? 'Atlantia Supermarket',
+            'pickup_address' => $vendor?->direccion_comercial ?? $vendor?->municipio ?? 'Centro operativo Atlantia',
+            'pickup_latitude' => $vendor?->latitude,
+            'pickup_longitude' => $vendor?->longitude,
+            'pickup_notes' => $vendor === null ? 'Recoger en despacho interno.' : 'Recoger pedido de emprendedor.',
+            'estado' => in_array($pedido->estado, [EstadoPedido::EnRuta, EstadoPedido::Entregado], true)
+                ? 'iniciada'
+                : 'asignada',
+            'asignada_at' => $route?->asignada_at ?? now(),
+            'aceptada_at' => $repartidorAnterior === $repartidorId ? $route?->aceptada_at : null,
+            'estimated_earning' => $route?->estimated_earning ?: $earning,
+            'cash_to_collect' => $pedido->metodoPagoValor() === 'efectivo' ? (float) $pedido->total : 0,
+            'cash_to_pay_pickup' => 0,
+            'change_required' => $pedido->changeRequiredAmount(),
+            'payment_method' => $pedido->metodoPagoValor(),
+            'proof_type' => 'photo',
+        ];
     }
 }

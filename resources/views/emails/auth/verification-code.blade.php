@@ -14,22 +14,22 @@
                         <td align="center" style="padding:30px 28px 16px;">
                             <img
                                 src="{{ asset(file_exists(public_path('images/logo.png')) ? 'images/logo.png' : 'images/atlantia-logo.svg') }}"
-                                alt="Atlantia Supermarket"
+                                alt="Atlantia Delivery"
                                 style="max-width:260px;height:auto;"
                             >
                         </td>
                     </tr>
                     <tr>
                         <td style="padding:10px 34px 0;">
-                            <p style="margin:0 0 8px;color:#8b1d4d;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">
-                                Atlantia Supermarket
+                            <p style="margin:0 0 8px;color:#8b1d4d;font-size:13px;font-weight:700;text-transform:uppercase;">
+                                Atlantia Delivery
                             </p>
                             <h1 style="margin:0;color:#2a1018;font-size:28px;line-height:1.2;">
                                 Verifica tu correo
                             </h1>
                             <p style="margin:14px 0 0;color:#5c4650;font-size:15px;line-height:1.6;">
                                 Hola {{ $user->name }}, usa este codigo para confirmar tu cuenta y continuar comprando
-                                en Atlantia Supermarket.
+                                en Atlantia Delivery.
                             </p>
                         </td>
                     </tr>

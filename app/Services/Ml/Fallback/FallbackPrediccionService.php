@@ -13,8 +13,6 @@ class FallbackPrediccionService
     /**
      * Predice demanda con promedio diario historico.
      *
-     * @param Producto $producto
-     * @param int $horizonteDias
      * @return array<string, mixed>
      */
     public function predecir(Producto $producto, int $horizonteDias): array

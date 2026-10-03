@@ -17,9 +17,7 @@ class ZonaEntregaController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly VendorZonaEntregaService $vendorZonaEntregaService)
-    {
-    }
+    public function __construct(private readonly VendorZonaEntregaService $vendorZonaEntregaService) {}
 
     /**
      * Muestra zonas configuradas.

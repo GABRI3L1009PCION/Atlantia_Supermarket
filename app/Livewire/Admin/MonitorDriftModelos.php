@@ -6,8 +6,8 @@ use App\Exceptions\MlServiceUnavailableException;
 use App\Services\Ml\MlServiceClient;
 use App\Services\Ml\MonitorDriftService;
 use Illuminate\Contracts\View\View;
-use Throwable;
 use Livewire\Component;
+use Throwable;
 
 class MonitorDriftModelos extends Component
 {

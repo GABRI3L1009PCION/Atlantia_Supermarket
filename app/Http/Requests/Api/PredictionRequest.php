@@ -17,6 +17,7 @@ class PredictionRequest extends FormRequest
             'horizonte_dias' => ['nullable', 'integer', 'in:7,14,30'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

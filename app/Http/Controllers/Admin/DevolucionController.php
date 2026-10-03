@@ -17,9 +17,7 @@ class DevolucionController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly DevolucionService $devolucionService)
-    {
-    }
+    public function __construct(private readonly DevolucionService $devolucionService) {}
 
     /**
      * Lista devoluciones pendientes.

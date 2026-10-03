@@ -15,9 +15,7 @@ class NotificacionApiController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly NotificationService $notificationService)
-    {
-    }
+    public function __construct(private readonly NotificationService $notificationService) {}
 
     /**
      * Lista notificaciones del usuario.

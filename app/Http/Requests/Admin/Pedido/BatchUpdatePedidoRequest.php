@@ -33,6 +33,7 @@ class BatchUpdatePedidoRequest extends FormRequest
             'notas_historial' => ['nullable', 'string', 'max:1000'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

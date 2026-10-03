@@ -12,9 +12,6 @@ class ReCaptchaService
     /**
      * Verifica token reCAPTCHA v3 contra Google o modo local.
      *
-     * @param string|null $token
-     * @param string $action
-     * @param string|null $ip
      * @return array<string, mixed>
      */
     public function verify(?string $token, string $action, ?string $ip = null): array
@@ -60,9 +57,7 @@ class ReCaptchaService
     /**
      * Indica si el resultado supera el umbral minimo.
      *
-     * @param array<string, mixed> $resultado
-     * @param float $threshold
-     * @return bool
+     * @param  array<string, mixed>  $resultado
      */
     public function passes(array $resultado, float $threshold = 0.5): bool
     {

@@ -6,8 +6,8 @@ use App\Models\Inventario;
 use App\Models\Ml\RestockSuggestion;
 use App\Models\Pedido;
 use App\Models\Producto;
-use App\Models\VendorCommission;
 use App\Models\User;
+use App\Models\VendorCommission;
 
 /**
  * Servicio de metricas del vendedor.

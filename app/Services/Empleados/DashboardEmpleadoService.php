@@ -3,6 +3,8 @@
 namespace App\Services\Empleados;
 
 use App\Models\ContactMessage;
+use App\Models\CourierSupportTicket;
+use App\Models\CourierWithdrawalRequest;
 use App\Models\Ml\ReviewFlag;
 use App\Models\Payment;
 use App\Models\Resena;
@@ -26,6 +28,8 @@ class DashboardEmpleadoService
                 'mensajes_pendientes' => ContactMessage::query()->where('atendido', false)->count(),
                 'resenas_flaggeadas' => ReviewFlag::query()->where('revisada', false)->count(),
                 'resenas_pendientes' => Resena::query()->where('aprobada', false)->count(),
+                'retiros_pendientes' => CourierWithdrawalRequest::query()->whereIn('status', ['pending', 'approved'])->count(),
+                'tickets_repartidor_abiertos' => CourierSupportTicket::query()->whereIn('status', ['open', 'in_progress'])->count(),
             ],
             'transferencias_recientes' => Payment::query()
                 ->with('pedido.cliente')
@@ -40,6 +44,8 @@ class DashboardEmpleadoService
                 ->get(),
             'quick_links' => [
                 ['title' => 'Transferencias', 'description' => 'Valida pagos bancarios pendientes.', 'route' => route('empleado.transferencias.index')],
+                ['title' => 'Finanzas repartidor', 'description' => 'Retiros, liquidaciones y cuentas bancarias.', 'route' => route('empleado.finanzas-repartidores.index')],
+                ['title' => 'Soporte repartidor', 'description' => 'Tickets, emergencias y seguimiento.', 'route' => route('empleado.soporte-repartidores.index')],
                 ['title' => 'Mensajes', 'description' => 'Atiende solicitudes de clientes.', 'route' => route('empleado.mensajes.index')],
                 ['title' => 'Resenas', 'description' => 'Modera opiniones y flags ML.', 'route' => route('empleado.resenas.index')],
             ],

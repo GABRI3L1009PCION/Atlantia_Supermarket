@@ -16,9 +16,7 @@ class SeguimientoController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly SeguimientoPedidoService $seguimientoPedidoService)
-    {
-    }
+    public function __construct(private readonly SeguimientoPedidoService $seguimientoPedidoService) {}
 
     /**
      * Muestra mapa y estado de seguimiento.

@@ -5,16 +5,16 @@ namespace App\Models;
 use App\Models\Cliente\ClienteDetalle;
 use App\Models\Cliente\Direccion;
 use App\Notifications\Auth\EmailVerificationCodeNotification;
+use Illuminate\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
-use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Passport\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -31,8 +31,8 @@ class User extends Authenticatable implements MustVerifyEmailContract
 {
     use HasApiTokens;
     use HasFactory;
-    use MustVerifyEmail;
     use HasRoles;
+    use MustVerifyEmail;
     use Notifiable;
     use SoftDeletes;
 
@@ -178,6 +178,96 @@ class User extends Authenticatable implements MustVerifyEmailContract
     }
 
     /**
+     * Perfil operativo del repartidor.
+     *
+     * @return HasOne<CourierProfile>
+     */
+    public function courierProfile(): HasOne
+    {
+        return $this->hasOne(CourierProfile::class);
+    }
+
+    /**
+     * Billetera del repartidor.
+     *
+     * @return HasOne<CourierWallet>
+     */
+    public function courierWallet(): HasOne
+    {
+        return $this->hasOne(CourierWallet::class);
+    }
+
+    /**
+     * Movimientos de billetera del repartidor.
+     *
+     * @return HasMany<CourierWalletMovement>
+     */
+    public function courierWalletMovements(): HasMany
+    {
+        return $this->hasMany(CourierWalletMovement::class);
+    }
+
+    /**
+     * Ofertas de entrega recibidas.
+     *
+     * @return HasMany<DeliveryOffer>
+     */
+    public function deliveryOffers(): HasMany
+    {
+        return $this->hasMany(DeliveryOffer::class, 'repartidor_id');
+    }
+
+    /**
+     * Solicitudes externas asignadas.
+     *
+     * @return HasMany<ExternalDeliveryOrder>
+     */
+    public function externalDeliveryOrders(): HasMany
+    {
+        return $this->hasMany(ExternalDeliveryOrder::class, 'repartidor_id');
+    }
+
+    /**
+     * Tickets de soporte abiertos por el repartidor.
+     *
+     * @return HasMany<CourierSupportTicket>
+     */
+    public function courierSupportTickets(): HasMany
+    {
+        return $this->hasMany(CourierSupportTicket::class);
+    }
+
+    /**
+     * Tickets asignados al equipo interno.
+     *
+     * @return HasMany<CourierSupportTicket>
+     */
+    public function assignedCourierSupportTickets(): HasMany
+    {
+        return $this->hasMany(CourierSupportTicket::class, 'assigned_to_user_id');
+    }
+
+    /**
+     * Solicitudes de retiro del repartidor.
+     *
+     * @return HasMany<CourierWithdrawalRequest>
+     */
+    public function courierWithdrawalRequests(): HasMany
+    {
+        return $this->hasMany(CourierWithdrawalRequest::class);
+    }
+
+    /**
+     * Liquidaciones de efectivo del repartidor.
+     *
+     * @return HasMany<CourierCashSettlement>
+     */
+    public function courierCashSettlements(): HasMany
+    {
+        return $this->hasMany(CourierCashSettlement::class);
+    }
+
+    /**
      * Movimientos de puntos del cliente.
      *
      * @return HasMany<TransaccionPunto>
@@ -190,7 +280,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
     /**
      * Filtra usuarios activos.
      *
-     * @param Builder<User> $query
+     * @param  Builder<User>  $query
      * @return Builder<User>
      */
     public function scopeActive(Builder $query): Builder
@@ -201,7 +291,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
     /**
      * Filtra usuarios suspendidos.
      *
-     * @param Builder<User> $query
+     * @param  Builder<User>  $query
      * @return Builder<User>
      */
     public function scopeSuspended(Builder $query): Builder
@@ -212,7 +302,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
     /**
      * Filtra usuarios internos del sistema.
      *
-     * @param Builder<User> $query
+     * @param  Builder<User>  $query
      * @return Builder<User>
      */
     public function scopeSystemUsers(Builder $query): Builder
@@ -223,7 +313,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
     /**
      * Filtra usuarios visibles para administradores operativos.
      *
-     * @param Builder<User> $query
+     * @param  Builder<User>  $query
      * @return Builder<User>
      */
     public function scopeVisibleToOperationalAdmin(Builder $query): Builder
@@ -251,6 +341,24 @@ class User extends Authenticatable implements MustVerifyEmailContract
     public function isAdministrator(): bool
     {
         return $this->isSuperAdmin() || $this->hasRole('admin');
+    }
+
+    /**
+     * Indica si el usuario ya confirmo su segundo factor.
+     */
+    public function hasConfirmedTwoFactor(): bool
+    {
+        return $this->two_factor_enabled && $this->two_factor_confirmed_at !== null;
+    }
+
+    /**
+     * Determina si el usuario debe pasar forzosamente por 2FA.
+     */
+    public function requiresAdministrativeTwoFactor(): bool
+    {
+        $enforcedRoles = (array) config('atlantia.auth.enforce_2fa_roles', []);
+
+        return $this->isAdministrator() || ($enforcedRoles !== [] && $this->hasAnyRole($enforcedRoles));
     }
 
     /**

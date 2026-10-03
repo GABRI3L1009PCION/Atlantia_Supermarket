@@ -15,9 +15,7 @@ class ResenaController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly ResenaVendedorService $resenaVendedorService)
-    {
-    }
+    public function __construct(private readonly ResenaVendedorService $resenaVendedorService) {}
 
     /**
      * Lista resenas de productos propios.
@@ -26,6 +24,9 @@ class ResenaController extends Controller
     {
         $this->authorize('viewVendorReviews', $request->user());
 
-        return view('vendedor.resenas.index', ['resenas' => $this->resenaVendedorService->paginate($request->user())]);
+        return view('vendedor.resenas.index', [
+            'resenas' => $this->resenaVendedorService->paginate($request->user(), $request->all()),
+            'dashboard' => $this->resenaVendedorService->dashboard($request->user()),
+        ]);
     }
 }

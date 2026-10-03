@@ -23,4 +23,3 @@ class MlServiceUnavailableException extends AtlantiaDomainException
         return 'El servicio de inteligencia de Atlantia no esta disponible temporalmente.';
     }
 }
-

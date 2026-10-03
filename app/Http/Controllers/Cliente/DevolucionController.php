@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Cliente;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cliente\StoreDevolucionRequest;
+use App\Models\Devolucion;
 use App\Models\Pedido;
 use App\Services\Pedidos\DevolucionService;
 use Illuminate\Http\RedirectResponse;
@@ -17,16 +18,14 @@ class DevolucionController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly DevolucionService $devolucionService)
-    {
-    }
+    public function __construct(private readonly DevolucionService $devolucionService) {}
 
     /**
      * Muestra formulario de solicitud de devolucion.
      */
     public function create(Pedido $pedido): View
     {
-        $this->authorize('create', [\App\Models\Devolucion::class, $pedido]);
+        $this->authorize('create', [Devolucion::class, $pedido]);
 
         return view('cliente.devoluciones.create', ['pedido' => $pedido->load(['items.producto', 'payments'])]);
     }
@@ -36,7 +35,7 @@ class DevolucionController extends Controller
      */
     public function store(StoreDevolucionRequest $request, Pedido $pedido): RedirectResponse
     {
-        $this->authorize('create', [\App\Models\Devolucion::class, $pedido]);
+        $this->authorize('create', [Devolucion::class, $pedido]);
         $this->devolucionService->solicitar($pedido, $request->user(), $request->validated());
 
         return redirect()

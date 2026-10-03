@@ -22,6 +22,7 @@ class HeroBanner extends Model implements HasMedia
 {
     /** @use HasFactory<HeroBannerFactory> */
     use HasFactory;
+
     use InteractsWithMedia;
 
     /**
@@ -66,7 +67,7 @@ class HeroBanner extends Model implements HasMedia
     /**
      * Filtra banners activos.
      *
-     * @param Builder<HeroBanner> $query
+     * @param  Builder<HeroBanner>  $query
      * @return Builder<HeroBanner>
      */
     public function scopeActive(Builder $query): Builder
@@ -77,7 +78,7 @@ class HeroBanner extends Model implements HasMedia
     /**
      * Filtra banners vigentes a la fecha actual.
      *
-     * @param Builder<HeroBanner> $query
+     * @param  Builder<HeroBanner>  $query
      * @return Builder<HeroBanner>
      */
     public function scopeCurrent(Builder $query): Builder
@@ -94,7 +95,7 @@ class HeroBanner extends Model implements HasMedia
     /**
      * Orden natural de banners.
      *
-     * @param Builder<HeroBanner> $query
+     * @param  Builder<HeroBanner>  $query
      * @return Builder<HeroBanner>
      */
     public function scopeOrdered(Builder $query): Builder

@@ -20,9 +20,7 @@ class RolPermisoController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly RolPermisoService $rolPermisoService)
-    {
-    }
+    public function __construct(private readonly RolPermisoService $rolPermisoService) {}
 
     /**
      * Lista roles y permisos.

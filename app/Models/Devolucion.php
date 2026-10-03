@@ -107,7 +107,7 @@ class Devolucion extends Model
     /**
      * Filtra devoluciones pendientes.
      *
-     * @param Builder<Devolucion> $query
+     * @param  Builder<Devolucion>  $query
      * @return Builder<Devolucion>
      */
     public function scopePendientes(Builder $query): Builder

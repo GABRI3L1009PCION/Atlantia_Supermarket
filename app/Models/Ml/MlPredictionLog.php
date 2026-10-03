@@ -60,7 +60,7 @@ class MlPredictionLog extends Model
     /**
      * Filtra llamadas exitosas.
      *
-     * @param Builder<MlPredictionLog> $query
+     * @param  Builder<MlPredictionLog>  $query
      * @return Builder<MlPredictionLog>
      */
     public function scopeSuccess(Builder $query): Builder
@@ -71,7 +71,7 @@ class MlPredictionLog extends Model
     /**
      * Filtra llamadas fallidas.
      *
-     * @param Builder<MlPredictionLog> $query
+     * @param  Builder<MlPredictionLog>  $query
      * @return Builder<MlPredictionLog>
      */
     public function scopeFailed(Builder $query): Builder
@@ -82,8 +82,7 @@ class MlPredictionLog extends Model
     /**
      * Filtra llamadas por endpoint.
      *
-     * @param Builder<MlPredictionLog> $query
-     * @param string $endpoint
+     * @param  Builder<MlPredictionLog>  $query
      * @return Builder<MlPredictionLog>
      */
     public function scopeEndpoint(Builder $query, string $endpoint): Builder

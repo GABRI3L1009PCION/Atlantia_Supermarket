@@ -18,21 +18,13 @@ class DetectarFraudeEnPedido implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-
     /**
      * Crea el job.
-     *
-     * @param int $pedidoId
      */
-    public function __construct(private readonly int $pedidoId)
-    {
-    }
+    public function __construct(private readonly int $pedidoId) {}
 
     /**
      * Ejecuta analisis antifraude.
-     *
-     * @param DetectorFraudeService $detectorFraudeService
-     * @return void
      */
     public function handle(DetectorFraudeService $detectorFraudeService): void
     {

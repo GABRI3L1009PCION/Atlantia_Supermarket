@@ -13,9 +13,7 @@ class PedidoEnCaminoNotification extends Notification
 {
     use Queueable;
 
-    public function __construct(private readonly Pedido $pedido)
-    {
-    }
+    public function __construct(private readonly Pedido $pedido) {}
 
     public function via(object $notifiable): array
     {

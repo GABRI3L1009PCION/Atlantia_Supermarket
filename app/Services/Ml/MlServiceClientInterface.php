@@ -10,8 +10,7 @@ interface MlServiceClientInterface
     /**
      * Ejecuta una solicitud al microservicio ML.
      *
-     * @param string $endpoint
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
     public function post(string $endpoint, array $payload): array;
@@ -19,8 +18,7 @@ interface MlServiceClientInterface
     /**
      * Consulta un endpoint del microservicio ML.
      *
-     * @param string $endpoint
-     * @param array<string, mixed> $query
+     * @param  array<string, mixed>  $query
      * @return array<string, mixed>
      */
     public function get(string $endpoint, array $query = []): array;

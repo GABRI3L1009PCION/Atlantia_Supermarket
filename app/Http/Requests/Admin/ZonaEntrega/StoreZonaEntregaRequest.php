@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin\ZonaEntrega;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class StoreZonaEntregaRequest extends FormRequest
 {
@@ -15,8 +16,8 @@ class StoreZonaEntregaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nombre' => ['required', 'string', 'max:120', 'unique:delivery_zones,nombre'],
-            'slug' => ['nullable', 'string', 'max:140', 'unique:delivery_zones,slug'],
+            'nombre' => ['required', 'string', 'max:120', Rule::unique('delivery_zones', 'nombre')->whereNull('deleted_at')],
+            'slug' => ['nullable', 'string', 'max:140', Rule::unique('delivery_zones', 'slug')->whereNull('deleted_at')],
             'descripcion' => ['nullable', 'string', 'max:500'],
             'municipio' => ['required', 'in:Puerto Barrios,Santo Tomas,Morales,Los Amates,Livingston,El Estor'],
             'costo_base' => ['required', 'numeric', 'min:0', 'max:999.99'],
@@ -33,6 +34,7 @@ class StoreZonaEntregaRequest extends FormRequest
             'latitude_centro' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude_centro' => ['nullable', 'numeric', 'between:-180,180'],
             'poligono_geojson' => ['nullable', 'array'],
+            'poligono_features' => ['nullable', 'string', 'max:65535'],
             'activa' => ['sometimes', 'boolean'],
         ];
     }

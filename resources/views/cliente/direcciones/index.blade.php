@@ -12,6 +12,7 @@
                 method="POST"
                 action="{{ route('cliente.direcciones.store') }}"
                 class="rounded-lg border border-atlantia-rose/20 bg-white p-5 shadow-sm sm:p-6"
+                data-geolocation-address-form
             >
                 @csrf
 
@@ -88,6 +89,72 @@
                             @endforeach
                         </select>
                         @error('municipio')
+                            <p class="mt-1 text-sm text-red-700">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="rounded-lg border border-atlantia-rose/20 bg-atlantia-blush/40 p-4" data-location-picker-root>
+                        <h3 class="text-sm font-bold text-atlantia-ink">Ubicacion exacta</h3>
+                        <p class="mt-1 text-xs leading-5 text-atlantia-ink/70">
+                            Indica el punto exacto de entrega: usa tu GPS o elige un lugar en el mapa.
+                        </p>
+
+                        {{-- Tab switcher --}}
+                        <div class="mt-3 flex gap-2">
+                            <button
+                                type="button"
+                                class="rounded-md px-3 py-1.5 text-xs font-bold transition"
+                                data-location-tab="gps"
+                            >
+                                Usar mi GPS
+                            </button>
+                            <button
+                                type="button"
+                                class="rounded-md px-3 py-1.5 text-xs font-bold transition"
+                                data-location-tab="map"
+                            >
+                                Elegir en el mapa
+                            </button>
+                        </div>
+
+                        {{-- GPS panel --}}
+                        <div data-location-panel="gps" class="mt-3">
+                            <button
+                                type="button"
+                                class="inline-flex items-center justify-center rounded-md bg-atlantia-wine px-4 py-2 text-xs font-bold text-white hover:bg-atlantia-wine-700 disabled:opacity-60"
+                                data-geolocation-trigger
+                            >
+                                Usar mi ubicacion actual
+                            </button>
+                        </div>
+
+                        {{-- Map panel --}}
+                        <div data-location-panel="map" class="mt-3 hidden">
+                            <div
+                                id="address-map-picker"
+                                class="w-full overflow-hidden rounded-md border border-atlantia-rose/30"
+                                style="height:300px"
+                            ></div>
+                            <p class="mt-1 text-xs text-atlantia-ink/60">
+                                Haz clic en el mapa o arrastra el marcador para fijar la ubicacion de entrega.
+                            </p>
+                        </div>
+
+                        <input id="latitude" type="hidden" name="latitude" value="{{ old('latitude') }}" data-geolocation-latitude>
+                        <input id="longitude" type="hidden" name="longitude" value="{{ old('longitude') }}" data-geolocation-longitude>
+                        <input type="hidden" name="mapbox_place_id" value="{{ old('mapbox_place_id') }}">
+
+                        <p
+                            class="mt-3 rounded-md bg-white px-3 py-2 text-xs font-semibold text-atlantia-ink/70"
+                            data-geolocation-status
+                        >
+                            Aun no has capturado tu ubicacion exacta.
+                        </p>
+
+                        @error('latitude')
+                            <p class="mt-1 text-sm text-red-700">{{ $message }}</p>
+                        @enderror
+                        @error('longitude')
                             <p class="mt-1 text-sm text-red-700">{{ $message }}</p>
                         @enderror
                     </div>
@@ -227,6 +294,15 @@
                                                 <br>Referencia: {{ $direccion->referencia }}
                                             @endif
                                         </p>
+                                        @if ($direccion->latitude && $direccion->longitude)
+                                            <p class="mt-3 rounded-md bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
+                                                Ubicacion GPS guardada.
+                                            </p>
+                                        @else
+                                            <p class="mt-3 rounded-md bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
+                                                Falta ubicacion exacta. Agrega una nueva direccion con GPS antes de pagar.
+                                            </p>
+                                        @endif
                                     </div>
 
                                     <div class="flex flex-wrap gap-2">
@@ -245,6 +321,9 @@
                                                 <input type="hidden" name="direccion_linea_1" value="{{ $direccion->direccion_linea_1 }}">
                                                 <input type="hidden" name="direccion_linea_2" value="{{ $direccion->direccion_linea_2 }}">
                                                 <input type="hidden" name="referencia" value="{{ $direccion->referencia }}">
+                                                <input type="hidden" name="latitude" value="{{ $direccion->latitude }}">
+                                                <input type="hidden" name="longitude" value="{{ $direccion->longitude }}">
+                                                <input type="hidden" name="mapbox_place_id" value="{{ $direccion->mapbox_place_id }}">
                                                 <input type="hidden" name="es_principal" value="1">
                                                 <button
                                                     type="submit"
@@ -281,3 +360,186 @@
         </div>
     </section>
 @endsection
+
+@push('scripts')
+    <script
+        @nonce
+        async
+        defer
+        src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google_maps.api_key') }}&libraries=geometry&callback=atlantiaAddressMapReady&loading=async"
+    ></script>
+
+    <script @nonce>
+        (() => {
+            /* ── shared state ─────────────────────────────────────────────── */
+            let pickerMap = null;
+            let pickerMarker = null;
+            let mapsApiReady = false;
+            let pendingMapInit = false;
+
+            /* ── called by the Google Maps callback ───────────────────────── */
+            window.atlantiaAddressMapReady = () => {
+                mapsApiReady = true;
+                if (pendingMapInit) {
+                    pendingMapInit = false;
+                    initPickerMap();
+                }
+            };
+
+            /* ── helpers ─────────────────────────────────────────────────── */
+            const setStatus = (status, message, tone = 'neutral') => {
+                if (! status) return;
+                status.textContent = message;
+                status.classList.remove(
+                    'bg-white', 'bg-emerald-50', 'bg-red-50',
+                    'text-atlantia-ink/70', 'text-emerald-800', 'text-red-700'
+                );
+                if (tone === 'success') status.classList.add('bg-emerald-50', 'text-emerald-800');
+                else if (tone === 'error')  status.classList.add('bg-red-50', 'text-red-700');
+                else                        status.classList.add('bg-white', 'text-atlantia-ink/70');
+            };
+
+            const applyTab = (root, activeTab) => {
+                root.querySelectorAll('[data-location-tab]').forEach(btn => {
+                    const active = btn.dataset.locationTab === activeTab;
+                    btn.classList.toggle('bg-atlantia-wine', active);
+                    btn.classList.toggle('text-white', active);
+                    btn.classList.toggle('bg-white', !active);
+                    btn.classList.toggle('text-atlantia-ink', !active);
+                });
+                root.querySelectorAll('[data-location-panel]').forEach(panel => {
+                    panel.classList.toggle('hidden', panel.dataset.locationPanel !== activeTab);
+                });
+            };
+
+            /* ── Google Maps pin picker ──────────────────────────────────── */
+            const initPickerMap = () => {
+                const container = document.getElementById('address-map-picker');
+                if (! container || pickerMap) return;
+
+                const latInput = document.querySelector('[data-geolocation-latitude]');
+                const lngInput = document.querySelector('[data-geolocation-longitude]');
+                const status   = document.querySelector('[data-geolocation-status]');
+
+                const defaultLat = latInput?.value ? parseFloat(latInput.value) : 15.7261;
+                const defaultLng = lngInput?.value ? parseFloat(lngInput.value) : -88.5940;
+
+                pickerMap = new google.maps.Map(container, {
+                    center: { lat: defaultLat, lng: defaultLng },
+                    zoom: latInput?.value ? 15 : 13,
+                    mapTypeControl: false,
+                    streetViewControl: false,
+                    fullscreenControl: false,
+                });
+
+                pickerMarker = new google.maps.Marker({
+                    position: { lat: defaultLat, lng: defaultLng },
+                    map: pickerMap,
+                    draggable: true,
+                    title: 'Arrastra para mover',
+                });
+
+                const applyPosition = (latLng) => {
+                    const lat = latLng.lat().toFixed(8);
+                    const lng = latLng.lng().toFixed(8);
+                    if (latInput)  latInput.value  = lat;
+                    if (lngInput)  lngInput.value  = lng;
+                    setStatus(status, `Ubicacion lista: ${lat}, ${lng}.`, 'success');
+                };
+
+                if (latInput?.value && lngInput?.value) {
+                    setStatus(status, `Ubicacion lista: ${latInput.value}, ${lngInput.value}.`, 'success');
+                }
+
+                pickerMarker.addListener('dragend', e => applyPosition(e.latLng));
+                pickerMap.addListener('click', e => {
+                    pickerMarker.setPosition(e.latLng);
+                    applyPosition(e.latLng);
+                });
+            };
+
+            /* ── main init ───────────────────────────────────────────────── */
+            const initLocationPicker = () => {
+                const form = document.querySelector('[data-geolocation-address-form]');
+                if (! form || form.dataset.locationReady === 'true') return;
+                form.dataset.locationReady = 'true';
+
+                const root    = form.querySelector('[data-location-picker-root]');
+                const trigger = form.querySelector('[data-geolocation-trigger]');
+                const latInput = form.querySelector('[data-geolocation-latitude]');
+                const lngInput = form.querySelector('[data-geolocation-longitude]');
+                const status   = form.querySelector('[data-geolocation-status]');
+
+                /* restore initial status */
+                if (latInput?.value && lngInput?.value) {
+                    setStatus(status, `Ubicacion capturada: ${latInput.value}, ${lngInput.value}.`, 'success');
+                }
+
+                /* tab switching */
+                root?.querySelectorAll('[data-location-tab]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const tab = btn.dataset.locationTab;
+                        applyTab(root, tab);
+                        if (tab === 'map') {
+                            if (mapsApiReady) initPickerMap();
+                            else pendingMapInit = true;
+                        }
+                    });
+                });
+
+                /* set default active tab style */
+                applyTab(root, 'gps');
+
+                /* GPS button */
+                trigger?.addEventListener('click', () => {
+                    if (! navigator.geolocation) {
+                        setStatus(status, 'Tu navegador no permite obtener ubicacion GPS.', 'error');
+                        return;
+                    }
+
+                    trigger.disabled = true;
+                    trigger.textContent = 'Obteniendo ubicacion...';
+                    setStatus(status, 'Acepta el permiso de ubicacion para guardar el punto exacto.', 'neutral');
+
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const lat = position.coords.latitude.toFixed(8);
+                            const lng = position.coords.longitude.toFixed(8);
+                            if (latInput) latInput.value = lat;
+                            if (lngInput) lngInput.value = lng;
+
+                            if (pickerMarker) {
+                                const pos = { lat: parseFloat(lat), lng: parseFloat(lng) };
+                                pickerMarker.setPosition(pos);
+                                pickerMap?.panTo(pos);
+                            }
+
+                            const accuracy = Math.round(position.coords.accuracy || 0);
+                            const accuracyText = accuracy > 0 ? ` Precision: ${accuracy} m.` : '';
+                            setStatus(status, `Ubicacion lista: ${lat}, ${lng}.${accuracyText}`, 'success');
+                            trigger.disabled = false;
+                            trigger.textContent = 'Actualizar ubicacion';
+                        },
+                        () => {
+                            setStatus(status, 'No pudimos obtener tu ubicacion. Revisa permisos del navegador e intenta de nuevo.', 'error');
+                            trigger.disabled = false;
+                            trigger.textContent = 'Usar mi ubicacion actual';
+                        },
+                        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+                    );
+                });
+
+                /* submit guard */
+                form.addEventListener('submit', (event) => {
+                    if (latInput?.value && lngInput?.value) return;
+                    event.preventDefault();
+                    setStatus(status, 'Antes de guardar, indica tu ubicacion con GPS o en el mapa.', 'error');
+                    trigger?.focus();
+                }, true);
+            };
+
+            document.addEventListener('DOMContentLoaded', initLocationPicker);
+            document.addEventListener('livewire:navigated', initLocationPicker);
+        })();
+    </script>
+@endpush

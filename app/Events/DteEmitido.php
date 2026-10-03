@@ -16,10 +16,6 @@ class DteEmitido
 
     /**
      * Crea el evento.
-     *
-     * @param DteFactura $dte
      */
-    public function __construct(public readonly DteFactura $dte)
-    {
-    }
+    public function __construct(public readonly DteFactura $dte) {}
 }

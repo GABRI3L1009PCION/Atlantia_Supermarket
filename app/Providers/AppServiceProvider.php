@@ -5,6 +5,11 @@ namespace App\Providers;
 use App\Contracts\MlServiceContract;
 use App\Contracts\NotificacionContract;
 use App\Contracts\PasarelaPagoContract;
+use App\Events\PedidoCreado;
+use App\Events\PedidoEntregado;
+use App\Events\RepartidorAsignado;
+use App\Listeners\EnviarNotificacionPedido;
+use App\Models\AuditLog;
 use App\Models\CarritoItem;
 use App\Models\Categoria;
 use App\Models\Cliente\Direccion;
@@ -17,6 +22,7 @@ use App\Models\HeroBanner;
 use App\Models\Inventario;
 use App\Models\Ml\FraudAlert;
 use App\Models\Ml\RestockSuggestion;
+use App\Models\Nomina;
 use App\Models\Payment;
 use App\Models\Pedido;
 use App\Models\Producto;
@@ -24,17 +30,14 @@ use App\Models\Resena;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorCommission;
-use App\Models\AuditLog;
-use App\Events\DevolucionAprobada;
-use App\Listeners\EnviarEmailDevolucionAprobada;
-use App\Policies\AuditLogPolicy;
-use App\Observers\PedidoObserver;
 use App\Observers\CategoriaObserver;
 use App\Observers\DeliveryZoneObserver;
+use App\Observers\PedidoObserver;
 use App\Observers\ProductoObserver;
 use App\Observers\ResenaObserver;
 use App\Observers\UserObserver;
 use App\Observers\VendorCommissionObserver;
+use App\Policies\AuditLogPolicy;
 use App\Policies\CarritoItemPolicy;
 use App\Policies\CategoriaPolicy;
 use App\Policies\DeliveryRoutePolicy;
@@ -46,15 +49,16 @@ use App\Policies\EmpleadoPolicy;
 use App\Policies\FraudAlertPolicy;
 use App\Policies\HeroBannerPolicy;
 use App\Policies\InventarioPolicy;
-use App\Policies\PedidoPolicy;
+use App\Policies\NominaPolicy;
 use App\Policies\PaymentPolicy;
+use App\Policies\PedidoPolicy;
 use App\Policies\ProductoPolicy;
 use App\Policies\ResenaPolicy;
-use App\Policies\RolePolicy;
 use App\Policies\RestockSuggestionPolicy;
+use App\Policies\RolePolicy;
 use App\Policies\UserPolicy;
-use App\Policies\VendorPolicy;
 use App\Policies\VendorCommissionPolicy;
+use App\Policies\VendorPolicy;
 use App\Services\Fel\CertificadorFelInterface;
 use App\Services\Fel\InfileCertificadorService;
 use App\Services\Ml\MlServiceClient;
@@ -118,6 +122,16 @@ class AppServiceProvider extends ServiceProvider
             Passport::ignoreMigrations();
         }
 
+        Passport::tokensExpireIn(now()->addMinutes(
+            max(5, (int) config('atlantia.auth.passport.access_token_ttl_minutes', 10080))
+        ));
+        Passport::refreshTokensExpireIn(now()->addDays(
+            max(1, (int) config('atlantia.auth.passport.refresh_token_ttl_days', 30))
+        ));
+        Passport::personalAccessTokensExpireIn(now()->addDays(
+            max(1, (int) config('atlantia.auth.passport.personal_access_token_ttl_days', 30))
+        ));
+
         Gate::policy(Producto::class, ProductoPolicy::class);
         Gate::policy(Pedido::class, PedidoPolicy::class);
         Gate::policy(Vendor::class, VendorPolicy::class);
@@ -129,6 +143,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(DeliveryRoute::class, DeliveryRoutePolicy::class);
         Gate::policy(Devolucion::class, DevolucionPolicy::class);
         Gate::policy(Inventario::class, InventarioPolicy::class);
+        Gate::policy(Nomina::class, NominaPolicy::class);
         Gate::policy(VendorCommission::class, VendorCommissionPolicy::class);
         Gate::policy(FraudAlert::class, FraudAlertPolicy::class);
         Gate::policy(RestockSuggestion::class, RestockSuggestionPolicy::class);
@@ -159,14 +174,22 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('viewVendorReports', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
         Gate::define('viewVendorReviews', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
         Gate::define('manageVendorZones', fn (User $user): bool => $user->hasRole('vendedor') && $user->vendor !== null);
-        Gate::define('viewEmployeeDashboard', fn (User $user): bool => $user->hasRole('empleado'));
+        Gate::define('viewEmployeeDashboard', fn (User $user): bool => $user->hasAnyRole([
+            'empleado',
+            'bodeguero',
+            'soporte',
+            'contabilidad_finanzas',
+            'supervisor_logistica',
+        ]));
         Gate::define('viewCourierDashboard', fn (User $user): bool => $user->hasRole('repartidor'));
         Gate::define('sendLocation', fn (User $user): bool => $user->hasRole('repartidor'));
         Gate::define('viewRepartidores', fn (User $user): bool => $user->isAdministrator());
         Gate::define('viewRepartidor', fn (User $user, User $repartidor): bool => $user->isAdministrator()
             && $repartidor->hasRole('repartidor'));
 
-        Event::listen(DevolucionAprobada::class, EnviarEmailDevolucionAprobada::class);
+        Event::listen(PedidoCreado::class, EnviarNotificacionPedido::class);
+        Event::listen(PedidoEntregado::class, EnviarNotificacionPedido::class);
+        Event::listen(RepartidorAsignado::class, EnviarNotificacionPedido::class);
 
         Producto::observe(ProductoObserver::class);
         Categoria::observe(CategoriaObserver::class);

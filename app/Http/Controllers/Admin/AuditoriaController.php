@@ -16,9 +16,7 @@ class AuditoriaController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly AuditoriaService $auditoriaService)
-    {
-    }
+    public function __construct(private readonly AuditoriaService $auditoriaService) {}
 
     /**
      * Lista eventos de auditoria.

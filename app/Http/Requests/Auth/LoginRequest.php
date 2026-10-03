@@ -12,8 +12,6 @@ class LoginRequest extends FormRequest
 {
     /**
      * Determina si el usuario puede realizar esta solicitud.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -71,8 +69,6 @@ class LoginRequest extends FormRequest
 
     /**
      * Normaliza datos antes de validar.
-     *
-     * @return void
      */
     protected function prepareForValidation(): void
     {

@@ -19,9 +19,7 @@ class CategoriaController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly CategoriaService $categoriaService)
-    {
-    }
+    public function __construct(private readonly CategoriaService $categoriaService) {}
 
     /**
      * Lista categorias.

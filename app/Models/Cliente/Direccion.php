@@ -96,7 +96,7 @@ class Direccion extends Model
     /**
      * Filtra direcciones activas.
      *
-     * @param Builder<Direccion> $query
+     * @param  Builder<Direccion>  $query
      * @return Builder<Direccion>
      */
     public function scopeActive(Builder $query): Builder
@@ -107,7 +107,7 @@ class Direccion extends Model
     /**
      * Filtra la direccion principal.
      *
-     * @param Builder<Direccion> $query
+     * @param  Builder<Direccion>  $query
      * @return Builder<Direccion>
      */
     public function scopePrincipal(Builder $query): Builder
@@ -118,8 +118,7 @@ class Direccion extends Model
     /**
      * Filtra direcciones por municipio.
      *
-     * @param Builder<Direccion> $query
-     * @param string $municipio
+     * @param  Builder<Direccion>  $query
      * @return Builder<Direccion>
      */
     public function scopeMunicipio(Builder $query, string $municipio): Builder

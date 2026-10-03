@@ -22,4 +22,11 @@ def test_readiness_endpoint_returns_ready() -> None:
     response = client.get("/api/v1/ready")
 
     assert response.status_code == 200
-    assert response.json()["status"] == "ready"
+    payload = response.json()
+    assert payload["status"] == "ready"
+    assert payload["dependencies"] == {
+        "mlflow": "configured",
+        "redis": "configured",
+    }
+    assert "redis://" not in response.text
+    assert "@" not in response.text

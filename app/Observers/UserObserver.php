@@ -12,9 +12,6 @@ class UserObserver
 {
     /**
      * Asigna UUID seguro antes de crear usuario.
-     *
-     * @param User $user
-     * @return void
      */
     public function creating(User $user): void
     {

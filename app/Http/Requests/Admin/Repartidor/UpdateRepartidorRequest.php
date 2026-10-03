@@ -27,6 +27,7 @@ class UpdateRepartidorRequest extends FormRequest
             'password' => ['nullable', 'string', 'min:12', 'max:128', 'confirmed'],
         ];
     }
+
     /**
      * Mensajes personalizados de validacion.
      *

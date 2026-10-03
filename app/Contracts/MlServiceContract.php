@@ -10,7 +10,7 @@ interface MlServiceContract
     /**
      * Detecta fraude de pedidos.
      *
-     * @param array<string, mixed> $datos
+     * @param  array<string, mixed>  $datos
      * @return array<string, mixed>
      */
     public function detectarFraude(array $datos): array;
@@ -18,7 +18,7 @@ interface MlServiceContract
     /**
      * Genera prediccion de demanda.
      *
-     * @param array<string, mixed> $datos
+     * @param  array<string, mixed>  $datos
      * @return array<string, mixed>
      */
     public function predecirDemanda(array $datos): array;
@@ -26,7 +26,7 @@ interface MlServiceContract
     /**
      * Genera recomendaciones de productos.
      *
-     * @param array<string, mixed> $datos
+     * @param  array<string, mixed>  $datos
      * @return array<string, mixed>
      */
     public function recomendar(array $datos): array;
