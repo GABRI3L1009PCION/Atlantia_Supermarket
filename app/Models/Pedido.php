@@ -326,7 +326,7 @@ class Pedido extends Model
      */
     public function scopePending(Builder $query): Builder
     {
-        return $query->where('estado', 'pendiente');
+        return $query->where('estado', EstadoPedido::Pendiente->value);
     }
 
     /**
