@@ -79,6 +79,9 @@ services:
       - /var/cache/nginx:size=64m
       - /var/run:size=16m
       - /tmp:size=32m,mode=1777
+    volumes:
+      # Solo lectura: nginx sirve las fotos subidas (storage/app/public) sin poder modificarlas.
+      - app-storage:/var/www/html/storage:ro
     depends_on:
       app:
         condition: service_healthy
