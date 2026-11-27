@@ -5,9 +5,14 @@ namespace App\Livewire\Checkout;
 use App\Models\Carrito;
 use App\Models\CarritoItem;
 use App\Models\Cliente\Direccion;
+use App\Services\Clientes\MembresiaService;
+use App\Services\Clientes\SaldoService;
 use App\Services\Fidelizacion\PuntosService;
 use App\Services\Geolocalizacion\DeliveryCoverageService;
+use App\Services\Pedidos\CheckoutService;
 use App\Services\Promociones\CuponService;
+use App\Services\Promociones\PromocionService;
+use App\Support\Iva;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\On;
@@ -27,6 +32,16 @@ class ResumenMultivendedor extends Component
      * Metodo de pago actual.
      */
     public string $metodoPago = 'efectivo';
+
+    /**
+     * Propina elegida para el repartidor.
+     */
+    public float $propina = 0;
+
+    /**
+     * Si el cliente usa su saldo a favor.
+     */
+    public bool $usarSaldo = false;
 
     /**
      * Aceptacion de terminos del checkout.
@@ -73,8 +88,47 @@ class ResumenMultivendedor extends Component
     }
 
     /**
+     * Tipo de entrega elegido (recoger en tienda no cobra envio).
+     */
+    public string $tipoEntrega = 'domicilio';
+
+    /**
+     * Datos de entrega del invitado para estimar el envio sin direccion guardada.
+     *
+     * @var array{municipio: ?string, latitude: ?float, longitude: ?float, direccion: ?string}
+     */
+    public array $entregaInvitado = ['municipio' => null, 'latitude' => null, 'longitude' => null, 'direccion' => null];
+
+    /**
+     * Recibe desde el formulario el tipo de entrega y la zona elegida para recalcular el envio.
+     */
+    #[On('checkout.entrega-actualizada')]
+    public function actualizarEntrega(
+        string $tipoEntrega = 'domicilio',
+        ?string $municipio = null,
+        mixed $latitude = null,
+        mixed $longitude = null,
+        ?string $direccion = null
+    ): void {
+        $this->tipoEntrega = in_array($tipoEntrega, ['domicilio', 'recoger', 'programado'], true) ? $tipoEntrega : 'domicilio';
+        $this->entregaInvitado = [
+            'municipio' => $municipio !== null && trim($municipio) !== '' ? mb_substr(trim($municipio), 0, 80) : null,
+            'latitude' => is_numeric($latitude) && abs((float) $latitude) <= 90 ? (float) $latitude : null,
+            'longitude' => is_numeric($longitude) && abs((float) $longitude) <= 180 ? (float) $longitude : null,
+            'direccion' => $direccion !== null ? mb_substr(trim($direccion), 0, 500) : null,
+        ];
+    }
+
+    /**
      * Actualiza metodo de pago seleccionado.
      */
+    #[On('checkout.extras-actualizados')]
+    public function actualizarExtras(float $propina = 0, bool $usarSaldo = false): void
+    {
+        $this->propina = round(max(0, min(500, $propina)), 2);
+        $this->usarSaldo = $usarSaldo;
+    }
+
     #[On('checkout.metodo-pago-actualizado')]
     public function actualizarMetodoPago(string $metodoPago): void
     {
@@ -107,8 +161,15 @@ class ResumenMultivendedor extends Component
      */
     public function aplicarCupon(): void
     {
-        $subtotal = $this->subtotal($this->items());
-        $this->couponState = app(CuponService::class)->resolver(auth()->user(), $this->couponCode, $subtotal);
+        $items = $this->items();
+        $promo = app(PromocionService::class)->descuentoCarrito($items);
+        $subtotal = max(0, $this->subtotal($items) - $promo['total']);
+        $this->couponState = app(CuponService::class)->resolver(
+            auth()->user(),
+            $this->couponCode,
+            $subtotal,
+            CheckoutService::subtotalesPorVendor($items, $promo['por_vendor'] ?? []),
+        );
 
         $this->dispatch(
             'toast',
@@ -139,23 +200,45 @@ class ResumenMultivendedor extends Component
         $items = $this->items();
         $grupos = $this->gruposPorVendedor($items);
         $subtotal = $this->subtotal($items);
-        $envio = $this->envioEstimado();
+        $envioGratisMembresia = $this->tipoEntrega !== 'recoger' && app(MembresiaService::class)->envioGratis(auth()->user(), $subtotal);
+        $grupos = $this->conEnvioPorTienda($grupos, $envioGratisMembresia);
+        $envioCalculado = $envioGratisMembresia ? 0.0 : $this->envioEstimado();
+        /* Sin direccion todavia no se conoce el envio: se muestra pendiente y no se suma al total. */
+        $envioPendiente = $envioCalculado === null;
+        $envio = $envioCalculado ?? 0.0;
+        $promociones = app(PromocionService::class);
+        $promo = $promociones->descuentoCarrito($items);
+        $subtotalConPromo = max(0, $subtotal - $promo['total']);
         $descuento = (float) ($this->couponState['descuento'] ?? 0);
-        $baseImponible = max(0, $subtotal - $descuento);
-        $impuestos = round($baseImponible * 0.12, 2);
+        $descuentoPrimeraCompra = ($this->couponState['valido'] ?? false) ? 0.0 : $promociones->descuentoPrimeraCompra(auth()->user(), $subtotalConPromo);
+        $baseImponible = max(0, $subtotalConPromo - $descuento - $descuentoPrimeraCompra);
+        /* IVA incluido en el precio: se muestra como desglose, no se suma al total. */
+        $impuestos = Iva::incluido($baseImponible);
+        $total = round($baseImponible + $envio, 2);
+        $propina = $this->tipoEntrega === 'recoger' ? 0.0 : $this->propina;
+        $saldoDisponible = auth()->check() ? app(SaldoService::class)->disponible(auth()->user()) : 0.0;
+        $saldoUsado = $this->usarSaldo ? round(min($saldoDisponible, $total + $propina), 2) : 0.0;
         $puntos = auth()->check() ? app(PuntosService::class)->saldo(auth()->user()) : null;
 
         return view('livewire.checkout.resumen-multivendedor', [
             'grupos' => $grupos,
+            'totalEntregas' => $this->tipoEntrega === 'recoger' ? 0 : $grupos->count(),
             'subtotal' => $subtotal,
             'envio' => $envio,
+            'envioPendiente' => $envioPendiente,
             'descuento' => $descuento,
+            'promociones' => $promo['detalle'],
+            'envioGratisMembresia' => $envioGratisMembresia,
+            'descuentoPrimeraCompra' => $descuentoPrimeraCompra,
             'impuestos' => $impuestos,
-            'total' => round($baseImponible + $envio + $impuestos, 2),
+            'total' => $total,
+            'propina' => $propina,
+            'saldoUsado' => $saldoUsado,
+            'totalAPagar' => round(max(0, $total + $propina - $saldoUsado), 2),
             'metodoPago' => $this->metodoPago,
             'couponState' => $this->couponState,
             'puntos' => $puntos,
-            'puntosProximos' => (int) floor(round($baseImponible + $envio + $impuestos, 2) / 10),
+            'puntosProximos' => (int) floor($total / 10),
         ]);
     }
 
@@ -194,7 +277,7 @@ class ResumenMultivendedor extends Component
                     'vendor' => $vendor,
                     'items' => $vendorItems,
                     'subtotal' => $subtotal,
-                    'impuestos' => round($subtotal * 0.12, 2),
+                    'impuestos' => Iva::incluido($subtotal),
                 ];
             })
             ->values();
@@ -213,21 +296,62 @@ class ResumenMultivendedor extends Component
     }
 
     /**
+     * Direccion con la que se estima el envio: la guardada del cliente o la que escribe el invitado.
+     */
+    private function direccionEntrega(): ?Direccion
+    {
+        $direccion = $this->direccionId
+            ? auth()->user()?->direcciones()->active()->whereKey($this->direccionId)->first()
+            : null;
+
+        /* Invitado: se estima con la zona elegida (y el GPS si lo compartio), sin guardar nada. */
+        if (! $direccion && ! auth()->check() && $this->entregaInvitado['municipio'] && mb_strlen((string) $this->entregaInvitado['direccion']) >= 5) {
+            $direccion = new Direccion([
+                'municipio' => $this->entregaInvitado['municipio'],
+                'latitude' => $this->entregaInvitado['latitude'],
+                'longitude' => $this->entregaInvitado['longitude'],
+                'direccion_linea_1' => $this->entregaInvitado['direccion'],
+            ]);
+        }
+
+        return $direccion;
+    }
+
+    /**
+     * Envio de cada tienda (cada una es una entrega con su repartidor). Null si aun no hay direccion.
+     *
+     * @param  Collection<int, array<string, mixed>>  $grupos
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function conEnvioPorTienda(Collection $grupos, bool $envioGratis): Collection
+    {
+        $direccion = ($this->tipoEntrega === 'recoger' || $envioGratis) ? null : $this->direccionEntrega();
+        $cobertura = app(DeliveryCoverageService::class);
+
+        return $grupos->map(function (array $grupo) use ($direccion, $envioGratis, $cobertura): array {
+            $grupo['envio'] = match (true) {
+                $this->tipoEntrega === 'recoger', $envioGratis => 0.0,
+                $direccion === null => null,
+                default => $cobertura->deliveryCostForVendor($direccion, $grupo['vendor']?->id) ?? null,
+            };
+
+            return $grupo;
+        });
+    }
+
+    /**
      * Estima envio con zona global activa del municipio de entrega.
      */
-    private function envioEstimado(): float
+    private function envioEstimado(): ?float
     {
-        if (! $this->direccionId) {
+        if ($this->tipoEntrega === 'recoger') {
             return 0.0;
         }
 
-        $direccion = auth()->user()?->direcciones()
-            ->active()
-            ->whereKey($this->direccionId)
-            ->first();
+        $direccion = $this->direccionEntrega();
 
         if (! $direccion) {
-            return 0.0;
+            return null;
         }
 
         $vendorIds = $this->items()

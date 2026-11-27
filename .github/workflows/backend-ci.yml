@@ -63,6 +63,7 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
+          php artisan passport:keys --force
           php artisan migrate --force
 
       - name: Code style

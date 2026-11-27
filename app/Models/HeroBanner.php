@@ -37,6 +37,10 @@ class HeroBanner extends Model implements HasMedia
         'orden',
         'inicia_en',
         'termina_en',
+        'anunciante',
+        'url_destino',
+        'vistas',
+        'clics',
     ];
 
     /**

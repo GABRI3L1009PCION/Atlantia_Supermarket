@@ -92,11 +92,11 @@ class DashboardService
                 'environment' => app()->environment(),
                 'branch' => (string) config('app.branch', 'local'),
                 'pipeline' => [
-                    ['label' => 'Codigo', 'status' => 'lista', 'detail' => 'repositorio conectado'],
+                    ['label' => 'Código', 'status' => 'lista', 'detail' => 'repositorio conectado'],
                     ['label' => 'Migraciones', 'status' => 'lista', 'detail' => 'estructura definida'],
                     ['label' => 'Datos reales', 'status' => 'espera', 'detail' => 'carga operativa'],
-                    ['label' => 'Aprobacion', 'status' => 'espera', 'detail' => 'super admin'],
-                    ['label' => 'Produccion', 'status' => 'pendiente', 'detail' => 'despliegue final'],
+                    ['label' => 'Aprobación', 'status' => 'espera', 'detail' => 'super admin'],
+                    ['label' => 'Producción', 'status' => 'pendiente', 'detail' => 'despliegue final'],
                 ],
             ],
             'branches' => collect([
@@ -194,13 +194,13 @@ class DashboardService
     {
         return collect([
             [
-                'name' => 'Aplicacion Laravel',
+                'name' => 'Aplicación Laravel',
                 'detail' => 'Entorno '.app()->environment(),
                 'status' => 'operativo',
             ],
             [
                 'name' => 'Base de datos',
-                'detail' => 'Conexion '.config('database.default'),
+                'detail' => 'Conexión '.config('database.default'),
                 'status' => config('database.default') !== null ? 'operativo' : 'pendiente',
             ],
             [
@@ -209,7 +209,7 @@ class DashboardService
                 'status' => config('queue.default') !== 'sync' ? 'operativo' : 'configurar',
             ],
             [
-                'name' => 'Busqueda',
+                'name' => 'Búsqueda',
                 'detail' => 'Scout '.(string) config('scout.driver', 'database'),
                 'status' => (string) config('scout.driver', 'database') === 'meilisearch' ? 'operativo' : 'configurar',
             ],

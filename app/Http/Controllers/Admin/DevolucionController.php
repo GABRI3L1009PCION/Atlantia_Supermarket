@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\Devolucion\ResolverDevolucionRequest;
 use App\Models\Devolucion;
 use App\Services\Pedidos\DevolucionService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
@@ -22,11 +23,19 @@ class DevolucionController extends Controller
     /**
      * Lista devoluciones pendientes.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->authorize('viewAny', Devolucion::class);
 
-        return view('admin.devoluciones.index', ['devoluciones' => $this->devolucionService->pendientes()]);
+        $vista = $request->query('vista') === 'resueltas' ? 'resueltas' : 'pendientes';
+
+        return view('admin.devoluciones.index', [
+            'vista' => $vista,
+            'devoluciones' => $vista === 'resueltas'
+                ? $this->devolucionService->resueltas()
+                : $this->devolucionService->pendientes(),
+            'resumen' => $this->devolucionService->resumen(),
+        ]);
     }
 
     /**

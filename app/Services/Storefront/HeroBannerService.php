@@ -36,6 +36,8 @@ class HeroBannerService
                 'is_active' => (bool) ($data['is_active'] ?? false),
                 'inicia_en' => $data['inicia_en'] ?? null,
                 'termina_en' => $data['termina_en'] ?? null,
+                'anunciante' => $data['anunciante'] ?? null,
+                'url_destino' => $data['url_destino'] ?? null,
             ]);
 
             $this->syncImages($banner, $data);
@@ -58,6 +60,8 @@ class HeroBannerService
                 'is_active' => (bool) ($data['is_active'] ?? false),
                 'inicia_en' => $data['inicia_en'] ?? null,
                 'termina_en' => $data['termina_en'] ?? null,
+                'anunciante' => $data['anunciante'] ?? null,
+                'url_destino' => $data['url_destino'] ?? null,
             ]);
 
             $this->syncImages($banner, $data);
@@ -108,7 +112,10 @@ class HeroBannerService
                 }
 
                 return [
+                    'id' => $banner->id,
                     'name' => $banner->nombre,
+                    /* Los clics pasan por Atlantia para contarlos y mostrarselos al anunciante. */
+                    'url' => filled($banner->url_destino) ? route('publicidad.banner', $banner->uuid) : null,
                     'desktop_image' => $desktopImage,
                     'mobile_image' => $banner->getFirstMediaUrl('hero_mobile') ?: $desktopImage,
                     'is_fallback' => false,
@@ -117,6 +124,12 @@ class HeroBannerService
             ->filter()
             ->values()
             ->all();
+
+        /* Cada vez que se muestra el carrusel cuenta como una vista para los banners publicados. */
+        $ids = array_column($resolved, 'id');
+        if ($ids !== []) {
+            HeroBanner::query()->whereIn('id', $ids)->increment('vistas');
+        }
 
         if ($resolved === []) {
             return [

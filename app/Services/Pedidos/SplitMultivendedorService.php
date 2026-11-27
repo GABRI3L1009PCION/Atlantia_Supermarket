@@ -9,6 +9,7 @@ use App\Models\Pedido;
 use App\Models\PedidoItem;
 use App\Models\User;
 use App\Services\Geolocalizacion\DeliveryCoverageService;
+use App\Support\Iva;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -34,17 +35,30 @@ class SplitMultivendedorService
         $vendorIds = $items->pluck('producto.vendor_id')->unique()->values();
         $pedidoPadre = $this->crearPedidoBase($cliente, $direccion, null, null, $totals, $data);
 
-        foreach ($items->groupBy('producto.vendor_id') as $vendorId => $vendorItems) {
-            $envioVendedor = app(DeliveryCoverageService::class)->deliveryCostForVendor(
+        $recogerEnTienda = ($data['tipo_entrega'] ?? 'domicilio') === 'recoger';
+        /* La propina se reparte entre las entregas; no forma parte de la venta del comercio. */
+        $propina = $recogerEnTienda ? 0.0 : round((float) ($totals['propina'] ?? 0), 2);
+        $grupos = $items->groupBy('producto.vendor_id');
+        $propinaPorEntrega = $grupos->count() > 0 ? floor(($propina / $grupos->count()) * 100) / 100 : 0.0;
+        $propinaRestante = $propina;
+        $indice = 0;
+
+        foreach ($grupos as $vendorId => $vendorItems) {
+            $envioVendedor = $recogerEnTienda || ($totals['envio_gratis'] ?? false) ? 0.0 : (app(DeliveryCoverageService::class)->deliveryCostForVendor(
                 $direccion,
                 $vendorId === '' ? null : (int) $vendorId
-            ) ?? ((float) $totals['envio'] / max(1, $vendorIds->count()));
+            ) ?? ((float) $totals['envio'] / max(1, $vendorIds->count())));
+            $promoVendedor = (float) (($totals['promociones_por_vendor'] ?? [])[$vendorId === '' ? 0 : (int) $vendorId] ?? 0);
             $vendorTotals = $this->totalsForItems(
                 $vendorItems,
                 $envioVendedor,
-                (float) ($totals['descuento'] ?? 0),
-                (float) ($totals['subtotal'] ?? 0)
+                $this->descuentoDeTienda($totals, (int) $vendorId, $vendorItems, $promoVendedor),
+                $this->subtotalConPromo($vendorItems, $promoVendedor),
+                $promoVendedor
             );
+            $indice++;
+            $vendorTotals['propina'] = $indice === $grupos->count() ? round($propinaRestante, 2) : $propinaPorEntrega;
+            $propinaRestante -= $vendorTotals['propina'];
             $pedidoHijo = $this->crearPedidoBase($cliente, $direccion, (int) $vendorId, $pedidoPadre, $vendorTotals, $data);
 
             $this->crearItems($pedidoHijo, $vendorItems);
@@ -58,21 +72,47 @@ class SplitMultivendedorService
      */
     public function crearSplitsDePago(Payment $payment, Pedido $pedidoPadre): void
     {
-        $pedidoPadre->pedidosHijos()->with('vendor')->get()->each(function (Pedido $pedidoHijo) use ($payment): void {
-            $commissionRate = (float) ($pedidoHijo->vendor?->commission_percentage ?? 0);
-            $gross = (float) $pedidoHijo->total;
+        $hijos = $pedidoPadre->pedidosHijos()->with('vendor')->get();
+        $tiendas = max(1, $hijos->count());
+
+        $hijos->each(function (Pedido $pedidoHijo) use ($payment, $tiendas): void {
+            /* Durante la prueba gratis de la promoción de apertura no se cobra comisión. */
+            $commissionRate = (float) ($pedidoHijo->vendor?->comisionVigente() ?? 0);
+            /* La venta del comercio es solo su mercaderia: el envio es del repartidor y Atlantia, no del vendedor. */
+            $gross = round(max(0, (float) $pedidoHijo->total - (float) $pedidoHijo->envio), 2);
             $commission = round($gross * ($commissionRate / 100), 2);
+            $tarifaPasarela = self::tarifaPasarela((string) ($payment->metodo?->value ?? $payment->metodo), $gross, $tiendas);
 
             PaymentSplit::query()->create([
                 'payment_id' => $payment->id,
                 'vendor_id' => $pedidoHijo->vendor_id,
+                'pedido_id' => $pedidoHijo->id,
                 'monto_bruto' => $gross,
                 'comision_atlantia' => $commission,
-                'monto_neto_vendedor' => round($gross - $commission, 2),
+                'comision_pasarela' => $tarifaPasarela,
+                'monto_neto_vendedor' => round(max(0, $gross - $commission - $tarifaPasarela), 2),
                 'estado' => 'pendiente',
                 'liquidado_at' => null,
             ]);
         });
+    }
+
+    /**
+     * Tarifa de la pasarela para la venta de una tienda en UNA transaccion:
+     * porcentaje sobre su venta + el fijo del pago repartido entre las tiendas de ese pago.
+     */
+    public static function tarifaPasarela(string $metodo, float $ventaTienda, int $tiendasEnPago = 1): float
+    {
+        $config = (array) config('monetizacion.pasarela', []);
+
+        if (! in_array($metodo, (array) ($config['metodos'] ?? ['tarjeta']), true) || $ventaTienda <= 0) {
+            return 0.0;
+        }
+
+        $porcentaje = $ventaTienda * ((float) ($config['porcentaje'] ?? 0) / 100);
+        $fijo = (float) ($config['fijo'] ?? 0) / max(1, $tiendasEnPago);
+
+        return round($porcentaje + $fijo, 2);
     }
 
     /**
@@ -100,7 +140,9 @@ class SplitMultivendedorService
             'envio' => $totals['envio'],
             'impuestos' => $totals['impuestos'],
             'descuento' => $totals['descuento'],
+            'descuento_promociones' => $totals['descuento_promociones'] ?? 0,
             'total' => $totals['total'],
+            'propina' => $totals['propina'] ?? 0,
             'estado' => 'pendiente',
             'metodo_pago' => $data['metodo_pago'],
             'estado_pago' => 'pendiente',
@@ -109,6 +151,7 @@ class SplitMultivendedorService
             'facturacion_nit' => $data['facturacion_nit'] ?? null,
             'facturacion_email' => $data['facturacion_email'] ?? null,
             'notas' => $data['notas'] ?? null,
+            'tipo_entrega' => $data['tipo_entrega'] ?? 'domicilio',
         ]);
     }
 
@@ -132,7 +175,7 @@ class SplitMultivendedorService
                 'precio_unitario_snapshot' => $precio,
                 'subtotal' => $subtotal,
                 'descuento' => 0,
-                'impuestos' => round($subtotal * 0.12, 2),
+                'impuestos' => Iva::incluido($subtotal),
             ]);
         }
     }
@@ -147,24 +190,55 @@ class SplitMultivendedorService
         Collection $items,
         float $envio,
         float $descuentoGlobal = 0,
-        float $subtotalGlobal = 0
+        float $subtotalGlobal = 0,
+        float $descuentoPromociones = 0
     ): array {
         $subtotal = $items->sum(function ($item): float {
             return (float) ($item->producto->precio_oferta ?? $item->producto->precio_base) * (int) $item->cantidad;
         });
+        $subtotalConPromo = max(0, $subtotal - $descuentoPromociones);
+        /* Cupon y primera compra se reparten segun el peso de cada comercio en la compra. */
         $descuento = $subtotalGlobal > 0
-            ? round(($subtotal / $subtotalGlobal) * $descuentoGlobal, 2)
+            ? round(($subtotalConPromo / $subtotalGlobal) * $descuentoGlobal, 2)
             : 0.0;
-        $baseImponible = max(0, $subtotal - $descuento);
-        $impuestos = round($baseImponible * 0.12, 2);
+        $baseImponible = max(0, $subtotalConPromo - $descuento);
+        /* IVA incluido en el precio: se desglosa, no se suma. */
+        $impuestos = Iva::incluido($baseImponible);
 
         return [
             'subtotal' => round($subtotal, 2),
             'envio' => round($envio, 2),
             'impuestos' => $impuestos,
             'descuento' => $descuento,
-            'total' => round($baseImponible + $envio + $impuestos, 2),
+            'descuento_promociones' => round($descuentoPromociones, 2),
+            'total' => round($baseImponible + $envio, 2),
         ];
+    }
+
+    /**
+     * Descuento que le toca a una tienda: el cupón completo si es suyo (ninguno si es de otra)
+     * y su parte proporcional de los descuentos generales.
+     */
+    private function descuentoDeTienda(array $totals, int $vendorId, Collection $vendorItems, float $promoVendedor): float
+    {
+        $subtotalTienda = $this->subtotalConPromo($vendorItems, $promoVendedor);
+        $subtotalGlobal = max(0, (float) ($totals['subtotal'] ?? 0) - (float) ($totals['descuento_promociones'] ?? 0));
+        $proporcion = $subtotalGlobal > 0 ? $subtotalTienda / $subtotalGlobal : 0.0;
+
+        $cupon = (float) ($totals['descuento_cupon'] ?? 0);
+        $duenaCupon = $totals['cupon_vendor_id'] ?? null;
+        $general = max(0, (float) ($totals['descuento'] ?? 0) - $cupon);
+
+        $deCupon = $duenaCupon === null ? $cupon * $proporcion : ((int) $duenaCupon === $vendorId ? $cupon : 0.0);
+
+        return round(min($subtotalTienda, $deCupon + $general * $proporcion), 2);
+    }
+
+    private function subtotalConPromo(Collection $vendorItems, float $promoVendedor): float
+    {
+        $subtotal = $vendorItems->sum(fn ($item): float => (float) ($item->producto->precio_oferta ?? $item->producto->precio_base) * (int) $item->cantidad);
+
+        return round(max(0, $subtotal - $promoVendedor), 2);
     }
 
     /**

@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Vendedor;
 
+use App\Exceptions\PagoRechazadoException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Vendedor\Pedido\UpdatePedidoEstadoRequest;
 use App\Models\Pedido;
 use App\Services\Pedidos\PedidoVendedorService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -44,13 +46,57 @@ class PedidoController extends Controller
     }
 
     /**
+     * Ultimo pedido recibido, para la alerta sonora del panel.
+     */
+    public function nuevos(Request $request): JsonResponse
+    {
+        $this->authorize('viewOwnVendorOrders', Pedido::class);
+        $vendor = $request->user()->vendor;
+
+        $ultimo = Pedido::query()
+            ->where('vendor_id', $vendor?->id)
+            ->whereIn('estado', ['pendiente', 'confirmado'])
+            ->latest('id')
+            ->first(['id', 'uuid', 'numero_pedido', 'total', 'created_at']);
+
+        return response()->json([
+            'alerta_sonora' => (bool) ($vendor?->alerta_sonora_pedidos ?? true),
+            'ultimo' => $ultimo === null ? null : [
+                'id' => $ultimo->id,
+                'numero' => $ultimo->numero_pedido,
+                'total' => (float) $ultimo->total,
+                'url' => route('vendedor.pedidos.show', $ultimo),
+                'comanda' => route('vendedor.pedidos.comanda', $ultimo),
+            ],
+        ]);
+    }
+
+    /**
+     * Comanda imprimible del pedido (ticket de preparacion).
+     */
+    public function comanda(Pedido $pedido): View
+    {
+        $this->authorize('viewVendorOrder', $pedido);
+
+        return view('vendedor.pedidos.comanda', ['pedido' => $pedido->load(['items', 'direccion'])]);
+    }
+
+    /**
      * Actualiza estado operativo del pedido.
      */
     public function updateEstado(UpdatePedidoEstadoRequest $request, Pedido $pedido): RedirectResponse
     {
         $this->authorize('updateVendorStatus', $pedido);
-        $this->pedidoVendedorService->updateEstado($pedido, $request->validated(), $request->user());
+        try {
+            $pedido = $this->pedidoVendedorService->updateEstado($pedido, $request->validated(), $request->user());
+        } catch (PagoRechazadoException $exception) {
+            report($exception);
 
-        return back()->with('success', 'Estado del pedido actualizado correctamente.');
+            return back()->with('error', 'No pudimos devolver el pago con tarjeta del cliente, así que el pedido no se canceló. Intenta de nuevo en unos minutos.');
+        }
+
+        return back()->with('success', $pedido->estadoValor() === 'cancelado'
+            ? 'Pedido cancelado. Los productos volvieron a tu inventario y avisamos al cliente.'
+            : 'Estado del pedido actualizado correctamente.');
     }
 }

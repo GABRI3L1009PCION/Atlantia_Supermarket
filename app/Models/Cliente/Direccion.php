@@ -51,6 +51,7 @@ class Direccion extends Model
         'mapbox_place_id',
         'es_principal',
         'activa',
+        'borrador',
     ];
 
     /**
@@ -69,6 +70,7 @@ class Direccion extends Model
             'longitude' => 'decimal:8',
             'es_principal' => 'boolean',
             'activa' => 'boolean',
+            'borrador' => 'boolean',
             'deleted_at' => 'datetime',
         ];
     }

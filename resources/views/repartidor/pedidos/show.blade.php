@@ -42,7 +42,7 @@
     @endphp
 
     @if ($enRuta)
-        <section class="-mx-4 -my-6 min-h-screen bg-[#fbf7f9] pb-6 text-atlantia-ink md:hidden">
+        <section class="-mx-4 -my-6 min-h-screen bg-[#fbf7f7] pb-6 text-atlantia-ink md:hidden">
             <header class="bg-atlantia-wine px-5 pb-5 pt-5 text-white">
                 <div class="flex min-h-12 items-center justify-between gap-3">
                     <a href="{{ route('repartidor.dashboard') }}" class="grid h-11 w-11 place-items-center rounded-full text-white active:scale-95" aria-label="Volver">
@@ -61,8 +61,8 @@
                 <div class="absolute left-0 top-4 h-36 w-24 rotate-12 rounded-full bg-emerald-100/85"></div>
                 <div class="absolute right-3 top-16 h-20 w-28 rotate-12 rounded-full bg-emerald-100/85"></div>
                 <svg class="absolute inset-0 h-full w-full" viewBox="0 0 390 340" fill="none" aria-hidden="true" preserveAspectRatio="none">
-                    <path d="M74 166 L132 205 L170 130 L236 170 L280 67" stroke="#8b0832" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="280" cy="67" r="9" fill="#8b0832"/>
+                    <path d="M74 166 L132 205 L170 130 L236 170 L280 67" stroke="#7f0b18" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="280" cy="67" r="9" fill="#7f0b18"/>
                 </svg>
                 <span class="absolute left-[20%] top-[37%] grid h-14 w-14 place-items-center rounded-full bg-atlantia-wine text-white shadow-lg">
                     <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -218,7 +218,7 @@
             <div class="absolute left-8 top-24 h-16 w-24 rotate-12 rounded-full bg-emerald-100/85"></div>
             <div class="absolute right-6 top-8 h-20 w-24 rotate-12 rounded-full bg-emerald-100/85"></div>
             <svg class="absolute inset-0 h-full w-full" viewBox="0 0 390 360" fill="none" aria-hidden="true" preserveAspectRatio="none">
-                <path d="M94 118 L170 198 L228 158 L304 119 L336 148" stroke="#8b0832" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M94 118 L170 198 L228 158 L304 119 L336 148" stroke="#7f0b18" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             <span class="absolute left-[22%] top-[29%] grid h-14 w-14 place-items-center rounded-full bg-atlantia-wine text-white shadow-lg">
                 <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true">

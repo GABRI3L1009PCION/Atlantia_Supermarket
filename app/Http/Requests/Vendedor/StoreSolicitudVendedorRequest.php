@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Vendedor;
 
+use App\Services\Monetizacion\PlanesVendedorService;
+use App\Support\CategoriasNegocio;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -33,11 +35,12 @@ class StoreSolicitudVendedorRequest extends FormRequest
             'phone' => ['required', 'string', 'regex:/^\+502\s?\d{4}\s?\d{4}$/'],
             'birthdate' => ['required', 'date', 'before_or_equal:'.$adultLimit, 'after_or_equal:'.$oldestLimit],
             'gender' => ['nullable', Rule::in(['masculino', 'femenino', 'prefiero_no_decir'])],
-            'address_street' => ['required', 'string', 'max:160'],
-            'address_number' => ['required', 'string', 'max:40'],
+            'address_street' => ['required', 'string', 'min:5', 'max:160'],
+            'address_colonia' => ['required', 'string', 'min:3', 'max:120'],
+            'address_number' => ['nullable', 'string', 'max:40'],
             'address_suite' => ['nullable', 'string', 'max:80'],
             'address_municipio' => ['required', Rule::in($this->municipios())],
-            'address_departamento' => ['required', Rule::in($this->departamentos())],
+            'address_departamento' => ['nullable', Rule::in($this->departamentos())],
             'address_zip' => ['nullable', 'string', 'max:12'],
 
             'document_type' => ['required', Rule::in(['dpi', 'nit', 'pasaporte'])],
@@ -51,7 +54,7 @@ class StoreSolicitudVendedorRequest extends FormRequest
             'business_category_other' => ['nullable', 'required_if:business_category,otro', 'string', 'max:120'],
             'business_logo' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
             'has_nit' => ['required', 'boolean'],
-            'seller_plan' => ['required', Rule::in(['starter', 'plus', 'crecimiento', 'profesional'])],
+            'seller_plan' => ['required', Rule::in(array_keys(PlanesVendedorService::contratables()))],
 
             'nit_number' => ['nullable', 'required_if:has_nit,1', 'string', 'max:30', 'unique:vendor_fiscal_profiles,nit'],
             'razon_social' => ['nullable', 'required_if:has_nit,1', 'string', 'min:5', 'max:220'],
@@ -67,7 +70,7 @@ class StoreSolicitudVendedorRequest extends FormRequest
             'account_holder' => ['required', 'string', 'min:5', 'max:180'],
             'bank_proof' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
 
-            'payment_frequency' => ['required', Rule::in(['semanal', 'quincenal', 'mensual'])],
+            'payment_frequency' => ['required', Rule::in(['instantanea', 'diaria', 'semanal', 'quincenal', 'mensual'])],
             'preferred_payment_method' => ['required', Rule::in(['transferencia', 'deposito'])],
 
             'terms' => ['accepted'],
@@ -89,6 +92,11 @@ class StoreSolicitudVendedorRequest extends FormRequest
             'nit_number.unique' => 'Este NIT ya esta registrado.',
             'birthdate.before_or_equal' => 'Debes tener al menos 18 anos para vender.',
             'birthdate.after_or_equal' => 'La fecha de nacimiento no puede superar 120 anos.',
+            'address_municipio.required' => 'Elige si vives en Puerto Barrios o Santo Tomás.',
+            'address_municipio.in' => 'Por ahora atendemos tiendas de Puerto Barrios y Santo Tomás.',
+            'address_colonia.required' => 'Escribe tu colonia o barrio.',
+            'address_street.required' => 'Escribe tu dirección y alguna referencia.',
+            'address_street.min' => 'Agrega un poco más de detalle a tu dirección.',
             'phone.regex' => 'Usa el formato de Guatemala: +502 XXXX XXXX.',
             '*.mimes' => 'Solo aceptamos JPG, PNG o PDF.',
             '*.max' => 'El archivo no debe superar 5MB.',
@@ -124,7 +132,8 @@ class StoreSolicitudVendedorRequest extends FormRequest
      */
     public function municipios(): array
     {
-        return ['Puerto Barrios', 'Santo Tomas', 'Morales', 'Los Amates', 'Livingston', 'El Estor'];
+        /* Municipios donde opera Atlantia (ATLANTIA_MARKETPLACE_MUNICIPIOS); crece con la cobertura. */
+        return array_values((array) config('atlantia.marketplace.municipios', ['Puerto Barrios', 'Santo Tomas']));
     }
 
     /**
@@ -167,7 +176,7 @@ class StoreSolicitudVendedorRequest extends FormRequest
      */
     public function businessCategories(): array
     {
-        return ['alimentos_frescos', 'panaderia_reposteria', 'bebidas_licores', 'artesania', 'ropa_accesorios', 'cosmeticos', 'electronica', 'servicios', 'otro'];
+        return [...CategoriasNegocio::claves(), 'otro'];
     }
 
     /**

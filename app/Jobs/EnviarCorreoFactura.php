@@ -40,7 +40,8 @@ class EnviarCorreoFactura implements ShouldQueue
         $recipientEmail = $dte->pedido?->facturacion_email ?: $cliente?->email;
         $recipientName = $dte->pedido?->facturacion_nombre ?: $cliente?->name;
 
-        if (! $recipientEmail) {
+        /* Los invitados sin correo tienen una direccion interna que no recibe mensajes. */
+        if (! $recipientEmail || str_ends_with((string) $recipientEmail, '@invitados.atlantia.local')) {
             return;
         }
 

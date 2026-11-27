@@ -86,6 +86,55 @@
                         </div>
                     </div>
 
+                    @php($planVigente = app(\App\Services\Monetizacion\PlanesVendedorService::class)->planActual($vendor))
+                    <form method="POST" action="{{ route('admin.vendedores.plan', $vendor) }}" class="rounded-xl border border-atlantia-rose/20 bg-white p-4" x-data="{ plan: '{{ $vendor->plan }}' }" data-admin-plan>
+                        @csrf
+                        <p class="text-sm font-bold text-atlantia-wine">Plan mensual</p>
+                        <p class="mt-1 text-xs text-atlantia-ink/60">
+                            Vigente: {{ config('monetizacion.planes.'.$planVigente.'.nombre') }}
+                            @if ($vendor->plan_hasta) · pagado hasta {{ $vendor->plan_hasta->format('d/m/Y') }} @endif
+                        </p>
+                        <select name="plan" x-model="plan" class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-2 py-2 text-sm">
+                            @foreach (config('monetizacion.planes') as $clave => $datosPlan)
+                                <option value="{{ $clave }}">{{ $datosPlan['nombre'] }} · {{ $datosPlan['precio'] === null ? 'cotización' : 'Q '.(fmod((float) $datosPlan['precio'], 1.0) == 0.0 ? number_format((float) $datosPlan['precio'], 0) : number_format((float) $datosPlan['precio'], 2)) }}</option>
+                            @endforeach
+                        </select>
+                        <div class="mt-2 grid grid-cols-3 gap-2" x-show="plan === 'personalizado'" x-cloak>
+                            <input name="precio" type="number" min="0" step="1" value="{{ $vendor->plan === 'personalizado' ? (int) $vendor->monthly_rent : '' }}" placeholder="Q/mes" aria-label="Precio mensual" class="rounded-md border border-atlantia-rose/30 px-2 py-2 text-sm">
+                            <input name="comision" type="number" min="0" max="50" step="0.5" value="{{ $vendor->plan === 'personalizado' ? (float) $vendor->commission_percentage : 0 }}" placeholder="% venta" aria-label="Comisión" class="rounded-md border border-atlantia-rose/30 px-2 py-2 text-sm">
+                            <input name="limite_productos" type="number" min="1" value="{{ $vendor->limite_productos }}" placeholder="Productos" aria-label="Límite de productos" class="rounded-md border border-atlantia-rose/30 px-2 py-2 text-sm">
+                        </div>
+                        <button type="submit" class="mt-3 w-full rounded-md bg-atlantia-wine px-4 py-2 text-sm font-semibold text-white hover:bg-atlantia-wine-700">Asignar y registrar pago del mes</button>
+                    </form>
+
+                    @php($estadoHorario = \App\Support\HorarioTienda::estado($vendor))
+                    <div class="rounded-xl border border-atlantia-rose/20 bg-white p-4" data-admin-pausa>
+                        <p class="text-sm font-bold text-atlantia-wine">Recepción de pedidos</p>
+                        <p class="mt-2 text-sm font-semibold text-atlantia-ink">
+                            {{ $estadoHorario['abierto'] ? 'Abierta' : ($estadoHorario['pausado'] ? 'En pausa' : 'Cerrada') }}
+                            · {{ \App\Support\HorarioTienda::legible($estadoHorario['apertura']) }} a {{ \App\Support\HorarioTienda::legible($estadoHorario['cierre']) }}
+                        </p>
+                        @if ($estadoHorario['mensaje'])
+                            <p class="mt-1 text-xs text-atlantia-ink/60">{{ $estadoHorario['mensaje'] }}</p>
+                        @endif
+                        @if ($estadoHorario['pausado'])
+                            <form method="POST" action="{{ route('admin.vendedores.reanudar', $vendor) }}" class="mt-3">
+                                @csrf
+                                <button type="submit" class="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Reanudar pedidos</button>
+                            </form>
+                        @else
+                            <form method="POST" action="{{ route('admin.vendedores.pausar', $vendor) }}" class="mt-3 flex gap-2">
+                                @csrf
+                                <select name="duracion" class="min-w-0 flex-1 rounded-md border border-atlantia-rose/30 px-2 py-2 text-sm">
+                                    @foreach (\App\Http\Controllers\Vendedor\OperacionTiendaController::PAUSAS as $valor => $etiqueta)
+                                        <option value="{{ $valor }}" @selected($loop->index === 1)>{{ $etiqueta }}</option>
+                                    @endforeach
+                                </select>
+                                <button type="submit" class="rounded-md bg-atlantia-wine px-4 py-2 text-sm font-semibold text-white hover:bg-atlantia-wine-700">Pausar</button>
+                            </form>
+                        @endif
+                    </div>
+
                     <form method="POST" action="{{ route('admin.vendedores.destroy', $vendor) }}" class="rounded-xl border border-red-200 bg-red-50 p-4">
                         @csrf
                         @method('DELETE')

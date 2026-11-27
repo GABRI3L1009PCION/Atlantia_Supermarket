@@ -1,33 +1,35 @@
+@extends('errors.plantilla')
+
 @php
-    $logoPath = file_exists(public_path('images/logo.png')) ? 'images/logo.png' : 'images/atlantia-logo.svg';
-    $retrySeconds = 10;
+    /* Espera real que indicó el límite (cabecera Retry-After), no un número fijo. */
+    $espera = (int) (($exception ?? null)?->getHeaders()['Retry-After'] ?? 10);
+    $espera = max(1, min($espera, 3600));
+
+    /*
+     * Al terminar: si se intentaba abrir una página (GET), se vuelve a abrir esa misma
+     * (por ejemplo el enlace del correo). Si no, la página anterior del sitio.
+     */
+    $anterior = url()->previous();
+    $volverA = request()->isMethod('GET')
+        ? request()->fullUrl()
+        : (str_starts_with($anterior, url('/')) && $anterior !== url()->current() ? $anterior : route('home'));
 @endphp
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Demasiadas solicitudes | Atlantia Supermarket</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="min-h-screen bg-atlantia-cream text-atlantia-ink">
-    <main class="mx-auto flex min-h-screen max-w-3xl items-center px-4 py-10">
-        <section class="w-full rounded-3xl border border-atlantia-rose/15 bg-white p-8 shadow-sm">
-            <img src="{{ asset($logoPath) }}" alt="Atlantia Supermarket" class="h-16 w-auto">
-            <p class="mt-6 text-sm font-black uppercase tracking-[0.2em] text-atlantia-rose">Error 429</p>
-            <h1 class="mt-3 text-4xl font-black text-atlantia-ink">Vas demasiado rapido.</h1>
-            <p class="mt-4 max-w-xl text-base leading-7 text-atlantia-ink/70">
-                Espera un momento antes de volver a intentar la accion.
-            </p>
-            <p class="mt-6 text-sm font-semibold text-atlantia-ink/70">
-                Puedes reintentar en <span
-                    class="font-black text-atlantia-wine"
-                    data-retry-countdown="{{ $retrySeconds }}"
-                    data-retry-key="atlantia-login-retry-until"
-                    data-retry-redirect="{{ route('login') }}"
-                >{{ $retrySeconds }} segundos</span>.
-            </p>
-        </section>
-    </main>
-</body>
-</html>
+
+@section('titulo-pagina', 'Espera un momento')
+@section('codigo', '429')
+@section('titulo', 'Hiciste muchos intentos seguidos.')
+@section('mensaje', 'Por seguridad hay que esperar un momento antes de volver a intentarlo. No perdiste nada: cuando termine el tiempo, la página se vuelve a abrir sola.')
+
+@section('acciones')
+    <div class="rounded-2xl border border-[#e8e2df] bg-white p-5">
+        <p class="text-sm text-[#5b5052]">Podrás continuar en</p>
+        <p class="mt-1 text-3xl font-bold text-[#4d0006]">
+            <span
+                data-retry-countdown="{{ $espera }}"
+                data-retry-key="atlantia-retry-{{ md5($volverA) }}"
+                data-retry-redirect="{{ $volverA }}"
+            >{{ $espera }} segundos</span>
+        </p>
+    </div>
+    <a href="{{ $volverA }}" class="mt-4 inline-flex rounded-xl border border-[#d8d1ce] bg-white px-5 py-3 text-sm font-bold text-[#4d0006] hover:bg-[#4d0006]/[0.05]">Intentar de nuevo</a>
+@endsection

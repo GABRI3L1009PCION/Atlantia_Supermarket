@@ -21,18 +21,18 @@ class DireccionService
      */
     public function forUser(User $user): Collection
     {
-        return Direccion::query()->where('user_id', $user->id)->latest('es_principal')->latest()->get();
+        return Direccion::query()->where('user_id', $user->id)->where('borrador', false)->latest('es_principal')->latest()->get();
     }
 
     /**
      * Crea direccion del cliente.
      */
-    public function create(User $user, DireccionDTO $direccionDTO): Direccion
+    public function create(User $user, DireccionDTO $direccionDTO, bool $borrador = false): Direccion
     {
-        return DB::transaction(function () use ($user, $direccionDTO): Direccion {
+        return DB::transaction(function () use ($user, $direccionDTO, $borrador): Direccion {
             $data = $direccionDTO->toArray();
-            $debeSerPrincipal = $direccionDTO->esPrincipal
-                || ! Direccion::query()->where('user_id', $user->id)->exists();
+            $debeSerPrincipal = ! $borrador && ($direccionDTO->esPrincipal
+                || ! Direccion::query()->where('user_id', $user->id)->where('borrador', false)->exists());
 
             if ($debeSerPrincipal) {
                 Direccion::query()->where('user_id', $user->id)->update(['es_principal' => false]);
@@ -44,6 +44,7 @@ class DireccionService
                 'user_id' => $user->id,
                 'es_principal' => $debeSerPrincipal,
                 'activa' => true,
+                'borrador' => $borrador,
             ]);
         });
     }

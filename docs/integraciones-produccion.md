@@ -1,6 +1,6 @@
 # Integraciones externas de produccion
 
-El codigo ya contiene los adaptadores, variables y validaciones para INFILE, SMTP, S3, Firebase/FCM, mapas, soporte y terminales POS. Este documento indica que datos reales debe entregar cada proveedor antes del lanzamiento.
+El codigo ya contiene los adaptadores, variables y validaciones para INFILE, SMTP, S3, Firebase/FCM, mapas, soporte, pagos con tarjeta en linea (Recurrente) y terminales POS. Este documento indica que datos reales debe entregar cada proveedor antes del lanzamiento.
 
 ## Archivo unico de integraciones
 
@@ -65,6 +65,27 @@ No reutilices una llave sin restricciones entre backend, web y Android.
 ## Soporte
 
 Ingresa correo, telefono normal, telefono de emergencia y WhatsApp empresariales. Los canales de `ATLANTIA_SUPPORT_CHANNELS` deben corresponder a personal y horarios reales. Define responsables de guardia y confirma los SLA con el equipo antes de mantener los valores de la plantilla.
+
+## Pagos con tarjeta: Recurrente
+
+Con `ATLANTIA_CARD_PAYMENT_MODE=recurrente`, la opcion "tarjeta" del checkout crea un checkout alojado en Recurrente y redirige al cliente a su pagina de pago. Atlantia no recibe ni guarda datos de tarjeta. Con `ATLANTIA_CARD_PAYMENT_MODE=pos` se mantiene el cobro con terminal al entregar (seccion siguiente). Solo un modo esta activo a la vez.
+
+Flujo:
+
+1. El checkout reserva stock, crea el pedido en estado `pendiente` y el pago en `pendiente`, y llama `POST /api/checkouts` con el total en centavos (GTQ) y `metadata.payment_uuid`.
+2. El cliente paga en Recurrente. El webhook `intent.succeeded` acredita el pago, confirma el pedido y emite las facturas. Al volver por `success_url` tambien se consulta `GET /api/checkouts/{id}` desde el servidor; el navegador nunca acredita el pago.
+3. Un `intent.failed` o `intent.canceled` solo registra el intento: el cliente puede reintentar en el mismo checkout desde el boton "Pagar ahora" del pedido.
+4. El comando programado `pagos:recurrente-reconciliar` (cada 5 minutos) acredita pagos cuyo webhook no llego y cancela, con liberacion de stock, los checkouts vencidos (`RECURRENTE_CHECKOUT_EXPIRES_MINUTES` + 10 minutos de gracia).
+5. Los reembolsos administrativos llaman `POST /api/refunds` con el `intent_id` (`in_...`). Un monto parcial solo lo admiten algunos procesadores; si Recurrente lo rechaza, el pago queda sin cambios.
+
+Configuracion:
+
+- `RECURRENTE_SECRET_KEY`: llave `sk_live_` (produccion) o `sk_test_` de un Sandbox (staging). Configuracion > Llaves API.
+- `RECURRENTE_WEBHOOK_SECRET`: `signingSecret` (`whsec_...`) del endpoint `https://DOMINIO/webhooks/recurrente`. Registrar el endpoint con los eventos `intent.succeeded`, `intent.failed` e `intent.canceled`.
+- `RECURRENTE_CHECKOUT_DOMAINS`: dominios del checkout para la CSP `form-action`. Agregar el dominio propio si la cuenta usa uno.
+- La firma del webhook se verifica con el esquema Svix (`svix-id`, `svix-timestamp`, `svix-signature`), tolerancia de 5 minutos y deduplicacion por `svix-id`.
+
+Pendiente de aceptacion: un cobro y un reembolso reales en Sandbox con las tarjetas de prueba de Recurrente, y verificar que la cuenta este verificada (sin verificar, Recurrente limita los cobros acumulados a Q500). Un cobro que llegue despues de cancelar el pedido por vencimiento se registra con `revision_manual` y debe reembolsarse desde el panel de Recurrente.
 
 ## Terminales POS
 

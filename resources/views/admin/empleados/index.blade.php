@@ -3,114 +3,135 @@
 @section('content')
     @php
         $permisosDisponibles = ['contacto', 'transferencias', 'moderacion', 'reportes', 'soporte'];
-        $departamentos = [
-            'administracion' => 'Administracion',
-            'operaciones' => 'Operaciones',
-            'soporte_cliente' => 'Atencion al cliente',
-            'finanzas' => 'Finanzas',
-            'logistica' => 'Logistica',
-            'moderacion' => 'Moderacion',
-        ];
+        $departamentos = \App\Models\Empleado::DEPARTAMENTOS;
+        $roles = \App\Models\Empleado::ROLES;
         $selectedPermisos = collect(old('permisos_operativos', []));
         $showCreateModal = $errors->any();
+        $estadoActual = request('estado');
+        $estados = [
+            'active' => ['Activo', 'bg-emerald-50 text-emerald-700'],
+            'inactive' => ['Inactivo', 'bg-slate-100 text-slate-600'],
+            'suspended' => ['Suspendido', 'bg-amber-50 text-amber-800'],
+        ];
+        $filtros = ['' => 'Todos', 'active' => 'Activos', 'inactive' => 'Inactivos', 'suspended' => 'Suspendidos'];
     @endphp
 
-    <section class="mx-auto max-w-full py-2">
-        <div class="rounded-2xl border border-atlantia-rose/20 bg-white p-6 shadow-sm">
-            <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                <x-page-header title="Empleados" subtitle="Administra al equipo interno que opera Atlantia." />
-
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <div class="rounded-xl border border-atlantia-rose/25 bg-atlantia-cream px-4 py-3">
-                        <p class="text-sm font-black text-atlantia-wine">{{ $empleados->total() }} empleados registrados</p>
-                        <p class="text-xs text-atlantia-ink/60">Equipo operativo y administrativo.</p>
-                    </div>
-                    <button
-                        type="button"
-                        class="rounded-lg bg-atlantia-wine px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-atlantia-wine-700"
-                        data-open-create-modal
-                    >
-                        Crear nuevo empleado
-                    </button>
-                </div>
+    <section class="mx-auto max-w-7xl space-y-4 pb-10">
+        {{-- Encabezado --}}
+        <header class="flex flex-wrap items-end justify-between gap-3">
+            <div>
+                <h1 class="text-3xl font-black tracking-tight text-atlantia-ink">Empleados</h1>
+                <p class="mt-1 text-sm text-atlantia-ink/60">El equipo interno que opera Atlantia Store: bodega, atención, finanzas y logística.</p>
             </div>
+            <button type="button" class="inline-flex items-center gap-2 rounded-xl bg-atlantia-wine px-4 py-2.5 text-sm font-black text-white transition hover:bg-atlantia-wine-700" data-open-create-modal>
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+                Nuevo empleado
+            </button>
+        </header>
 
-            <div class="mt-7 rounded-xl border border-atlantia-rose/20 bg-white p-5">
-                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <h2 class="text-xl font-black text-atlantia-wine">Equipo interno</h2>
-                        <p class="mt-1 text-sm text-atlantia-ink/65">Busca, revisa y gestiona colaboradores desde un listado mas limpio.</p>
-                    </div>
-                    <form method="GET" class="flex flex-col gap-2 sm:flex-row">
-                        <input
-                            type="search"
-                            name="q"
-                            value="{{ request('q') }}"
-                            placeholder="Buscar por nombre, correo o codigo"
-                            class="w-full rounded-md border border-atlantia-rose/35 px-3 py-2 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20 sm:w-80"
-                        >
-                        <x-ui.button type="submit" variant="secondary">Buscar</x-ui.button>
-                    </form>
+        {{-- Resumen --}}
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            @foreach ([
+                ['Empleados', number_format($resumen['total']), 'registrados'],
+                ['Activos', number_format($resumen['activos']), 'trabajando ahora'],
+                ['Inactivos o suspendidos', number_format($resumen['inactivos']), 'sin acceso al panel'],
+                ['Nómina mensual', 'Q '.number_format($resumen['nomina'], 2), 'salario base de activos'],
+            ] as [$etiqueta, $valor, $nota])
+                <article class="rounded-2xl border border-atlantia-rose/15 bg-white px-4 py-3 shadow-[0_8px_20px_rgba(59,6,12,0.04)]">
+                    <p class="text-[11px] font-black uppercase tracking-wide text-atlantia-ink/50">{{ $etiqueta }}</p>
+                    <p class="mt-0.5 text-2xl font-black text-atlantia-ink">{{ $valor }}</p>
+                    <p class="text-xs text-atlantia-ink/50">{{ $nota }}</p>
+                </article>
+            @endforeach
+        </div>
+
+        <div class="overflow-hidden rounded-2xl border border-atlantia-rose/15 bg-white">
+            {{-- Filtros y búsqueda --}}
+            <form method="GET" class="flex flex-col gap-3 border-b border-atlantia-rose/10 p-3 lg:flex-row lg:items-center">
+                <div class="flex gap-1.5 overflow-x-auto">
+                    @foreach ($filtros as $valor => $texto)
+                        <a href="{{ route('admin.empleados.index', array_filter(['estado' => $valor, 'q' => request('q')])) }}"
+                           @class(['shrink-0 rounded-lg border px-3 py-2 text-sm font-black transition', 'border-atlantia-wine bg-atlantia-wine text-white' => (string) $estadoActual === (string) $valor, 'border-atlantia-rose/25 bg-white text-atlantia-wine hover:bg-atlantia-blush' => (string) $estadoActual !== (string) $valor])>{{ $texto }}</a>
+                    @endforeach
                 </div>
+                @if ($estadoActual)
+                    <input type="hidden" name="estado" value="{{ $estadoActual }}">
+                @endif
+                <div class="relative flex-1">
+                    <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-atlantia-ink/40">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM20.5 20.5l-3.8-3.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </span>
+                    <input type="search" name="q" value="{{ request('q') }}" placeholder="Buscar por nombre, correo, código o puesto" class="h-10 w-full rounded-lg border border-atlantia-rose/30 pl-9 pr-3 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
+                </div>
+                <button type="submit" class="h-10 shrink-0 rounded-lg border border-atlantia-rose/30 px-4 text-sm font-black text-atlantia-wine hover:bg-atlantia-blush">Buscar</button>
+            </form>
 
-                <div class="mt-5 overflow-x-auto">
-                    <table class="min-w-full text-sm">
-                        <thead>
-                            <tr class="border-b border-atlantia-rose/20 text-left text-xs uppercase tracking-wide text-atlantia-ink/55">
-                                <th class="pb-3">Empleado</th>
-                                <th class="pb-3">Departamento</th>
-                                <th class="pb-3">Puesto</th>
-                                <th class="pb-3">Estado</th>
-                                <th class="pb-3 text-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-atlantia-rose/15">
-                            @forelse ($empleados as $empleado)
-                                <tr class="transition hover:bg-atlantia-blush/40">
-                                    <td class="py-4 pr-4">
-                                        <div class="flex items-center gap-3">
-                                            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-atlantia-blush text-sm font-black text-atlantia-wine">
-                                                {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($empleado->user?->name ?? 'E', 0, 1)) }}
-                                            </div>
-                                            <div>
-                                                <p class="font-black text-atlantia-ink">{{ $empleado->user?->name }}</p>
-                                                <p class="text-xs text-atlantia-ink/55">{{ $empleado->codigo_empleado }} - {{ $empleado->user?->email }}</p>
-                                            </div>
+            {{-- Lista --}}
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[760px] text-sm">
+                    <thead>
+                        <tr class="border-b border-atlantia-rose/10 bg-atlantia-cream/50 text-left text-[11px] font-black uppercase tracking-wide text-atlantia-ink/50">
+                            <th class="px-4 py-2.5">Empleado</th>
+                            <th class="px-4 py-2.5">Rol</th>
+                            <th class="px-4 py-2.5">Departamento y puesto</th>
+                            <th class="px-4 py-2.5">Desde</th>
+                            <th class="px-4 py-2.5">Estado</th>
+                            <th class="px-4 py-2.5"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-atlantia-rose/10">
+                        @forelse ($empleados as $empleado)
+                            @php
+                                $nombre = $empleado->user?->name ?? 'Sin usuario';
+                                $iniciales = collect(explode(' ', $nombre))->filter()->take(2)->map(fn ($p) => mb_strtoupper(mb_substr($p, 0, 1)))->join('') ?: 'E';
+                                $rolClave = $empleado->user?->roles->pluck('name')->first(fn ($r) => array_key_exists($r, $roles));
+                                $otrosRoles = $empleado->user?->roles->pluck('name')->reject(fn ($r) => array_key_exists($r, $roles))->values() ?? collect();
+                                [$estadoTexto, $estadoClase] = $estados[$empleado->status] ?? [ucfirst((string) $empleado->status), 'bg-slate-100 text-slate-600'];
+                            @endphp
+                            <tr class="transition hover:bg-atlantia-cream/60">
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center gap-3">
+                                        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-atlantia-blush text-sm font-black text-atlantia-wine">{{ $iniciales }}</span>
+                                        <div class="min-w-0">
+                                            <p class="truncate font-black text-atlantia-ink">{{ $nombre }}</p>
+                                            <p class="truncate text-xs text-atlantia-ink/55">{{ $empleado->codigo_empleado }} · {{ $empleado->user?->email }}</p>
                                         </div>
-                                    </td>
-                                    <td class="py-4 pr-4 text-atlantia-ink/70">{{ $empleado->departamento }}</td>
-                                    <td class="py-4 pr-4 text-atlantia-ink/70">{{ $empleado->puesto }}</td>
-                                    <td class="py-4 pr-4">
-                                        <span @class([
-                                            'rounded-md px-3 py-1 text-xs font-black',
-                                            'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' => $empleado->status === 'active',
-                                            'bg-slate-100 text-slate-600 ring-1 ring-slate-200' => $empleado->status === 'inactive',
-                                            'bg-amber-50 text-amber-700 ring-1 ring-amber-200' => $empleado->status === 'suspended',
-                                        ])>
-                                            {{ $empleado->status }}
-                                        </span>
-                                    </td>
-                                    <td class="py-4 text-right">
-                                        <a href="{{ route('admin.empleados.show', $empleado->uuid) }}" class="rounded-md border border-atlantia-rose/30 px-3 py-2 text-xs font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                                            Gestionar
-                                        </a>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="5" class="py-10 text-center">
-                                        <p class="text-base font-black text-atlantia-ink">No hay empleados registrados.</p>
-                                        <p class="mt-1 text-sm text-atlantia-ink/60">Crea el primer empleado desde el boton superior.</p>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="mt-4">{{ $empleados->links() }}</div>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    @if ($rolClave)
+                                        <span class="rounded-full bg-atlantia-blush px-2.5 py-1 text-xs font-black text-atlantia-wine">{{ $roles[$rolClave] }}</span>
+                                    @else
+                                        <span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-800" title="Esta cuenta no tiene un rol de empleado, así que no puede entrar al panel de empleados.">Sin rol de empleado</span>
+                                    @endif
+                                    @if ($otrosRoles->isNotEmpty())
+                                        <p class="mt-1 text-[11px] text-atlantia-ink/50">También: {{ $otrosRoles->join(', ') }}</p>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3">
+                                    <p class="font-semibold text-atlantia-ink">{{ $departamentos[$empleado->departamento] ?? ucfirst(str_replace('_', ' ', (string) $empleado->departamento)) }}</p>
+                                    <p class="text-xs text-atlantia-ink/55">{{ $empleado->puesto }}</p>
+                                </td>
+                                <td class="px-4 py-3 text-xs text-atlantia-ink/65">{{ optional($empleado->fecha_contratacion)->translatedFormat('j M Y') ?? '—' }}</td>
+                                <td class="px-4 py-3"><span class="rounded-full px-2.5 py-1 text-xs font-black {{ $estadoClase }}">{{ $estadoTexto }}</span></td>
+                                <td class="px-4 py-3 text-right">
+                                    <a href="{{ route('admin.empleados.show', $empleado->uuid) }}" class="rounded-lg border border-atlantia-rose/30 px-3 py-1.5 text-xs font-black text-atlantia-wine transition hover:bg-atlantia-blush">Gestionar</a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="px-4 py-12 text-center">
+                                    <p class="font-black text-atlantia-ink">{{ request('q') || $estadoActual ? 'No hay empleados con ese filtro.' : 'Todavía no tienes empleados.' }}</p>
+                                    <p class="mt-1 text-sm text-atlantia-ink/55">Cuando contrates a alguien, regístralo con "Nuevo empleado" y elige su rol.</p>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
+
+        <div>{{ $empleados->withQueryString()->links() }}</div>
     </section>
 
     <div
@@ -123,9 +144,8 @@
         <div class="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-atlantia-rose/25 bg-white shadow-2xl">
             <div class="flex items-start justify-between gap-4 border-b border-atlantia-rose/15 px-6 py-5">
                 <div>
-                    <p class="text-xs font-black uppercase tracking-[0.18em] text-atlantia-rose">Atlantia Supermarket</p>
                     <h2 id="employee-create-title" class="mt-1 text-2xl font-black text-atlantia-ink">Crear nuevo empleado</h2>
-                    <p class="mt-1 text-sm text-atlantia-ink/60">Registra datos, puesto y permisos operativos del colaborador.</p>
+                    <p class="mt-1 text-sm text-atlantia-ink/60">Registra sus datos, su rol y lo que puede hacer en el sistema.</p>
                 </div>
                 <button type="button" class="rounded-md border border-atlantia-rose/30 px-3 py-2 text-sm font-black text-atlantia-wine hover:bg-atlantia-blush" data-close-create-modal>
                     Cerrar
@@ -148,27 +168,27 @@
                         @error('name') <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div class="md:col-span-2">
-                        <label class="text-sm font-semibold text-atlantia-ink">Correo electronico</label>
+                        <label class="text-sm font-semibold text-atlantia-ink">Correo electrónico</label>
                         <input name="email" type="email" value="{{ old('email') }}" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2 outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20" required>
                         @error('email') <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="text-sm font-semibold text-atlantia-ink">Telefono</label>
+                        <label class="text-sm font-semibold text-atlantia-ink">Teléfono</label>
                         <input name="phone" type="text" value="{{ old('phone') }}" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2 outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
                         @error('phone') <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="text-sm font-semibold text-atlantia-ink">Telefono interno</label>
+                        <label class="text-sm font-semibold text-atlantia-ink">Teléfono interno</label>
                         <input name="telefono_interno" type="text" value="{{ old('telefono_interno') }}" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2 outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
                         @error('telefono_interno') <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="text-sm font-semibold text-atlantia-ink">Codigo</label>
+                        <label class="text-sm font-semibold text-atlantia-ink">Código</label>
                         <input name="codigo_empleado" type="text" value="{{ old('codigo_empleado') }}" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2 outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20" required>
                         @error('codigo_empleado') <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="text-sm font-semibold text-atlantia-ink">Fecha de contratacion</label>
+                        <label class="text-sm font-semibold text-atlantia-ink">Fecha de contratación</label>
                         <input name="fecha_contratacion" type="date" value="{{ old('fecha_contratacion') }}" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2 outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20" required>
                         @error('fecha_contratacion') <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
                     </div>
@@ -180,6 +200,16 @@
                             @endforeach
                         </select>
                         @error('departamento') <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-atlantia-ink">Rol en el sistema</label>
+                        <select name="rol" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2 outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20" required>
+                            @foreach ($roles as $value => $label)
+                                <option value="{{ $value }}" @selected(old('rol', 'empleado') === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-xs text-atlantia-ink/55">Define qué ve al entrar al panel de empleados.</p>
+                        @error('rol') <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label class="text-sm font-semibold text-atlantia-ink">Estado</label>
@@ -201,7 +231,7 @@
                             <span class="grid w-12 place-items-center bg-atlantia-blush text-sm font-black text-atlantia-wine">Q</span>
                             <input name="salario_base" type="number" step="0.01" min="0" value="{{ old('salario_base', 0) }}" class="w-full border-0 px-3 py-2 outline-none" required>
                         </div>
-                        <p class="mt-1 text-xs text-atlantia-ink/55">La nomina solo incluye empleados activos con salario mayor que cero.</p>
+                        <p class="mt-1 text-xs text-atlantia-ink/55">La nómina solo incluye empleados activos con salario mayor que cero.</p>
                         @error('salario_base') <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div class="md:col-span-2">
@@ -217,12 +247,12 @@
                         @error('supervisor_id') <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="text-sm font-semibold text-atlantia-ink">Contrasena</label>
+                        <label class="text-sm font-semibold text-atlantia-ink">Contraseña</label>
                         <input name="password" type="password" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2 outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20" required>
                         @error('password') <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="text-sm font-semibold text-atlantia-ink">Confirmar contrasena</label>
+                        <label class="text-sm font-semibold text-atlantia-ink">Confirmar contraseña</label>
                         <input name="password_confirmation" type="password" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2 outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20" required>
                     </div>
                 </div>

@@ -20,7 +20,13 @@ class RepartidorService
     public function paginate(array $filters = []): LengthAwarePaginator
     {
         return User::role('repartidor')
-            ->with(['roles'])
+            ->with(['roles', 'courierProfile', 'courierWallet'])
+            ->when(in_array($filters['estado'] ?? null, ['active', 'inactive', 'suspended'], true), fn ($query) => $query->where('status', $filters['estado']))
+            ->when($filters['q'] ?? null, function ($query, string $search): void {
+                $query->where(fn ($q) => $q->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('email', 'like', '%'.$search.'%')
+                    ->orWhere('phone', 'like', '%'.$search.'%'));
+            })
             ->latest()
             ->paginate(25)
             ->withQueryString();

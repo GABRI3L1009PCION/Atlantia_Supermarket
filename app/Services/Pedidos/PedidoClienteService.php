@@ -115,7 +115,7 @@ class PedidoClienteService
             'direccion',
             'cliente',
             'items.producto.vendor',
-            'pedidosHijos.vendor',
+            'pedidosHijos.vendor.fiscalProfile',
             'pedidosHijos.items.producto',
             'pedidosHijos.dteFacturas',
             'payments',

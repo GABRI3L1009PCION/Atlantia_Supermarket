@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Vendedor;
 
+use App\Http\Requests\Concerns\AplicaIvaAPrecios;
+use App\Support\Monto;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -11,6 +13,8 @@ use Illuminate\Validation\Rule;
  */
 class StoreProductoRequest extends FormRequest
 {
+    use AplicaIvaAPrecios;
+
     /**
      * Determina si el vendedor puede crear productos.
      */
@@ -138,6 +142,8 @@ class StoreProductoRequest extends FormRequest
             'stock_minimo' => $this->input('stock_minimo', 5),
             'stock_maximo' => $this->blankToNull($this->input('stock_maximo')),
         ]);
+
+        $this->aplicarIvaAPrecios();
     }
 
     /**
@@ -145,7 +151,8 @@ class StoreProductoRequest extends FormRequest
      */
     private function normalizarDecimal(mixed $value): ?string
     {
-        return $value === null ? null : str_replace(',', '.', trim((string) $value));
+        /* Acepta "Q 149", "149,50" o "1,250.50". */
+        return Monto::normalizar($value);
     }
 
     /**

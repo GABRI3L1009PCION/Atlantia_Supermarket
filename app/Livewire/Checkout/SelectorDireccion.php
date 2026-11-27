@@ -6,6 +6,7 @@ use App\DTOs\DireccionDTO;
 use App\Models\Cliente\Direccion;
 use App\Services\Clientes\DireccionService;
 use App\Services\Geolocalizacion\DeliveryCoverageService;
+use App\Support\Municipios;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -146,7 +147,8 @@ class SelectorDireccion extends Component
             esPrincipal: false,
         );
 
-        $direccion = app(DireccionService::class)->create(auth()->user(), $dto);
+        /* Solo se guarda en la cuenta si la compra se completa. */
+        $direccion = app(DireccionService::class)->create(auth()->user(), $dto, borrador: true);
 
         $this->cerrarFormulario();
         $this->seleccionarDireccion($direccion->id);
@@ -163,7 +165,7 @@ class SelectorDireccion extends Component
         return view('livewire.checkout.selector-direccion', [
             'direcciones' => $direcciones,
             'coverageStates' => $coverageStates,
-            'municipios' => ['Puerto Barrios', 'Santo Tomas', 'Morales', 'Los Amates', 'Livingston', 'El Estor'],
+            'municipios' => Municipios::operativos(),
         ]);
     }
 
@@ -172,6 +174,7 @@ class SelectorDireccion extends Component
         return Direccion::query()
             ->where('user_id', auth()->id())
             ->active()
+            ->where(fn ($query) => $query->where('borrador', false)->when($this->direccionId, fn ($q) => $q->orWhere('id', $this->direccionId)))
             ->orderByDesc('es_principal')
             ->orderBy('alias')
             ->get();

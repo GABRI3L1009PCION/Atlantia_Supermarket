@@ -43,7 +43,7 @@
         $incomingExternal = $incomingOffer?->externalOrder;
         $incomingMeta = (array) ($incomingOffer?->metadata ?? []);
         $incomingTitle = $incomingInternal?->vendor?->business_name ?? $incomingExternal?->store_name ?? $incomingMeta['business_name'] ?? 'Atlantia Supermarket';
-        $incomingCategory = $incomingInternal?->vendor?->business_category
+        $incomingCategory = $incomingInternal?->vendor?->categoriasEtiquetas()[0]
             ?? ($incomingOffer?->source_type === 'external' ? 'Tienda online' : ($incomingOffer?->source_type === 'entrepreneurs' ? 'Emprendedor local' : 'Pedido interno'));
         $incomingPickup = $incomingMeta['pickup_address']
             ?? $incomingExternal?->pickup_address
@@ -68,8 +68,8 @@
         $incomingLogo = strtoupper(substr(trim((string) $incomingTitle), 0, 1)) ?: 'A';
     @endphp
 
-    <section class="-mx-4 -my-6 min-h-screen bg-[#8b0832] pb-24 text-atlantia-ink md:hidden">
-        <div class="mx-auto min-h-screen max-w-md overflow-hidden bg-[#8b0832]">
+    <section class="-mx-4 -my-6 min-h-screen bg-[#7f0b18] pb-24 text-atlantia-ink md:hidden">
+        <div class="mx-auto min-h-screen max-w-md overflow-hidden bg-[#7f0b18]">
             <div class="px-5 pb-5 pt-4 text-white">
                 <div class="flex items-center justify-between gap-3">
                     <div class="flex min-w-0 items-center gap-3">
@@ -85,7 +85,7 @@
                         <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <path d="M15 18.5a3 3 0 0 1-6 0M18.5 9.8V13l1.6 3.4H3.9L5.5 13V9.8a6.5 6.5 0 0 1 13 0Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        <span class="absolute right-2.5 top-2.5 h-3 w-3 rounded-full border-2 border-[#8b0832] bg-red-500"></span>
+                        <span class="absolute right-2.5 top-2.5 h-3 w-3 rounded-full border-2 border-[#7f0b18] bg-red-500"></span>
                     </a>
                 </div>
 
@@ -219,7 +219,7 @@
                         <div
                             data-offer-ring
                             class="grid h-[4.65rem] w-[4.65rem] shrink-0 place-items-center rounded-full p-1"
-                            style="background: conic-gradient(#8b0832 {{ $incomingRingPercent }}%, rgba(139, 8, 50, .16) 0);"
+                            style="background: conic-gradient(#7f0b18 {{ $incomingRingPercent }}%, rgba(139, 8, 50, .16) 0);"
                         >
                             <div class="grid h-full w-full place-items-center rounded-full bg-white text-center text-atlantia-wine">
                                 <div class="leading-none">

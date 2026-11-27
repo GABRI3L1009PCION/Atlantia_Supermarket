@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sin conexión · Atlantia Store</title>
+    <meta name="theme-color" content="#4a071c">
+    <style>
+        body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: system-ui, sans-serif; background: #fdf8fa; color: #2a1018; text-align: center; }
+        main { padding: 24px; max-width: 360px; }
+        img { width: 88px; height: 88px; border-radius: 22px; }
+        h1 { font-size: 22px; margin: 18px 0 6px; }
+        p { color: #6d5560; line-height: 1.5; }
+        button { margin-top: 16px; border: 0; border-radius: 12px; padding: 12px 22px; background: #7a1238; color: #fff; font-weight: 800; font-size: 15px; }
+    </style>
+</head>
+<body>
+    <main>
+        <img src="/icon-192.png" alt="">
+        <h1>Sin conexión a internet</h1>
+        <p>Revisa tu señal o tu Wi-Fi. Tu carrito sigue guardado.</p>
+        <button type="button" id="reintentar">Reintentar</button>
+    </main>
+    <script>document.getElementById('reintentar').addEventListener('click', () => location.reload());</script>
+</body>
+</html>

@@ -118,7 +118,7 @@
 
                 <button
                     type="button"
-                    class="inline-flex min-h-12 items-center justify-center gap-3 rounded-md bg-atlantia-wine px-6 text-sm font-black text-white shadow-[0_14px_28px_rgba(122,31,61,0.18)] transition hover:bg-atlantia-wine-700 focus:outline-none focus:ring-2 focus:ring-atlantia-rose focus:ring-offset-2"
+                    class="inline-flex min-h-12 items-center justify-center gap-3 rounded-md bg-atlantia-wine px-6 text-sm font-black text-white shadow-[0_14px_28px_rgba(94,0,8,0.18)] transition hover:bg-atlantia-wine-700 focus:outline-none focus:ring-2 focus:ring-atlantia-rose focus:ring-offset-2"
                     data-open-create-modal
                 >
                     <span class="text-xl leading-none">+</span>

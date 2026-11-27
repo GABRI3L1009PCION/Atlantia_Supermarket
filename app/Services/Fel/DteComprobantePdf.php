@@ -3,6 +3,8 @@
 namespace App\Services\Fel;
 
 use App\Models\Dte\DteFactura;
+use App\Services\Pedidos\ComprobanteCompraPdf;
+use App\Support\Pdf\DocumentoPdf;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -10,6 +12,9 @@ use Illuminate\Support\Facades\Storage;
  */
 class DteComprobantePdf
 {
+    /** @var array{datos: string, ancho: int, alto: int}|null Logo de la tienda (JPEG) para el encabezado. */
+    private ?array $logo = null;
+
     /**
      * Genera y guarda el PDF privado del DTE.
      */
@@ -56,14 +61,20 @@ class DteComprobantePdf
         $this->stroke($commands, 0.74, 0.14, 0.30);
         $this->rect($commands, 24, 22, 564, 748, 'B');
 
-        $this->fill($commands, 0.55, 0.06, 0.24);
-        $this->text($commands, 52, 720, 46, 'A', true);
-        $this->fill($commands, 0.07, 0.12, 0.22);
-        $this->text($commands, 116, 724, 28, 'ATLANTIA', true);
-        $this->fill($commands, 0.55, 0.06, 0.24);
-        $this->text($commands, 121, 704, 11, 'SUPERMARKET', true);
-        $this->fill($commands, 0.18, 0.18, 0.18);
-        $this->text($commands, 116, 688, 8.5, 'Calidad que se siente, ahorro que se ve.');
+        /* Encabezado con el logo y el nombre de la tienda que emite la factura. */
+        $this->logo = DocumentoPdf::jpegDesde(ComprobanteCompraPdf::logoDe($vendor));
+        $nombreTienda = (string) ($vendor?->business_name ?? 'Atlantia Store');
+        if ($this->logo !== null) {
+            $escala = min(120 / $this->logo['ancho'], 52 / $this->logo['alto']);
+            $commands[] = sprintf('q %.2F 0 0 %.2F %d %.2F cm /Im1 Do Q', $this->logo['ancho'] * $escala, $this->logo['alto'] * $escala, 46, 690 + (52 - $this->logo['alto'] * $escala) / 2);
+            $this->fill($commands, 0.07, 0.12, 0.22);
+            $this->text($commands, 46, 679, 9, $this->clip($nombreTienda, 40), true);
+        } else {
+            $this->fill($commands, 0.07, 0.12, 0.22);
+            $this->text($commands, 46, 718, 20, $this->clip($nombreTienda, 22), true);
+            $this->fill($commands, 0.18, 0.18, 0.18);
+            $this->text($commands, 46, 700, 8.5, 'Vendido a traves de Atlantia Store');
+        }
 
         $this->fill($commands, 0.55, 0.06, 0.24);
         $this->text($commands, 330, 724, 18, 'FACTURA ELECTRONICA FEL', true);
@@ -320,11 +331,16 @@ class DteComprobantePdf
         $objects = [
             '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj',
             '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj',
-            '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >> endobj',
+            '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 5 0 R >>'.($this->logo !== null ? ' /XObject << /Im1 7 0 R >>' : '').' >> /Contents 6 0 R >> endobj',
             '4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj',
             '5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> endobj',
             '6 0 obj << /Length '.strlen($content)." >> stream\n".$content."\nendstream endobj",
         ];
+
+        if ($this->logo !== null) {
+            $objects[] = '7 0 obj << /Type /XObject /Subtype /Image /Width '.$this->logo['ancho'].' /Height '.$this->logo['alto']
+                .' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '.strlen($this->logo['datos'])." >> stream\n".$this->logo['datos']."\nendstream endobj";
+        }
 
         $pdf = "%PDF-1.4\n";
         $offsets = [0];

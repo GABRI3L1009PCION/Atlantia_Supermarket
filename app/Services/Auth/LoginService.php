@@ -61,15 +61,31 @@ class LoginService
             ->firstOrFail();
 
         if ($this->mustCompleteTwoFactor($user)) {
-            $request->session()->regenerate();
-            $request->session()->put('auth.2fa_user_id', $user->id);
-            $request->session()->put('auth.2fa_remember', (bool) ($credentials['remember'] ?? false));
-            $request->session()->put('auth.2fa_guest_session_id', $guestSessionId);
-
-            return 'two-factor.challenge';
+            return $this->iniciarDesafioDosFactores($user, $request, (bool) ($credentials['remember'] ?? false), $guestSessionId);
         }
 
         return $this->completeAuthenticatedSession($user, $request, (bool) ($credentials['remember'] ?? false), $guestSessionId);
+    }
+
+    /**
+     * Deja al usuario pendiente del segundo factor (o de configurarlo la primera vez).
+     */
+    public function iniciarDesafioDosFactores(User $user, Request $request, bool $remember = false, ?string $guestSessionId = null): string
+    {
+        $request->session()->regenerate();
+        $request->session()->put('auth.2fa_user_id', $user->id);
+        $request->session()->put('auth.2fa_remember', $remember);
+        $request->session()->put('auth.2fa_guest_session_id', $guestSessionId);
+
+        return 'two-factor.challenge';
+    }
+
+    /**
+     * Indica si el usuario debe pasar por el segundo factor al entrar.
+     */
+    public function requiereDosFactores(User $user): bool
+    {
+        return $this->mustCompleteTwoFactor($user);
     }
 
     /**

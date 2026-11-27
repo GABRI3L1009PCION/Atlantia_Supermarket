@@ -3,6 +3,7 @@ package com.atlantia.delivery.repartidor.tracking;
 import android.Manifest;
 import android.content.Intent;
 import android.os.Build;
+import android.security.NetworkSecurityPolicy;
 
 import androidx.core.content.ContextCompat;
 
@@ -106,6 +107,20 @@ public class AtlantiaCourierTrackingPlugin extends Plugin {
 
         if (token == null || token.trim().isEmpty()) {
             call.reject("token es requerido.");
+            return;
+        }
+
+        try {
+            java.net.URI uri = new java.net.URI(apiBaseUrl);
+            boolean https = "https".equalsIgnoreCase(uri.getScheme());
+            boolean debugHttp = "http".equalsIgnoreCase(uri.getScheme())
+                && NetworkSecurityPolicy.getInstance().isCleartextTrafficPermitted();
+            if (uri.getHost() == null || uri.getUserInfo() != null || (!https && !debugHttp)) {
+                call.reject("El servidor debe usar HTTPS. HTTP solo esta permitido en compilaciones de desarrollo.");
+                return;
+            }
+        } catch (java.net.URISyntaxException e) {
+            call.reject("La direccion del servidor no es valida.");
             return;
         }
 

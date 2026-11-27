@@ -1,8 +1,8 @@
 @extends('layouts.marketplace')
 
 @section('content')
-    <div class="min-h-full bg-[#fffafb]">
-        <section class="mx-auto w-full max-w-7xl px-4 pb-2 pt-4 sm:px-6 lg:px-8">
+    <div class="min-h-full bg-[#fffafa]">
+        <section class="mx-auto w-full max-w-[1680px] px-4 pb-2 pt-4 sm:px-6 lg:px-8">
             <div class="flex items-end justify-between gap-5">
                 <div>
                     <h1 class="text-2xl font-black leading-none text-atlantia-ink lg:text-[1.75rem]">Comercios cerca de ti</h1>
@@ -33,7 +33,7 @@
                 </span>
             </div>
 
-            <form id="filtros-comercios" action="{{ route('comercios.index') }}" method="GET" class="mt-4 hidden scroll-mt-44 gap-3 rounded-xl border border-atlantia-rose/20 bg-white p-4 shadow-[0_10px_28px_rgba(63,13,29,0.07)] target:grid target:grid-cols-2 lg:grid lg:grid-cols-[1.2fr_1fr_1fr_0.9fr_auto] lg:items-end">
+            <form id="filtros-comercios" action="{{ route('comercios.index') }}" method="GET" class="mt-4 hidden scroll-mt-44 gap-3 rounded-xl border border-atlantia-rose/20 bg-white p-4 shadow-[0_10px_28px_rgba(59,6,12,0.07)] target:grid target:grid-cols-2 lg:grid lg:grid-cols-[1.2fr_1fr_1fr_0.9fr_auto] lg:items-end">
                 <input type="hidden" name="orden" value="{{ $filters['orden'] }}">
                 <input type="hidden" name="vista" value="{{ $filters['vista'] }}">
 
@@ -81,7 +81,7 @@
                     </select>
                 </label>
 
-                <button class="flex h-10 items-center justify-center gap-2 rounded-lg bg-atlantia-wine px-6 text-xs font-black text-white shadow-[0_10px_22px_rgba(122,31,61,0.20)] transition hover:bg-atlantia-wine-700">
+                <button class="flex h-10 items-center justify-center gap-2 rounded-lg bg-atlantia-wine px-6 text-xs font-black text-white shadow-[0_10px_22px_rgba(94,0,8,0.20)] transition hover:bg-atlantia-wine-700">
                     Buscar
                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m21 21-4.3-4.3M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                 </button>
@@ -138,7 +138,7 @@
             </div>
         </section>
 
-        <section class="mx-auto w-full max-w-7xl px-4 pb-8 pt-2 sm:px-6 lg:px-8">
+        <section class="mx-auto w-full max-w-[1680px] px-4 pb-8 pt-2 sm:px-6 lg:px-8">
             <div class="mb-3 flex items-end justify-between gap-3">
                 <div>
                     <h2 class="text-sm font-black text-atlantia-ink">Negocios disponibles</h2>
@@ -159,7 +159,7 @@
                     </div>
                 </div>
             @else
-                <div class="{{ $filters['vista'] === 'lista' ? 'grid grid-cols-2 gap-3 lg:grid-cols-2' : 'grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4' }}">
+                <div class="{{ $filters['vista'] === 'lista' ? 'grid grid-cols-2 gap-3 lg:grid-cols-2' : 'grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5' }}">
                     @foreach ($vendors as $vendor)
                         @php
                             $rating = $ratings->get($vendor->id, ['rating' => null, 'total' => 0]);
@@ -169,12 +169,12 @@
                                 ? number_format((int) $vendor->tiempo_entrega_min).' min'
                                 : 'Por confirmar';
                         @endphp
-                        <article class="group min-w-0 overflow-hidden rounded-lg border border-atlantia-rose/20 bg-white shadow-[0_8px_22px_rgba(63,13,29,0.07)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(63,13,29,0.12)]">
+                        <article class="group min-w-0 overflow-hidden rounded-lg border border-atlantia-rose/20 bg-white shadow-[0_8px_22px_rgba(59,6,12,0.07)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(59,6,12,0.12)]">
                             <a href="{{ route('comercios.show', ['vendor' => $vendor->slug]) }}" class="block">
                                 <div class="relative h-24 overflow-hidden bg-atlantia-blush">
                                     <img src="{{ $cover }}" alt="{{ $vendor->business_name }}" class="h-full w-full object-cover" loading="lazy">
                                     <div class="absolute inset-0 bg-gradient-to-t from-atlantia-wine-900/45 via-transparent to-transparent"></div>
-                                    <span class="absolute left-2 top-2 rounded-full bg-white/95 px-2 py-0.5 text-[8px] font-bold text-atlantia-ink shadow-sm">{{ $vendor->business_category ?: 'Comercio local' }}</span>
+                                    <span class="absolute left-2 top-2 rounded-full bg-white/95 px-2 py-0.5 text-[8px] font-bold text-atlantia-ink shadow-sm">{{ $vendor->categoriasEtiquetas()[0] ?? 'Comercio local' }}</span>
                                     <span class="absolute right-2 top-2 h-3 w-3 rounded-full border-2 border-white bg-emerald-500 shadow" title="Comercio disponible"></span>
                                     <span class="absolute bottom-1.5 left-1/2 grid h-14 w-14 -translate-x-1/2 place-items-center overflow-hidden rounded-full border-2 border-white bg-white text-sm font-black text-atlantia-wine shadow-lg">
                                         @if ($vendor->logo_url)
@@ -188,6 +188,9 @@
 
                             <div class="px-3 pb-2.5 pt-2">
                                 <h3 class="truncate text-sm font-black text-atlantia-ink group-hover:text-atlantia-wine">{{ $vendor->business_name }}</h3>
+                                @if (in_array($vendor->plan, \App\Services\Monetizacion\PlanesVendedorService::planesConPrioridad(), true) && $vendor->plan_hasta?->isFuture())
+                                    <span class="mt-0.5 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-800" data-tienda-destacada>★ Tienda destacada</span>
+                                @endif
                                 <p class="mt-1 line-clamp-1 min-h-4 text-[9px] font-semibold text-atlantia-ink/55">{{ $vendor->descripcion ?: 'Productos disponibles para entrega por Atlantia.' }}</p>
 
                                 <div class="mt-2 grid grid-cols-3 divide-x divide-atlantia-rose/15 border-y border-atlantia-rose/10 py-1.5 text-[8px] font-bold text-atlantia-ink/65">

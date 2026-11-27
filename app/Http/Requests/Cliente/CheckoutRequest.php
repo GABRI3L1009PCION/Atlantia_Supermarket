@@ -2,9 +2,10 @@
 
 namespace App\Http\Requests\Cliente;
 
+use App\Rules\ContrasenaSegura;
+use App\Support\CoberturaColonias;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 
 /**
  * Request de validacion para finalizar compra.
@@ -38,31 +39,57 @@ class CheckoutRequest extends FormRequest
                 Rule::exists('direcciones', 'id')->where('user_id', $this->user()?->id)->where('activa', true),
             ],
             'guest_nombre' => [Rule::requiredIf($guest), 'nullable', 'string', 'min:3', 'max:160'],
+            /* El correo solo es obligatorio si el visitante quiere crear su cuenta. */
             'guest_email' => [
-                Rule::requiredIf($guest),
+                Rule::requiredIf($guest && $crearCuenta),
                 'nullable',
                 'email',
                 'max:190',
                 ...($crearCuenta ? [Rule::unique('users', 'email')] : []),
             ],
             'guest_telefono' => [Rule::requiredIf($guest), 'nullable', 'regex:/^(\+502)?[2-7][0-9]{7}$/'],
-            'guest_alias' => [Rule::requiredIf($guest), 'nullable', 'string', 'max:80'],
-            'guest_municipio' => [Rule::requiredIf($guest), 'nullable', Rule::in(['Puerto Barrios', 'Santo Tomas', 'Morales', 'Los Amates', 'Livingston', 'El Estor'])],
+            'guest_alias' => ['nullable', 'string', 'max:80'],
+            'guest_municipio' => [Rule::requiredIf($guest), 'nullable', Rule::in(self::zonasEntrega())],
             'guest_zona_barrio' => ['nullable', 'string', 'max:160'],
             'guest_direccion' => [Rule::requiredIf($guest), 'nullable', 'string', 'min:8', 'max:500'],
             'guest_referencia' => ['nullable', 'string', 'max:600'],
-            'guest_latitude' => [Rule::requiredIf($guest), 'nullable', 'numeric', 'between:-90,90'],
-            'guest_longitude' => [Rule::requiredIf($guest), 'nullable', 'numeric', 'between:-180,180'],
+            /* La ubicacion GPS es opcional: sin ella se usa la zona del municipio elegido. */
+            'guest_latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:guest_longitude'],
+            'guest_longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:guest_latitude'],
             'crear_cuenta' => ['nullable', 'boolean'],
-            'password' => [Rule::requiredIf($guest && $crearCuenta), 'nullable', 'confirmed', Password::min(12)->letters()->numbers()->symbols()],
+            'password' => [Rule::requiredIf($guest && $crearCuenta), 'nullable', 'confirmed', new ContrasenaSegura],
             'tipo_entrega' => ['required', Rule::in(['domicilio', 'recoger', 'programado'])],
-            'ventana_entrega' => ['required_if:tipo_entrega,domicilio', 'nullable', 'string', 'max:40'],
+            /* Domicilio y recoger salen lo antes posible; solo "programado" elige dia y horario. */
+            'ventana_entrega' => [
+                'required_if:tipo_entrega,programado',
+                'nullable',
+                Rule::in(array_keys(self::ventanasProgramadas())),
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($this->input('tipo_entrega') !== 'programado' || $value === null) {
+                        return;
+                    }
+                    $inicio = self::ventanasProgramadas()[$value] ?? null;
+                    if ($inicio === null || $this->input('programado_fecha') !== now()->toDateString()) {
+                        return;
+                    }
+                    /* Para hoy, el horario debe empezar al menos 1 hora despues de ahora. */
+                    $minimo = now()->addHour();
+                    $horaMinima = $minimo->isSameDay(now())
+                        ? $minimo->hour + ($minimo->minute > 0 || $minimo->second > 0 ? 1 : 0)
+                        : 24;
+                    if ($inicio < $horaMinima) {
+                        $fail('Ese horario ya no esta disponible para hoy. Elige otro horario o dia.');
+                    }
+                },
+            ],
             'programado_fecha' => ['required_if:tipo_entrega,programado', 'nullable', 'date', 'after_or_equal:today', 'before_or_equal:'.now()->addDays(14)->toDateString()],
-            'programado_hora' => ['required_if:tipo_entrega,programado', 'nullable', 'date_format:H:i'],
+            'programado_hora' => ['nullable', 'date_format:H:i'],
             'metodo_pago' => ['required', Rule::in(['efectivo', 'transferencia', 'tarjeta'])],
             'envio' => ['nullable', 'numeric', 'min:0', 'max:9999.99', 'decimal:0,2'],
             'notas' => ['nullable', 'string', 'max:1000'],
-            'card_token' => ['nullable', 'string', 'max:180'],
+            'propina' => ['nullable', 'numeric', 'min:0', 'max:500'],
+            'usar_saldo' => ['nullable', 'boolean'],
+            'usar_tarjeta_guardada' => ['nullable', 'boolean'],
             'referencia_bancaria' => ['nullable', 'string', 'max:120'],
             'solicita_cambio' => ['nullable', 'boolean'],
             'cambio_para' => ['required_if:solicita_cambio,1', 'nullable', 'numeric', 'min:1', 'max:9999.99', 'decimal:0,2'],
@@ -71,7 +98,7 @@ class CheckoutRequest extends FormRequest
             'facturacion_tipo' => ['required', Rule::in(['datos', 'cf'])],
             'nit_facturacion' => ['nullable', 'string', 'max:40'],
             'razon_social' => ['nullable', 'string', 'max:180'],
-            'correo_facturacion' => ['required', 'email', 'max:190'],
+            'correo_facturacion' => ['required_if:facturacion_tipo,datos', 'nullable', 'email', 'max:190'],
             'acepta_terminos_checkout' => ['accepted'],
         ];
     }
@@ -87,20 +114,22 @@ class CheckoutRequest extends FormRequest
             'direccion_id.required' => 'Selecciona una direccion de entrega.',
             'direccion_id.exists' => 'La direccion seleccionada no existe o no pertenece a tu cuenta.',
             'guest_nombre.required' => 'Ingresa tu nombre para coordinar la entrega.',
-            'guest_email.required' => 'Ingresa un correo para enviarte la confirmacion.',
+            'guest_email.required' => 'Ingresa tu correo para crear tu cuenta.',
             'guest_email.email' => 'Ingresa un correo valido.',
             'guest_email.unique' => 'Este correo ya tiene cuenta. Inicia sesion o usa otro correo para crear la cuenta.',
             'guest_telefono.required' => 'Ingresa un telefono de contacto.',
             'guest_telefono.regex' => 'Ingresa un telefono de Guatemala valido (ej. 55551234).',
-            'guest_municipio.required' => 'Selecciona el municipio de entrega.',
+            'guest_municipio.required' => 'Elige si la entrega es en Puerto Barrios o Santo Tomas.',
+            'guest_municipio.in' => 'Por ahora solo entregamos en Puerto Barrios y Santo Tomas.',
             'guest_direccion.required' => 'Escribe la direccion completa de entrega.',
             'guest_latitude.required' => 'Captura tu ubicacion exacta para validar cobertura.',
             'password.required' => 'Ingresa una contrasena para crear tu cuenta.',
             'password.confirmed' => 'La confirmacion de contrasena no coincide.',
             'tipo_entrega.required' => 'Selecciona el tipo de entrega.',
             'tipo_entrega.in' => 'El tipo de entrega seleccionado no esta disponible.',
-            'ventana_entrega.required_if' => 'Selecciona una ventana de entrega.',
-            'programado_fecha.required_if' => 'Selecciona la fecha del pedido programado.',
+            'ventana_entrega.required_if' => 'Elige el horario de tu entrega programada.',
+            'ventana_entrega.in' => 'Elige uno de los horarios disponibles.',
+            'programado_fecha.required_if' => 'Elige el dia de tu entrega programada.',
             'programado_fecha.after_or_equal' => 'La fecha programada no puede ser anterior a hoy.',
             'programado_fecha.before_or_equal' => 'Solo puedes programar pedidos hasta 14 dias adelante.',
             'programado_hora.required_if' => 'Selecciona la hora del pedido programado.',
@@ -113,7 +142,7 @@ class CheckoutRequest extends FormRequest
             'cambio_para.required_if' => 'Indica para cuanto efectivo necesitas cambio.',
             'cambio_para.numeric' => 'La denominacion para cambio debe ser numerica.',
             'coupon_code.max' => 'El codigo del cupon no debe superar :max caracteres.',
-            'correo_facturacion.required' => 'Ingresa el correo donde enviaremos la factura o comprobante.',
+            'correo_facturacion.required_if' => 'Ingresa el correo donde enviaremos la factura o comprobante.',
             'correo_facturacion.email' => 'Ingresa un correo de facturacion valido.',
             'acepta_terminos_checkout.accepted' => 'Debes aceptar las condiciones de compra.',
         ];
@@ -143,7 +172,6 @@ class CheckoutRequest extends FormRequest
             'metodo_pago' => 'metodo de pago',
             'envio' => 'costo de envio',
             'notas' => 'notas del pedido',
-            'card_token' => 'token de tarjeta',
             'referencia_bancaria' => 'referencia bancaria',
             'solicita_cambio' => 'solicitud de cambio',
             'cambio_para' => 'cambio para billete',
@@ -164,6 +192,12 @@ class CheckoutRequest extends FormRequest
     {
         $facturacionTipo = $this->input('facturacion_tipo') === 'datos' ? 'datos' : 'cf';
 
+        /* Colonias que pertenecen a otro municipio (ej. Quebrada Seca y San Agustin son de Santo Tomas). */
+        $municipioColonia = CoberturaColonias::municipioDe($this->input('guest_zona_barrio'));
+        if ($municipioColonia !== null && in_array($municipioColonia, self::zonasEntrega(), true)) {
+            $this->merge(['guest_municipio' => $municipioColonia]);
+        }
+
         $this->merge([
             'metodo_pago' => trim((string) $this->input('metodo_pago')),
             'tipo_entrega' => trim((string) $this->input('tipo_entrega', 'domicilio')),
@@ -182,13 +216,41 @@ class CheckoutRequest extends FormRequest
             'guest_direccion' => $this->blankToNull($this->input('guest_direccion')),
             'guest_referencia' => $this->blankToNull($this->input('guest_referencia')),
             'referencia_bancaria' => $this->blankToNull($this->input('referencia_bancaria')),
-            'card_token' => $this->blankToNull($this->input('card_token')),
             'coupon_code' => $this->blankToNull($this->input('coupon_code')),
             'facturacion_tipo' => $facturacionTipo,
             'nit_facturacion' => $this->blankToNull($facturacionTipo === 'cf' ? 'CF' : $this->input('nit_facturacion')),
             'razon_social' => $this->billingName($facturacionTipo),
             'correo_facturacion' => $this->billingEmail(),
         ]);
+    }
+
+    /**
+     * Horarios para entregas programadas: etiqueta => hora de inicio (24 h).
+     *
+     * @return array<string, int>
+     */
+    public static function ventanasProgramadas(): array
+    {
+        return [
+            '8-10 am' => 8,
+            '10 am-12 pm' => 10,
+            '12-2 pm' => 12,
+            '2-4 pm' => 14,
+            '4-6 pm' => 16,
+            '6-8 pm' => 18,
+        ];
+    }
+
+    /**
+     * Zonas donde opera la tienda (Puerto Barrios y Santo Tomas por defecto).
+     *
+     * @return array<int, string>
+     */
+    public static function zonasEntrega(): array
+    {
+        $zonas = (array) config('atlantia.marketplace.municipios', []);
+
+        return $zonas === [] ? ['Puerto Barrios', 'Santo Tomas'] : array_values($zonas);
     }
 
     /**

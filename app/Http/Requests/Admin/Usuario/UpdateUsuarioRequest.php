@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests\Admin\Usuario;
 
+use App\Rules\ContrasenaSegura;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\Validator;
 
 class UpdateUsuarioRequest extends FormRequest
@@ -25,7 +25,7 @@ class UpdateUsuarioRequest extends FormRequest
             'status' => ['required', 'in:active,inactive,suspended'],
             'roles' => ['required', 'array', 'min:1'],
             'roles.*' => ['string', 'exists:roles,name', ...$this->allowedRoleRules()],
-            'password' => ['nullable', 'confirmed', Password::min(8)->mixedCase()->symbols()],
+            'password' => ['nullable', 'confirmed', new ContrasenaSegura],
         ];
     }
 

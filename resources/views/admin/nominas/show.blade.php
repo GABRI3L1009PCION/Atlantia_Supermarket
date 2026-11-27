@@ -17,7 +17,7 @@
                         <form method="POST" action="{{ route('admin.nominas.pay', $nomina->uuid) }}">
                             @csrf
                             @method('PATCH')
-                            <button type="submit" class="rounded-md bg-atlantia-wine px-4 py-2.5 text-sm font-black text-white" onclick="return confirm('Confirma que la nomina ya fue pagada. Despues no podras modificarla.')">
+                            <button type="submit" class="rounded-md bg-atlantia-wine px-4 py-2.5 text-sm font-black text-white" data-confirm="Confirma que la nomina ya fue pagada. Despues no podras modificarla.">
                                 Marcar como pagada
                             </button>
                         </form>

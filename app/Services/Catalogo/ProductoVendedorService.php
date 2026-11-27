@@ -4,9 +4,11 @@ namespace App\Services\Catalogo;
 
 use App\Models\Producto;
 use App\Models\User;
+use App\Services\Monetizacion\PlanesVendedorService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Servicio de productos propios del vendedor.
@@ -59,7 +61,7 @@ class ProductoVendedorService
                     default => $query->latest(),
                 };
             }, fn ($query) => $query->latest())
-            ->paginate((int) ($filters['per_page'] ?? 12))
+            ->paginate(min(48, max(8, (int) ($filters['per_page'] ?? 20))))
             ->withQueryString();
     }
 
@@ -70,6 +72,14 @@ class ProductoVendedorService
      */
     public function create(User $user, array $data): Producto
     {
+        if ($user->vendor !== null) {
+            try {
+                app(PlanesVendedorService::class)->assertPuedeAgregarProductos($user->vendor);
+            } catch (\RuntimeException $exception) {
+                throw ValidationException::withMessages(['nombre' => $exception->getMessage()]);
+            }
+        }
+
         return DB::transaction(function () use ($user, $data): Producto {
             $producto = Producto::query()->create([
                 ...collect($data)->only([

@@ -26,6 +26,8 @@ class CourierSupportTicketRequest extends FormRequest
                 'incomplete_order',
                 'payment_problem',
                 'forgotten_item',
+                'wrong_address',
+                'app_issue',
                 'accident',
                 'insurance',
             ])],

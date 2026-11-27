@@ -2,11 +2,11 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Rules\ContrasenaSegura;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\In;
-use Illuminate\Validation\Rules\Password;
 
 /**
  * Request de validacion para registro de clientes y vendedores.
@@ -34,7 +34,7 @@ class RegisterRequest extends FormRequest
             'name' => ['required', 'string', 'min:3', 'max:160'],
             'email' => ['required', 'string', 'email:rfc,dns', 'max:190', 'unique:users,email'],
             'phone' => ['required', 'string', 'min:8', 'max:15', 'regex:/^\+?[1-9][0-9]{7,14}$/'],
-            'password' => ['required', 'confirmed', Password::min(12)->letters()->numbers()->symbols()],
+            'password' => ['required', 'confirmed', new ContrasenaSegura],
             'role' => ['required', Rule::in(['cliente', 'vendedor'])],
             'acepta_terminos' => ['accepted'],
             'acepta_privacidad' => ['accepted'],

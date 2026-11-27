@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests\Admin\Usuario;
 
+use App\Rules\ContrasenaSegura;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 
 /**
  * Valida el alta administrativa de usuarios.
@@ -31,7 +31,7 @@ class StoreUsuarioRequest extends FormRequest
             'email' => ['required', 'string', 'email:rfc', 'max:190', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:30'],
             'department' => ['nullable', 'string', Rule::in(['operaciones', 'ventas', 'logistica', 'bodega', 'compras', 'soporte', 'contabilidad', 'finanzas', 'tecnologia'])],
-            'password' => ['required', 'confirmed', Password::min(8)->mixedCase()->symbols()],
+            'password' => ['required', 'confirmed', new ContrasenaSegura],
             'status' => ['required', Rule::in(['active', 'inactive', 'suspended'])],
             'role' => ['required', 'string', 'exists:roles,name', ...$this->allowedRoleRules()],
         ];

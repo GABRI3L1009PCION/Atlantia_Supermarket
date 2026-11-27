@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\DB;
  */
 class ReporteAdminService
 {
+    private const NO_VENTA = ['cancelado', 'rechazado'];
+
     /**
      * Devuelve resumen financiero.
      *
@@ -28,9 +30,18 @@ class ReporteAdminService
         $agrupacion = ($filters['agrupacion'] ?? 'dia') === 'mes' ? 'mes' : 'dia';
         $periodo = $this->periodExpression('pedidos.created_at', $agrupacion);
 
-        $pedidosBase = Pedido::query()
+        $todosBase = Pedido::query()
             ->padres()
             ->whereBetween('created_at', [$desde->copy()->startOfDay(), $hasta->copy()->endOfDay()]);
+        // Las ventas no cuentan pedidos cancelados ni rechazados.
+        $pedidosBase = (clone $todosBase)->whereNotIn('estado', self::NO_VENTA);
+
+        // Periodo anterior del mismo largo, para comparar.
+        $dias = (int) $desde->copy()->startOfDay()->diffInDays($hasta->copy()->startOfDay()) + 1;
+        $antesHasta = $desde->copy()->subDay();
+        $antesDesde = $antesHasta->copy()->subDays($dias - 1);
+        $anteriorBase = Pedido::query()->padres()->whereNotIn('estado', self::NO_VENTA)
+            ->whereBetween('created_at', [$antesDesde->copy()->startOfDay(), $antesHasta->copy()->endOfDay()]);
 
         return [
             'filters' => [
@@ -38,6 +49,14 @@ class ReporteAdminService
                 'fecha_hasta' => $hasta->toDateString(),
                 'agrupacion' => $agrupacion,
             ],
+            'anterior' => [
+                'desde' => $antesDesde->toDateString(),
+                'hasta' => $antesHasta->toDateString(),
+                'ventas_total' => round((float) (clone $anteriorBase)->sum('total'), 2),
+                'pedidos_total' => (clone $anteriorBase)->count(),
+                'ticket_promedio' => round((float) (clone $anteriorBase)->avg('total'), 2),
+            ],
+            'cancelados' => (clone $todosBase)->whereIn('estado', self::NO_VENTA)->count(),
             'ventas_total' => round((float) (clone $pedidosBase)->sum('total'), 2),
             'pedidos_total' => (clone $pedidosBase)->count(),
             'ventas_mes' => round((float) (clone $pedidosBase)->sum('total'), 2),
@@ -52,7 +71,7 @@ class ReporteAdminService
                 ->groupBy(DB::raw($periodo))
                 ->orderBy('periodo')
                 ->get(),
-            'pedidos_por_estado' => (clone $pedidosBase)
+            'pedidos_por_estado' => (clone $todosBase)
                 ->select('estado', DB::raw('COUNT(*) as pedidos'), DB::raw('COALESCE(SUM(total), 0) as total'))
                 ->groupBy('estado')
                 ->orderByDesc('pedidos')
@@ -65,6 +84,7 @@ class ReporteAdminService
             'top_productos' => PedidoItem::query()
                 ->join('pedidos', 'pedido_items.pedido_id', '=', 'pedidos.id')
                 ->whereNull('pedidos.deleted_at')
+                ->whereNotIn('pedidos.estado', self::NO_VENTA)
                 ->whereBetween('pedidos.created_at', [$desde->copy()->startOfDay(), $hasta->copy()->endOfDay()])
                 ->select(
                     'pedido_items.producto_id',
@@ -86,6 +106,7 @@ class ReporteAdminService
                 ->leftJoin('pedidos', function ($join) use ($desde, $hasta): void {
                     $join->on('pedidos.vendor_id', '=', 'vendors.id')
                         ->whereNull('pedidos.deleted_at')
+                        ->whereNotIn('pedidos.estado', self::NO_VENTA)
                         ->whereBetween('pedidos.created_at', [$desde->copy()->startOfDay(), $hasta->copy()->endOfDay()]);
                 })
                 ->groupBy('vendors.id', 'vendors.business_name')

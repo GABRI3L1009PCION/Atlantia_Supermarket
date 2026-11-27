@@ -10,6 +10,7 @@ use App\Models\Ml\SalesPrediction;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Services\Ml\PrediccionDemandaService;
 use App\Services\Notificaciones\NotificadorSugerenciaMlService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -145,6 +146,67 @@ class ReabastoInteligenteService
         }
 
         return $suggestion;
+    }
+
+    /** Días que debería cubrir lo que tienes en existencia. */
+    public const DIAS_COBERTURA = 14;
+
+    /**
+     * Lista de compra con datos reales: ventas de los últimos 30 días (o el modelo, si existe)
+     * para cubrir DIAS_COBERTURA días más tu mínimo. Sin ventas, solo sugiere llegar a tu mínimo.
+     *
+     * @return array{filas: Collection<int, array<string, mixed>>, resumen: array<string, int>}
+     */
+    public function listaCompra(User $user, array $filters = []): array
+    {
+        $proyeccion = app(PrediccionDemandaService::class)
+            ->proyeccionVendedor($user, ['horizonte' => self::DIAS_COBERTURA, 'q' => $filters['q'] ?? null]);
+
+        $filas = $proyeccion['filas']->map(function (array $fila): array {
+            $minimo = (int) ($fila['producto']->inventario?->stock_minimo ?? 0);
+            $objetivo = $fila['esperado'] + $minimo;
+            $fila['minimo'] = $minimo;
+            $fila['sugerido'] = max(0, $objetivo - $fila['disponible']);
+            $fila['urgencia'] = match (true) {
+                $fila['sugerido'] <= 0 => 'ninguna',
+                $fila['disponible'] <= 0 => 'ya',
+                $fila['alcanza_dias'] !== null && $fila['alcanza_dias'] <= 3 => 'ya',
+                $fila['alcanza_dias'] !== null && $fila['alcanza_dias'] <= 7 => 'pronto',
+                default => 'cuando_puedas',
+            };
+
+            return $fila;
+        });
+
+        $orden = ['ya' => 0, 'pronto' => 1, 'cuando_puedas' => 2, 'ninguna' => 3];
+        $porPedir = $filas->where('sugerido', '>', 0)
+            ->sortBy([fn ($a, $b) => $orden[$a['urgencia']] <=> $orden[$b['urgencia']], fn ($a, $b) => $b['sugerido'] <=> $a['sugerido']])
+            ->values();
+
+        return [
+            'filas' => $porPedir,
+            'resumen' => [
+                'productos' => $filas->count(),
+                'por_pedir' => $porPedir->count(),
+                'urgentes' => $porPedir->where('urgencia', 'ya')->count(),
+                'unidades' => (int) $porPedir->sum('sugerido'),
+                'al_dia' => $filas->count() - $porPedir->count(),
+            ],
+        ];
+    }
+
+    /**
+     * Suma al inventario lo que el vendedor recibió de su proveedor (queda en la bitácora).
+     */
+    public function recibir(Producto $producto, int $cantidad, User $user): Inventario
+    {
+        $inventario = $producto->inventario()->firstOrCreate([], ['stock_actual' => 0, 'stock_reservado' => 0, 'stock_minimo' => 0]);
+
+        return app(StockService::class)->updateForProduct($producto, [
+            'stock_actual' => (int) $inventario->stock_actual + $cantidad,
+            'stock_minimo' => (int) $inventario->stock_minimo,
+            'stock_maximo' => $inventario->stock_maximo,
+        ], $user);
     }
 
     /**

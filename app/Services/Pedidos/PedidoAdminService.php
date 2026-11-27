@@ -120,6 +120,11 @@ class PedidoAdminService
                 if ($pedido->estado === EstadoPedido::ListoParaEntrega) {
                     app(NotificadorPedidoService::class)->pedidoListoParaRecoger($pedido);
                 }
+
+                if ($pedido->estado === EstadoPedido::Cancelado) {
+                    app(CancelacionService::class)->alCancelarse($pedido, $usuario, 'atlantia');
+                    $pedido->refresh();
+                }
             } elseif (! empty($data['notas_historial'])) {
                 PedidoEstado::query()->create([
                     'pedido_id' => $pedido->id,
@@ -225,7 +230,8 @@ class PedidoAdminService
             'asignada_at' => $route?->asignada_at ?? now(),
             'aceptada_at' => $repartidorAnterior === $repartidorId ? $route?->aceptada_at : null,
             'estimated_earning' => $route?->estimated_earning ?: $earning,
-            'cash_to_collect' => $pedido->metodoPagoValor() === 'efectivo' ? (float) $pedido->total : 0,
+            'cash_to_collect' => $pedido->metodoPagoValor() === 'efectivo' ? $pedido->montoACobrar() : 0,
+            'tip_amount' => (float) $pedido->propina,
             'cash_to_pay_pickup' => 0,
             'change_required' => $pedido->changeRequiredAmount(),
             'payment_method' => $pedido->metodoPagoValor(),

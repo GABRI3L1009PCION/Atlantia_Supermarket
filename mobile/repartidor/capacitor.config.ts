@@ -6,8 +6,8 @@ const config: CapacitorConfig = {
   webDir: 'www',
   bundledWebRuntime: false,
   server: {
-    androidScheme: 'http',
-    cleartext: true
+    androidScheme: process.env.ATLANTIA_MOBILE_DEBUG_HTTP === 'true' ? 'http' : 'https',
+    cleartext: process.env.ATLANTIA_MOBILE_DEBUG_HTTP === 'true'
   },
   plugins: {
     LocalNotifications: {

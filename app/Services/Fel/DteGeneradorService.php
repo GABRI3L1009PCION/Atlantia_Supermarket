@@ -46,7 +46,8 @@ class DteGeneradorService
                     'vendor_id' => (int) $pedido->vendor_id,
                     'numero_dte' => $this->numeroInterno($pedido),
                     'tipo_dte' => 'FACT',
-                    'monto_neto' => $pedido->subtotal,
+                    /* Los precios ya incluyen IVA: neto = total menos el IVA contenido. */
+                    'monto_neto' => round((float) $pedido->total - (float) $pedido->impuestos, 2),
                     'monto_iva' => $pedido->impuestos,
                     'monto_total' => $pedido->total,
                     'moneda' => 'GTQ',
@@ -62,7 +63,7 @@ class DteGeneradorService
                         'precio_unitario' => $item->precio_unitario_snapshot,
                         'descuento' => $item->descuento,
                         'monto_iva' => $item->impuestos,
-                        'monto_total' => $item->subtotal + $item->impuestos - $item->descuento,
+                        'monto_total' => $item->subtotal - $item->descuento,
                     ]);
                 }
 
@@ -140,6 +141,10 @@ class DteGeneradorService
     {
         if ($pedido->vendor_id === null) {
             throw new DteCertificadorException('El pedido no tiene vendedor asociado.');
+        }
+
+        if ($pedido->vendor?->fiscalProfile?->modo_facturacion === 'manual_sat') {
+            throw new DteCertificadorException('La tienda factura por su cuenta en la SAT y registra la factura en el pedido.');
         }
 
         if (! $this->usarMockFel() && $pedido->vendor?->fiscalProfile === null) {

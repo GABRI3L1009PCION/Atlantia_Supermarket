@@ -29,8 +29,8 @@ class RegisterFormTest extends TestCase
             ->set('name', 'Heriberto Hernandez')
             ->set('email', 'heriberto'.uniqid().'@gmail.com')
             ->set('phone', '55355469')
-            ->set('password', 'Soyheriberto10%')
-            ->set('password_confirmation', 'Soyheriberto10%')
+            ->set('password', 'Mango#Lluvia84')
+            ->set('password_confirmation', 'Mango#Lluvia84')
             ->set('acepta_terminos', true)
             ->set('acepta_privacidad', true)
             ->call('register')
@@ -51,8 +51,8 @@ class RegisterFormTest extends TestCase
             'name' => 'Heriberto Hernandez',
             'email' => 'cliente'.uniqid().'@gmail.com',
             'phone' => '55355469',
-            'password' => 'Soyheriberto10%',
-            'password_confirmation' => 'Soyheriberto10%',
+            'password' => 'Mango#Lluvia84',
+            'password_confirmation' => 'Mango#Lluvia84',
             'role' => 'cliente',
             'acepta_terminos' => '1',
             'acepta_privacidad' => '1',

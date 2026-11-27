@@ -51,7 +51,7 @@ class DtePolicy
             && $user->vendor()
                 ->where('is_approved', true)
                 ->where('status', 'approved')
-                ->whereHas('fiscalProfile')
+                ->whereHas('fiscalProfile', fn ($perfil) => $perfil->whereNotNull('nit'))
                 ->exists();
     }
 

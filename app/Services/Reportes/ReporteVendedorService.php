@@ -7,6 +7,7 @@ use App\Models\PedidoItem;
 use App\Models\Producto;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -29,12 +30,16 @@ class ReporteVendedorService
         }
 
         $periodo = $this->periodExpression('pedidos.created_at', $agrupacion);
-        $pedidosBase = Pedido::query()
+        /* La venta de la tienda es su mercadería: sin envío ni propina, y sin pedidos cancelados. */
+        $venta = '(pedidos.total - COALESCE(pedidos.envio, 0) - COALESCE(pedidos.propina, 0))';
+        $validos = fn (Carbon $inicio, Carbon $fin) => Pedido::query()
             ->where('vendor_id', $vendorId)
-            ->whereBetween('created_at', [$desde->copy()->startOfDay(), $hasta->copy()->endOfDay()]);
+            ->whereNotIn('estado', ['cancelado', 'rechazado'])
+            ->whereBetween('created_at', [$inicio->copy()->startOfDay(), $fin->copy()->endOfDay()]);
+        $pedidosBase = $validos($desde, $hasta);
 
         $ventasPorPeriodo = (clone $pedidosBase)
-            ->selectRaw($periodo.' as periodo, COUNT(*) as pedidos, COALESCE(SUM(total), 0) as total')
+            ->selectRaw($periodo.' as periodo, COUNT(*) as pedidos, COALESCE(SUM('.$venta.'), 0) as total')
             ->groupBy(DB::raw($periodo))
             ->orderBy('periodo')
             ->get();
@@ -42,6 +47,7 @@ class ReporteVendedorService
             ->join('pedidos', 'pedido_items.pedido_id', '=', 'pedidos.id')
             ->where('pedidos.vendor_id', $vendorId)
             ->whereNull('pedidos.deleted_at')
+            ->whereNotIn('pedidos.estado', ['cancelado', 'rechazado'])
             ->whereBetween('pedidos.created_at', [$desde->copy()->startOfDay(), $hasta->copy()->endOfDay()])
             ->select(
                 'pedido_items.producto_id',
@@ -53,9 +59,15 @@ class ReporteVendedorService
             ->orderByDesc('unidades')
             ->limit(8)
             ->get();
-        $ventasTotal = round((float) (clone $pedidosBase)->sum('total'), 2);
+        $ventasTotal = round((float) (clone $pedidosBase)->sum(DB::raw($venta)), 2);
         $pedidosTotal = (clone $pedidosBase)->count();
         $mejorDia = $ventasPorPeriodo->sortByDesc('total')->first();
+        $dias = max(1, (int) $desde->copy()->startOfDay()->diffInDays($hasta->copy()->startOfDay()) + 1);
+
+        /* Periodo anterior del mismo largo, para comparar de verdad. */
+        $anteriorFin = $desde->copy()->subDay();
+        $anteriorInicio = $anteriorFin->copy()->subDays($dias - 1);
+        $ventasAnterior = round((float) $validos($anteriorInicio, $anteriorFin)->sum(DB::raw($venta)), 2);
 
         return [
             'filters' => [
@@ -67,17 +79,27 @@ class ReporteVendedorService
             'pedidos_total' => $pedidosTotal,
             'ventas_mes' => $ventasTotal,
             'pedidos_mes' => $pedidosTotal,
-            'pendientes' => (clone $pedidosBase)->whereIn('estado', ['pendiente', 'confirmado'])->count(),
-            'ticket_promedio' => round((float) (clone $pedidosBase)->avg('total'), 2),
+            'cancelados' => Pedido::query()->where('vendor_id', $vendorId)->whereIn('estado', ['cancelado', 'rechazado'])
+                ->whereBetween('created_at', [$desde->copy()->startOfDay(), $hasta->copy()->endOfDay()])->count(),
+            'pendientes' => (clone $pedidosBase)->whereIn('estado', ['pendiente', 'en_revision', 'confirmado', 'preparando', 'listo_para_entrega'])->count(),
+            'ticket_promedio' => $pedidosTotal > 0 ? round($ventasTotal / $pedidosTotal, 2) : 0.0,
             'productos_vendidos' => (int) $topProductos->sum('unidades'),
-            'promedio_diario' => $ventasPorPeriodo->count() ? round($ventasTotal / max(1, $ventasPorPeriodo->count()), 2) : 0.0,
+            'promedio_diario' => round($ventasTotal / $dias, 2),
+            'comparacion' => [
+                'anterior' => $ventasAnterior,
+                'desde' => $anteriorInicio->toDateString(),
+                'hasta' => $anteriorFin->toDateString(),
+                'cambio' => $ventasAnterior > 0 ? round((($ventasTotal - $ventasAnterior) / $ventasAnterior) * 100, 1) : null,
+            ],
             'mejor_dia' => [
                 'periodo' => $mejorDia?->periodo,
                 'total' => round((float) ($mejorDia?->total ?? 0), 2),
             ],
             'ventas_por_periodo' => $ventasPorPeriodo,
-            'pedidos_por_estado' => (clone $pedidosBase)
-                ->select('estado', DB::raw('COUNT(*) as pedidos'), DB::raw('COALESCE(SUM(total), 0) as total'))
+            'pedidos_por_estado' => Pedido::query()
+                ->where('vendor_id', $vendorId)
+                ->whereBetween('created_at', [$desde->copy()->startOfDay(), $hasta->copy()->endOfDay()])
+                ->select('estado', DB::raw('COUNT(*) as pedidos'))
                 ->groupBy('estado')
                 ->orderByDesc('pedidos')
                 ->get(),
@@ -88,6 +110,28 @@ class ReporteVendedorService
                 ->whereHas('inventario', fn ($query) => $query->bajoMinimo())
                 ->orderBy('nombre')
                 ->limit(10)
+                ->get(),
+        ];
+    }
+
+    /**
+     * Filas para descargar las ventas del periodo (una por pedido).
+     *
+     * @param  array<string, mixed>  $filters
+     * @return array{desde: string, hasta: string, filas: Collection<int, Pedido>}
+     */
+    public function ventasParaExportar(User $user, array $filters = []): array
+    {
+        [$desde, $hasta] = $this->dateRange($filters);
+
+        return [
+            'desde' => $desde->toDateString(),
+            'hasta' => $hasta->toDateString(),
+            'filas' => Pedido::query()
+                ->with('items:id,pedido_id,cantidad')
+                ->where('vendor_id', $user->vendor?->id)
+                ->whereBetween('created_at', [$desde->copy()->startOfDay(), $hasta->copy()->endOfDay()])
+                ->orderBy('created_at')
                 ->get(),
         ];
     }
@@ -104,8 +148,10 @@ class ReporteVendedorService
             'pedidos_total' => 0,
             'ventas_mes' => 0.0,
             'pedidos_mes' => 0,
+            'cancelados' => 0,
             'pendientes' => 0,
             'ticket_promedio' => 0.0,
+            'comparacion' => ['anterior' => 0.0, 'desde' => null, 'hasta' => null, 'cambio' => null],
             'productos_vendidos' => 0,
             'promedio_diario' => 0.0,
             'mejor_dia' => ['periodo' => null, 'total' => 0.0],

@@ -2,9 +2,11 @@
 
 namespace App\Services\Auth;
 
+use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 /**
  * Gestiona la impersonacion segura de usuarios operativos.
@@ -34,9 +36,31 @@ class ImpersonationService
     /**
      * Finaliza la impersonacion y restaura al super admin.
      */
+    /**
+     * Un administrador entra al panel de vendedor de Atlantia Store (queda registrado).
+     */
+    public function entrarATiendaAtlantia(Request $request, User $admin, User $operador): string
+    {
+        $this->start($request, $admin, $operador);
+        $request->session()->put('impersonation.tienda_atlantia', true);
+
+        AuditLog::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'user_id' => $admin->id,
+            'event' => 'tienda_atlantia.entrada',
+            'auditable_type' => User::class,
+            'auditable_id' => $operador->id,
+            'metadata' => ['admin' => $admin->name],
+            'method' => 'SERVICE',
+        ]);
+
+        return 'vendedor.dashboard';
+    }
+
     public function stop(Request $request): ?string
     {
         $adminId = $request->session()->get('impersonation.admin_id');
+        $eraTienda = (bool) $request->session()->get('impersonation.tienda_atlantia', false);
 
         if (! is_numeric($adminId)) {
             return null;
@@ -44,7 +68,8 @@ class ImpersonationService
 
         $admin = User::query()->find((int) $adminId);
 
-        if ($admin === null || ! $admin->isSuperAdmin()) {
+        /* Al panel de Atlantia Store entra cualquier administrador; al resto, solo el super administrador. */
+        if ($admin === null || ! ($eraTienda ? $admin->isAdministrator() : $admin->isSuperAdmin())) {
             return null;
         }
 
@@ -52,7 +77,7 @@ class ImpersonationService
         $request->session()->forget('impersonation');
         $request->session()->regenerate();
 
-        return $this->routeNameFor($admin);
+        return $eraTienda ? 'admin.tienda-atlantia.index' : $this->routeNameFor($admin);
     }
 
     /**

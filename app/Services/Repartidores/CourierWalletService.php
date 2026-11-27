@@ -8,6 +8,7 @@ use App\Models\DeliveryRoute;
 use App\Models\ExternalDeliveryOrder;
 use App\Models\Pedido;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -69,6 +70,9 @@ class CourierWalletService
             'previous_week_earnings' => (clone $earningsQuery)
                 ->whereBetween('created_at', [$previousWeekStart, $previousWeekEnd])
                 ->sum('amount'),
+            'current_month_earnings' => (clone $earningsQuery)->where('created_at', '>=', now()->startOfMonth())->sum('amount'),
+            'daily_earnings' => $this->earningsSeries($earningsQuery, 7, 'day'),
+            'weekly_earnings' => $this->earningsSeries($earningsQuery, 4, 'week'),
             'movements' => CourierWalletMovement::query()
                 ->where('user_id', $user->id)
                 ->latest()
@@ -81,6 +85,37 @@ class CourierWalletService
                 ->limit(8)
                 ->get(),
         ];
+    }
+
+    /**
+     * Totales de ganancias por dia o semana, del periodo mas antiguo al actual.
+     *
+     * @param  Builder<CourierWalletMovement>  $earningsQuery
+     * @return array<int, array{start: string, total: float}>
+     */
+    private function earningsSeries($earningsQuery, int $periods, string $unit): array
+    {
+        $start = $unit === 'week'
+            ? now()->startOfWeek()->subWeeks($periods - 1)
+            : today()->subDays($periods - 1);
+
+        $movements = (clone $earningsQuery)
+            ->where('created_at', '>=', $start)
+            ->get(['amount', 'created_at']);
+
+        return collect(range(0, $periods - 1))
+            ->map(function (int $offset) use ($start, $unit, $movements): array {
+                $from = $unit === 'week' ? $start->copy()->addWeeks($offset) : $start->copy()->addDays($offset);
+                $to = $unit === 'week' ? $from->copy()->endOfWeek() : $from->copy()->endOfDay();
+
+                return [
+                    'start' => $from->toDateString(),
+                    'total' => round((float) $movements
+                        ->filter(fn (CourierWalletMovement $movement): bool => $movement->created_at->between($from, $to))
+                        ->sum('amount'), 2),
+                ];
+            })
+            ->all();
     }
 
     /**

@@ -8,6 +8,9 @@ use App\Models\Categoria;
 use App\Models\Producto;
 use App\Models\Resena;
 use App\Models\Vendor;
+use App\Services\Monetizacion\PlanesVendedorService;
+use App\Support\CategoriasNegocio;
+use App\Support\HorarioTienda;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -23,10 +26,7 @@ class ComercioController extends Controller
     public function index(Request $request): View
     {
         $search = trim((string) $request->query('q', ''));
-        $municipio = trim((string) $request->query(
-            'municipio',
-            $request->session()->get('cliente_municipio', 'Puerto Barrios')
-        ));
+        $municipio = trim((string) $request->query('municipio', ''));
         $categoriaId = $request->integer('categoria') ?: null;
         $categoriaIds = $categoriaId === null
             ? null
@@ -62,6 +62,11 @@ class ComercioController extends Controller
                     $nested
                         ->where('business_name', 'like', "%{$search}%")
                         ->orWhere('business_category', 'like', "%{$search}%")
+                        ->when(CategoriasNegocio::buscar($search) !== [], function (Builder $porCategoria) use ($search): void {
+                            foreach (CategoriasNegocio::buscar($search) as $clave) {
+                                $porCategoria->orWhereJsonContains('categorias_negocio', $clave);
+                            }
+                        })
                         ->orWhere('descripcion', 'like', "%{$search}%")
                         ->orWhereHas('productos', function (Builder $productQuery) use ($search): void {
                             $productQuery
@@ -85,6 +90,9 @@ class ComercioController extends Controller
                     ->where('activa', true)
                     ->where('tiempo_estimado_min', '<=', $deliveryTime));
             })
+            /* Beneficio de los planes Corporativo y Personalizado: sus tiendas van primero en el listado. */
+            ->when(in_array($sort, ['popularidad', 'catalogo'], true), fn (Builder $query) => $query
+                ->orderByRaw('CASE WHEN plan IN ('.implode(',', array_map(fn ($p) => "'".addslashes($p)."'", PlanesVendedorService::planesConPrioridad() ?: ['-'])).') AND plan_hasta > ? THEN 0 ELSE 1 END', [now()]))
             ->when($sort === 'popularidad', fn (Builder $query) => $query
                 ->orderByDesc('productos_publicados_count')
                 ->orderBy('business_name'))
@@ -173,15 +181,6 @@ class ComercioController extends Controller
             ->when(! in_array($sort, ['precio_asc', 'precio_desc', 'nombre'], true), fn (Builder $query) => $query->orderByDesc('publicado_at')->orderBy('nombre'))
             ->get();
 
-        $activeCategory = $categoryId === null
-            ? null
-            : $availableCategories->firstWhere('id', $categoryId);
-        $productsByCategory = $this->storefrontCarousels(
-            products: $products,
-            isFiltered: $search !== '' || $categoryId !== null || $offersOnly,
-            activeCategoryName: $activeCategory?->nombre,
-        );
-
         $ratings = $this->ratingsForVendors(collect([$vendor->id]));
         $rating = $ratings->get($vendor->id, ['rating' => null, 'total' => 0]);
         $deliveryFee = $vendor->vendorDeliveryZones->min('costo_override');
@@ -194,7 +193,7 @@ class ComercioController extends Controller
         return view('cliente.comercios.show', [
             'vendor' => $vendor,
             'products' => $products,
-            'productsByCategory' => $productsByCategory,
+            'horario' => HorarioTienda::estado($vendor),
             'availableCategories' => $availableCategories,
             'rating' => $rating,
             'deliveryFee' => $deliveryFee === null ? null : (float) $deliveryFee,
@@ -226,40 +225,6 @@ class ComercioController extends Controller
         }
 
         return $query->where('session_id', $request->session()->getId())->first();
-    }
-
-    /**
-     * Mantiene la portada del comercio ligera y deja el catalogo completo
-     * accesible mediante busqueda y categorias.
-     *
-     * @param  Collection<int, Producto>  $products
-     * @return Collection<string, Collection<int, Producto>>
-     */
-    private function storefrontCarousels(
-        Collection $products,
-        bool $isFiltered,
-        ?string $activeCategoryName,
-    ): Collection {
-        if ($isFiltered) {
-            return collect([
-                $activeCategoryName ?: 'Resultados' => $products->take(30)->values(),
-            ])->filter(fn (Collection $items): bool => $items->isNotEmpty());
-        }
-
-        $carousels = collect([
-            'Productos destacados' => $products->take(14)->values(),
-        ]);
-        $offers = $products
-            ->filter(fn (Producto $product): bool => $product->precio_oferta !== null
-                && (float) $product->precio_oferta < (float) $product->precio_base)
-            ->take(14)
-            ->values();
-
-        if ($offers->isNotEmpty()) {
-            $carousels->put('Ofertas de la tienda', $offers);
-        }
-
-        return $carousels->filter(fn (Collection $items): bool => $items->isNotEmpty());
     }
 
     /**

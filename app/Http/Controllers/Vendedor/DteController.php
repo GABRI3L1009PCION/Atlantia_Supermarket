@@ -5,11 +5,16 @@ namespace App\Http\Controllers\Vendedor;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Vendedor\Dte\AnularDteRequest;
 use App\Models\Dte\DteFactura;
+use App\Models\Pedido;
 use App\Services\Fel\DteAnulacionService;
 use App\Services\Fel\ReporteFiscalService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Controlador de DTE propios del vendedor.
@@ -31,7 +36,78 @@ class DteController extends Controller
     {
         $this->authorize('viewOwnDtes', DteFactura::class);
 
-        return view('vendedor.dte.index', ['dtes' => $this->reporteFiscalService->paginateForVendor($request->user())]);
+        $filtros = $request->only(['estado', 'fecha_desde', 'fecha_hasta']);
+        $filtros['estado'] = in_array($filtros['estado'] ?? null, ['certificado', 'anulado', 'rechazado', 'borrador'], true) ? $filtros['estado'] : null;
+
+        return view('vendedor.dte.index', [
+            'dtes' => $this->reporteFiscalService->paginateForVendor($request->user(), array_filter($filtros))->withQueryString(),
+            'filtros' => $filtros,
+            'perfil' => $request->user()->vendor?->fiscalProfile,
+            'delMes' => DteFactura::query()->where('vendor_id', $request->user()->vendor?->id)->where('estado', 'certificado')
+                ->where('created_at', '>=', now()->startOfMonth())->selectRaw('count(*) as n, coalesce(sum(monto_total), 0) as total')->first(),
+            'mes' => $mes = self::mes($request),
+            'resumenMes' => self::facturasDelMes($request->user()->vendor?->id, $mes)
+                ->selectRaw('count(*) as n, coalesce(sum(monto_neto), 0) as neto, coalesce(sum(monto_iva), 0) as iva, coalesce(sum(monto_total), 0) as total')->first(),
+            /* Ventas entregadas sin factura (para que la tienda no se olvide de ninguna). */
+            'sinFactura' => Pedido::query()->where('vendor_id', $request->user()->vendor?->id)
+                ->where('estado', 'entregado')->where('created_at', '>=', now()->subDays(60))
+                ->whereDoesntHave('dteFacturas', fn ($q) => $q->where('estado', 'certificado'))
+                ->latest('id')->limit(8)->get(['id', 'uuid', 'numero_pedido', 'pedido_padre_id', 'subtotal', 'descuento', 'created_at']),
+        ]);
+    }
+
+    /**
+     * Facturas del mes en un archivo para Excel: lo que la tienda lleva a su contador o declara ante la SAT.
+     */
+    public function exportar(Request $request): StreamedResponse
+    {
+        $this->authorize('viewOwnDtes', DteFactura::class);
+        $vendor = $request->user()->vendor;
+        $mes = self::mes($request);
+
+        $facturas = self::facturasDelMes($vendor?->id, $mes)->with('pedido.pedidoPadre')->orderBy('fecha_certificacion')->get();
+
+        return response()->streamDownload(function () use ($facturas): void {
+            $salida = fopen('php://output', 'w');
+            fwrite($salida, "\xEF\xBB\xBF");
+            fputcsv($salida, ['Fecha', 'Serie', 'Número', 'Autorización SAT', 'NIT cliente', 'Nombre cliente', 'Sin IVA', 'IVA', 'Total', 'Pedido', 'Origen'], ';');
+            foreach ($facturas as $f) {
+                $pedido = $f->pedido;
+                $padre = $pedido?->pedidoPadre ?? $pedido;
+                fputcsv($salida, [
+                    ($f->fecha_certificacion ?? $f->created_at)?->format('d/m/Y'),
+                    $f->serie,
+                    $f->numero,
+                    $f->uuid_sat,
+                    $pedido?->facturacion_nit ?: ($padre?->facturacion_nit ?: 'CF'),
+                    $pedido?->facturacion_nombre ?: ($padre?->facturacion_nombre ?: 'Consumidor final'),
+                    number_format((float) $f->monto_neto, 2, '.', ''),
+                    number_format((float) $f->monto_iva, 2, '.', ''),
+                    number_format((float) $f->monto_total, 2, '.', ''),
+                    $padre?->numero_pedido,
+                    $f->origen === 'manual' ? 'Registrada por la tienda' : 'Automática',
+                ], ';');
+            }
+            fclose($salida);
+        }, 'facturas-'.$mes->format('Y-m').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    private static function mes(Request $request): Carbon
+    {
+        $valor = (string) $request->query('mes', '');
+
+        return preg_match('/^\d{4}-\d{2}$/', $valor) === 1
+            ? Carbon::createFromFormat('Y-m-d', $valor.'-01')->startOfMonth()
+            : now()->startOfMonth();
+    }
+
+    /**
+     * @return Builder<DteFactura>
+     */
+    private static function facturasDelMes(?int $vendorId, Carbon $mes): Builder
+    {
+        return DteFactura::query()->where('vendor_id', $vendorId)->where('estado', 'certificado')
+            ->whereBetween(DB::raw('coalesce(fecha_certificacion, created_at)'), [$mes->copy()->startOfMonth(), $mes->copy()->endOfMonth()]);
     }
 
     /**

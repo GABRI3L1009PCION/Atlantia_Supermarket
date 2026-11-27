@@ -12,10 +12,12 @@ use App\Exceptions\PagoRechazadoException;
 use App\Models\Payment;
 use App\Models\Pedido;
 use App\Services\Inventario\StockService;
+use App\Services\Pagos\Recurrente\RecurrenteClient;
 use App\Services\Pedidos\EstadoPedidoService;
+use App\ValueObjects\Dinero;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Servicio de pagos con contrato intercambiable de pasarela.
@@ -27,7 +29,8 @@ class PasarelaPagoService implements PasarelaPagoContract
      */
     public function __construct(
         private readonly StockService $stockService,
-        private readonly EstadoPedidoService $estadoPedidoService
+        private readonly EstadoPedidoService $estadoPedidoService,
+        private readonly RecurrenteClient $recurrenteClient
     ) {}
 
     /**
@@ -40,16 +43,18 @@ class PasarelaPagoService implements PasarelaPagoContract
     {
         return DB::transaction(function () use ($pedido, $pedidoDTO): Payment {
             $metodo = $pedidoDTO->metodoPago->value;
+            $paymentUuid = (string) Str::uuid();
             $resultado = $this->procesar([
                 'pedido' => $pedido,
                 'pedido_dto' => $pedidoDTO,
+                'payment_uuid' => $paymentUuid,
             ]);
 
             $payment = Payment::query()->create([
-                'uuid' => (string) Str::uuid(),
+                'uuid' => $paymentUuid,
                 'pedido_id' => $pedido->id,
                 'metodo' => $metodo,
-                'monto' => $pedido->total,
+                'monto' => $pedido->montoACobrar(),
                 'estado' => $resultado->estado->value,
                 'transaccion_id_pasarela' => $resultado->transaccionIdPasarela,
                 'hmac_validado' => $resultado->hmacValidado,
@@ -79,7 +84,9 @@ class PasarelaPagoService implements PasarelaPagoContract
             throw new PagoRechazadoException('No se recibio el contexto requerido para procesar el pago.');
         }
 
-        return $this->procesarSegunMetodo($pedido, $pedidoDTO->metodoPago->value, $pedidoDTO);
+        $paymentUuid = (string) ($datos['payment_uuid'] ?? Str::uuid());
+
+        return $this->procesarSegunMetodo($pedido, $pedidoDTO->metodoPago->value, $pedidoDTO, $paymentUuid);
     }
 
     /**
@@ -125,35 +132,75 @@ class PasarelaPagoService implements PasarelaPagoContract
             }
 
             $estado = $this->estadoDesdeWebhook($payload);
-            $payloadAnterior = $payment->pasarela_payload ?? [];
 
-            $payment->update([
-                'estado' => $estado->value,
-                'transaccion_id_pasarela' => $payment->transaccion_id_pasarela ?: ($transactionId ?: null),
-                'hmac_validado' => true,
-                'validado_at' => in_array($estado, [
-                    EstadoPago::Aprobado,
-                    EstadoPago::Pagado,
-                    EstadoPago::Rechazado,
-                    EstadoPago::Anulado,
-                    EstadoPago::Reembolsado,
-                ], true) ? now() : $payment->validado_at,
-                'pasarela_payload' => [
-                    ...$payloadAnterior,
-                    'webhook' => $payload,
-                ],
-            ]);
-            if ($payment->pedido !== null) {
-                $this->syncPedidoTreeEstadoPago($payment->pedido, $this->estadoPedidoPago($payment->estado));
-
-                if (in_array($estado, [EstadoPago::Rechazado, EstadoPago::Anulado], true)) {
-                    $this->stockService->releaseForPedido($payment->pedido);
-                    $this->cancelPedidoTree($payment->pedido, 'Pedido cancelado por webhook de pago rechazado.');
-                }
-            }
-
-            return $payment->refresh();
+            return $this->aplicarEstado($payment, $estado, $transactionId ?: null, ['webhook' => $payload]);
         });
+    }
+
+    /**
+     * Actualiza el estado de un pago a partir de una pasarela ya verificada.
+     *
+     * Devuelve el pago actualizado y el estado que tenia antes del cambio, para que
+     * quien llama ejecute efectos una sola vez (confirmar pedido, facturar).
+     *
+     * @param  array<string, mixed>  $payloadExtra
+     * @return array{0: Payment, 1: EstadoPago}
+     */
+    public function actualizarEstadoPasarela(Payment $payment, EstadoPago $estado, array $payloadExtra = []): array
+    {
+        return DB::transaction(function () use ($payment, $estado, $payloadExtra): array {
+            $payment = Payment::query()
+                ->with(['pedido.pedidosHijos'])
+                ->whereKey($payment->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $anterior = $payment->estado;
+
+            return [$this->aplicarEstado($payment, $estado, null, $payloadExtra), $anterior];
+        });
+    }
+
+    /**
+     * Aplica una transicion de estado sobre un pago ya bloqueado.
+     *
+     * @param  array<string, mixed>  $payloadExtra
+     */
+    private function aplicarEstado(Payment $payment, EstadoPago $estado, ?string $transactionId, array $payloadExtra): Payment
+    {
+        if (in_array($payment->estado, [EstadoPago::Reembolsado, EstadoPago::Anulado], true)
+            || (in_array($payment->estado, [EstadoPago::Aprobado, EstadoPago::Pagado], true) && $estado === EstadoPago::Validando)) {
+            return $payment;
+        }
+
+        $payloadAnterior = $payment->pasarela_payload ?? [];
+
+        $payment->update([
+            'estado' => $estado->value,
+            'transaccion_id_pasarela' => $payment->transaccion_id_pasarela ?: $transactionId,
+            'hmac_validado' => true,
+            'validado_at' => in_array($estado, [
+                EstadoPago::Aprobado,
+                EstadoPago::Pagado,
+                EstadoPago::Rechazado,
+                EstadoPago::Anulado,
+                EstadoPago::Reembolsado,
+            ], true) ? now() : $payment->validado_at,
+            'pasarela_payload' => [
+                ...$payloadAnterior,
+                ...$payloadExtra,
+            ],
+        ]);
+
+        if ($payment->pedido !== null) {
+            $this->syncPedidoTreeEstadoPago($payment->pedido, $this->estadoPedidoPago($payment->estado));
+
+            if (in_array($estado, [EstadoPago::Rechazado, EstadoPago::Anulado], true)) {
+                $this->stockService->releaseForPedido($payment->pedido);
+                $this->cancelPedidoTree($payment->pedido, 'Pedido cancelado por pago rechazado o vencido.');
+            }
+        }
+
+        return $payment->refresh();
     }
 
     /**
@@ -163,8 +210,17 @@ class PasarelaPagoService implements PasarelaPagoContract
      *
      * @throws PagoRechazadoException
      */
-    private function procesarSegunMetodo(Pedido $pedido, string $metodo, PedidoDTO $pedidoDTO): PagoResultado
+    private function procesarSegunMetodo(Pedido $pedido, string $metodo, PedidoDTO $pedidoDTO, string $paymentUuid): PagoResultado
     {
+        if ($metodo === MetodoPago::Tarjeta->value && RecurrenteClient::habilitado()) {
+            $cliente = $pedido->cliente;
+            if ($pedidoDTO->usarTarjetaGuardada && filled($cliente?->recurrente_customer_id) && filled($cliente?->recurrente_metodo_pago_id)) {
+                return $this->cobrarTarjetaGuardada($pedido, $paymentUuid);
+            }
+
+            return $this->crearCheckoutRecurrente($pedido, $paymentUuid);
+        }
+
         return match ($metodo) {
             MetodoPago::Tarjeta->value => new PagoResultado(
                 estado: EstadoPago::Pendiente,
@@ -174,7 +230,7 @@ class PasarelaPagoService implements PasarelaPagoContract
                 payload: [
                     'gateway' => 'manual_pos',
                     'collection_flow' => 'pos_on_delivery',
-                    'amount_due_on_delivery' => (float) $pedido->total,
+                    'amount_due_on_delivery' => $pedido->montoACobrar(),
                     'requires_pos_terminal' => true,
                     'customer_message' => 'El repartidor cobrara con terminal POS al momento de la entrega.',
                 ],
@@ -185,7 +241,7 @@ class PasarelaPagoService implements PasarelaPagoContract
                 payload: [
                     'gateway' => 'manual_transfer',
                     'collection_flow' => 'bank_transfer_on_delivery',
-                    'amount_due_on_delivery' => (float) $pedido->total,
+                    'amount_due_on_delivery' => $pedido->montoACobrar(),
                     'reference_hint' => $pedidoDTO->referenciaBancaria,
                     'customer_message' => 'La transferencia se confirma al momento de entregar el pedido.',
                 ],
@@ -195,7 +251,7 @@ class PasarelaPagoService implements PasarelaPagoContract
                 payload: [
                     'gateway' => 'cash_on_delivery',
                     'collection_flow' => 'cash_on_delivery',
-                    'amount_due_on_delivery' => (float) $pedido->total,
+                    'amount_due_on_delivery' => $pedido->montoACobrar(),
                     'change_requested' => $pedidoDTO->solicitaCambio,
                     'change_requested_for' => $pedidoDTO->cambioPara,
                     'change_required' => $this->calculateChangeRequired($pedido, $pedidoDTO),
@@ -209,43 +265,168 @@ class PasarelaPagoService implements PasarelaPagoContract
     }
 
     /**
-     * Solicita reembolso en Stripe cuando existe PaymentIntent.
+     * Cobro con un toque usando la tarjeta guardada en Recurrente (POST /one_time_payments).
+     * Si Recurrente no confirma el cobro, el cliente puede pagar con el checkout normal.
+     *
+     * @throws PagoRechazadoException
      */
-    public function reembolsar(Payment $payment, float $monto): Payment
+    private function cobrarTarjetaGuardada(Pedido $pedido, string $paymentUuid): PagoResultado
     {
-        return DB::transaction(function () use ($payment, $monto): Payment {
-            $payment->refresh();
-            $payload = $payment->pasarela_payload ?? [];
+        $totalCents = Dinero::from($pedido->montoACobrar())->toCents();
+        if ($totalCents < 500) {
+            throw new PagoRechazadoException('El pago con tarjeta en linea requiere un total minimo de Q 5.00.');
+        }
 
-            if ($payment->metodo === MetodoPago::Tarjeta && ($payload['stripe_payment_intent'] ?? null)) {
-                $secret = (string) config('services.stripe.secret_key');
+        $cobro = $this->recurrenteClient->cobrarTarjetaGuardada(
+            (string) $pedido->cliente->recurrente_customer_id,
+            (string) $pedido->cliente->recurrente_metodo_pago_id,
+            [[
+                'name' => 'Pedido Atlantia '.$pedido->numero_pedido,
+                'amount_in_cents' => $totalCents,
+                'currency' => 'GTQ',
+                'quantity' => 1,
+            ]],
+            'cobro-'.$paymentUuid
+        );
 
-                if ($secret === '') {
-                    throw new PagoRechazadoException('Stripe no esta configurado para reembolsos.');
-                }
+        if (($cobro['status'] ?? null) !== 'paid') {
+            throw new PagoRechazadoException('Tu banco no aprobó el cobro con la tarjeta guardada. Prueba con otra tarjeta.');
+        }
 
-                $response = Http::asForm()
-                    ->withToken($secret)
-                    ->timeout(20)
-                    ->post('https://api.stripe.com/v1/refunds', [
-                        'payment_intent' => $payload['stripe_payment_intent'],
-                        'amount' => (int) round($monto * 100),
-                    ]);
+        return new PagoResultado(
+            estado: EstadoPago::Pagado,
+            transaccionIdPasarela: (string) ($cobro['id'] ?? ''),
+            hmacValidado: true,
+            validadoAt: now(),
+            payload: [
+                'gateway' => 'recurrente',
+                'collection_flow' => 'saved_card',
+                'recurrente_one_time_payment_id' => $cobro['id'] ?? null,
+                'customer_message' => 'Pagado con tu tarjeta guardada.',
+            ],
+        );
+    }
 
-                if (! $response->successful()) {
-                    throw new PagoRechazadoException(
-                        (string) ($response->json('error.message') ?: 'Stripe rechazo el reembolso.')
-                    );
-                }
+    /**
+     * Crea el checkout alojado de Recurrente. El pago queda pendiente hasta que
+     * el webhook o la verificacion del servidor confirmen el cobro.
+     *
+     * @throws PagoRechazadoException
+     */
+    private function crearCheckoutRecurrente(Pedido $pedido, string $paymentUuid): PagoResultado
+    {
+        $totalCents = Dinero::from($pedido->montoACobrar())->toCents();
 
-                $payload['stripe_refund'] = $response->json();
+        if ($totalCents < 500) {
+            throw new PagoRechazadoException('El pago con tarjeta en linea requiere un total minimo de Q 5.00.');
+        }
+
+        $expiresAt = now()->addMinutes(max(15, (int) config('services.recurrente.checkout_expires_minutes', 30)));
+        $checkout = $this->recurrenteClient->crearCheckout(
+            items: [[
+                'name' => 'Pedido Atlantia '.$pedido->numero_pedido,
+                'amount_in_cents' => $totalCents,
+                'currency' => (string) config('services.recurrente.currency', 'GTQ'),
+                'quantity' => 1,
+            ]],
+            successUrl: route('cliente.pagos.recurrente.retorno', ['payment' => $paymentUuid]),
+            cancelUrl: route('cliente.pagos.recurrente.cancelado', ['payment' => $paymentUuid]),
+            metadata: [
+                'payment_uuid' => $paymentUuid,
+                'pedido_uuid' => (string) $pedido->uuid,
+                'numero_pedido' => (string) $pedido->numero_pedido,
+            ],
+            expiresAt: $expiresAt,
+            idempotencyKey: 'checkout-'.$paymentUuid,
+        );
+
+        return new PagoResultado(
+            estado: EstadoPago::Pendiente,
+            transaccionIdPasarela: (string) $checkout['id'],
+            payload: [
+                'gateway' => 'recurrente',
+                'collection_flow' => 'online_checkout',
+                'recurrente_checkout_id' => (string) $checkout['id'],
+                'checkout_url' => (string) $checkout['checkout_url'],
+                'checkout_expires_at' => $expiresAt->toIso8601String(),
+                'amount_in_cents' => $totalCents,
+                'live_mode' => (bool) ($checkout['live_mode'] ?? false),
+                'customer_message' => 'Completa el pago con tarjeta en la pagina segura de Recurrente.',
+            ],
+        );
+    }
+
+    /**
+     * Solicita el reembolso en Recurrente cuando el pago se cobro en linea.
+     */
+    /**
+     * @param  bool  $porPartes  true solo cuando una tienda cancela su parte: el pago sigue acreditado por el resto
+     *                           y admite otra devolución hasta completar lo cobrado. Sin él, la primera devolución cierra el pago.
+     */
+    public function reembolsar(Payment $payment, float $monto, bool $porPartes = false): Payment
+    {
+        return DB::transaction(function () use ($payment, $monto, $porPartes): Payment {
+            $payment = Payment::query()->whereKey($payment->id)->lockForUpdate()->firstOrFail();
+            $importe = Dinero::from($monto);
+            /* Un pago puede devolverse por partes (por ejemplo, si cancela solo una de las tiendas del pedido). */
+            $yaDevuelto = Dinero::from((float) (($payment->pasarela_payload ?? [])['refund_total'] ?? 0));
+            $disponible = Dinero::from($payment->monto)->toCents() - $yaDevuelto->toCents();
+
+            if (! is_finite($monto) || $importe->toCents() <= 0 || $importe->toCents() > $disponible) {
+                throw ValidationException::withMessages([
+                    'monto_reembolso' => 'El reembolso debe ser mayor a cero y no puede superar lo que queda por devolver del pago.',
+                ]);
             }
 
+            if (! in_array($payment->estado, [EstadoPago::Aprobado, EstadoPago::Pagado], true)) {
+                throw ValidationException::withMessages([
+                    'monto_reembolso' => 'Solo se puede reembolsar un pago acreditado que no haya sido reembolsado.',
+                ]);
+            }
+            $payload = $payment->pasarela_payload ?? [];
+
+            if (($payload['gateway'] ?? null) === 'recurrente') {
+                $intentId = (string) ($payload['recurrente_intent_id'] ?? '');
+
+                if ($intentId === '') {
+                    throw new PagoRechazadoException('El pago en linea no tiene un intent de Recurrente para reembolsar.');
+                }
+
+                $esTotal = $yaDevuelto->toCents() === 0 && $importe->toCents() === Dinero::from($payment->monto)->toCents();
+                $numero = count((array) ($payload['refunds'] ?? [])) + 1;
+                $refund = $this->recurrenteClient->reembolsar(
+                    $intentId,
+                    $esTotal ? null : $importe->toCents(),
+                    $numero === 1 ? 'refund-'.$payment->uuid : 'refund-'.$payment->uuid.'-'.$numero
+                );
+
+                if (in_array($refund['status'] ?? null, ['failed', 'voided'], true)) {
+                    throw new PagoRechazadoException('Recurrente no pudo procesar el reembolso. Revisa el pago en su panel.');
+                }
+
+                $payload['recurrente_refund'] = [
+                    'id' => $refund['id'] ?? null,
+                    'status' => $refund['status'] ?? null,
+                    'failure_reason' => $refund['failure_reason'] ?? null,
+                    'customer_refunded_amount_in_cents' => $refund['customer_refunded_amount_in_cents'] ?? null,
+                ];
+            }
+
+            $total = $yaDevuelto->add($importe);
+            $completo = ! $porPartes || $total->toCents() >= Dinero::from($payment->monto)->toCents();
+
             $payment->update([
-                'estado' => EstadoPago::Reembolsado->value,
-                'pasarela_payload' => $payload,
+                /* Si solo se devolvió una parte, el pago sigue acreditado por el resto. */
+                'estado' => $completo ? EstadoPago::Reembolsado->value : $payment->estadoValor(),
+                'pasarela_payload' => [
+                    ...$payload,
+                    'refund_amount' => $importe->toDecimal(),
+                    'refund_total' => $total->toDecimal(),
+                    'refunds' => [...(array) ($payload['refunds'] ?? []), ['monto' => $importe->toDecimal(), 'at' => now()->toIso8601String()]],
+                    'refunded_at' => now()->toIso8601String(),
+                ],
             ]);
-            if ($payment->pedido !== null) {
+            if ($completo && $payment->pedido !== null) {
                 $this->syncPedidoTreeEstadoPago($payment->pedido, EstadoPago::Reembolsado);
             }
 
@@ -323,8 +504,8 @@ class PasarelaPagoService implements PasarelaPagoContract
             ->toString();
 
         return match ($status) {
-            'approved', 'aprobado', 'paid', 'pagado', 'succeeded', 'processing', 'requires_capture' => EstadoPago::Aprobado,
-            'pending', 'pendiente', 'validando', 'in_review', 'review' => EstadoPago::Validando,
+            'approved', 'aprobado', 'paid', 'pagado', 'succeeded' => EstadoPago::Aprobado,
+            'pending', 'pendiente', 'validando', 'in_review', 'review', 'processing', 'requires_capture' => EstadoPago::Validando,
             'rejected', 'rechazado', 'failed', 'declined', 'canceled', 'cancelled', 'cancelado' => EstadoPago::Rechazado,
             'refunded', 'reembolsado' => EstadoPago::Reembolsado,
             'reversed', 'reversado', 'voided', 'anulado' => EstadoPago::Anulado,
@@ -338,10 +519,10 @@ class PasarelaPagoService implements PasarelaPagoContract
             return 0;
         }
 
-        if ($pedidoDTO->cambioPara <= (float) $pedido->total) {
+        if ($pedidoDTO->cambioPara <= $pedido->montoACobrar()) {
             throw new PagoRechazadoException('La denominacion para cambio debe ser mayor al total del pedido.');
         }
 
-        return round($pedidoDTO->cambioPara - (float) $pedido->total, 2);
+        return round($pedidoDTO->cambioPara - $pedido->montoACobrar(), 2);
     }
 }

@@ -37,7 +37,7 @@ class SecurityHeaders
             return $response;
         }
 
-        if ($request->routeIs(
+        if ($request->is('api/*') || $request->user() !== null || $request->routeIs(
             'home',
             'catalogo.*',
             'productos.show',
@@ -54,11 +54,17 @@ class SecurityHeaders
             $response->headers->set('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
         }
 
-        $response->headers->set('X-Frame-Options', 'DENY');
+        /*
+         * Los documentos de vendedores se muestran en el visor del panel (un iframe
+         * del mismo sitio). Solo esa ruta puede enmarcarse, y solo desde este sitio.
+         */
+        $enmarcable = $request->routeIs('admin.vendedores.documents.show') && $request->boolean('ver');
+
+        $response->headers->set('X-Frame-Options', $enmarcable ? 'SAMEORIGIN' : 'DENY');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('X-Permitted-Cross-Domain-Policies', 'none');
-        if ($request->is('api/*')) {
+        if ($request->is('api/*') && app()->environment('local')) {
             $response->headers->set('Access-Control-Allow-Private-Network', 'true');
         }
         /* En desarrollo con ngrok se amplía la política de geolocalización */
@@ -67,7 +73,13 @@ class SecurityHeaders
             : 'geolocation=(self), camera=(), microphone=()';
         $response->headers->set('Permissions-Policy', $geoPolicy);
 
-        $response->headers->set('Content-Security-Policy', $this->contentSecurityPolicy($nonce));
+        $politica = $this->contentSecurityPolicy($nonce);
+
+        if ($enmarcable) {
+            $politica = str_replace("frame-ancestors 'none'", "frame-ancestors 'self'", $politica);
+        }
+
+        $response->headers->set('Content-Security-Policy', $politica);
 
         if (app()->environment('production') && $request->secure()) {
             $response->headers->set(
@@ -87,29 +99,35 @@ class SecurityHeaders
         $scriptSrc = [
             "'self'",
             "'nonce-{$nonce}'",
+            /*
+             * Livewire 3 incluye Alpine, que evalua las expresiones de x-data, @click y wire:
+             * con new Function(). Sin 'unsafe-eval' toda la interactividad del sitio se cae en
+             * produccion. El nonce sigue impidiendo que se ejecuten scripts inyectados.
+             */
+            "'unsafe-eval'",
             'https://api.mapbox.com',
             'https://maps.googleapis.com',
             'https://maps.gstatic.com',
-            'https://js.stripe.com',
-            'https://*.js.stripe.com',
         ];
         $connectSrc = [
             "'self'",
             'https://api.mapbox.com',
             'https://events.mapbox.com',
-            'https://api.stripe.com',
             'https://maps.googleapis.com',
             'https://maps.gstatic.com',
         ];
         $frameSrc = [
             "'self'",
-            'https://js.stripe.com',
-            'https://*.js.stripe.com',
-            'https://hooks.stripe.com',
         ];
 
+        /* Calculo de rutas (OSRM) para el seguimiento en vivo del pedido. */
+        $routing = parse_url((string) config('services.mapas.routing_url'));
+        if (isset($routing['scheme'], $routing['host']) && in_array($routing['scheme'], ['https', 'http'], true)) {
+            $connectSrc[] = $routing['scheme'].'://'.$routing['host'].(isset($routing['port']) ? ':'.$routing['port'] : '');
+        }
+
         if (app()->environment('local')) {
-            array_push($scriptSrc, "'unsafe-eval'", 'http://127.0.0.1:5173', 'http://localhost:5173', 'https://*.ngrok-free.dev', 'https://*.ngrok-free.app', 'https://*.ngrok.io');
+            array_push($scriptSrc, 'http://127.0.0.1:5173', 'http://localhost:5173', 'https://*.ngrok-free.dev', 'https://*.ngrok-free.app', 'https://*.ngrok.io');
             array_push(
                 $connectSrc,
                 'http://127.0.0.1:5173',
@@ -126,12 +144,20 @@ class SecurityHeaders
         $ngrokDomains = "'self' https://*.ngrok-free.dev https://*.ngrok-free.app https://*.ngrok.io https://*.ngrok.app";
         $selfOrAny = app()->environment('local') ? $ngrokDomains : "'self'";
 
+        /* El checkout redirige a la pagina alojada de Recurrente: form-action debe permitirla. */
+        $paymentDomains = collect(config('services.recurrente.checkout_domains', []))
+            ->filter(fn (mixed $domain): bool => is_string($domain) && str_starts_with($domain, 'https://'))
+            ->implode(' ');
+        $formAction = trim($selfOrAny.' '.$paymentDomains);
+        /* Checkout embebido de Recurrente dentro de la pagina de pago. */
+        $frameSrc = array_merge($frameSrc, array_filter(explode(' ', $paymentDomains)));
+
         return implode('; ', [
             "default-src 'self'",
             "base-uri 'self'",
             "frame-ancestors 'none'",
             "object-src 'none'",
-            "form-action {$selfOrAny}",
+            "form-action {$formAction}",
             "img-src 'self' data: blob: https:",
             "font-src 'self' data: https://fonts.gstatic.com",
             "style-src 'self' 'unsafe-inline' https://api.mapbox.com https://fonts.googleapis.com https://fonts.gstatic.com",

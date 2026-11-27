@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Dte\DteFactura;
+use App\Support\CategoriasNegocio;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -43,6 +44,7 @@ class Vendor extends Model
         'slug',
         'descripcion',
         'business_category',
+        'categorias_negocio',
         'has_nit',
         'logo_path',
         'cover_path',
@@ -70,6 +72,25 @@ class Vendor extends Model
         'accepts_cash',
         'accepts_transfer',
         'accepts_card',
+        'hora_apertura',
+        'hora_cierre',
+        'pausado_hasta',
+        'pausa_motivo',
+        'pagos_retenidos_at',
+        'motivo_retencion',
+        'revision_automatica',
+        'tiempo_preparacion_min',
+        'pedido_minimo',
+        'alerta_sonora_pedidos',
+        'plan',
+        'plan_hasta',
+        'plan_suscripcion_id',
+        'limite_productos',
+        'prueba_plan',
+        'prueba_hasta',
+        'prueba_usada_at',
+        'prueba_aviso_previo_at',
+        'prueba_aviso_fin_at',
     ];
 
     /**
@@ -87,6 +108,7 @@ class Vendor extends Model
             'has_nit' => 'boolean',
             'business_address' => 'array',
             'banking_info' => 'array',
+            'categorias_negocio' => 'array',
             'documents' => 'array',
             'is_approved' => 'boolean',
             'approved_at' => 'datetime',
@@ -97,10 +119,78 @@ class Vendor extends Model
             'commission_percentage' => 'decimal:2',
             'monthly_rent' => 'decimal:2',
             'accepts_cash' => 'boolean',
+            'pausado_hasta' => 'datetime',
+            'pagos_retenidos_at' => 'datetime',
+            'revision_automatica' => 'array',
+            'tiempo_preparacion_min' => 'integer',
+            'pedido_minimo' => 'decimal:2',
+            'alerta_sonora_pedidos' => 'boolean',
+            'plan_hasta' => 'datetime',
+            'prueba_hasta' => 'datetime',
+            'prueba_usada_at' => 'datetime',
+            'prueba_aviso_previo_at' => 'datetime',
+            'prueba_aviso_fin_at' => 'datetime',
             'accepts_transfer' => 'boolean',
             'accepts_card' => 'boolean',
             'deleted_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Denuncias de clientes contra la tienda.
+     *
+     * @return HasMany<DenunciaTienda>
+     */
+    public function denuncias(): HasMany
+    {
+        return $this->hasMany(DenunciaTienda::class);
+    }
+
+    /**
+     * Está usando su prueba gratis de la promoción de apertura.
+     */
+    public function enPrueba(): bool
+    {
+        return $this->prueba_hasta !== null && $this->prueba_hasta->isFuture();
+    }
+
+    /**
+     * Comisión que se cobra hoy por cada venta: durante la prueba gratis no se cobra.
+     */
+    public function comisionVigente(): float
+    {
+        return $this->enPrueba() ? 0.0 : (float) $this->commission_percentage;
+    }
+
+    /**
+     * Etiquetas de las categorías de la tienda (hasta 3). Si no eligió ninguna, usa la categoría antigua.
+     *
+     * @return array<int, string>
+     */
+    public function categoriasEtiquetas(): array
+    {
+        $claves = array_values(array_filter((array) ($this->categorias_negocio ?? [])));
+
+        if ($claves === []) {
+            $antigua = CategoriasNegocio::etiqueta($this->business_category);
+
+            return $antigua === null ? [] : [$antigua];
+        }
+
+        return array_values(array_filter(array_map(
+            static fn (string $clave): ?string => CategoriasNegocio::etiqueta($clave),
+            $claves,
+        )));
+    }
+
+    /**
+     * Categorías listas para mostrar: "Belleza y cuidado personal · Abarrotes y supermercado".
+     */
+    public function categoriaTexto(): ?string
+    {
+        $etiquetas = $this->categoriasEtiquetas();
+
+        return $etiquetas === [] ? null : implode(' · ', $etiquetas);
     }
 
     /**

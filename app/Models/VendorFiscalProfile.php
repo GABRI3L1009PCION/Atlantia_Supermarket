@@ -33,6 +33,7 @@ class VendorFiscalProfile extends Model
         'codigo_establecimiento',
         'afiliacion_iva',
         'certificador_fel',
+        'modo_facturacion',
         'fel_usuario',
         'fel_llave_firma',
         'fel_llave_certificador',
@@ -103,5 +104,14 @@ class VendorFiscalProfile extends Model
     public function scopeRegimenSat(Builder $query, string $regimen): Builder
     {
         return $query->where('regimen_sat', $regimen);
+    }
+
+    /**
+     * Cómo factura la tienda: "manual_sat" (en la SAT, y registra cada factura) o "certificador" (automática).
+     * Si nunca lo eligió: automática solo si su factura electrónica ya está activa.
+     */
+    public function modoFacturacion(): string
+    {
+        return $this->modo_facturacion ?: ($this->fel_activo ? 'certificador' : 'manual_sat');
     }
 }

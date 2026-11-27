@@ -11,6 +11,18 @@ Aplicacion hibrida Android para repartidores de Atlantia Delivery. Usa Capacitor
 
 ## Instalacion
 
+La configuración segura usa HTTPS por defecto. Para una prueba local por HTTP,
+establece `ATLANTIA_MOBILE_DEBUG_HTTP=true` antes de `npm run cap:sync` y compila
+la variante **debug**. El manifiesto de release siempre prohíbe HTTP.
+Al actualizar desde una versión que guardaba el token GPS sin cifrar, inicia
+sesión nuevamente; el token antiguo no se reutiliza.
+
+La firma release se configura exclusivamente con `ATLANTIA_ANDROID_KEYSTORE`,
+`ATLANTIA_ANDROID_STORE_PASSWORD`, `ATLANTIA_ANDROID_KEY_ALIAS` y
+`ATLANTIA_ANDROID_KEY_PASSWORD`. Sin esas variables, `preReleaseBuild` se detiene.
+No guardes la clave de firma ni sus contraseñas en Git. Ejecuta las pruebas
+instrumentadas `TrackingTokenStoreTest` en un dispositivo/emulador antes de publicar.
+
 ```bash
 cd mobile/repartidor
 npm install
@@ -43,6 +55,22 @@ La app la convierte automaticamente a `http://192.168.0.7:8000/api/repartidor`.
 
 Para produccion se debe configurar un dominio HTTPS estable, por ejemplo `https://api.tudominio.com/api/repartidor`, en lugar de una IP local.
 
+## Compilar sin Android Studio (Windows)
+
+Gradle usa `JAVA_HOME` (JDK 21) y `android/local.properties` (`sdk.dir`). No se fija
+una ruta de Java en `gradle.properties`, para que compile en cualquier PC o en CI.
+
+```powershell
+$env:JAVA_HOME = "C:\ruta\a\jdk-21"
+$env:ATLANTIA_MOBILE_DEBUG_HTTP = "true"   # solo para el APK debug de red local
+npx cap sync android
+cd android
+.\gradlew.bat assembleDebug
+```
+
+Para un release, vuelve a ejecutar `npx cap sync android` sin `ATLANTIA_MOBILE_DEBUG_HTTP`
+antes de `assembleRelease`; de lo contrario el APK quedaria con esquema HTTP.
+
 ## Funciones listas en esta base
 
 - Login seguro de repartidor con token Passport.
@@ -50,7 +78,11 @@ Para produccion se debe configurar un dominio HTTPS estable, por ejemplo `https:
 - Estado En linea / Desconectado.
 - Dashboard con ganancias, nivel, calificacion y pedidos.
 - Ofertas entrantes con aceptar o rechazar.
-- Flujo de pedido interno: llegue al comercio, pedido recogido, llegue al cliente y entrega con codigo.
+- Flujo de entrega paso a paso (interno y externo): llegue al comercio, pedido no listo, pedido recogido, llegue al cliente, cobro y entrega con codigo y foto opcional.
+- Confirmacion de cobro al entregar: efectivo, POS (No. de autorizacion) o transferencia (referencia). El backend marca el pedido como pagado o en validacion.
+- Pantalla de cierre con la ganancia de la entrega.
+- Ganancias: disponible, historial, solicitud de retiro, cuenta bancaria y liquidacion de efectivo.
+- Soporte: reportes con tipo, historial de reportes, llamada/WhatsApp y alerta de emergencia con ubicacion.
 - GPS nativo en segundo plano mediante ForegroundService Android.
 - Notificaciones push y notificacion local de pedido entrante.
 

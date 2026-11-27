@@ -56,8 +56,13 @@ class Pedido extends Model
         'fraud_score',
         'fraud_revisado',
         'notas',
+        'tipo_entrega',
+        'propina',
+        'saldo_aplicado',
+        'descuento_promociones',
         'confirmado_at',
         'cancelado_at',
+        'cancelacion_aplicada_at',
     ];
 
     /**
@@ -73,6 +78,9 @@ class Pedido extends Model
             'impuestos' => 'decimal:2',
             'descuento' => 'decimal:2',
             'total' => 'decimal:2',
+            'propina' => 'decimal:2',
+            'descuento_promociones' => 'decimal:2',
+            'saldo_aplicado' => 'decimal:2',
             'estado' => EstadoPedido::class,
             'metodo_pago' => MetodoPago::class,
             'estado_pago' => EstadoPago::class,
@@ -80,6 +88,7 @@ class Pedido extends Model
             'fraud_revisado' => 'boolean',
             'confirmado_at' => 'datetime',
             'cancelado_at' => 'datetime',
+            'cancelacion_aplicada_at' => 'datetime',
             'deleted_at' => 'datetime',
         ];
     }
@@ -100,6 +109,14 @@ class Pedido extends Model
     public function pedidoPadre(): BelongsTo
     {
         return $this->belongsTo(self::class, 'pedido_padre_id');
+    }
+
+    /**
+     * Lo que paga el cliente: total de la venta + propina - saldo a favor usado.
+     */
+    public function montoACobrar(): float
+    {
+        return round(max(0, (float) $this->total + (float) $this->propina - (float) $this->saldo_aplicado), 2);
     }
 
     /**

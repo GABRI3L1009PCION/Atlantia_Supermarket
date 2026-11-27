@@ -1,12 +1,24 @@
 <?php
 
+use App\Jobs\AvisarPedidosRecurrentes;
+use App\Jobs\EnviarNovedadesYOfertas;
 use App\Jobs\LimpiarCarritosAbandonados;
 use App\Jobs\LimpiarTokensExpirados;
 use App\Jobs\ProcesarDespachoAutomatico;
+use App\Jobs\RecordarCarritosAbandonados;
+use App\Models\Categoria;
+use App\Models\Cliente\Direccion;
 use App\Models\User;
 use App\Services\Auditoria\ProductionReadinessAuditService;
+use App\Services\Catalogo\LimpiadorImagenCategoria;
 use App\Services\Integrations\ProductionIntegrationReadinessService;
+use App\Services\Monetizacion\PlanesVendedorService;
+use App\Services\Monetizacion\PruebaAperturaService;
+use App\Services\Monetizacion\ServiciosPagadosService;
 use App\Services\Observability\PlatformHealthService;
+use App\Services\Pagos\Recurrente\RecurrenteClient;
+use App\Services\Pagos\Recurrente\RecurrentePagoService;
+use App\Services\Vendedores\LiquidacionesVendedorService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
@@ -14,6 +26,47 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Str;
+
+Artisan::command('pagos:recurrente-reconciliar', function (RecurrentePagoService $recurrentePagoService): int {
+    if (! RecurrenteClient::habilitado()) {
+        $this->line('Recurrente no esta habilitado (ATLANTIA_CARD_PAYMENT_MODE).');
+
+        return 0;
+    }
+
+    $resumen = $recurrentePagoService->reconciliarPendientes();
+    $this->info(sprintf(
+        'Pagos revisados: %d, pagados: %d, vencidos: %d, errores: %d.',
+        $resumen['revisados'],
+        $resumen['pagados'],
+        $resumen['vencidos'],
+        $resumen['errores']
+    ));
+
+    return $resumen['errores'] > 0 ? 1 : 0;
+})->purpose('Reconcilia checkouts de Recurrente pendientes: acredita pagos sin webhook y cancela los vencidos');
+
+Artisan::command('categorias:limpiar-imagenes', function (): int {
+    $limpiador = app(LimpiadorImagenCategoria::class);
+    $total = 0;
+
+    Categoria::query()->withTrashed()->whereNotNull('imagen')->where('imagen', '!=', '')->each(function (Categoria $categoria) use ($limpiador, &$total): void {
+        if (str_ends_with((string) $categoria->imagen, '.webp') || str_starts_with((string) $categoria->imagen, 'http')) {
+            return;
+        }
+
+        $nueva = $limpiador->procesar((string) $categoria->imagen);
+        if ($nueva !== $categoria->imagen) {
+            $categoria->forceFill(['imagen' => $nueva])->saveQuietly();
+            $this->line("{$categoria->nombre}: lista");
+            $total++;
+        }
+    });
+
+    $this->info("Imagenes limpiadas: {$total}. Los archivos originales se conservan.");
+
+    return 0;
+})->purpose('Reduce las imagenes de categoria y les quita el fondo claro para que no se vea un recuadro');
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -262,6 +315,26 @@ Artisan::command('atlantia:ops-snapshot {--json}', function (PlatformHealthServi
 })->purpose('Tomar una fotografia de salud operativa y disparar alertas controladas');
 
 Schedule::job(new LimpiarCarritosAbandonados)->daily();
+/* Direcciones escritas en el pago sin compra: se borran a los 2 días. */
+Schedule::call(fn () => Direccion::query()
+    ->where('borrador', true)
+    ->where('created_at', '<', now()->subDays(2))
+    ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('pedidos')->whereColumn('pedidos.direccion_id', 'direcciones.id'))
+    ->forceDelete())->dailyAt('03:30')->name('limpiar-direcciones-borrador');
+Schedule::job(new RecordarCarritosAbandonados)->hourly()->withoutOverlapping();
+Schedule::job(new AvisarPedidosRecurrentes)->everyFifteenMinutes()->withoutOverlapping();
+Schedule::call(function (): void {
+    app(ServiciosPagadosService::class)->vencerTerminados();
+    app(PlanesVendedorService::class)->bajarVencidos();
+})->dailyAt('00:30')->name('monetizacion-vencimientos')->withoutOverlapping();
+/* Pagos a tiendas: prepara cada pago según la frecuencia que eligió cada tienda y avisa a quien transfiere. */
+Schedule::call(fn () => app(LiquidacionesVendedorService::class)->programarPagosAutomaticos())
+    ->everyTenMinutes()->name('pagos-tiendas-programados')->withoutOverlapping();
+/* Promoción de apertura: avisa en el panel cuando la prueba gratis está por terminar o terminó. */
+Schedule::call(fn () => app(PruebaAperturaService::class)->avisar())
+    ->dailyAt('09:00')->name('avisos-prueba-apertura')->withoutOverlapping();
+Schedule::job(new EnviarNovedadesYOfertas)->everyThirtyMinutes()->withoutOverlapping();
+Schedule::command('pagos:recurrente-reconciliar')->everyFiveMinutes()->withoutOverlapping();
 Schedule::job(new LimpiarTokensExpirados)->daily();
 Schedule::command('passport:purge --expired --revoked --hours=24')->daily();
 Schedule::command('auth:clear-resets')->daily();

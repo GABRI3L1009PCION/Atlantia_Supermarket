@@ -82,12 +82,24 @@ class TwoFactorService
         $secret = decrypt((string) $authentication->secret);
         $code = (string) ($data['code'] ?? '');
 
-        if (! $this->totpService->verify($secret, $code)) {
+        $valido = $this->totpService->verify($secret, $code);
+
+        /* Si perdió el teléfono, puede entrar con un código de respaldo (cada uno sirve una vez). */
+        if (! $valido && ! $setupRequired) {
+            $valido = $this->consumirCodigoRespaldo($user->id, $code);
+        }
+
+        if (! $valido) {
             $this->registerFailedChallenge($user->id);
             throw new RuntimeException('Codigo 2FA invalido.');
         }
 
         $this->registerSuccessfulChallenge($user->id, $request, $setupRequired);
+
+        /* Recién configurado: se muestran una sola vez los códigos de respaldo. */
+        if ($setupRequired) {
+            $request->session()->put('auth.2fa_codigos_nuevos', $this->codigosRespaldo($user->id));
+        }
         $request->session()->forget('auth.2fa_user_id');
         $request->session()->forget('auth.2fa_remember');
         $request->session()->forget('auth.2fa_guest_session_id');
@@ -294,6 +306,85 @@ class TwoFactorService
     /**
      * Obtiene la fila de autenticacion 2FA del usuario.
      */
+    /**
+     * Genera códigos de respaldo nuevos (los anteriores dejan de servir). Se muestran una sola vez.
+     *
+     * @return array<int, string>
+     */
+    public function regenerarCodigosRespaldo(User $user): array
+    {
+        $codigos = $this->freshRecoveryCodes();
+        DB::table('two_factor_authentications')->where('user_id', $user->id)->update([
+            'recovery_codes' => encrypt(json_encode($codigos, JSON_THROW_ON_ERROR)),
+            'updated_at' => now(),
+        ]);
+        $this->audit($user, 'auth.two_factor_recovery_regenerated');
+
+        return $codigos;
+    }
+
+    /**
+     * Cuántos códigos de respaldo le quedan al usuario.
+     */
+    public function codigosRestantes(User $user): int
+    {
+        return count($this->codigosRespaldo($user->id));
+    }
+
+    /**
+     * Códigos de respaldo vigentes del usuario.
+     *
+     * @return array<int, string>
+     */
+    private function codigosRespaldo(int $userId): array
+    {
+        $fila = $this->authenticationRow($userId);
+
+        if ($fila === null || ! is_string($fila->recovery_codes) || $fila->recovery_codes === '') {
+            return [];
+        }
+
+        try {
+            $codigos = json_decode((string) decrypt($fila->recovery_codes), true, 512, JSON_THROW_ON_ERROR);
+        } catch (Throwable) {
+            return [];
+        }
+
+        return array_values(array_filter((array) $codigos, 'is_string'));
+    }
+
+    /**
+     * Valida un código de respaldo y lo elimina para que no se pueda reutilizar.
+     */
+    private function consumirCodigoRespaldo(int $userId, string $codigo): bool
+    {
+        $normalizado = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', $codigo));
+
+        if (strlen($normalizado) !== 10) {
+            return false;
+        }
+
+        $codigos = $this->codigosRespaldo($userId);
+        $restantes = array_values(array_filter($codigos, fn (string $guardado): bool => ! hash_equals(strtoupper($guardado), $normalizado)));
+
+        if (count($restantes) === count($codigos)) {
+            return false;
+        }
+
+        DB::table('two_factor_authentications')->where('user_id', $userId)->update([
+            'recovery_codes' => encrypt(json_encode($restantes, JSON_THROW_ON_ERROR)),
+            'updated_at' => now(),
+        ]);
+
+        $user = User::query()->find($userId);
+
+        if ($user !== null) {
+            $this->audit($user, 'auth.two_factor_recovery_code_used');
+        }
+
+        return true;
+    }
+
     private function authenticationRow(int $userId): ?object
     {
         return DB::table('two_factor_authentications')->where('user_id', $userId)->first();

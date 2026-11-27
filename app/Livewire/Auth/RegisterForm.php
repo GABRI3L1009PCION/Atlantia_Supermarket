@@ -2,12 +2,12 @@
 
 namespace App\Livewire\Auth;
 
+use App\Rules\ContrasenaSegura;
 use App\Services\Auth\RegistroService;
 use App\Services\Carrito\CarritoService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Password;
 use Livewire\Component;
 
 /**
@@ -49,7 +49,7 @@ class RegisterForm extends Component
             'name' => ['required', 'string', 'min:3', 'max:160'],
             'email' => ['required', 'string', 'email:rfc', 'max:190', 'unique:users,email'],
             'phone' => ['required', 'string', 'min:8', 'max:15', 'regex:/^\+?[1-9][0-9]{7,14}$/'],
-            'password' => ['required', Password::min(12)->letters()->numbers()->symbols()],
+            'password' => ['required', new ContrasenaSegura],
             'password_confirmation' => ['required', 'same:password'],
             'acepta_terminos' => ['accepted'],
             'acepta_privacidad' => ['accepted'],

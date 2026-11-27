@@ -20,6 +20,16 @@ class ContactMessage extends Model
     use HasFactory;
     use SoftDeletes;
 
+    /** Temas que una tienda puede elegir al pedir ayuda. */
+    public const CATEGORIAS_SOPORTE = [
+        'pagos' => 'Pagos y liquidaciones',
+        'pedidos' => 'Un pedido',
+        'repartidores' => 'Repartidores y entregas',
+        'productos' => 'Productos e inventario',
+        'cuenta' => 'Mi cuenta o mi plan',
+        'otro' => 'Otro tema',
+    ];
+
     /**
      * Atributos asignables masivamente.
      *
@@ -28,6 +38,9 @@ class ContactMessage extends Model
     protected $fillable = [
         'uuid',
         'user_id',
+        'tipo',
+        'categoria',
+        'respuesta',
         'nombre',
         'email',
         'telefono',

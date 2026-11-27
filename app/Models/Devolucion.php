@@ -39,6 +39,9 @@ class Devolucion extends Model
         'foto_evidencia',
         'resuelta_por',
         'resuelta_at',
+        'vendedor_de_acuerdo',
+        'respuesta_vendedor',
+        'vendedor_respondio_at',
     ];
 
     /**
@@ -51,6 +54,8 @@ class Devolucion extends Model
         return [
             'monto_reembolso' => 'decimal:2',
             'resuelta_at' => 'datetime',
+            'vendedor_de_acuerdo' => 'boolean',
+            'vendedor_respondio_at' => 'datetime',
         ];
     }
 

@@ -73,4 +73,4 @@ Antes de abrir al publico, realiza una carga y eliminacion de prueba en S3 y env
 
 ## 6. Datos que deben obtenerse fuera del codigo
 
-El repositorio deja lista la configuracion, pero no puede inventar estos datos reales: dominio y DNS, cuenta del registro de imagenes, servidor MySQL/Redis, bucket S3, proveedor SMTP, claves de Meilisearch, Stripe, INFILE, mapas, reCAPTCHA y secretos de webhooks.
+El repositorio deja lista la configuracion, pero no puede inventar estos datos reales: dominio y DNS, cuenta del registro de imagenes, servidor MySQL/Redis, bucket S3, proveedor SMTP, claves de Meilisearch, Recurrente, INFILE, mapas, reCAPTCHA y secretos de webhooks.

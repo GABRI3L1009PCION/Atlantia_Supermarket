@@ -42,6 +42,8 @@ class Resena extends Model
         'calificacion',
         'titulo',
         'contenido',
+        'respuesta_vendedor',
+        'respondida_at',
         'imagenes_count',
         'aprobada',
         'flagged_ml',
@@ -62,6 +64,7 @@ class Resena extends Model
             'aprobada' => 'boolean',
             'flagged_ml' => 'boolean',
             'moderada_at' => 'datetime',
+            'respondida_at' => 'datetime',
             'deleted_at' => 'datetime',
         ];
     }

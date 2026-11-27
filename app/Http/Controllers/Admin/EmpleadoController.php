@@ -31,6 +31,12 @@ class EmpleadoController extends Controller
         return view('admin.empleados.index', [
             'empleados' => $this->empleadoService->paginate($request->all()),
             'supervisores' => Empleado::query()->with('user')->active()->orderBy('codigo_empleado')->get(),
+            'resumen' => [
+                'total' => Empleado::query()->count(),
+                'activos' => Empleado::query()->where('status', 'active')->count(),
+                'inactivos' => Empleado::query()->where('status', '!=', 'active')->count(),
+                'nomina' => (float) Empleado::query()->where('status', 'active')->sum('salario_base'),
+            ],
         ]);
     }
 

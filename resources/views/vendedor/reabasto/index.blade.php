@@ -2,236 +2,109 @@
 
 @section('content')
     @php
-        $filters = [
-            'q' => (string) request('q', ''),
-            'categoria' => (string) request('categoria', ''),
-            'urgencia' => (string) request('urgencia', ''),
-        ];
-        $rows = collect($sugerencias->items());
-        $maxSuggested = max(1, (int) $rows->max('stock_sugerido'));
-        $chartPoints = $rows->values()->map(function ($suggestion, $index) use ($rows, $maxSuggested) {
-            $count = max(1, $rows->count() - 1);
-            $x = 8 + (($index / $count) * 84);
-            $y = 78 - (((int) $suggestion->stock_sugerido / $maxSuggested) * 50);
-            return round($x, 2) . ',' . round($y, 2);
-        })->implode(' ');
-        $areaPoints = $chartPoints ? '8,84 ' . $chartPoints . ' 92,84' : '';
-        $urgencyMeta = [
-            'critica' => ['label' => 'Critica', 'class' => 'bg-red-50 text-red-700 ring-red-200', 'dot' => 'bg-red-500'],
-            'alta' => ['label' => 'Alta', 'class' => 'bg-red-50 text-red-700 ring-red-200', 'dot' => 'bg-red-500'],
-            'media' => ['label' => 'Media', 'class' => 'bg-amber-50 text-amber-700 ring-amber-200', 'dot' => 'bg-amber-500'],
-            'baja' => ['label' => 'Baja', 'class' => 'bg-emerald-50 text-emerald-700 ring-emerald-200', 'dot' => 'bg-emerald-500'],
-        ];
-        $metricCards = [
-            ['label' => 'Sugerencias activas', 'value' => number_format((int) ($dashboard['activas'] ?? 0)), 'hint' => '12% vs. ayer', 'tone' => 'rose', 'icon' => 'cart'],
-            ['label' => 'Criticas', 'value' => number_format((int) ($dashboard['criticas'] ?? 0)), 'hint' => 'Atencion inmediata', 'tone' => 'red', 'icon' => 'alert'],
-            ['label' => 'Unidades sugeridas', 'value' => number_format((int) ($dashboard['unidades_sugeridas'] ?? 0)), 'hint' => 'Total recomendado', 'tone' => 'rose', 'icon' => 'box'],
-            ['label' => 'Productos en riesgo', 'value' => number_format((int) ($dashboard['productos_en_riesgo'] ?? 0)), 'hint' => 'Podrian quedar sin stock', 'tone' => 'rose', 'icon' => 'shield'],
-        ];
-        $tones = [
-            'rose' => 'bg-atlantia-blush text-atlantia-wine',
-            'red' => 'bg-red-50 text-red-700',
-        ];
-        $icons = [
-            'cart' => '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 3h3l3 12h10l2-8H7"/>',
-            'alert' => '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
-            'box' => '<path d="m12 3 8 4.5-8 4.5-8-4.5L12 3Z"/><path d="M4 7.5v9L12 21l8-4.5v-9"/>',
-            'shield' => '<path d="M12 3 20 7v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4Z"/><path d="m9 12 2 2 4-5"/>',
+        $filas = $lista['filas'];
+        $resumen = $lista['resumen'];
+        $dias = \App\Services\Inventario\ReabastoInteligenteService::DIAS_COBERTURA;
+        $q = (string) request('q', '');
+        $urgencias = [
+            'ya' => ['Pídelo ya', 'bg-rose-50 text-rose-700 ring-rose-200'],
+            'pronto' => ['Esta semana', 'bg-amber-50 text-amber-800 ring-amber-200'],
+            'cuando_puedas' => ['Cuando puedas', 'bg-sky-50 text-sky-700 ring-sky-200'],
         ];
     @endphp
 
-    <section class="mx-auto max-w-[1280px] space-y-5 pb-10">
-        <div class="flex items-center gap-5">
-            <span class="grid h-16 w-16 shrink-0 place-items-center rounded-lg border border-atlantia-rose/15 bg-white text-atlantia-wine shadow-sm">
-                <svg class="h-9 w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 6-7"/><path d="M18 7h2v2"/></svg>
-            </span>
-            <div>
-                <h1 class="text-3xl font-black leading-tight text-atlantia-ink sm:text-4xl">Sugerencias de reabasto</h1>
-                <p class="mt-2 text-sm leading-6 text-atlantia-ink/62">Alertas de inventario basadas en demanda.</p>
+    <section class="mx-auto max-w-[1100px] space-y-4 pb-10">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+            <div class="max-w-2xl">
+                <h1 class="text-2xl font-black text-atlantia-ink">Reabasto sugerido</h1>
+                <p class="mt-0.5 text-sm text-atlantia-ink/60">Tu lista para pedir a tus proveedores: lo necesario para cubrir {{ $dias }} días de ventas más tu mínimo. Cuando te llegue, márcalo y se suma a tu inventario.</p>
             </div>
+            <button type="button" data-print-page class="inline-flex h-10 items-center gap-2 rounded-lg border border-atlantia-rose/25 bg-white px-4 text-sm font-bold text-atlantia-wine hover:bg-atlantia-blush print:hidden" @disabled($filas->isEmpty())>
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+                Imprimir lista
+            </button>
         </div>
 
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            @foreach ($metricCards as $card)
-                <article class="rounded-lg border border-atlantia-rose/15 bg-white p-5 shadow-[0_12px_32px_rgba(42,16,24,0.05)]">
-                    <div class="flex items-center gap-5">
-                        <span class="{{ $tones[$card['tone']] }} grid h-16 w-16 shrink-0 place-items-center rounded-full">
-                            <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $icons[$card['icon']] !!}</svg>
-                        </span>
-                        <div>
-                            <p class="text-sm text-atlantia-ink/65">{{ $card['label'] }}</p>
-                            <p class="mt-1 text-3xl font-black leading-none text-atlantia-ink">{{ $card['value'] }}</p>
-                            <p class="mt-2 text-sm {{ $card['tone'] === 'red' ? 'text-red-600' : 'text-atlantia-ink/55' }}">{{ $card['hint'] }}</p>
-                        </div>
-                    </div>
-                </article>
-            @endforeach
-        </div>
-
-        <form method="GET" action="{{ route('vendedor.reabasto.index') }}" class="grid gap-3 rounded-lg border border-atlantia-rose/15 bg-white p-4 shadow-[0_12px_32px_rgba(42,16,24,0.05)] lg:grid-cols-[1fr_260px_240px_150px_150px]" autocomplete="off" data-restock-filters>
-            <div class="relative">
-                <input type="search" name="q" value="{{ $filters['q'] }}" placeholder="Buscar producto..." class="w-full rounded-lg border border-atlantia-rose/25 bg-white px-4 py-3 pl-11 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                <svg class="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-atlantia-ink/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <dl class="grid gap-3 sm:grid-cols-3" data-resumen-reabasto>
+            <div @class(['rounded-xl border p-4', 'border-rose-200 bg-rose-50' => $resumen['urgentes'] > 0, 'border-atlantia-rose/15 bg-white' => $resumen['urgentes'] === 0])>
+                <dt class="text-xs font-bold uppercase tracking-wide text-atlantia-ink/55">Pedir ya</dt>
+                <dd class="mt-0.5 text-2xl font-black {{ $resumen['urgentes'] > 0 ? 'text-rose-700' : 'text-atlantia-ink' }}">{{ $resumen['urgentes'] }}</dd>
+                <dd class="text-xs text-atlantia-ink/55">agotados o para 3 días o menos</dd>
             </div>
-            <select name="categoria" class="rounded-lg border border-atlantia-rose/25 bg-white px-4 py-3 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                <option value="">Todas las categorias</option>
-                @foreach (($dashboard['categorias'] ?? collect()) as $categoria)
-                    <option value="{{ $categoria->id }}" @selected($filters['categoria'] === (string) $categoria->id)>{{ $categoria->nombre }}</option>
-                @endforeach
-            </select>
-            <select name="urgencia" class="rounded-lg border border-atlantia-rose/25 bg-white px-4 py-3 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                <option value="">Todos los niveles</option>
-                @foreach ($urgencyMeta as $value => $meta)
-                    <option value="{{ $value }}" @selected($filters['urgencia'] === $value)>{{ $meta['label'] }}</option>
-                @endforeach
-            </select>
-            <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg border border-atlantia-rose/30 bg-white px-5 py-3 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
-                Actualizar
-            </button>
-            <button type="button" onclick="window.print()" class="inline-flex items-center justify-center gap-2 rounded-lg bg-atlantia-wine px-5 py-3 text-sm font-black text-white transition hover:bg-atlantia-wine-700">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
-                Exportar
-            </button>
-        </form>
-
-        <article class="rounded-lg border border-atlantia-rose/15 bg-white p-4 shadow-[0_12px_32px_rgba(42,16,24,0.05)]">
-            <div class="mb-3 flex items-center gap-3">
-                <h2 class="text-xl font-black text-atlantia-ink">Sugerencias de reabasto</h2>
-                <span class="rounded-full bg-atlantia-blush px-3 py-1 text-sm font-bold text-atlantia-ink/60">{{ $sugerencias->total() }} resultados</span>
+            <div class="rounded-xl border border-atlantia-rose/15 bg-white p-4">
+                <dt class="text-xs font-bold uppercase tracking-wide text-atlantia-ink/55">En la lista</dt>
+                <dd class="mt-0.5 text-2xl font-black text-atlantia-ink">{{ $resumen['por_pedir'] }} <span class="text-sm font-semibold text-atlantia-ink/50">productos</span></dd>
+                <dd class="text-xs text-atlantia-ink/55">{{ number_format($resumen['unidades']) }} unidades en total</dd>
             </div>
-
-            <div class="overflow-x-auto rounded-lg border border-atlantia-rose/15">
-                <table class="min-w-full text-sm">
-                    <thead class="bg-atlantia-blush/30 text-left text-xs font-black text-atlantia-ink/70">
-                        <tr>
-                            <th class="px-3 py-3">Producto</th>
-                            <th class="px-3 py-3">Categoria</th>
-                            <th class="px-3 py-3 text-center">Stock actual</th>
-                            <th class="px-3 py-3 text-center">Reservado</th>
-                            <th class="px-3 py-3 text-center">Stock minimo</th>
-                            <th class="px-3 py-3 text-center">Demanda 7 dias</th>
-                            <th class="px-3 py-3 text-center">Sugerido</th>
-                            <th class="px-3 py-3 text-center">Dias a quiebre</th>
-                            <th class="px-3 py-3 text-center">Urgencia</th>
-                            <th class="px-3 py-3 text-right">Accion</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-atlantia-rose/12">
-                        @forelse ($sugerencias as $suggestion)
-                            @php
-                                $producto = $suggestion->producto;
-                                $inventario = $producto?->inventario;
-                                $prediction7 = $producto?->salesPredictions?->where('horizonte_dias', 7)->sortByDesc('fecha_prediccion')->first();
-                                $demanda7 = (int) round((float) ($prediction7?->valor_predicho ?? max($suggestion->stock_sugerido, $suggestion->stock_actual)));
-                                $meta = $urgencyMeta[$suggestion->urgencia] ?? $urgencyMeta['media'];
-                                $image = $producto?->getFirstMediaUrl('productos', 'thumbnail')
-                                    ?: $producto?->getFirstMediaUrl('productos')
-                                    ?: ($producto?->imagenPrincipal?->path ? \Illuminate\Support\Facades\Storage::url($producto->imagenPrincipal->path) : null);
-                            @endphp
-                            <tr class="hover:bg-atlantia-cream/35">
-                                <td class="px-3 py-3">
-                                    <div class="flex items-center gap-3">
-                                        <div class="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-md border border-atlantia-rose/15 bg-atlantia-cream">
-                                            @if ($image)
-                                                <img src="{{ $image }}" alt="{{ $producto?->nombre }}" class="h-full w-full object-cover">
-                                            @else
-                                                <span class="text-xs font-black text-atlantia-wine">AS</span>
-                                            @endif
-                                        </div>
-                                        <p class="font-bold text-atlantia-ink">{{ $producto?->nombre ?? 'Producto no disponible' }}</p>
-                                    </div>
-                                </td>
-                                <td class="px-3 py-3 text-atlantia-ink/70">{{ $producto?->categoria?->nombre ?? 'Sin categoria' }}</td>
-                                <td class="px-3 py-3 text-center text-atlantia-ink">{{ $suggestion->stock_actual }}</td>
-                                <td class="px-3 py-3 text-center text-atlantia-ink">{{ $inventario?->stock_reservado ?? 0 }}</td>
-                                <td class="px-3 py-3 text-center text-atlantia-ink">{{ $inventario?->stock_minimo ?? 0 }}</td>
-                                <td class="px-3 py-3 text-center text-atlantia-ink">{{ $demanda7 }}</td>
-                                <td class="px-3 py-3 text-center text-lg font-black text-atlantia-wine">{{ $suggestion->stock_sugerido }}</td>
-                                <td class="px-3 py-3 text-center text-atlantia-ink">{{ number_format((float) $suggestion->dias_hasta_quiebre, 1) }}</td>
-                                <td class="px-3 py-3 text-center">
-                                    <span class="{{ $meta['class'] }} inline-flex items-center gap-2 rounded-lg px-3 py-1 text-xs font-black ring-1">
-                                        <span class="{{ $meta['dot'] }} h-2 w-2 rounded-full"></span>
-                                        {{ $meta['label'] }}
-                                    </span>
-                                </td>
-                                <td class="px-3 py-3">
-                                    <div class="flex justify-end gap-2">
-                                        <form method="POST" action="{{ route('vendedor.reabasto.accept', $suggestion) }}">
-                                            @csrf
-                                            @method('PATCH')
-                                            <input type="hidden" name="cantidad_recibida" value="{{ $suggestion->stock_sugerido }}">
-                                            <button class="rounded-lg bg-atlantia-wine px-4 py-2 text-xs font-black text-white transition hover:bg-atlantia-wine-700">Aceptar</button>
-                                        </form>
-                                        <button type="button" class="rounded-lg border border-atlantia-rose/30 bg-white px-4 py-2 text-xs font-black text-atlantia-ink transition hover:bg-atlantia-blush">Editar</button>
-                                        <button type="button" class="rounded-lg border border-atlantia-rose/30 bg-white p-2 text-atlantia-ink/60 transition hover:bg-atlantia-blush" aria-label="Mas opciones">
-                                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="10" class="px-3 py-12 text-center text-atlantia-ink/55">No hay sugerencias con estos filtros.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+            <div class="rounded-xl border border-atlantia-rose/15 bg-white p-4">
+                <dt class="text-xs font-bold uppercase tracking-wide text-atlantia-ink/55">Al día</dt>
+                <dd class="mt-0.5 text-2xl font-black text-emerald-700">{{ $resumen['al_dia'] }}</dd>
+                <dd class="text-xs text-atlantia-ink/55">productos que no necesitas pedir</dd>
             </div>
-            <div class="mt-3">{{ $sugerencias->links() }}</div>
-        </article>
+        </dl>
 
-        <div class="grid gap-5 xl:grid-cols-[1fr_1fr]">
-            <article class="rounded-lg border border-atlantia-rose/15 bg-white p-5 shadow-[0_12px_32px_rgba(42,16,24,0.05)]">
-                <div class="flex gap-4">
-                    <span class="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-atlantia-blush text-atlantia-wine">
-                        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 3 2.7 5.47 6.04.88-4.37 4.26 1.03 6.01L12 16.78l-5.4 2.84 1.03-6.01-4.37-4.26 6.04-.88L12 3Z"/></svg>
+        <article class="overflow-hidden rounded-xl border border-atlantia-rose/15 bg-white shadow-[0_12px_32px_rgba(42,16,24,0.05)]">
+            <form method="GET" action="{{ route('vendedor.reabasto.index') }}" class="flex flex-wrap items-center gap-2 border-b border-atlantia-rose/10 p-3 print:hidden">
+                <label class="relative min-w-[14rem] flex-1">
+                    <span class="sr-only">Buscar producto</span>
+                    <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-atlantia-ink/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                    <input type="search" name="q" value="{{ $q }}" placeholder="Buscar producto o SKU" class="h-10 w-full rounded-lg border border-atlantia-rose/25 pl-9 pr-3 text-sm outline-none focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-blush">
+                </label>
+                <a href="{{ route('vendedor.predicciones.index') }}" class="inline-flex h-10 items-center rounded-lg border border-atlantia-rose/25 px-4 text-sm font-bold text-atlantia-wine hover:bg-atlantia-blush">Ver predicción</a>
+            </form>
+
+            @if ($filas->isEmpty())
+                <div class="px-6 py-14 text-center">
+                    <span class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-emerald-50 text-emerald-600">
+                        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
                     </span>
-                    <div>
-                        <h2 class="text-xl font-black text-atlantia-ink">Recomendacion del sistema</h2>
-                        <p class="mt-2 leading-6 text-atlantia-ink/70">
-                            Prioriza las sugerencias criticas para evitar quiebres de stock. Los calculos se basan en demanda, stock reservado y niveles minimos configurados.
-                        </p>
-                        <p class="mt-2 font-black text-atlantia-rose">Atiende primero los {{ min(5, (int) ($dashboard['criticas'] ?? 0)) }} productos criticos para mantener la continuidad de tus ventas.</p>
-                    </div>
+                    <p class="mt-3 text-base font-black text-atlantia-ink">{{ $q !== '' ? 'Ese producto no necesita reabasto' : 'No necesitas pedir nada por ahora' }}</p>
+                    <p class="mt-1 text-sm text-atlantia-ink/60">Tus existencias cubren los próximos {{ $dias }} días de ventas y están arriba de tu mínimo.</p>
                 </div>
-            </article>
-
-            <article class="rounded-lg border border-atlantia-rose/15 bg-white p-5 shadow-[0_12px_32px_rgba(42,16,24,0.05)]">
-                <div class="grid gap-4 md:grid-cols-[1fr_180px] md:items-center">
-                    <div>
-                        <h2 class="text-xl font-black text-atlantia-ink">Tendencia de demanda (7 dias)</h2>
-                        <div class="mt-3 h-28">
-                            @if ($rows->isNotEmpty())
-                                <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="h-full w-full overflow-visible">
-                                    <defs>
-                                        <linearGradient id="restock-area" x1="0" x2="0" y1="0" y2="1">
-                                            <stop offset="0%" stop-color="#9b174d" stop-opacity="0.22"/>
-                                            <stop offset="100%" stop-color="#9b174d" stop-opacity="0.02"/>
-                                        </linearGradient>
-                                    </defs>
-                                    <polygon points="{{ $areaPoints }}" fill="url(#restock-area)"/>
-                                    <polyline points="{{ $chartPoints }}" fill="none" stroke="#9b174d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            @else
-                                <div class="grid h-full place-items-center text-sm text-atlantia-ink/55">Sin tendencia disponible.</div>
-                            @endif
-                        </div>
-                    </div>
-                    <div>
-                        <p class="text-sm text-atlantia-ink/55">Demanda total</p>
-                        <p class="mt-1 text-3xl font-black text-atlantia-ink">{{ number_format((int) ($dashboard['demanda_total'] ?? 0)) }}</p>
-                        <p class="mt-1 text-sm text-emerald-700">8% vs. semana anterior</p>
-                    </div>
+            @else
+                <div class="hidden grid-cols-[minmax(0,1fr)_6rem_7rem_8rem_15rem] gap-3 border-b border-atlantia-rose/10 bg-[#fbf8f7] px-4 py-2 text-xs font-bold text-atlantia-ink/55 lg:grid">
+                    <span>Producto</span>
+                    <span class="text-right">Tienes</span>
+                    <span class="text-right">Te alcanza para</span>
+                    <span class="text-right">Pide</span>
+                    <span class="text-right print:hidden">¿Ya te llegó?</span>
                 </div>
-            </article>
-        </div>
+                <ul class="divide-y divide-atlantia-rose/10">
+                    @foreach ($filas as $fila)
+                        @php $producto = $fila['producto']; @endphp
+                        <li class="grid grid-cols-2 items-center gap-x-3 gap-y-2 px-4 py-3 lg:grid-cols-[minmax(0,1fr)_6rem_7rem_8rem_15rem]" data-fila-reabasto>
+                            <div class="col-span-2 min-w-0 lg:col-span-1">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <p class="truncate font-bold text-atlantia-ink">{{ $producto->nombre }}</p>
+                                    <span class="rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 {{ $urgencias[$fila['urgencia']][1] }}">{{ $urgencias[$fila['urgencia']][0] }}</span>
+                                </div>
+                                <p class="text-xs text-atlantia-ink/50">
+                                    {{ $fila['vendidas_30'] > 0 ? 'Vendiste '.$fila['vendidas_30'].' en 30 días' : 'Sin ventas aún: solo para llegar a tu mínimo' }} · mínimo {{ $fila['minimo'] }}
+                                </p>
+                            </div>
+                            <p class="text-sm text-atlantia-ink/70 lg:text-right"><span class="text-xs text-atlantia-ink/45 lg:hidden">Tienes: </span>{{ $fila['disponible'] }}</p>
+                            <p class="text-sm text-atlantia-ink/70 lg:text-right">
+                                <span class="text-xs text-atlantia-ink/45 lg:hidden">Te alcanza para: </span>
+                                @if ($fila['disponible'] <= 0)
+                                    <span class="font-bold text-rose-700">Agotado</span>
+                                @elseif ($fila['alcanza_dias'] === null)
+                                    —
+                                @else
+                                    {{ $fila['alcanza_dias'] }} {{ $fila['alcanza_dias'] === 1 ? 'día' : 'días' }}
+                                @endif
+                            </p>
+                            <p class="text-base font-black text-atlantia-wine lg:text-right"><span class="text-xs font-normal text-atlantia-ink/45 lg:hidden">Pide: </span>{{ $fila['sugerido'] }} <span class="text-xs font-semibold text-atlantia-ink/50">{{ $fila['sugerido'] === 1 ? 'unidad' : 'unidades' }}</span></p>
+                            <form method="POST" action="{{ route('vendedor.reabasto.recibir', $producto->uuid) }}" class="col-span-2 flex items-center justify-end gap-2 lg:col-span-1 print:hidden">
+                                @csrf
+                                <label class="sr-only" for="recibido-{{ $producto->id }}">Unidades recibidas de {{ $producto->nombre }}</label>
+                                <input id="recibido-{{ $producto->id }}" type="number" name="cantidad" min="1" value="{{ $fila['sugerido'] }}" class="h-9 w-20 rounded-lg border border-atlantia-rose/25 px-2 text-center text-sm font-bold outline-none focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-blush">
+                                <button type="submit" class="h-9 whitespace-nowrap rounded-lg bg-atlantia-wine px-3 text-xs font-bold text-white hover:bg-atlantia-wine-700">Ya lo recibí</button>
+                            </form>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+        </article>
+        <p class="text-xs text-atlantia-ink/50">«Ya lo recibí» suma esas unidades a tu inventario y queda registrado en tus movimientos.</p>
     </section>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.querySelector('[data-restock-filters]');
-            form?.querySelectorAll('select').forEach((select) => {
-                select.addEventListener('change', () => form.submit());
-            });
-        });
-    </script>
 @endsection

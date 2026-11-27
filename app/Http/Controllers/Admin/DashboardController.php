@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\Admin\DashboardService;
+use App\Services\Admin\NegocioDashboardService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -15,7 +16,10 @@ class DashboardController extends Controller
     /**
      * Crea una instancia del controlador.
      */
-    public function __construct(private readonly DashboardService $dashboardService) {}
+    public function __construct(
+        private readonly DashboardService $dashboardService,
+        private readonly NegocioDashboardService $negocio,
+    ) {}
 
     /**
      * Muestra metricas consolidadas de Atlantia.
@@ -26,7 +30,7 @@ class DashboardController extends Controller
 
         if ($request->user()->isSuperAdmin()) {
             return view('super-admin.dashboard', [
-                'metrics' => $this->dashboardService->superAdminMetrics($request->user()),
+                'negocio' => $this->negocio->resumen(),
             ]);
         }
 

@@ -48,11 +48,18 @@ class ResenaVendedorService
             ->whereHas('producto', fn ($query) => $query->where('vendor_id', $user->vendor?->id))
             ->get();
 
+        $publicadas = $reviews->where('aprobada', true);
+        $distribucion = [];
+        foreach ([5, 4, 3, 2, 1] as $estrellas) {
+            $distribucion[$estrellas] = $publicadas->where('calificacion', $estrellas)->count();
+        }
+
         return [
-            'promedio' => $reviews->count() ? round((float) $reviews->avg('calificacion'), 1) : 0.0,
-            'total' => $reviews->count(),
-            'pendientes' => $reviews->where('aprobada', false)->count(),
-            'productos_mejor_valorados' => $this->topRatedProductCount($reviews),
+            'promedio' => $publicadas->count() ? round((float) $publicadas->avg('calificacion'), 1) : 0.0,
+            'total' => $publicadas->count(),
+            'en_revision' => $reviews->where('aprobada', false)->count(),
+            'distribucion' => $distribucion,
+            'productos_mejor_valorados' => $this->topRatedProductCount($publicadas),
         ];
     }
 

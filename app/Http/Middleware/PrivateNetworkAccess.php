@@ -18,6 +18,10 @@ class PrivateNetworkAccess
      */
     public function handle(Request $request, Closure $next): Response
     {
+        if (! app()->environment('local')) {
+            return $next($request);
+        }
+
         if ($request->is('api/*') && $request->isMethod('OPTIONS')) {
             return response('', 204)->withHeaders($this->headers($request));
         }

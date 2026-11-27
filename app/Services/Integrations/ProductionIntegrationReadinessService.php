@@ -28,7 +28,7 @@ class ProductionIntegrationReadinessService
             $this->firebaseCheck($probe),
             $this->mapsCheck($probe),
             $this->supportCheck(),
-            $this->posCheck(),
+            config('atlantia.payments.card.mode') === 'recurrente' ? $this->recurrenteCheck() : $this->posCheck(),
         ];
 
         $status = collect($checks)->contains(fn (array $check): bool => $check['status'] === 'error')
@@ -268,6 +268,47 @@ class ProductionIntegrationReadinessService
         }
 
         return $this->result('support', 'Centro de soporte', $missing, $invalid);
+    }
+
+    /**
+     * Configuracion del pago en linea con Recurrente. No crea cobros ni checkouts.
+     *
+     * @return array<string, mixed>
+     */
+    private function recurrenteCheck(): array
+    {
+        $secretKey = trim((string) config('services.recurrente.secret_key'));
+        $webhookSecret = trim((string) config('services.recurrente.webhook_secret'));
+        $missing = $this->missing([
+            'RECURRENTE_SECRET_KEY' => $secretKey,
+            'RECURRENTE_WEBHOOK_SECRET' => $webhookSecret,
+        ]);
+        $invalid = [];
+
+        if ($this->usable($secretKey) && ! preg_match('/^sk_(live|test)_/', $secretKey)) {
+            $invalid[] = 'RECURRENTE_SECRET_KEY debe iniciar con sk_live_ o sk_test_.';
+        }
+
+        if ($this->usable($secretKey) && app()->environment('production') && str_starts_with($secretKey, 'sk_test_')) {
+            $invalid[] = 'Produccion no puede usar una llave sk_test_ de Sandbox.';
+        }
+
+        if ($this->usable($webhookSecret) && ! str_starts_with($webhookSecret, 'whsec_')) {
+            $invalid[] = 'RECURRENTE_WEBHOOK_SECRET debe ser el signingSecret whsec_ del endpoint.';
+        }
+
+        if (strtoupper((string) config('services.recurrente.currency')) !== 'GTQ') {
+            $invalid[] = 'RECURRENTE_CURRENCY debe ser GTQ: los precios del catalogo estan en quetzales.';
+        }
+
+        return $this->result(
+            'recurrente',
+            'Pagos con tarjeta (Recurrente)',
+            $missing,
+            $invalid,
+            null,
+            ['Registra el webhook '.url('/webhooks/recurrente').' en Recurrente con los eventos intent.succeeded, intent.failed e intent.canceled.']
+        );
     }
 
     /**

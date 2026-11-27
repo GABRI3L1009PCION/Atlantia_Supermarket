@@ -8,13 +8,16 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
-    --color-atlantia-wine: #7a1f3d;
-    --color-atlantia-wine-700: #641730;
-    --color-atlantia-wine-900: #3f0d1d;
-    --color-atlantia-rose: #c86f89;
-    --color-atlantia-blush: #f8e7ee;
-    --color-atlantia-cream: #fff7f9;
-    --color-atlantia-ink: #2a1018;
+    --color-atlantia-wine: #5e0008;
+    --color-atlantia-wine-700: #4d0006;
+    --color-atlantia-wine-900: #3a0004;
+    --color-atlantia-rose: #a63d44;
+    --color-atlantia-blush: #f7e8e7;
+    --color-atlantia-cream: #fff8f7;
+    --color-atlantia-ink: #2a0f12;
+
+    /* Pantallas grandes (1440px+): 6 productos por fila. Entre xl (1280px) y 2xl (1536px). */
+    --breakpoint-wide: 90rem;
 }
 
 @layer base {
@@ -25,6 +28,23 @@
     body {
         background: var(--color-atlantia-cream);
         color: var(--color-atlantia-ink);
+    }
+
+    html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+}
+
+/*
+ * iOS Safari amplia la pagina al enfocar un campo con texto menor a 16px y
+ * no vuelve a su tamano, lo que descuadra el diseno en telefono.
+ */
+@media (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    select,
+    textarea {
+        font-size: 16px !important;
     }
 }
 
@@ -123,7 +143,7 @@
         .product-card-media {
             border-radius: 0.5rem 0.5rem 0 0;
             aspect-ratio: 1 / 1.48;
-            background: #f8e7ee;
+            background: #f7e8e7;
         }
 
         .product-card-image {
@@ -274,32 +294,32 @@
     .super-admin-surface .users-light-surface [class*="bg-atlantia-blush"],
     .super-admin-surface .users-light-surface [data-filter-form],
     .super-admin-surface .users-light-surface [data-table-loading] {
-        background-color: #fff7f9 !important;
+        background-color: #fff8f7 !important;
     }
 
     .super-admin-surface .users-light-surface [data-user-row]:hover {
-        background-color: #fff7f9 !important;
+        background-color: #fff8f7 !important;
     }
 
     .super-admin-surface .users-light-surface,
     .super-admin-surface .users-light-surface .text-atlantia-ink,
     .super-admin-surface .users-light-surface [class*="text-atlantia-ink"] {
-        color: #2a1018 !important;
+        color: #2a0f12 !important;
     }
 
     .super-admin-surface .users-light-surface .text-atlantia-wine,
     .super-admin-surface .users-light-surface [class*="text-atlantia-wine"] {
-        color: #7a1f3d !important;
+        color: #5e0008 !important;
     }
 
     .super-admin-surface .users-light-surface .text-atlantia-rose,
     .super-admin-surface .users-light-surface [class*="text-atlantia-rose"] {
-        color: #c86f89 !important;
+        color: #a63d44 !important;
     }
 
     .super-admin-surface .users-light-surface .bg-atlantia-wine,
     .super-admin-surface .users-light-surface [class*="bg-atlantia-wine"] {
-        background-color: #7a1f3d !important;
+        background-color: #5e0008 !important;
         color: #ffffff !important;
     }
 
@@ -315,7 +335,7 @@
     .super-admin-surface .users-light-surface textarea {
         background-color: #ffffff !important;
         border-color: rgb(200 111 137 / 0.35) !important;
-        color: #2a1018 !important;
+        color: #2a0f12 !important;
     }
 
     .super-admin-surface .users-light-surface input::placeholder,
@@ -331,28 +351,28 @@
 
     .super-admin-surface .rbac-light-surface [class*="bg-atlantia-cream"],
     .super-admin-surface .rbac-light-surface [class*="bg-atlantia-blush"] {
-        background-color: #fff7f9 !important;
+        background-color: #fff8f7 !important;
     }
 
     .super-admin-surface .rbac-light-surface,
     .super-admin-surface .rbac-light-surface .text-atlantia-ink,
     .super-admin-surface .rbac-light-surface [class*="text-atlantia-ink"] {
-        color: #2a1018 !important;
+        color: #2a0f12 !important;
     }
 
     .super-admin-surface .rbac-light-surface .text-atlantia-wine,
     .super-admin-surface .rbac-light-surface [class*="text-atlantia-wine"] {
-        color: #7a1f3d !important;
+        color: #5e0008 !important;
     }
 
     .super-admin-surface .rbac-light-surface .text-atlantia-rose,
     .super-admin-surface .rbac-light-surface [class*="text-atlantia-rose"] {
-        color: #c86f89 !important;
+        color: #a63d44 !important;
     }
 
     .super-admin-surface .rbac-light-surface .bg-atlantia-wine,
     .super-admin-surface .rbac-light-surface [class*="bg-atlantia-wine"] {
-        background-color: #7a1f3d !important;
+        background-color: #5e0008 !important;
         color: #ffffff !important;
     }
 
@@ -366,7 +386,7 @@
     .super-admin-surface .rbac-light-surface textarea {
         background-color: #ffffff !important;
         border-color: rgb(200 111 137 / 0.35) !important;
-        color: #2a1018 !important;
+        color: #2a0f12 !important;
     }
 
     .super-admin-surface .vendors-light-surface,
@@ -377,24 +397,24 @@
 
     .super-admin-surface .vendors-light-surface [class*="bg-atlantia-cream"],
     .super-admin-surface .vendors-light-surface [class*="bg-atlantia-blush"] {
-        background-color: #fff7f9 !important;
+        background-color: #fff8f7 !important;
     }
 
     .super-admin-surface .vendors-light-surface,
     .super-admin-surface .vendors-light-surface [class*="text-atlantia-ink"] {
-        color: #2a1018 !important;
+        color: #2a0f12 !important;
     }
 
     .super-admin-surface .vendors-light-surface [class*="text-atlantia-wine"] {
-        color: #7a1f3d !important;
+        color: #5e0008 !important;
     }
 
     .super-admin-surface .vendors-light-surface [class*="text-atlantia-rose"] {
-        color: #c86f89 !important;
+        color: #a63d44 !important;
     }
 
     .super-admin-surface .vendors-light-surface [class*="bg-atlantia-wine"] {
-        background-color: #7a1f3d !important;
+        background-color: #5e0008 !important;
         color: #ffffff !important;
     }
 
@@ -408,6 +428,33 @@
     .super-admin-surface .vendors-light-surface textarea {
         background-color: #ffffff !important;
         border-color: rgb(200 111 137 / 0.35) !important;
-        color: #2a1018 !important;
+        color: #2a0f12 !important;
     }
+}
+
+/*
+ * Pantallas de acceso (x-auth.panel) con el estilo de Atlantia Finance:
+ * bordes grises neutros y botones guinda profundo, solo dentro de la tarjeta.
+ */
+.auth-tarjeta [class*="border-atlantia-rose"] {
+    border-color: #d8d1ce;
+}
+
+.auth-tarjeta [class*="border-atlantia-rose"]:focus,
+.auth-tarjeta [class*="border-atlantia-rose"]:focus-within {
+    border-color: #4d0006;
+    box-shadow: 0 0 0 3px rgb(77 0 6 / 0.12);
+}
+
+.auth-tarjeta .bg-atlantia-wine,
+.auth-tarjeta button[type="submit"].bg-atlantia-wine {
+    background-color: #4d0006;
+}
+
+.auth-tarjeta .bg-atlantia-wine:hover {
+    background-color: #3a0004;
+}
+
+.auth-tarjeta .text-atlantia-wine {
+    color: #4d0006;
 }

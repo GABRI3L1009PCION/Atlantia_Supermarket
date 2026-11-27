@@ -13,7 +13,8 @@ class TwoFactorChallengeRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['code' => ['required', 'digits:6']];
+        /* 6 dígitos de la app, o un código de respaldo de 10 caracteres (con o sin guion). */
+        return ['code' => ['required', 'string', 'regex:/^(\d{6}|[A-Za-z0-9]{5}-?[A-Za-z0-9]{5})$/']];
     }
 
     /**

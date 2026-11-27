@@ -40,6 +40,53 @@ return [
         'base_url' => env('MAPBOX_BASE_URL', 'https://api.mapbox.com'),
     ],
 
+    /*
+     * Mapas con OpenStreetMap. Los valores por defecto son los servidores publicos de prueba:
+     * en produccion usa un proveedor de teselas OSM y un servidor OSRM propio.
+     */
+    'mapas' => [
+        'tiles_url' => env('MAP_TILES_URL', 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+        'tiles_attribution' => env('MAP_TILES_ATTRIBUTION', '&copy; OpenStreetMap'),
+        'routing_url' => rtrim((string) env('MAP_ROUTING_URL', 'https://router.project-osrm.org'), '/'),
+    ],
+
+    /*
+     * Notificaciones push (Web Push). Genera las claves una vez con: php artisan push:claves
+     */
+    'webpush' => [
+        'public_key' => env('WEBPUSH_PUBLIC_KEY'),
+        'private_key' => env('WEBPUSH_PRIVATE_KEY'),
+        'subject' => env('WEBPUSH_SUBJECT', 'mailto:soporte@atlantia.store'),
+    ],
+
+    /*
+     * Avisos por WhatsApp. Driver "log" solo los escribe en el log; "meta" usa la
+     * WhatsApp Cloud API con plantillas aprobadas en Meta Business; "null" los apaga.
+     */
+    'whatsapp' => [
+        'driver' => env('WHATSAPP_DRIVER', 'null'),
+        'token' => env('WHATSAPP_TOKEN'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'api_version' => env('WHATSAPP_API_VERSION', 'v21.0'),
+        'idioma' => env('WHATSAPP_IDIOMA', 'es'),
+        'plantillas' => [
+            'pedido_confirmado' => env('WHATSAPP_PLANTILLA_CONFIRMADO', 'pedido_confirmado'),
+            'pedido_en_camino' => env('WHATSAPP_PLANTILLA_EN_CAMINO', 'pedido_en_camino'),
+            'repartidor_llego' => env('WHATSAPP_PLANTILLA_LLEGO', 'repartidor_llego'),
+            'pedido_entregado' => env('WHATSAPP_PLANTILLA_ENTREGADO', 'pedido_entregado'),
+            'codigo_acceso' => env('WHATSAPP_PLANTILLA_CODIGO', 'codigo_acceso'),
+            'carrito_abandonado' => env('WHATSAPP_PLANTILLA_CARRITO', 'carrito_abandonado'),
+            'pedido_recurrente' => env('WHATSAPP_PLANTILLA_RECURRENTE', 'pedido_recurrente'),
+        ],
+    ],
+
+    /* "Continuar con Google" (Laravel Socialite). El boton se oculta sin credenciales. */
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', '/entrar/google/callback'),
+    ],
+
     'google_maps' => [
         'api_key' => env('GOOGLE_MAPS_API_KEY'),
         'map_id' => env('GOOGLE_MAPS_MAP_ID'),
@@ -66,11 +113,19 @@ return [
         'webhook_secret' => env('PAYMENT_GATEWAY_WEBHOOK_SECRET'),
     ],
 
-    'stripe' => [
-        'publishable_key' => env('STRIPE_PUBLISHABLE_KEY'),
-        'secret_key' => env('STRIPE_SECRET_KEY'),
-        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
-        'currency' => env('STRIPE_CURRENCY', 'gtq'),
+    'recurrente' => [
+        'base_url' => rtrim((string) env('RECURRENTE_BASE_URL', 'https://app.recurrente.com/api'), '/'),
+        'secret_key' => env('RECURRENTE_SECRET_KEY'),
+        'webhook_secret' => env('RECURRENTE_WEBHOOK_SECRET'),
+        'currency' => env('RECURRENTE_CURRENCY', 'GTQ'),
+        'checkout_expires_minutes' => (int) env('RECURRENTE_CHECKOUT_EXPIRES_MINUTES', 30),
+        /* Pago con tarjeta dentro de Atlantia (iframe). Requiere https o localhost. */
+        'embebido' => (bool) env('RECURRENTE_EMBEDDED', true),
+        'timeout_seconds' => (int) env('RECURRENTE_TIMEOUT_SECONDS', 20),
+        'checkout_domains' => array_values(array_filter(array_map(
+            static fn (string $domain): string => trim($domain),
+            explode(',', (string) env('RECURRENTE_CHECKOUT_DOMAINS', 'https://app.recurrente.com'))
+        ))),
     ],
 
     'ml' => [

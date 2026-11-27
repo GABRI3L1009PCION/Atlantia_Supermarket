@@ -25,6 +25,7 @@ class PerfilFiscalService
      */
     public function update(User $user, array $data): VendorFiscalProfile
     {
+        unset($data['seccion']);
         foreach (['fel_llave_firma', 'fel_llave_certificador'] as $secretField) {
             if (array_key_exists($secretField, $data) && blank($data[$secretField])) {
                 unset($data[$secretField]);

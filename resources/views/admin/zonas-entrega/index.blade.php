@@ -76,129 +76,61 @@
         })->values();
     @endphp
 
-    <section class="-mx-4 -my-6 bg-atlantia-cream/35 px-4 py-6 text-atlantia-ink sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-        <div class="mx-auto max-w-7xl space-y-5">
-            <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+    <section class="mx-auto max-w-7xl pb-10 text-atlantia-ink">
+        <div class="space-y-4">
+            {{-- Encabezado con el estado de cobertura del checkout --}}
+            <header class="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                    <p class="text-xs font-black uppercase tracking-[0.18em] text-atlantia-rose">Atlantia Supermarket</p>
-                    <h1 class="mt-2 text-5xl font-black leading-tight text-atlantia-ink">Zonas de entrega</h1>
-                    <p class="mt-3 text-base text-atlantia-ink/70">
-                        Define la cobertura operativa, costos y horarios por area geografica en Izabal.
-                    </p>
-                </div>
-
-                <div class="flex flex-wrap gap-3">
-                    <button
-                        type="button"
-                        class="inline-flex items-center justify-center gap-2 rounded-md border border-atlantia-rose/35 bg-white px-5 py-3 text-sm font-black text-atlantia-wine shadow-sm transition hover:bg-atlantia-blush"
-                    >
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 20H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                        Exportar zonas
-                    </button>
-                    <button
-                        type="button"
-                        data-open-create-zone
-                        class="inline-flex items-center justify-center gap-2 rounded-md bg-atlantia-wine px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-atlantia-wine-700"
-                    >
-                        <span class="text-xl leading-none">+</span>
-                        Nueva zona
-                    </button>
-                </div>
-            </div>
-
-            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <article class="rounded-xl border border-atlantia-rose/20 bg-white p-5 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <span class="grid h-14 w-14 place-items-center rounded-xl bg-atlantia-blush text-atlantia-wine">
-                            <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21C12 21 19 14.8 19 8.9C19 5.1 15.9 2 12 2C8.1 2 5 5.1 5 8.9C5 14.8 12 21 12 21Z" stroke="currentColor" stroke-width="2"/><path d="M12 11.5C13.4 11.5 14.5 10.4 14.5 9C14.5 7.6 13.4 6.5 12 6.5C10.6 6.5 9.5 7.6 9.5 9C9.5 10.4 10.6 11.5 12 11.5Z" stroke="currentColor" stroke-width="2"/></svg>
-                        </span>
-                        <div>
-                            <p class="text-xs font-black uppercase tracking-wide text-atlantia-ink/50">Zonas activas</p>
-                            <p class="mt-1 text-2xl font-black text-atlantia-ink">{{ $activeZones }}</p>
-                            <p class="mt-1 text-xs font-bold text-emerald-700">Listas para checkout</p>
-                        </div>
-                    </div>
-                </article>
-                <article class="rounded-xl border border-atlantia-rose/20 bg-white p-5 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <span class="grid h-14 w-14 place-items-center rounded-xl bg-atlantia-blush text-atlantia-wine">
-                            <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18L3 21V6L9 3M9 18L15 21M9 18V3M15 21L21 18V3L15 6M15 21V6M15 6L9 3" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-                        </span>
-                        <div>
-                            <p class="text-xs font-black uppercase tracking-wide text-atlantia-ink/50">Cobertura total</p>
-                            <p class="mt-1 text-2xl font-black text-atlantia-ink">{{ number_format($coverage, 0) }} km2</p>
-                            <p class="mt-1 text-xs font-bold text-atlantia-ink/60">Izabal</p>
-                        </div>
-                    </div>
-                </article>
-                <article class="rounded-xl border border-atlantia-rose/20 bg-white p-5 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <span class="grid h-14 w-14 place-items-center rounded-xl bg-atlantia-blush text-atlantia-wine">
-                            <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 8V6C7 3.8 8.8 2 11 2H13C15.2 2 17 3.8 17 6V8" stroke="currentColor" stroke-width="2"/><path d="M5 8H19L18 21H6L5 8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-                        </span>
-                        <div>
-                            <p class="text-xs font-black uppercase tracking-wide text-atlantia-ink/50">Pedidos en zonas</p>
-                            <p class="mt-1 text-2xl font-black text-atlantia-ink">{{ $ordersInZones }}</p>
-                            <p class="mt-1 text-xs font-bold text-emerald-700">Operacion mensual</p>
-                        </div>
-                    </div>
-                </article>
-                <article class="rounded-xl border border-atlantia-rose/20 bg-white p-5 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <span class="grid h-14 w-14 place-items-center rounded-xl bg-atlantia-blush text-atlantia-wine">
-                            <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3C7 3 3 5.5 3 8.5C3 11.5 7 14 12 14C17 14 21 11.5 21 8.5C21 5.5 17 3 12 3Z" stroke="currentColor" stroke-width="2"/><path d="M3 8.5V15.5C3 18.5 7 21 12 21C17 21 21 18.5 21 15.5V8.5" stroke="currentColor" stroke-width="2"/><path d="M12 6V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                        </span>
-                        <div>
-                            <p class="text-xs font-black uppercase tracking-wide text-atlantia-ink/50">Costo promedio envio</p>
-                            <p class="mt-1 text-2xl font-black text-atlantia-ink">Q {{ number_format($averageCost, 2) }}</p>
-                            <p class="mt-1 text-xs font-bold text-atlantia-ink/60">Por pedido</p>
-                        </div>
-                    </div>
-                </article>
-            </div>
-
-            <section class="rounded-xl border border-atlantia-rose/20 bg-white p-5 shadow-sm">
-                <div class="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
-                    <div class="flex gap-4">
-                        <span class="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-atlantia-wine text-white">
-                            <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6H20L18 18H7L4 6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 20C9.6 20 10 19.6 10 19C10 18.4 9.6 18 9 18C8.4 18 8 18.4 8 19C8 19.6 8.4 20 9 20Z" stroke="currentColor" stroke-width="2"/><path d="M17 20C17.6 20 18 19.6 18 19C18 18.4 17.6 18 17 18C16.4 18 16 18.4 16 19C16 19.6 16.4 20 17 20Z" stroke="currentColor" stroke-width="2"/></svg>
-                        </span>
-                        <div>
-                            <p class="text-xs font-black uppercase tracking-wide text-atlantia-ink/55">Cobertura de checkout</p>
-                            <h2 class="mt-1 text-xl font-black text-atlantia-ink">Fase actual: Puerto Barrios y Santo Tomas</h2>
-                            <p class="mt-2 max-w-3xl text-sm leading-6 text-atlantia-ink/65">
-                            El cliente solo podra finalizar compras en municipios con una zona activa. Los demas municipios
-                            quedan listos para administracion futura, pero no pasan checkout todavia.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="grid gap-2 sm:min-w-64">
+                    <h1 class="text-3xl font-black tracking-tight text-atlantia-ink">Zonas de entrega</h1>
+                    <p class="mt-1 text-sm text-atlantia-ink/60">Dónde entregas, cuánto cuesta el envío y cuánto tarda en cada colonia de Izabal.</p>
+                    <div class="mt-2 flex flex-wrap items-center gap-2 text-xs font-bold">
+                        <span class="text-atlantia-ink/55">Los clientes pueden comprar en:</span>
                         @foreach ($municipiosOperativos as $municipio)
                             @php
                                 $activoCheckout = $municipiosActivosCheckout->contains($municipio);
                             @endphp
-                            <span
-                                @class([
-                                    'inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-black',
-                                    'bg-emerald-100 text-emerald-800' => $activoCheckout,
-                                    'bg-red-50 text-red-700' => ! $activoCheckout,
-                                ])
-                            >
-                                <span class="grid h-5 w-5 place-items-center rounded-full bg-white/70">{{ $activoCheckout ? 'ok' : '!' }}</span>
-                                {{ $municipio }}: {{ $activoCheckout ? 'Activo' : 'Pendiente' }}
+                            <span @class([
+                                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1',
+                                'bg-emerald-50 text-emerald-800' => $activoCheckout,
+                                'bg-red-50 text-red-700' => ! $activoCheckout,
+                            ])>
+                                <span @class(['h-1.5 w-1.5 rounded-full', 'bg-emerald-500' => $activoCheckout, 'bg-red-500' => ! $activoCheckout])></span>
+                                {{ $municipio }}{{ $activoCheckout ? '' : ' (sin zona activa)' }}
                             </span>
                         @endforeach
                     </div>
                 </div>
+                <button
+                    type="button"
+                    data-open-create-zone
+                    class="inline-flex items-center gap-2 rounded-xl bg-atlantia-wine px-4 py-2.5 text-sm font-black text-white transition hover:bg-atlantia-wine-700"
+                >
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+                    Nueva zona
+                </button>
+            </header>
 
-                @if ($municipiosPendientesCheckout->isNotEmpty())
-                    <div class="mt-4 rounded-md border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-                        Falta crear o activar zona para:
-                        {{ $municipiosPendientesCheckout->join(', ', ' y ') }}.
-                    </div>
-                @endif
-            </section>
+            @if ($municipiosPendientesCheckout->isNotEmpty())
+                <p class="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-700">
+                    Los clientes de {{ $municipiosPendientesCheckout->join(', ', ' y ') }} no pueden terminar su compra: falta crear o activar una zona ahí.
+                </p>
+            @endif
+
+            {{-- Resumen --}}
+            <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                @foreach ([
+                    ['Zonas activas', number_format($activeZones), 'reciben pedidos'],
+                    ['Cobertura', number_format($coverage, 0).' km²', 'área aproximada'],
+                    ['Pedidos del mes', number_format($ordersInZones), 'dentro de las zonas'],
+                    ['Envío promedio', 'Q '.number_format($averageCost, 2), 'por pedido'],
+                ] as [$etiqueta, $valor, $nota])
+                    <article class="rounded-2xl border border-atlantia-rose/15 bg-white px-4 py-3 shadow-[0_8px_20px_rgba(59,6,12,0.04)]">
+                        <p class="text-[11px] font-black uppercase tracking-wide text-atlantia-ink/50">{{ $etiqueta }}</p>
+                        <p class="mt-0.5 text-2xl font-black text-atlantia-ink">{{ $valor }}</p>
+                        <p class="text-xs text-atlantia-ink/50">{{ $nota }}</p>
+                    </article>
+                @endforeach
+            </div>
 
             <div class="space-y-6">
                 <form
@@ -466,151 +398,173 @@
                     </div>
                 </form>
 
-                <section class="grid gap-5 lg:grid-cols-2">
-                    <div class="order-2 rounded-xl border border-atlantia-rose/20 bg-white p-5 shadow-sm lg:col-span-2">
-                        <div class="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
-                            <div>
-                                <h2 class="text-xl font-black text-atlantia-ink">
-                                    Zonas registradas ({{ $zonas->total() }})
-                                </h2>
-                                <p class="mt-1 text-sm text-atlantia-ink/60">Cobertura operativa actual.</p>
-                            </div>
-                            <form method="GET" action="{{ route('admin.zonas-entrega.index') }}" class="grid gap-2 sm:grid-cols-[minmax(220px,320px)_auto]">
-                                <label class="relative block">
-                                    <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-atlantia-ink/40">
-                                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11 19C15.4 19 19 15.4 19 11C19 6.6 15.4 3 11 3C6.6 3 3 6.6 3 11C3 15.4 6.6 19 11 19Z" stroke="currentColor" stroke-width="2"/><path d="M20.5 20.5L16.7 16.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                                    </span>
-                                    <input
-                                        name="q"
-                                        type="search"
-                                        value="{{ request('q') }}"
-                                        placeholder="Buscar zona..."
-                                        class="w-full rounded-md border border-atlantia-rose/30 py-3 pl-12 pr-4 text-sm outline-none focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20"
-                                    >
-                                </label>
-                                <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md border border-atlantia-rose/30 bg-white px-4 py-3 text-sm font-black text-atlantia-wine hover:bg-atlantia-blush">
-                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6H20M7 12H17M10 18H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                                    Filtrar
+                @php
+                    $campoZona = 'mt-1 h-9 w-full rounded-lg border border-atlantia-rose/30 bg-white px-3 text-sm outline-none focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20';
+                    $etiquetaZona = 'block text-[11px] font-bold text-atlantia-ink/60';
+                @endphp
+                <section class="grid items-start gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+                    {{-- Mapa (fijo al bajar) --}}
+                    <section class="overflow-hidden rounded-2xl border border-atlantia-rose/15 bg-white shadow-[0_10px_26px_rgba(59,6,12,0.05)] lg:sticky lg:top-24">
+                        <div class="border-b border-atlantia-rose/10 p-3">
+                            <div class="relative">
+                                <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-atlantia-ink/40">
+                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM20.5 20.5l-3.8-3.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                </span>
+                                <label for="delivery-zone-search" class="sr-only">Buscar zona en el mapa</label>
+                                <input
+                                    id="delivery-zone-search"
+                                    type="search"
+                                    autocomplete="off"
+                                    placeholder="Buscar zona o colonia en el mapa (ej. BANVI)"
+                                    class="h-10 w-full rounded-lg border border-atlantia-rose/30 bg-white pl-9 pr-24 text-sm text-atlantia-ink outline-none transition placeholder:text-atlantia-ink/40 focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20"
+                                >
+                                <button
+                                    type="button"
+                                    id="delivery-zone-search-clear"
+                                    class="absolute right-1.5 top-1/2 hidden -translate-y-1/2 rounded-md px-2.5 py-1 text-xs font-black text-atlantia-wine hover:bg-atlantia-blush"
+                                >
+                                    Limpiar
                                 </button>
-                            </form>
+                            </div>
+
+                            <div id="delivery-zone-search-results" class="mt-2 hidden overflow-hidden rounded-lg border border-atlantia-rose/25 bg-white shadow-sm"></div>
+
+                            <article id="delivery-zone-selected" class="mt-2 hidden rounded-xl border border-atlantia-rose/20 bg-atlantia-cream/40 p-3">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <h3 data-selected-zone-name class="text-sm font-black text-atlantia-ink"></h3>
+                                            <span data-selected-zone-status class="rounded-md px-2 py-0.5 text-[10px] font-black uppercase"></span>
+                                        </div>
+                                        <p data-selected-zone-code class="text-[11px] font-bold uppercase tracking-wide text-atlantia-rose"></p>
+                                        <p data-selected-zone-description class="mt-1 line-clamp-2 text-xs text-atlantia-ink/65"></p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        id="delivery-zone-edit-selected"
+                                        class="shrink-0 rounded-lg bg-atlantia-wine px-3 py-1.5 text-xs font-black text-white transition hover:bg-atlantia-wine-700"
+                                    >
+                                        Editar área
+                                    </button>
+                                </div>
+                                <dl class="mt-2 grid grid-cols-4 gap-2 text-center text-xs">
+                                    <div><dt class="text-atlantia-ink/50">Municipio</dt><dd data-selected-zone-municipality class="font-black text-atlantia-ink"></dd></div>
+                                    <div><dt class="text-atlantia-ink/50">Envío</dt><dd data-selected-zone-cost class="font-black text-atlantia-ink"></dd></div>
+                                    <div><dt class="text-atlantia-ink/50">Tiempo</dt><dd data-selected-zone-time class="font-black text-atlantia-ink"></dd></div>
+                                    <div><dt class="text-atlantia-ink/50">Colonias</dt><dd data-selected-zone-areas class="font-black text-atlantia-ink"></dd></div>
+                                </dl>
+                            </article>
                         </div>
 
-                        <div class="mt-5 grid gap-5">
+                        <div
+                            id="coverage-map-panel"
+                            data-coverage-map-panel
+                            class="relative bg-atlantia-blush"
+                            style="display: block; height: 560px; min-height: 380px; width: 100%; overflow: hidden;"
+                        >
+                            @if ($googleMapsKey)
+                                <div
+                                    id="delivery-zones-map"
+                                    class="w-full bg-atlantia-blush"
+                                    style="display: block; height: 560px; min-height: 380px; width: 100%;"
+                                ></div>
+                            @endif
+
+                            <div
+                                id="delivery-zones-map-status"
+                                class="absolute inset-0 z-20 flex items-center justify-center bg-atlantia-blush text-center"
+                            >
+                                <div class="rounded-lg bg-white/95 px-5 py-4 shadow-lg">
+                                    @if ($googleMapsKey)
+                                        <p class="text-sm font-black text-atlantia-wine">Cargando mapa…</p>
+                                        <p class="mt-1 text-xs text-atlantia-ink/60">Puerto Barrios y Santo Tomás de Castilla</p>
+                                    @else
+                                        <p class="text-sm font-black text-red-700">Google Maps no está configurado</p>
+                                        <p class="mt-1 text-xs text-atlantia-ink/60">Agrega GOOGLE_MAPS_API_KEY en .env y limpia la caché.</p>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="pointer-events-none absolute left-3 top-3 z-10 rounded-lg bg-white/95 px-3 py-1.5 text-xs font-black text-atlantia-wine shadow">
+                                {{ $zonasMapa->count() }} zonas en el mapa
+                            </div>
+                        </div>
+                    </section>
+
+                    {{-- Lista de zonas --}}
+                    <div class="overflow-hidden rounded-2xl border border-atlantia-rose/15 bg-white shadow-[0_10px_26px_rgba(59,6,12,0.05)]">
+                        <form method="GET" action="{{ route('admin.zonas-entrega.index') }}" class="flex items-center gap-2 border-b border-atlantia-rose/10 p-3">
+                            <p class="shrink-0 text-sm font-black text-atlantia-ink">{{ $zonas->total() }} zonas</p>
+                            <input
+                                name="q"
+                                type="search"
+                                value="{{ request('q') }}"
+                                placeholder="Filtrar lista"
+                                aria-label="Filtrar zonas"
+                                class="h-9 min-w-0 flex-1 rounded-lg border border-atlantia-rose/30 px-3 text-sm outline-none focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20"
+                            >
+                            <button type="submit" class="h-9 shrink-0 rounded-lg border border-atlantia-rose/30 px-3 text-xs font-black text-atlantia-wine hover:bg-atlantia-blush">Filtrar</button>
+                        </form>
+
+                        <div class="divide-y divide-atlantia-rose/10 lg:max-h-[calc(100vh-15rem)] lg:overflow-y-auto">
                             @forelse ($zonas as $zona)
                                 @php
                                     $metadata = $zona->poligono_geojson['metadata'] ?? [];
                                     $barrios = $metadata['barrios'] ?? [];
-                                    $capacity = (int) ($metadata['capacidad_diaria'] ?? 60);
-                                    $ordersToday = 0;
                                     $time = (int) ($metadata['tiempo_estimado_min'] ?? 45);
+                                    $tienePoligono = ! empty($zona->poligono_geojson['features']);
                                 @endphp
 
-                                <article
-                                    id="zone-card-{{ $zona->id }}"
-                                    @class([
-                                        'flex h-full flex-col rounded-xl border bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-atlantia-rose/45 hover:shadow-md sm:p-6',
-                                        'border-atlantia-rose/30' => $loop->first,
-                                        'border-slate-200' => ! $loop->first,
-                                    ])
-                                >
-                                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                        <div class="flex min-w-0 items-center gap-4">
-                                            <span class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-atlantia-wine text-white shadow-sm">
-                                                <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21C12 21 19 14.8 19 8.9C19 5.1 15.9 2 12 2C8.1 2 5 5.1 5 8.9C5 14.8 12 21 12 21Z" fill="currentColor"/><path d="M12 11.5C13.4 11.5 14.5 10.4 14.5 9C14.5 7.6 13.4 6.5 12 6.5C10.6 6.5 9.5 7.6 9.5 9C9.5 10.4 10.6 11.5 12 11.5Z" fill="white"/></svg>
-                                            </span>
-                                            <div class="min-w-0">
-                                                <h3 class="text-xl font-black leading-tight text-atlantia-ink">{{ $zona->nombre }}</h3>
-                                                <p class="mt-1 break-all text-xs font-bold uppercase tracking-wide text-atlantia-ink/45">
-                                                    ZONA-{{ \Illuminate\Support\Str::upper($zona->slug) }}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <span
-                                            @class([
-                                                'inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-black uppercase',
-                                                'border-emerald-200 bg-emerald-50 text-emerald-700' => $zona->activa,
-                                                'bg-slate-100 text-slate-600' => ! $zona->activa,
-                                            ])
-                                        >
-                                            @if ($zona->activa)
-                                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                            @endif
-                                            {{ $zona->activa ? 'Activa' : 'Inactiva' }}
+                                <article id="zone-card-{{ $zona->id }}" class="px-4 py-3 transition hover:bg-atlantia-cream/40">
+                                    <div class="flex items-start gap-3">
+                                        <span @class(['mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg', 'bg-atlantia-wine text-white' => $zona->activa, 'bg-slate-100 text-slate-400' => ! $zona->activa])>
+                                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21s7-6.2 7-12.1A7 7 0 0 0 5 8.9C5 14.8 12 21 12 21Z" fill="currentColor"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>
                                         </span>
-                                    </div>
-
-                                    <div class="my-5 border-t border-slate-200"></div>
-
-                                    <p class="text-sm leading-6 text-atlantia-ink/70">
-                                        {{ $zona->descripcion ?: 'Zona de entrega disponible para las colonias y sectores registrados por administracion.' }}
-                                    </p>
-
-                                    <div class="mt-4 space-y-2">
-                                        @forelse (array_slice($barrios, 0, 3) as $barrio)
-                                            <div class="flex items-start gap-2 rounded-lg border border-atlantia-rose/20 bg-atlantia-cream/50 px-3 py-2.5">
-                                                <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-atlantia-wine text-[11px] font-black text-white">i</span>
-                                                <span class="text-xs font-bold leading-5 text-atlantia-wine">
-                                                    {{ $barrio }}
-                                                </span>
-                                            </div>
-                                        @empty
-                                            <div class="flex items-start gap-2 rounded-lg border border-atlantia-rose/20 bg-atlantia-cream/50 px-3 py-2.5">
-                                                <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-atlantia-wine text-[11px] font-black text-white">i</span>
-                                                <span class="text-xs font-bold leading-5 text-atlantia-wine">Sin colonias o barrios detallados.</span>
-                                            </div>
-                                        @endforelse
-                                    </div>
-
-                                    <dl class="mt-5 grid grid-cols-2 border-y border-slate-200 py-4 sm:grid-cols-4">
-                                        <div class="border-r border-slate-200 px-2 text-center">
-                                            <dt class="text-[11px] font-black uppercase tracking-wide text-atlantia-ink/45">Envio</dt>
-                                            <dd class="mt-2">
-                                                <svg class="mx-auto h-5 w-5 text-atlantia-wine" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7H20V18H4V7Z" stroke="currentColor" stroke-width="2"/><path d="M16 11H20V15H16C14.9 15 14 14.1 14 13C14 11.9 14.9 11 16 11Z" stroke="currentColor" stroke-width="2"/></svg>
-                                                <span class="mt-1 block text-sm font-black text-atlantia-ink">Q {{ number_format((float) $zona->costo_base, 2) }}</span>
-                                            </dd>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="flex flex-wrap items-center gap-2">
+                                                <span class="font-black text-atlantia-ink">{{ $zona->nombre }}</span>
+                                                @unless ($zona->activa)
+                                                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-600">Inactiva</span>
+                                                @endunless
+                                            </p>
+                                            <p class="text-xs text-atlantia-ink/60">
+                                                {{ $zona->municipio }} · <strong class="text-atlantia-ink">Q {{ number_format((float) $zona->costo_base, 2) }}</strong> · {{ $time }} min
+                                                @if (count($barrios) > 0)
+                                                    · <span title="{{ implode(', ', $barrios) }}">{{ count($barrios) }} {{ count($barrios) === 1 ? 'colonia' : 'colonias' }}</span>
+                                                @endif
+                                            </p>
                                         </div>
-                                        <div class="px-2 text-center sm:border-r sm:border-slate-200">
-                                            <dt class="text-[11px] font-black uppercase tracking-wide text-atlantia-ink/45">Tiempo</dt>
-                                            <dd class="mt-2">
-                                                <svg class="mx-auto h-5 w-5 text-atlantia-wine" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21C17 21 21 17 21 12C21 7 17 3 12 3C7 3 3 7 3 12C3 17 7 21 12 21Z" stroke="currentColor" stroke-width="2"/><path d="M12 7V12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                                                <span class="mt-1 block text-sm font-black text-atlantia-ink">{{ $time }} min</span>
-                                            </dd>
-                                        </div>
-                                        <div class="mt-4 border-r border-slate-200 px-2 text-center sm:mt-0">
-                                            <dt class="text-[11px] font-black uppercase tracking-wide text-atlantia-ink/45">Municipio</dt>
-                                            <dd class="mt-2">
-                                                <svg class="mx-auto h-5 w-5 text-atlantia-wine" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6L9 3L15 6L20 3V18L15 21L9 18L4 21V6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 3V18M15 6V21" stroke="currentColor" stroke-width="2"/><path d="M15 10C15 12 12 14 12 14C12 14 9 12 9 10C9 8.3 10.3 7 12 7C13.7 7 15 8.3 15 10Z" fill="white" stroke="currentColor"/></svg>
-                                                <span class="mt-1 block truncate text-sm font-black text-atlantia-ink">{{ $zona->municipio }}</span>
-                                            </dd>
-                                        </div>
-                                        <div class="mt-4 px-2 text-center sm:mt-0">
-                                            <dt class="text-[11px] font-black uppercase tracking-wide text-atlantia-ink/45">Pedidos hoy</dt>
-                                            <dd class="mt-2">
-                                                <svg class="mx-auto h-5 w-5 text-atlantia-wine" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 8V6C7 3.8 8.8 2 11 2H13C15.2 2 17 3.8 17 6V8" stroke="currentColor" stroke-width="2"/><path d="M5 8H19L18 21H6L5 8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-                                                <span class="mt-1 block text-sm font-black text-atlantia-ink">{{ $ordersToday }} / {{ $capacity }}</span>
-                                            </dd>
-                                        </div>
-                                    </dl>
-
-                                    <div class="mt-auto flex flex-wrap gap-2 pt-5">
-                                        <details class="group">
-                                            <summary
-                                                class="inline-flex cursor-pointer list-none items-center gap-2 rounded-md border border-atlantia-rose/45 bg-white px-4 py-2.5 text-xs font-black text-atlantia-wine transition hover:bg-atlantia-blush [&::-webkit-details-marker]:hidden"
+                                        <form method="POST" action="{{ route('admin.zonas-entrega.destroy', $zona) }}" class="shrink-0">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button
+                                                type="submit"
+                                                class="rounded-lg px-2.5 py-1.5 text-xs font-black text-atlantia-ink/50 transition hover:bg-red-50 hover:text-red-700"
+                                                data-confirm="¿Eliminar la zona {{ $zona->nombre }}? Los clientes de esa área ya no podrán pedir."
                                             >
-                                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 20H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.5 3.5C17.3 2.7 18.7 2.7 19.5 3.5L20.5 4.5C21.3 5.3 21.3 6.7 20.5 7.5L8 20H4V16L16.5 3.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                                                Eliminar
+                                            </button>
+                                        </form>
+                                    </div>
+
+                                    <div class="mt-2 pl-11">
+                                        <details class="group w-full">
+                                            <summary class="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-lg border border-atlantia-rose/30 px-3 py-1.5 text-xs font-black text-atlantia-wine transition hover:bg-atlantia-blush [&::-webkit-details-marker]:hidden">
                                                 Editar
+                                                <svg class="h-3 w-3 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                             </summary>
                                             <form
                                                 method="POST"
                                                 action="{{ route('admin.zonas-entrega.update', $zona) }}"
-                                                class="mt-4 grid gap-4 rounded-lg border border-atlantia-rose/20 bg-white p-4"
+                                                class="mt-3 grid gap-3 rounded-xl border border-atlantia-rose/20 bg-atlantia-cream/30 p-3"
                                             >
                                                 @csrf
                                                 @method('PUT')
-                                                <input name="nombre" value="{{ $zona->nombre }}" class="rounded-md border border-atlantia-rose/30 px-3 py-2">
-                                                <input name="slug" value="{{ $zona->slug }}" class="rounded-md border border-atlantia-rose/30 px-3 py-2">
-                                                <textarea name="descripcion" rows="2" class="rounded-md border border-atlantia-rose/30 px-3 py-2">{{ $zona->descripcion }}</textarea>
+                                                <div class="grid gap-2 sm:grid-cols-2">
+                                                    <label class="{{ $etiquetaZona }}">Nombre<input name="nombre" value="{{ $zona->nombre }}" class="{{ $campoZona }}"></label>
+                                                    <label class="{{ $etiquetaZona }}">Código interno<input name="slug" value="{{ $zona->slug }}" class="{{ $campoZona }}"></label>
+                                                </div>
+                                                <label class="{{ $etiquetaZona }}">Descripción<textarea name="descripcion" rows="2" class="mt-1 w-full rounded-lg border border-atlantia-rose/30 bg-white px-3 py-2 text-sm">{{ $zona->descripcion }}</textarea></label>
                                                 <input type="hidden" name="capacidad_diaria" value="{{ $metadata['capacidad_diaria'] ?? 60 }}">
                                                 <input type="hidden" name="envio_gratis_desde" value="{{ $metadata['envio_gratis_desde'] ?? '' }}">
                                                 <input type="hidden" name="hora_apertura" value="{{ $metadata['hora_apertura'] ?? '' }}">
@@ -624,36 +578,26 @@
                                                 @if ($metadata['cobro_peso_volumen'] ?? false)
                                                     <input type="hidden" name="cobro_peso_volumen" value="1">
                                                 @endif
-                                                <div class="grid gap-3 sm:grid-cols-3">
-                                                    <select name="municipio" class="rounded-md border border-atlantia-rose/30 px-3 py-2">
-                                                        @foreach ($municipios as $municipio)
-                                                            <option value="{{ $municipio }}" @selected($zona->municipio === $municipio)>{{ $municipio }}</option>
-                                                        @endforeach
-                                                    </select>
-                                                    <input name="costo_base" type="number" step="0.01" value="{{ $zona->costo_base }}" class="rounded-md border border-atlantia-rose/30 px-3 py-2">
-                                                    <input name="tiempo_estimado_min" type="number" value="{{ $time }}" class="rounded-md border border-atlantia-rose/30 px-3 py-2">
+                                                <div class="grid gap-2 sm:grid-cols-3">
+                                                    <label class="{{ $etiquetaZona }}">Municipio
+                                                        <select name="municipio" class="{{ $campoZona }}">
+                                                            @foreach ($municipios as $municipio)
+                                                                <option value="{{ $municipio }}" @selected($zona->municipio === $municipio)>{{ $municipio }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </label>
+                                                    <label class="{{ $etiquetaZona }}">Envío (Q)<input name="costo_base" type="number" step="0.01" value="{{ $zona->costo_base }}" class="{{ $campoZona }}"></label>
+                                                    <label class="{{ $etiquetaZona }}">Tiempo (min)<input name="tiempo_estimado_min" type="number" value="{{ $time }}" class="{{ $campoZona }}"></label>
                                                 </div>
-                                                <div class="grid gap-3 sm:grid-cols-2">
-                                                    <input
-                                                        id="edit-lat-{{ $zona->id }}"
-                                                        name="latitude_centro"
-                                                        type="number"
-                                                        step="0.00000001"
-                                                        value="{{ $zona->latitude_centro }}"
-                                                        class="rounded-md border border-atlantia-rose/30 px-3 py-2"
-                                                        placeholder="Latitud (auto desde poligono)"
-                                                    >
-                                                    <input
-                                                        id="edit-lng-{{ $zona->id }}"
-                                                        name="longitude_centro"
-                                                        type="number"
-                                                        step="0.00000001"
-                                                        value="{{ $zona->longitude_centro }}"
-                                                        class="rounded-md border border-atlantia-rose/30 px-3 py-2"
-                                                        placeholder="Longitud (auto desde poligono)"
-                                                    >
+                                                <label class="{{ $etiquetaZona }}">Colonias (separadas por coma)<input name="barrios" value="{{ implode(', ', $barrios) }}" class="{{ $campoZona }}"></label>
+                                                <div class="grid gap-2 sm:grid-cols-2">
+                                                    <label class="{{ $etiquetaZona }}">Latitud del centro
+                                                        <input id="edit-lat-{{ $zona->id }}" name="latitude_centro" type="number" step="0.00000001" value="{{ $zona->latitude_centro }}" placeholder="Se calcula con el área" class="{{ $campoZona }}">
+                                                    </label>
+                                                    <label class="{{ $etiquetaZona }}">Longitud del centro
+                                                        <input id="edit-lng-{{ $zona->id }}" name="longitude_centro" type="number" step="0.00000001" value="{{ $zona->longitude_centro }}" placeholder="Se calcula con el área" class="{{ $campoZona }}">
+                                                    </label>
                                                 </div>
-                                                <input name="barrios" value="{{ implode(', ', $barrios) }}" class="rounded-md border border-atlantia-rose/30 px-3 py-2">
 
                                                 @if ($googleMapsKey)
                                                     <input
@@ -662,28 +606,23 @@
                                                         id="edit-polygon-{{ $zona->id }}"
                                                         value="{{ json_encode($zona->poligono_geojson['features'] ?? []) }}"
                                                     >
-                                                    <div class="rounded-lg border border-atlantia-wine/25 bg-atlantia-cream/60 p-3">
+                                                    <div class="rounded-lg border border-atlantia-rose/20 bg-white p-3">
                                                         <div class="flex items-center justify-between gap-3">
-                                                            <div>
-                                                                <p class="text-xs font-black text-atlantia-wine">Area de cobertura en mapa</p>
-                                                                @if (! empty($zona->poligono_geojson['features']))
-                                                                    <p class="mt-0.5 text-xs text-emerald-700 font-bold">Poligono guardado</p>
-                                                                @else
-                                                                    <p class="mt-0.5 text-xs text-amber-600 font-bold">Sin poligono — dibuja el area exacta</p>
-                                                                @endif
-                                                            </div>
+                                                            <p class="text-xs font-bold {{ $tienePoligono ? 'text-emerald-700' : 'text-atlantia-ink/60' }}">
+                                                                {{ $tienePoligono ? 'Área dibujada en el mapa' : 'Sin área dibujada: se usa el punto central y las colonias' }}
+                                                            </p>
                                                             <div class="flex gap-2">
                                                                 <button
                                                                     type="button"
                                                                     id="clear-polygon-{{ $zona->id }}"
-                                                                    class="{{ empty($zona->poligono_geojson['features']) ? 'hidden' : '' }} rounded border border-red-200 px-2 py-1 text-xs font-black text-red-700 hover:bg-red-50"
+                                                                    class="{{ $tienePoligono ? '' : 'hidden' }} rounded-md border border-red-200 px-2 py-1 text-xs font-black text-red-700 hover:bg-red-50"
                                                                 >
-                                                                    Limpiar
+                                                                    Borrar área
                                                                 </button>
                                                                 <button
                                                                     type="button"
                                                                     data-toggle-edit-map="{{ $zona->id }}"
-                                                                    class="rounded border border-atlantia-rose/35 bg-white px-2 py-1 text-xs font-black text-atlantia-wine hover:bg-atlantia-blush"
+                                                                    class="rounded-md border border-atlantia-rose/35 bg-white px-2 py-1 text-xs font-black text-atlantia-wine hover:bg-atlantia-blush"
                                                                 >
                                                                     Abrir mapa
                                                                 </button>
@@ -700,176 +639,31 @@
                                                     </div>
                                                 @endif
 
-                                                <input type="hidden" name="activa" value="0">
-                                                <label class="inline-flex items-center gap-2 text-sm font-bold text-atlantia-ink">
-                                                    <input type="checkbox" name="activa" value="1" @checked($zona->activa)>
-                                                    Activa
-                                                </label>
-                                                <button type="submit" class="rounded-md bg-atlantia-wine px-4 py-2 text-sm font-black text-white">
-                                                    Guardar cambios
-                                                </button>
+                                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                                    <input type="hidden" name="activa" value="0">
+                                                    <label class="inline-flex items-center gap-2 text-sm font-bold text-atlantia-ink">
+                                                        <input type="checkbox" name="activa" value="1" @checked($zona->activa) class="rounded border-atlantia-rose/40 text-atlantia-wine">
+                                                        Zona activa (recibe pedidos)
+                                                    </label>
+                                                    <button type="submit" class="rounded-lg bg-atlantia-wine px-4 py-2 text-sm font-black text-white hover:bg-atlantia-wine-700">Guardar cambios</button>
+                                                </div>
                                             </form>
                                         </details>
-
-                                        <form method="POST" action="{{ route('admin.zonas-entrega.destroy', $zona) }}">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button
-                                                type="submit"
-                                                class="inline-flex items-center gap-2 rounded-md border border-red-200 px-4 py-2.5 text-xs font-black text-red-700 transition hover:bg-red-50"
-                                                onclick="return confirm('Eliminar esta zona de entrega?');"
-                                            >
-                                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9 7V4H15V7M18 7L17 20H7L6 7" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 11V16M14 11V16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                                                Eliminar
-                                            </button>
-                                        </form>
                                     </div>
+
                                 </article>
                             @empty
-                                <div class="rounded-lg border border-atlantia-rose/20 bg-atlantia-cream px-4 py-8 text-center text-atlantia-ink/60 lg:col-span-2">
-                                    No hay zonas registradas.
+                                <div class="px-4 py-12 text-center">
+                                    <p class="font-black text-atlantia-ink">{{ request('q') ? 'No hay zonas con ese filtro.' : 'Todavía no hay zonas.' }}</p>
+                                    <p class="mt-1 text-sm text-atlantia-ink/55">Crea una con "Nueva zona" para que los clientes de esa área puedan comprar.</p>
                                 </div>
                             @endforelse
                         </div>
 
-                        <div class="mt-5">{{ $zonas->links() }}</div>
+                        @if ($zonas->hasPages())
+                            <div class="border-t border-atlantia-rose/10 px-4 py-3">{{ $zonas->withQueryString()->links() }}</div>
+                        @endif
                     </div>
-
-                    <section class="order-1 rounded-xl border border-atlantia-rose/20 bg-white p-5 shadow-sm lg:col-span-2">
-                        <div class="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
-                            <div>
-                                <p class="text-xs font-black uppercase tracking-wide text-atlantia-wine">Cobertura geografica</p>
-                                <h2 class="mt-1 text-xl font-black text-atlantia-ink">Mapa de cobertura</h2>
-                                <p class="mt-1 text-sm text-atlantia-ink/60">Revisa Puerto Barrios, Santo Tomas y los centros exactos de cada zona.</p>
-                            </div>
-                            <span class="rounded-full bg-atlantia-blush px-4 py-2 text-xs font-black text-atlantia-wine">{{ $zonasMapa->count() }} zonas visibles</span>
-                        </div>
-
-                        <div class="mt-4 rounded-xl border border-atlantia-rose/25 bg-atlantia-cream/35 p-4">
-                            <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                                <div>
-                                    <label for="delivery-zone-search" class="text-sm font-black text-atlantia-ink">
-                                        Buscar zona guardada
-                                    </label>
-                                    <p class="mt-1 text-xs text-atlantia-ink/60">
-                                        Escribe el nombre, colonia o codigo interno para localizar su cobertura.
-                                    </p>
-                                </div>
-                                <button
-                                    type="button"
-                                    id="delivery-zone-search-clear"
-                                    class="hidden rounded-md border border-atlantia-rose/30 bg-white px-4 py-2 text-xs font-black text-atlantia-wine transition hover:bg-atlantia-blush"
-                                >
-                                    Limpiar busqueda
-                                </button>
-                            </div>
-
-                            <div class="relative mt-3">
-                                <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-atlantia-wine/60">
-                                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11 19C15.4 19 19 15.4 19 11C19 6.6 15.4 3 11 3C6.6 3 3 6.6 3 11C3 15.4 6.6 19 11 19Z" stroke="currentColor" stroke-width="2"/><path d="M20.5 20.5L16.7 16.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                                </span>
-                                <input
-                                    id="delivery-zone-search"
-                                    type="search"
-                                    autocomplete="off"
-                                    placeholder="Ej. BANVI I o stc-banvi-i"
-                                    class="w-full rounded-md border border-atlantia-rose/35 bg-white py-3 pl-12 pr-4 text-sm font-bold text-atlantia-ink outline-none transition placeholder:font-normal placeholder:text-atlantia-ink/35 focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20"
-                                >
-                            </div>
-
-                            <div id="delivery-zone-search-results" class="mt-2 hidden overflow-hidden rounded-lg border border-atlantia-rose/25 bg-white shadow-sm"></div>
-
-                            <article id="delivery-zone-selected" class="mt-3 hidden rounded-lg border border-atlantia-rose/25 bg-white p-4 shadow-sm">
-                                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                                    <div class="min-w-0">
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            <h3 data-selected-zone-name class="text-base font-black text-atlantia-ink"></h3>
-                                            <span data-selected-zone-status class="rounded-md px-2 py-1 text-xs font-black uppercase"></span>
-                                        </div>
-                                        <p data-selected-zone-code class="mt-1 text-xs font-black uppercase tracking-wide text-atlantia-rose"></p>
-                                        <p data-selected-zone-description class="mt-2 text-sm text-atlantia-ink/65"></p>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        id="delivery-zone-edit-selected"
-                                        class="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-atlantia-wine px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-atlantia-wine-700"
-                                    >
-                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 20H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.5 3.5C17.3 2.7 18.7 2.7 19.5 3.5L20.5 4.5C21.3 5.3 21.3 6.7 20.5 7.5L8 20H4V16L16.5 3.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-                                        Editar poligono
-                                    </button>
-                                </div>
-                                <dl class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                                    <div class="rounded-lg bg-atlantia-cream/55 p-3">
-                                        <dt class="text-xs font-black uppercase text-atlantia-ink/45">Municipio</dt>
-                                        <dd data-selected-zone-municipality class="mt-1 text-sm font-black text-atlantia-ink"></dd>
-                                    </div>
-                                    <div class="rounded-lg bg-atlantia-cream/55 p-3">
-                                        <dt class="text-xs font-black uppercase text-atlantia-ink/45">Costo base</dt>
-                                        <dd data-selected-zone-cost class="mt-1 text-sm font-black text-atlantia-ink"></dd>
-                                    </div>
-                                    <div class="rounded-lg bg-atlantia-cream/55 p-3">
-                                        <dt class="text-xs font-black uppercase text-atlantia-ink/45">Tiempo estimado</dt>
-                                        <dd data-selected-zone-time class="mt-1 text-sm font-black text-atlantia-ink"></dd>
-                                    </div>
-                                    <div class="rounded-lg bg-atlantia-cream/55 p-3">
-                                        <dt class="text-xs font-black uppercase text-atlantia-ink/45">Cobertura</dt>
-                                        <dd data-selected-zone-areas class="mt-1 text-sm font-black text-atlantia-ink"></dd>
-                                    </div>
-                                </dl>
-                            </article>
-                        </div>
-
-                        <div class="mt-4 overflow-hidden rounded-xl border border-atlantia-rose/25 bg-atlantia-blush/35">
-                            <div class="flex items-center justify-between gap-4 bg-white px-4 py-3 text-sm font-black text-atlantia-ink shadow-sm">
-                                <span class="inline-flex items-center gap-2">
-                                    <svg class="h-4 w-4 text-atlantia-wine" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18L3 21V6L9 3M9 18L15 21M9 18V3M15 21L21 18V3L15 6M15 21V6M15 6L9 3" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-                                    Mapa de cobertura
-                                </span>
-                                <span class="text-xs font-bold text-atlantia-ink/55">Izabal, Guatemala</span>
-                            </div>
-
-                            <div
-                                id="coverage-map-panel"
-                                data-coverage-map-panel
-                                class="relative rounded-b-lg border-t border-atlantia-rose/25 bg-atlantia-blush"
-                                style="display: block; height: 340px; min-height: 340px; width: 100%; overflow: hidden;"
-                            >
-                                @if ($googleMapsKey)
-                                    <div
-                                        id="delivery-zones-map"
-                                        class="w-full bg-atlantia-blush"
-                                        style="display: block; height: 340px; min-height: 340px; width: 100%;"
-                                    ></div>
-                                @endif
-
-                                <div
-                                    id="delivery-zones-map-status"
-                                    class="absolute inset-0 z-20 flex items-center justify-center bg-atlantia-blush text-center"
-                                    style="min-height: 340px;"
-                                >
-                                    <div class="rounded-lg bg-white/95 px-5 py-4 shadow-lg">
-                                        @if ($googleMapsKey)
-                                            <p class="text-sm font-black text-atlantia-wine">Cargando mapa de cobertura...</p>
-                                            <p class="mt-1 text-xs text-atlantia-ink/60">Puerto Barrios y Santo Tomas de Castilla</p>
-                                        @else
-                                            <p class="text-sm font-black text-red-700">Google Maps no esta configurado</p>
-                                            <p class="mt-1 text-xs text-atlantia-ink/60">Agrega GOOGLE_MAPS_API_KEY en .env y limpia cache.</p>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                <div class="pointer-events-none absolute left-4 top-4 z-10 rounded-lg bg-white/95 p-3 shadow-lg backdrop-blur">
-                                    <p class="text-xs font-black uppercase tracking-normal text-atlantia-wine">
-                                        {{ $zonasMapa->count() }} zonas visibles
-                                    </p>
-                                    <p class="mt-1 text-xs text-atlantia-ink/60">
-                                        Puerto Barrios, Santo Tomas y zonas creadas.
-                                    </p>
-                                </div>
-                                <div class="pointer-events-none absolute right-4 top-4 z-10 rounded-lg bg-white/95 px-3 py-2 text-xs font-bold text-atlantia-ink/60 shadow-lg">Izabal, Guatemala</div>
-                            </div>
-                        </div>
-                    </section>
                 </section>
             </div>
         </div>
@@ -963,7 +757,7 @@
 
 
                 const zoneColors = [
-                    { fill: '#7a1f3d', stroke: '#5a0f2d' },
+                    { fill: '#5e0008', stroke: '#5a0f2d' },
                     { fill: '#0891b2', stroke: '#065f7a' },
                     { fill: '#d97706', stroke: '#a35505' },
                     { fill: '#059669', stroke: '#047554' },
@@ -1346,7 +1140,7 @@
                 };
 
                 const initDrawingMap = (mapEl, featuresInput, latInput, lngInput, existingFeatures, initialCenter, zoneColor) => {
-                    const color = zoneColor || { fill: '#7a1f3d', stroke: '#5a0f2d' };
+                    const color = zoneColor || { fill: '#5e0008', stroke: '#5a0f2d' };
                     const center = initialCenter || defaultCenter;
 
                     const dmapOptions = {

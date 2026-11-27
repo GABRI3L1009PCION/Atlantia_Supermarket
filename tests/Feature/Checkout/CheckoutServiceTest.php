@@ -20,11 +20,18 @@ use App\Models\Cupon;
 use App\Models\DeliveryZone;
 use App\Models\Inventario;
 use App\Models\Payment;
+use App\Models\PaymentSplit;
 use App\Models\Pedido;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Services\Clientes\DireccionService;
+use App\Services\Clientes\SaldoService;
 use App\Services\Pedidos\CheckoutService;
+use App\Services\Pedidos\EstadoPedidoService;
+use App\Services\Pedidos\PedidoVendedorService;
+use App\Services\Promociones\CuponService;
+use App\Services\Repartidores\AutomaticDispatchService;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -78,6 +85,12 @@ class CheckoutServiceTest extends TestCase
 
         $this->assertTrue($stockReservadoAntesDelCobro);
         $this->assertSame(EstadoPedido::Confirmado, $pedido->fresh()->estado);
+
+        /* El precio ya incluye IVA: el total no se recarga, solo se desglosa (Q 50 -> IVA Q 5.36). */
+        $pedido->refresh();
+        $this->assertEqualsWithDelta(50.00, (float) $pedido->subtotal, 0.001);
+        $this->assertEqualsWithDelta(5.36, (float) $pedido->impuestos, 0.001);
+        $this->assertEqualsWithDelta((float) $pedido->subtotal + (float) $pedido->envio, (float) $pedido->total, 0.001);
         $this->assertDatabaseHas('inventarios', [
             'producto_id' => $producto->id,
             'stock_reservado' => 2,
@@ -85,9 +98,33 @@ class CheckoutServiceTest extends TestCase
     }
 
     /**
-     * Cuando Stripe aprueba la tarjeta, los pedidos por vendedor quedan pagados
+     * Cuando la pasarela aprueba la tarjeta, los pedidos por vendedor quedan pagados
      * y la factura PDF se genera/envia automaticamente.
      */
+    public function test_direccion_escrita_en_el_pago_solo_se_guarda_si_hay_compra(): void
+    {
+        [$cliente, $direccion] = $this->createClienteConDireccion();
+        $direccion->update(['borrador' => true, 'es_principal' => false]);
+
+        /* Mientras no compre, no aparece en "Mis direcciones". */
+        $this->assertCount(0, app(DireccionService::class)->forUser($cliente));
+
+        $producto = $this->createProductoConInventario(3);
+        $this->createCarritoActivo($cliente, $producto, 1);
+        $this->fakePasarelaAprobada();
+
+        app(CheckoutService::class)->checkout($cliente, PedidoDTO::fromCheckoutArray([
+            'direccion_id' => $direccion->id,
+            'metodo_pago' => MetodoPago::Efectivo->value,
+            'envio' => 15,
+        ]));
+
+        $direccion->refresh();
+        $this->assertFalse($direccion->borrador);
+        $this->assertTrue($direccion->es_principal);
+        $this->assertCount(1, app(DireccionService::class)->forUser($cliente));
+    }
+
     public function test_pago_con_tarjeta_emite_factura_automaticamente(): void
     {
         Mail::fake();
@@ -103,7 +140,6 @@ class CheckoutServiceTest extends TestCase
             PedidoDTO::fromCheckoutArray([
                 'direccion_id' => $direccion->id,
                 'metodo_pago' => MetodoPago::Tarjeta->value,
-                'card_token' => 'pm_test_checkout',
                 'envio' => 15,
                 'facturacion_tipo' => 'cf',
                 'razon_social' => 'Consumidor final',
@@ -144,7 +180,6 @@ class CheckoutServiceTest extends TestCase
                 PedidoDTO::fromCheckoutArray([
                     'direccion_id' => $direccion->id,
                     'metodo_pago' => MetodoPago::Tarjeta->value,
-                    'card_token' => 'pm_test_checkout',
                     'envio' => 10,
                 ])
             );
@@ -163,7 +198,7 @@ class CheckoutServiceTest extends TestCase
     /**
      * Si el pago falla, el cupon no debe quedar consumido.
      */
-    public function testSiElPagoFallaElCuponNoSeRegistraComoUsado(): void
+    public function test_si_el_pago_falla_el_cupon_no_se_registra_como_usado(): void
     {
         [$cliente, $direccion] = $this->createClienteConDireccion();
         $producto = $this->createProductoConInventario(2);
@@ -189,12 +224,11 @@ class CheckoutServiceTest extends TestCase
         $this->expectException(PagoRechazadoException::class);
 
         try {
-            app(\App\Services\Pedidos\CheckoutService::class)->checkout(
+            app(CheckoutService::class)->checkout(
                 $cliente,
                 PedidoDTO::fromCheckoutArray([
                     'direccion_id' => $direccion->id,
                     'metodo_pago' => MetodoPago::Tarjeta->value,
-                    'card_token' => 'pm_test_checkout',
                     'envio' => 10,
                     'coupon_code' => 'FALLA10',
                 ])
@@ -235,38 +269,40 @@ class CheckoutServiceTest extends TestCase
     }
 
     /**
-     * Permite checkout con ubicacion GPS real aunque aun no exista zona configurada.
+     * Fuera de los municipios donde operamos no se puede pedir, aunque el cliente comparta su GPS
+     * (antes pasaba y el envio salia en Q0).
      */
-    public function test_checkout_acepta_ubicacion_gps_real_aunque_no_exista_zona(): void
+    public function test_checkout_rechaza_municipio_sin_cobertura_aunque_tenga_gps(): void
     {
         [$cliente, $direccion] = $this->createClienteConDireccion('Livingston');
         $producto = $this->createProductoConInventario(3);
         $this->createCarritoActivo($cliente, $producto, 1);
         $this->fakePasarelaAprobada();
 
-        $pedido = app(CheckoutService::class)->checkout(
+        $this->expectException(DireccionFueraDeZonaException::class);
+
+        app(CheckoutService::class)->checkout(
             $cliente,
             PedidoDTO::fromCheckoutArray([
                 'direccion_id' => $direccion->id,
                 'metodo_pago' => MetodoPago::Efectivo->value,
-                'envio' => 10,
+                'envio' => 0,
             ])
         );
-
-        $this->assertSame(EstadoPedido::Confirmado, $pedido->fresh()->estado);
     }
 
     /**
-     * Permite checkout en municipios futuros cuando el cliente comparte GPS real.
+     * Un municipio nuevo se abre agregandolo a ATLANTIA_MARKETPLACE_MUNICIPIOS y creando su zona:
+     * entonces se acepta y se cobra la tarifa de esa zona.
      */
-    public function test_checkout_acepta_municipio_futuro_con_gps_real(): void
+    public function test_municipio_nuevo_se_habilita_con_la_configuracion_y_cobra_su_tarifa(): void
     {
         [$cliente, $direccion] = $this->createClienteConDireccion('Livingston');
         DeliveryZone::query()->create([
             'uuid' => (string) Str::uuid(),
-            'nombre' => 'Livingston futuro',
-            'slug' => 'livingston-futuro',
-            'descripcion' => 'Zona futura aun no disponible para checkout.',
+            'nombre' => 'Livingston centro',
+            'slug' => 'livingston-centro',
+            'descripcion' => 'Zona de Livingston.',
             'municipio' => 'Livingston',
             'costo_base' => 45,
             'latitude_centro' => 15.82830000,
@@ -276,17 +312,24 @@ class CheckoutServiceTest extends TestCase
         $producto = $this->createProductoConInventario(3);
         $this->createCarritoActivo($cliente, $producto, 1);
         $this->fakePasarelaAprobada();
+        $dto = fn () => PedidoDTO::fromCheckoutArray([
+            'direccion_id' => $direccion->id,
+            'metodo_pago' => MetodoPago::Efectivo->value,
+            'envio' => 0,
+        ]);
 
-        $pedido = app(CheckoutService::class)->checkout(
-            $cliente,
-            PedidoDTO::fromCheckoutArray([
-                'direccion_id' => $direccion->id,
-                'metodo_pago' => MetodoPago::Efectivo->value,
-                'envio' => 15,
-            ])
-        );
+        /* Con la zona creada pero sin abrir el municipio, todavia no se acepta. */
+        try {
+            app(CheckoutService::class)->checkout($cliente, $dto());
+            $this->fail('Livingston aun no es un municipio operativo.');
+        } catch (DireccionFueraDeZonaException) {
+        }
+
+        config(['atlantia.marketplace.municipios' => ['Puerto Barrios', 'Santo Tomas', 'Livingston']]);
+        $pedido = app(CheckoutService::class)->checkout($cliente, $dto());
 
         $this->assertSame(EstadoPedido::Confirmado, $pedido->fresh()->estado);
+        $this->assertEquals(45, (float) $pedido->fresh()->envio);
     }
 
     /**
@@ -375,11 +418,220 @@ class CheckoutServiceTest extends TestCase
     }
 
     /**
-     * Rechaza direcciones sin coordenadas GPS aunque el municipio este cubierto.
+     * Las colonias excluidas bloquean solo las entregas de productos propios de Atlantia.
      */
-    public function test_checkout_rechaza_direccion_sin_ubicacion_exacta(): void
+    public function test_colonia_excluida_bloquea_solo_productos_de_atlantia(): void
     {
         [$cliente, $direccion] = $this->createClienteConDireccion();
+        $direccion->update(['municipio' => 'Puerto Barrios', 'zona_o_barrio' => 'Barrio Los Tanques']);
+        $producto = $this->createProductoConInventario(3);
+        $this->createCarritoActivo($cliente, $producto, 1);
+        $this->fakePasarelaAprobada();
+
+        /* Comercio emprendedor: maneja sus propias zonas, no aplica la exclusion de Atlantia. */
+        $pedido = app(CheckoutService::class)->checkout($cliente, PedidoDTO::fromCheckoutArray([
+            'direccion_id' => $direccion->id,
+            'metodo_pago' => MetodoPago::Efectivo->value,
+        ]));
+        $this->assertNotNull($pedido->id);
+
+        /* Producto de Atlantia: se rechaza con un mensaje amable. */
+        $producto->vendor->update(['slug' => 'atlantia-supermarket']);
+        $this->createCarritoActivo($cliente, $producto->fresh(), 1);
+
+        $this->expectException(DireccionFueraDeZonaException::class);
+        $this->expectExceptionMessage('Por ahora Atlantia Store no entrega en Los Tanques');
+
+        app(CheckoutService::class)->checkout($cliente, PedidoDTO::fromCheckoutArray([
+            'direccion_id' => $direccion->id,
+            'metodo_pago' => MetodoPago::Efectivo->value,
+        ]));
+    }
+
+    /**
+     * Los productos de Atlantia no se recogen en tienda: Atlantia no tiene local propio.
+     */
+    public function test_productos_de_atlantia_no_permiten_recoger_en_tienda(): void
+    {
+        [$cliente, $direccion] = $this->createClienteConDireccion();
+        $producto = $this->createProductoConInventario(3);
+        $producto->vendor->update(['slug' => 'atlantia-supermarket']);
+        $this->createCarritoActivo($cliente, $producto->fresh(), 1);
+        $this->fakePasarelaAprobada();
+
+        $this->expectException(TransaccionFallidaException::class);
+        $this->expectExceptionMessage('se entregan solo a domicilio');
+
+        app(CheckoutService::class)->checkout($cliente, PedidoDTO::fromCheckoutArray([
+            'direccion_id' => $direccion->id,
+            'metodo_pago' => MetodoPago::Efectivo->value,
+            'tipo_entrega' => 'recoger',
+        ]));
+    }
+
+    /**
+     * La propina va al repartidor y el saldo a favor reduce lo que paga el cliente,
+     * sin cambiar el total de la venta (factura) ni lo que corresponde al comercio.
+     */
+    public function test_propina_y_saldo_a_favor_ajustan_el_cobro_sin_cambiar_la_venta(): void
+    {
+        [$cliente, $direccion] = $this->createClienteConDireccion();
+        $producto = $this->createProductoConInventario(3);
+        $this->createCarritoActivo($cliente, $producto, 2);
+        $this->fakePasarelaAprobada();
+        app(SaldoService::class)->acreditar($cliente, 20, 'ajuste_pedido', 'Producto faltante');
+
+        $pedido = app(CheckoutService::class)->checkout($cliente, PedidoDTO::fromCheckoutArray([
+            'direccion_id' => $direccion->id,
+            'metodo_pago' => MetodoPago::Efectivo->value,
+            'tipo_entrega' => 'domicilio',
+            'propina' => 10,
+            'usar_saldo' => true,
+        ]))->refresh();
+
+        $venta = (float) $pedido->total;
+        $this->assertEqualsWithDelta(10.0, (float) $pedido->propina, 0.001);
+        $this->assertEqualsWithDelta(20.0, (float) $pedido->saldo_aplicado, 0.001);
+        $this->assertEqualsWithDelta($venta + 10 - 20, $pedido->montoACobrar(), 0.001);
+        $this->assertEqualsWithDelta($venta + 10 - 20, (float) $pedido->payments()->latest('id')->value('monto'), 0.001);
+        $this->assertEqualsWithDelta(0.0, app(SaldoService::class)->disponible($cliente), 0.001);
+
+        $hijo = $pedido->pedidosHijos()->firstOrFail();
+        $this->assertEqualsWithDelta(10.0, (float) $hijo->propina, 0.001);
+        $this->assertEqualsWithDelta($venta, (float) $hijo->total, 0.001);
+
+        /* Si el pedido se cancela, el saldo vuelve al cliente. */
+        app(EstadoPedidoService::class)->registrar($pedido, EstadoPedido::Cancelado, 'Prueba');
+        $this->assertEqualsWithDelta(20.0, app(SaldoService::class)->disponible($cliente), 0.001);
+    }
+
+    /**
+     * Fuera de horario solo se aceptan entregas programadas.
+     */
+    public function test_tienda_cerrada_solo_acepta_entregas_programadas(): void
+    {
+        $this->travelTo(now()->setTime(23, 30));
+        [$cliente, $direccion] = $this->createClienteConDireccion();
+        $producto = $this->createProductoConInventario(3);
+        $producto->vendor->update(['hora_apertura' => '07:00', 'hora_cierre' => '21:00']);
+        $this->createCarritoActivo($cliente, $producto->fresh(), 1);
+        $this->fakePasarelaAprobada();
+
+        try {
+            app(CheckoutService::class)->checkout($cliente, PedidoDTO::fromCheckoutArray([
+                'direccion_id' => $direccion->id,
+                'metodo_pago' => MetodoPago::Efectivo->value,
+                'tipo_entrega' => 'domicilio',
+            ]));
+            $this->fail('Debio rechazar la entrega inmediata con la tienda cerrada.');
+        } catch (TransaccionFallidaException $exception) {
+            $this->assertStringContainsString('abrimos mañana a las 7:00 a. m.', $exception->getMessage());
+        }
+
+        $pedido = app(CheckoutService::class)->checkout($cliente, PedidoDTO::fromCheckoutArray([
+            'direccion_id' => $direccion->id,
+            'metodo_pago' => MetodoPago::Efectivo->value,
+            'tipo_entrega' => 'programado',
+        ]));
+
+        $this->assertSame('programado', $pedido->tipo_entrega);
+    }
+
+    /**
+     * Una tienda en pausa no recibe pedidos nuevos.
+     */
+    public function test_tienda_en_pausa_no_recibe_pedidos(): void
+    {
+        [$cliente, $direccion] = $this->createClienteConDireccion();
+        $producto = $this->createProductoConInventario(3);
+        $producto->vendor->update(['pausado_hasta' => now()->addHour()]);
+        $this->createCarritoActivo($cliente, $producto->fresh(), 1);
+        $this->fakePasarelaAprobada();
+
+        $this->expectException(TransaccionFallidaException::class);
+        $this->expectExceptionMessage('no está recibiendo pedidos');
+
+        app(CheckoutService::class)->checkout($cliente, PedidoDTO::fromCheckoutArray([
+            'direccion_id' => $direccion->id,
+            'metodo_pago' => MetodoPago::Efectivo->value,
+            'tipo_entrega' => 'programado',
+        ]));
+    }
+
+    /**
+     * Recoger en tienda no cobra envio y queda marcado para que no se asigne repartidor.
+     */
+    public function test_recoger_en_tienda_no_cobra_envio_ni_se_despacha(): void
+    {
+        config(['dispatch.enabled' => true]);
+        [$cliente, $direccion] = $this->createClienteConDireccion();
+        $producto = $this->createProductoConInventario(3);
+        $this->createCarritoActivo($cliente, $producto, 2);
+        $this->fakePasarelaAprobada();
+
+        $pedido = app(CheckoutService::class)->checkout(
+            $cliente,
+            PedidoDTO::fromCheckoutArray([
+                'direccion_id' => $direccion->id,
+                'metodo_pago' => MetodoPago::Efectivo->value,
+                'tipo_entrega' => 'recoger',
+                'envio' => 15,
+            ])
+        )->refresh();
+
+        $this->assertSame('recoger', $pedido->tipo_entrega);
+        $this->assertEqualsWithDelta(0.0, (float) $pedido->envio, 0.001);
+        $this->assertEqualsWithDelta(50.0, (float) $pedido->total, 0.001);
+
+        $hijo = $pedido->pedidosHijos()->firstOrFail();
+        $this->assertSame('recoger', $hijo->tipo_entrega);
+        $this->assertEqualsWithDelta(0.0, (float) $hijo->envio, 0.001);
+        $this->assertNull(app(AutomaticDispatchService::class)->dispatchPedido($hijo));
+    }
+
+    /**
+     * El GPS es opcional: sin coordenadas se usa la zona activa del municipio elegido.
+     */
+    public function test_checkout_acepta_direccion_sin_gps_en_municipio_con_zona(): void
+    {
+        [$cliente, $direccion] = $this->createClienteConDireccion();
+        $direccion->update([
+            'latitude' => null,
+            'longitude' => null,
+        ]);
+        DeliveryZone::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'nombre' => 'Puerto Barrios centro',
+            'slug' => 'puerto-barrios-centro-sin-gps',
+            'descripcion' => 'Zona base del municipio.',
+            'municipio' => $direccion->municipio,
+            'costo_base' => 15,
+            'latitude_centro' => 15.72780000,
+            'longitude_centro' => -88.59440000,
+            'activa' => true,
+        ]);
+        $producto = $this->createProductoConInventario(3);
+        $this->createCarritoActivo($cliente, $producto, 1);
+        $this->fakePasarelaAprobada();
+
+        $pedido = app(CheckoutService::class)->checkout(
+            $cliente,
+            PedidoDTO::fromCheckoutArray([
+                'direccion_id' => $direccion->id,
+                'metodo_pago' => MetodoPago::Efectivo->value,
+                'envio' => 15,
+            ])
+        );
+
+        $this->assertSame(EstadoPedido::Confirmado, $pedido->fresh()->estado);
+    }
+
+    /**
+     * Sin GPS y sin zona activa en el municipio, el pedido no puede continuar.
+     */
+    public function test_checkout_rechaza_direccion_sin_gps_ni_zona_activa(): void
+    {
+        [$cliente, $direccion] = $this->createClienteConDireccion('Livingston');
         $direccion->update([
             'latitude' => null,
             'longitude' => null,
@@ -509,8 +761,129 @@ class CheckoutServiceTest extends TestCase
     }
 
     /**
+     * Estilo DiDi: dos tiendas = dos entregas. La venta del vendedor no incluye el envio,
+     * el pedido padre no se despacha y el seguimiento muestra una entrega por tienda.
+     */
+    public function test_pedido_de_dos_tiendas_se_entrega_por_separado(): void
+    {
+        [$cliente, $direccion] = $this->createClienteConDireccion();
+        $first = $this->createProductoConInventario(10);
+        $second = $this->createProductoConInventario(10);
+        $this->createCarritoActivo($cliente, $first, 1);
+        $cart = Carrito::query()->where('user_id', $cliente->id)->firstOrFail();
+        CarritoItem::query()->create(['carrito_id' => $cart->id, 'producto_id' => $second->id, 'cantidad' => 1, 'precio_unitario_snapshot' => $second->precio_base]);
+
+        /* El carrito agrupa por tienda y avisa que llegan entregas separadas. */
+        $this->actingAs($cliente)->get(route('cliente.carrito.index'))->assertOk()->assertSee('Tu pedido llegará en 2 entregas');
+
+        $this->fakePasarelaAprobada();
+        $order = app(CheckoutService::class)->checkout($cliente, PedidoDTO::fromCheckoutArray([
+            'direccion_id' => $direccion->id, 'metodo_pago' => MetodoPago::Efectivo->value, 'envio' => 10,
+        ]));
+
+        foreach ($order->pedidosHijos as $hijo) {
+            $this->assertGreaterThan(0, (float) $hijo->envio);
+            $split = PaymentSplit::query()->where('vendor_id', $hijo->vendor_id)->first();
+            if ($split !== null) {
+                $this->assertEqualsWithDelta((float) $hijo->total - (float) $hijo->envio, (float) $split->monto_bruto, 0.001);
+            }
+        }
+
+        config(['dispatch.enabled' => true]);
+        $order->update(['estado' => EstadoPedido::Confirmado->value]);
+        app(AutomaticDispatchService::class)->run();
+        $this->assertDatabaseMissing('delivery_offers', ['pedido_id' => $order->id]);
+
+        $this->actingAs($cliente)
+            ->get(route('cliente.pedidos.seguimiento', $order))
+            ->assertOk()
+            ->assertSee('Tu pedido llega en 2 entregas')
+            ->assertSee('Entrega 2', false);
+    }
+
+    /**
      * Crea producto publicado con inventario controlado.
      */
+    public function test_products_from_two_stores_are_routed_only_to_their_respective_vendor(): void
+    {
+        [$cliente, $direccion] = $this->createClienteConDireccion();
+        $first = $this->createProductoConInventario(10);
+        $second = $this->createProductoConInventario(10);
+        $this->createCarritoActivo($cliente, $first, 1);
+        $cart = Carrito::query()->where('user_id', $cliente->id)->firstOrFail();
+        CarritoItem::query()->create(['carrito_id' => $cart->id, 'producto_id' => $second->id, 'cantidad' => 2, 'precio_unitario_snapshot' => $second->precio_base]);
+        $this->fakePasarelaAprobada();
+        $order = app(CheckoutService::class)->checkout($cliente, PedidoDTO::fromCheckoutArray([
+            'direccion_id' => $direccion->id, 'metodo_pago' => MetodoPago::Efectivo->value, 'envio' => 10,
+        ]));
+        $children = $order->pedidosHijos()->with('items')->get()->keyBy('vendor_id');
+        $this->assertCount(2, $children);
+        foreach ([$first, $second] as $product) {
+            $child = $children[$product->vendor_id];
+            $this->assertSame([$product->id], $child->items->pluck('producto_id')->all());
+            $received = app(PedidoVendedorService::class)->paginate($product->vendor->user);
+            $this->assertSame([$child->id], $received->pluck('id')->all());
+            $this->assertDatabaseHas('notifications', ['notifiable_id' => $product->vendor->user_id, 'notifiable_type' => User::class]);
+        }
+    }
+
+    /**
+     * El cupón de una tienda solo descuenta sus productos y solo lo paga ella.
+     */
+    public function test_cupon_de_una_tienda_solo_descuenta_y_cobra_a_esa_tienda(): void
+    {
+        [$cliente, $direccion] = $this->createClienteConDireccion();
+        $deA = $this->createProductoConInventario(10);
+        $deB = $this->createProductoConInventario(10);
+        $this->createCarritoActivo($cliente, $deA, 1);
+        $cart = Carrito::query()->where('user_id', $cliente->id)->firstOrFail();
+        CarritoItem::query()->create(['carrito_id' => $cart->id, 'producto_id' => $deB->id, 'cantidad' => 1, 'precio_unitario_snapshot' => $deB->precio_base]);
+
+        Cupon::query()->create([
+            'uuid' => (string) Str::uuid(), 'vendor_id' => $deA->vendor_id, 'codigo' => 'TIENDAA20',
+            'tipo' => 'porcentaje', 'valor' => 20, 'minimo_compra' => 0, 'activo' => true,
+        ]);
+
+        $this->fakePasarelaAprobada();
+        $order = app(CheckoutService::class)->checkout($cliente, PedidoDTO::fromCheckoutArray([
+            'direccion_id' => $direccion->id, 'metodo_pago' => MetodoPago::Tarjeta->value, 'envio' => 10,
+            'facturacion_tipo' => 'cf', 'razon_social' => 'Consumidor final', 'nit_facturacion' => 'CF',
+            'coupon_code' => 'TIENDAA20',
+        ]));
+
+        $hijos = $order->pedidosHijos()->get()->keyBy('vendor_id');
+        /* 20 % de Q25 (solo lo de la tienda A) = Q5; la tienda B no pierde nada. */
+        $this->assertEqualsWithDelta(5.0, (float) $order->fresh()->descuento, 0.001);
+        $this->assertEqualsWithDelta(5.0, (float) $hijos[$deA->vendor_id]->descuento, 0.001);
+        $this->assertEqualsWithDelta(0.0, (float) $hijos[$deB->vendor_id]->descuento, 0.001);
+
+        $splitA = PaymentSplit::query()->where('vendor_id', $deA->vendor_id)->first();
+        $splitB = PaymentSplit::query()->where('vendor_id', $deB->vendor_id)->first();
+        $this->assertNotNull($splitA);
+        $this->assertEqualsWithDelta(20.0, (float) $splitA->monto_bruto, 0.001);
+        $this->assertEqualsWithDelta(25.0, (float) $splitB->monto_bruto, 0.001);
+    }
+
+    public function test_cupon_de_otra_tienda_no_aplica_si_no_llevas_sus_productos(): void
+    {
+        [$cliente] = $this->createClienteConDireccion();
+        $deA = $this->createProductoConInventario(10);
+        $deB = $this->createProductoConInventario(10);
+        Cupon::query()->create([
+            'uuid' => (string) Str::uuid(), 'vendor_id' => $deA->vendor_id, 'codigo' => 'SOLOA10',
+            'tipo' => 'monto_fijo', 'valor' => 10, 'minimo_compra' => 0, 'activo' => true,
+        ]);
+        $this->createCarritoActivo($cliente, $deB, 2);
+        $items = Carrito::query()->where('user_id', $cliente->id)->firstOrFail()->items()->with('producto')->get();
+
+        $respuesta = app(CuponService::class)->resolver(
+            $cliente, 'SOLOA10', 50.0, CheckoutService::subtotalesPorVendor($items)
+        );
+
+        $this->assertFalse($respuesta['valido']);
+        $this->assertStringContainsString('tu carrito no tiene productos de esa tienda', $respuesta['mensaje']);
+    }
+
     private function createProductoConInventario(int $stock): Producto
     {
         $vendorUser = User::factory()->vendedor()->create();
@@ -598,7 +971,7 @@ class CheckoutServiceTest extends TestCase
                         'uuid' => (string) Str::uuid(),
                         'pedido_id' => $pedido->id,
                         'metodo' => $pedidoDTO->metodoPago->value,
-                        'monto' => $pedido->total,
+                        'monto' => $pedido->montoACobrar(),
                         'estado' => EstadoPago::Aprobado->value,
                         'transaccion_id_pasarela' => 'txn_test',
                         'hmac_validado' => true,

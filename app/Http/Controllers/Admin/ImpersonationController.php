@@ -40,6 +40,6 @@ class ImpersonationController extends Controller
 
         abort_if($route === null, 403);
 
-        return redirect()->route($route)->with('success', 'Sesion restaurada al super administrador.');
+        return redirect()->route($route)->with('success', 'Volviste a tu cuenta de administrador.');
     }
 }

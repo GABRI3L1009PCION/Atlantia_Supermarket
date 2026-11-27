@@ -29,10 +29,20 @@ class ComisionController extends Controller
     {
         $this->authorize('viewAny', VendorCommission::class);
 
+        $filtros = $request->only(['vendor_id', 'estado', 'anio', 'mes']);
+        $periodo = $request->query('periodo');
+
+        /* El selector de mes envia "AAAA-MM"; se traduce a los filtros anio y mes. */
+        if (is_string($periodo) && preg_match('/^(\d{4})-(\d{2})$/', $periodo, $partes) === 1) {
+            $filtros['anio'] = (int) $partes[1];
+            $filtros['mes'] = (int) $partes[2];
+        }
+
         return view('admin.comisiones.index', [
-            'comisiones' => $this->calculadoraComisionService->paginate($request->all()),
-            'dashboard' => $this->calculadoraComisionService->dashboard($request->all()),
+            'comisiones' => $this->calculadoraComisionService->paginate($filtros),
+            'dashboard' => $this->calculadoraComisionService->dashboard($filtros),
             'vendors' => Vendor::query()->approved()->orderBy('business_name')->get(),
+            'filtros' => $filtros,
         ]);
     }
 

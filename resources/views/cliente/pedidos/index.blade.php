@@ -103,7 +103,7 @@
             overflow: hidden;
             padding: 18px 26px;
             border-right: 1px solid rgba(157, 27, 70, 0.09);
-            background: radial-gradient(circle at 50% 42%, rgba(255, 216, 230, 0.78), rgba(255, 247, 250, 0.08) 62%), #fffafb;
+            background: radial-gradient(circle at 50% 42%, rgba(255, 216, 230, 0.78), rgba(255, 247, 250, 0.08) 62%), #fffafa;
         }
 
         .orders-access-image {
@@ -331,6 +331,12 @@
                 display: none;
             }
         }
+        /* Invitado en celular: sin ilustracion, para que el boton de iniciar sesion se vea sin bajar. */
+        @media (max-width: 639px) {
+            .orders-access-art {
+                display: none !important;
+            }
+        }
     </style>
 
     @guest
@@ -349,8 +355,7 @@
 
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="max-w-3xl">
-                <p class="orders-guest-eyebrow text-sm font-black uppercase tracking-[0.18em] text-atlantia-wine/80">Atlantia Delivery</p>
-                <h1 class="orders-guest-title mt-2 font-black tracking-tight text-atlantia-ink">
+                <h1 class="orders-guest-title font-black tracking-tight text-atlantia-ink">
                     Historial de pedidos
                 </h1>
                 <p class="mt-2 max-w-2xl text-sm text-atlantia-ink/65 sm:text-base">
@@ -358,16 +363,6 @@
                 </p>
             </div>
 
-            <div class="orders-tabs grid gap-3 rounded-[1.75rem] border border-atlantia-rose/10 bg-white/85 p-2 shadow-[0_18px_45px_rgba(157,27,70,0.08)] sm:grid-cols-3">
-                @foreach ($tabs as $tab)
-                    <div class="{{ $tab['active'] ? 'bg-[linear-gradient(135deg,#ffffff_0%,#fff7fa_100%)] text-atlantia-wine shadow-sm ring-1 ring-atlantia-rose/15' : 'text-atlantia-ink/70' }} flex items-center justify-center gap-3 rounded-2xl px-4 py-3 text-sm font-black">
-                        <span>{{ $tab['label'] }}</span>
-                        <span class="{{ $tab['active'] ? 'bg-atlantia-blush text-atlantia-wine' : 'bg-slate-100 text-atlantia-ink/55' }} inline-flex min-w-[1.5rem] items-center justify-center rounded-full px-2 py-0.5 text-xs">
-                            {{ number_format((int) $tab['value']) }}
-                        </span>
-                    </div>
-                @endforeach
-            </div>
         </div>
     </section>
 

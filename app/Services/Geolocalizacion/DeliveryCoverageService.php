@@ -5,6 +5,8 @@ namespace App\Services\Geolocalizacion;
 use App\Models\Cliente\Direccion;
 use App\Models\DeliveryZone;
 use App\Models\VendorDeliveryZone;
+use App\Support\CoberturaColonias;
+use App\Support\Municipios;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -19,14 +21,16 @@ class DeliveryCoverageService
     private const DEFAULT_ZONE_RADIUS_KM = 8.0;
 
     /**
-     * Municipios operativos en la fase actual.
+     * Municipios operativos (ATLANTIA_MARKETPLACE_MUNICIPIOS), indexados por su forma canonica.
      *
-     * @var array<string, string>
+     * @return array<string, string>
      */
-    private const SUPPORTED_MUNICIPIOS = [
-        'puerto-barrios' => 'Puerto Barrios',
-        'santo-tomas' => 'Santo Tomas',
-    ];
+    private function supportedMunicipios(): array
+    {
+        return collect(Municipios::operativos())
+            ->mapWithKeys(fn (string $municipio): array => [(string) $this->canonicalMunicipio($municipio) => $municipio])
+            ->all();
+    }
 
     public function __construct(private readonly ZonaEntregaService $zonaEntregaService) {}
 
@@ -37,10 +41,9 @@ class DeliveryCoverageService
     {
         $canonicalMunicipio = $this->canonicalMunicipio($direccion->municipio);
 
-        if ($canonicalMunicipio === null || ! array_key_exists($canonicalMunicipio, self::SUPPORTED_MUNICIPIOS)) {
+        if ($canonicalMunicipio === null || ! array_key_exists($canonicalMunicipio, $this->supportedMunicipios())) {
             return null;
         }
-
         $zones = $this->activeZones()
             ->filter(fn (DeliveryZone $zone): bool => $this->canonicalMunicipio($zone->municipio) === $canonicalMunicipio)
             ->sortBy(fn (DeliveryZone $zone): float => (float) $zone->costo_base)
@@ -53,7 +56,8 @@ class DeliveryCoverageService
         $latitude = $this->coordinate($direccion->latitude);
         $longitude = $this->coordinate($direccion->longitude);
         if ($latitude === null || $longitude === null) {
-            return null;
+            /* Sin GPS (es opcional): se ubica por el texto de la direccion o por la zona base del municipio elegido. */
+            return $this->zoneByAddressText($zones, $direccion) ?? $zones->first();
         }
 
         $zonesWithPolygons = $zones->filter(fn (DeliveryZone $zone): bool => $this->hasUsablePolygon($zone));
@@ -68,8 +72,11 @@ class DeliveryCoverageService
             }
         }
 
+        /* Si el GPS no cae dentro de ninguna zona dibujada, se usa la colonia escrita o la zona base
+         * del municipio: el municipio ya es uno donde operamos y siempre se cobra una tarifa real. */
         return $this->nearestZoneByCenter($zones, $latitude, $longitude)
-            ?? $this->zoneByAddressText($zones, $direccion);
+            ?? $this->zoneByAddressText($zones, $direccion)
+            ?? $zones->first();
     }
 
     /**
@@ -150,15 +157,7 @@ class DeliveryCoverageService
             ];
         }
 
-        if ($this->hasRealtimeLocation($direccion)) {
-            return [
-                'covered' => true,
-                'zone' => null,
-                'message' => 'Ubicacion exacta capturada. El pedido puede continuar.',
-            ];
-        }
-
-        $supported = implode(' y ', self::SUPPORTED_MUNICIPIOS);
+        $supported = Municipios::texto();
 
         return [
             'covered' => false,
@@ -178,7 +177,7 @@ class DeliveryCoverageService
     {
         $canonical = $this->canonicalMunicipio($municipio);
 
-        return $canonical !== null && array_key_exists($canonical, self::SUPPORTED_MUNICIPIOS);
+        return $canonical !== null && array_key_exists($canonical, $this->supportedMunicipios());
     }
 
     /**
@@ -187,6 +186,15 @@ class DeliveryCoverageService
     public function hasRealtimeLocation(Direccion $direccion): bool
     {
         return $this->hasCoordinates($direccion);
+    }
+
+    /**
+     * Nombre de la colonia excluida de la cobertura propia de Atlantia, si aplica.
+     * Solo se aplica a pedidos con productos de Atlantia; los comercios manejan sus propias zonas.
+     */
+    public function coloniaExcluida(Direccion $direccion): ?string
+    {
+        return CoberturaColonias::excluida($direccion->municipio, $direccion->zona_o_barrio, $direccion->direccion_linea_1);
     }
 
     /**

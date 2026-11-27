@@ -4,7 +4,6 @@ namespace App\Services\Geolocalizacion;
 
 use App\Models\MarketCourierStatus;
 use App\Models\Pedido;
-use Illuminate\Support\Collection;
 
 /**
  * Servicio de seguimiento de pedidos.
@@ -29,23 +28,47 @@ class SeguimientoPedidoService
             : null;
 
         $destino = $this->destino($pedido);
-        $rutaReal = $this->normalizarPuntos(collect($pedido->deliveryRoute?->ruta_real ?? []));
-        $rutaPlanificada = $this->normalizarPuntos(collect($pedido->deliveryRoute?->ruta_planificada ?? []));
+
+        /*
+         * La ubicacion del repartidor solo se comparte cuando el pedido ya va hacia el cliente.
+         * Antes de eso el repartidor esta en el punto de recogida, que no se muestra al cliente.
+         */
+        $enCamino = $pedido->estadoValor() === 'en_ruta';
+        $repartidor = $enCamino ? $this->ubicacion($ultimaUbicacion) : null;
 
         return [
             'pedido' => $pedido,
             'ruta' => $pedido->deliveryRoute,
             'historial' => $pedido->estados,
-            'ultima_ubicacion' => $ultimaUbicacion,
-            'mapbox_token' => config('services.mapbox.token'),
+            'ultima_ubicacion' => $enCamino ? $ultimaUbicacion : null,
+            'estado' => $pedido->estadoValor(),
             'destino' => $destino,
-            'repartidor' => $this->ubicacion($ultimaUbicacion),
-            'ruta_planificada' => $rutaPlanificada,
-            'ruta_real' => $rutaReal,
-            'centro' => $this->centro($ultimaUbicacion, $destino),
+            'repartidor' => $repartidor,
+            'repartidor_nombre' => $this->nombreCorto($pedido->deliveryRoute?->repartidor?->name),
+            'centro' => $repartidor ?? ['latitude' => (float) $destino['latitude'], 'longitude' => (float) $destino['longitude']],
             'eta_minutos' => $pedido->deliveryRoute?->tiempo_estimado_min,
-            'actualizado_at' => $ultimaUbicacion?->timestamp_gps?->toIso8601String(),
+            'actualizado_at' => $enCamino ? $ultimaUbicacion?->timestamp_gps?->toIso8601String() : null,
+            'mapa' => [
+                'tiles_url' => config('services.mapas.tiles_url'),
+                'tiles_attribution' => config('services.mapas.tiles_attribution'),
+                'routing_url' => config('services.mapas.routing_url'),
+            ],
         ];
+    }
+
+    /**
+     * Nombre y la inicial del apellido, por ejemplo "Carlos M.".
+     */
+    private function nombreCorto(?string $nombre): ?string
+    {
+        $partes = preg_split('/\s+/', trim((string) $nombre)) ?: [];
+        $partes = array_values(array_filter($partes));
+
+        if ($partes === []) {
+            return null;
+        }
+
+        return isset($partes[1]) ? $partes[0].' '.mb_strtoupper(mb_substr($partes[1], 0, 1)).'.' : $partes[0];
     }
 
     /**
@@ -63,6 +86,7 @@ class SeguimientoPedidoService
                 'longitude' => (float) $direccion->longitude,
                 'label' => $direccion->alias ?? 'Entrega',
                 'address' => $direccion->direccion_linea_1,
+                'aproximado' => false,
             ];
         }
 
@@ -80,6 +104,7 @@ class SeguimientoPedidoService
             ...($referencias[$municipio] ?? $referencias['Puerto Barrios']),
             'label' => $municipio,
             'address' => $direccion?->direccion_linea_1,
+            'aproximado' => true,
         ];
     }
 
@@ -100,54 +125,6 @@ class SeguimientoPedidoService
             'estado' => $status->estado,
             'timestamp_gps' => $status->timestamp_gps?->toIso8601String(),
             'accuracy_meters' => $status->accuracy_meters === null ? null : (float) $status->accuracy_meters,
-        ];
-    }
-
-    /**
-     * Normaliza puntos de ruta para Mapbox.
-     *
-     * @param  Collection<int, mixed>  $puntos
-     * @return array<int, array{latitude: float, longitude: float}>
-     */
-    private function normalizarPuntos(Collection $puntos): array
-    {
-        return $puntos
-            ->map(function (mixed $punto): ?array {
-                $latitude = $punto['latitude'] ?? $punto['lat'] ?? null;
-                $longitude = $punto['longitude'] ?? $punto['lng'] ?? $punto['lon'] ?? null;
-
-                if ($latitude === null || $longitude === null) {
-                    return null;
-                }
-
-                return [
-                    'latitude' => (float) $latitude,
-                    'longitude' => (float) $longitude,
-                ];
-            })
-            ->filter()
-            ->values()
-            ->all();
-    }
-
-    /**
-     * Calcula centro inicial del mapa.
-     *
-     * @param  array<string, mixed>  $destino
-     * @return array{latitude: float, longitude: float}
-     */
-    private function centro(?MarketCourierStatus $ultimaUbicacion, array $destino): array
-    {
-        if ($ultimaUbicacion !== null) {
-            return [
-                'latitude' => (float) $ultimaUbicacion->latitude,
-                'longitude' => (float) $ultimaUbicacion->longitude,
-            ];
-        }
-
-        return [
-            'latitude' => (float) $destino['latitude'],
-            'longitude' => (float) $destino['longitude'],
         ];
     }
 }

@@ -7,10 +7,12 @@ use App\Exceptions\TransaccionFallidaException;
 use App\Models\AuditLog;
 use App\Models\Inventario;
 use App\Models\Pedido;
+use App\Models\PedidoItem;
 use App\Models\Producto;
 use App\Models\User;
 use App\Notifications\StockBajoNotification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -30,68 +32,89 @@ class StockService
             ->with(['producto.categoria', 'producto.imagenPrincipal', 'producto.media'])
             ->whereHas('producto', fn ($query) => $query->where('vendor_id', $user->vendor?->id))
             ->orderByDesc('ultima_actualizacion')
-            ->paginate(12)
+            ->paginate(50)
             ->withQueryString();
     }
 
     /**
-     * Resume el estado de inventario para el panel del vendedor.
+     * Resume el estado de inventario para el panel del vendedor (solo datos reales).
      *
      * @return array<string, mixed>
      */
     public function dashboardForVendor(User $user): array
     {
         $items = Inventario::query()
-            ->with(['producto.categoria', 'producto.imagenPrincipal', 'producto.media'])
+            ->with('producto:id,nombre,vendor_id')
             ->whereHas('producto', fn ($query) => $query->where('vendor_id', $user->vendor?->id))
-            ->orderByDesc('ultima_actualizacion')
             ->get();
 
-        $stockActual = (int) $items->sum('stock_actual');
-        $stockReservado = (int) $items->sum('stock_reservado');
-        $stockDisponible = (int) $items->sum(fn (Inventario $inventario) => max(0, $inventario->stock_actual - $inventario->stock_reservado));
+        $disponible = fn (Inventario $inventario): int => max(0, (int) $inventario->stock_actual - (int) $inventario->stock_reservado);
 
         return [
             'summary' => [
-                'stock_actual' => $stockActual,
-                'stock_disponible' => $stockDisponible,
-                'stock_minimo' => (int) $items->sum('stock_minimo'),
-                'stock_maximo' => (int) $items->sum(fn (Inventario $inventario) => (int) ($inventario->stock_maximo ?? 0)),
-                'productos_activos' => $items->filter(fn (Inventario $inventario) => (bool) $inventario->producto?->is_active)->count(),
+                'productos' => $items->count(),
+                'disponibles' => (int) $items->sum($disponible),
+                'apartadas' => (int) $items->sum('stock_reservado'),
+                'pocas' => $items->filter(fn (Inventario $i): bool => $disponible($i) > 0 && $disponible($i) <= (int) $i->stock_minimo)->count(),
+                'agotados' => $items->filter(fn (Inventario $i): bool => $disponible($i) <= 0)->count(),
             ],
-            'low_stock' => $items
-                ->filter(fn (Inventario $inventario) => $inventario->stock_actual <= $inventario->stock_minimo)
-                ->take(5)
-                ->values(),
             'movements' => $this->recentMovements($items),
             'last_update' => $items->max('ultima_actualizacion'),
         ];
     }
 
     /**
-     * Genera movimientos operativos a partir de las ultimas actualizaciones disponibles.
+     * Últimos movimientos reales: ajustes hechos a mano (bitácora) y unidades vendidas en pedidos.
      *
      * @param  Collection<int, Inventario>  $items
      * @return Collection<int, array<string, mixed>>
      */
     private function recentMovements(Collection $items): Collection
     {
-        return $items
-            ->sortByDesc('ultima_actualizacion')
-            ->take(4)
-            ->values()
-            ->map(function (Inventario $inventario, int $index): array {
-                $delta = $index % 2 === 0
-                    ? max(1, (int) ceil($inventario->stock_actual * 0.1))
-                    : -max(1, min(5, $inventario->stock_reservado ?: 5));
+        if ($items->isEmpty()) {
+            return collect();
+        }
+
+        $nombres = $items->mapWithKeys(fn (Inventario $i): array => [$i->id => $i->producto?->nombre ?? 'Producto']);
+
+        $ajustes = AuditLog::query()
+            ->where('event', 'inventario.actualizado')
+            ->where('auditable_type', Inventario::class)
+            ->whereIn('auditable_id', $items->pluck('id'))
+            ->latest('id')
+            ->limit(20)
+            ->get()
+            ->map(function (AuditLog $log) use ($nombres): ?array {
+                $antes = (int) ($log->old_values['stock_actual'] ?? 0);
+                $despues = (int) ($log->new_values['stock_actual'] ?? 0);
+                if ($antes === $despues) {
+                    return null;
+                }
 
                 return [
-                    'type' => $delta >= 0 ? 'Entrada de stock' : 'Venta realizada',
-                    'product' => $inventario->producto?->nombre ?? 'Producto',
-                    'date' => $inventario->ultima_actualizacion,
-                    'delta' => $delta,
+                    'type' => $despues > $antes ? 'Agregaste existencias' : 'Quitaste existencias',
+                    'product' => $nombres[$log->auditable_id] ?? 'Producto',
+                    'date' => $log->created_at,
+                    'delta' => $despues - $antes,
                 ];
-            });
+            })
+            ->filter();
+
+        $ventas = PedidoItem::query()
+            ->join('pedidos', 'pedidos.id', '=', 'pedido_items.pedido_id')
+            ->whereIn('pedido_items.producto_id', $items->pluck('producto_id'))
+            ->whereNotIn('pedidos.estado', ['cancelado', 'rechazado'])
+            ->latest('pedidos.created_at')
+            ->limit(20)
+            ->get(['pedido_items.producto_nombre_snapshot', 'pedido_items.cantidad', 'pedidos.numero_pedido', 'pedidos.created_at as fecha'])
+            ->map(fn ($venta): array => [
+                'type' => 'Vendido · pedido #'.$venta->numero_pedido,
+                'product' => $venta->producto_nombre_snapshot,
+                'date' => Carbon::parse($venta->fecha),
+                'delta' => -1 * (int) $venta->cantidad,
+            ]);
+
+        return $ajustes->concat($ventas)->sortByDesc('date')->take(6)->values();
     }
 
     /**

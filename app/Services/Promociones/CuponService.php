@@ -17,7 +17,7 @@ class CuponService
      *
      * @return array<string, mixed>
      */
-    public function resolver(?User $user, ?string $codigo, float $subtotal): array
+    public function resolver(?User $user, ?string $codigo, float $subtotal, array $subtotalPorVendor = []): array
     {
         $codigo = strtoupper(trim((string) $codigo));
 
@@ -44,6 +44,20 @@ class CuponService
             ];
         }
 
+        /* Cupón de una tienda: solo cuenta lo que el cliente lleva de esa tienda. */
+        if ($cupon->vendor_id !== null && $subtotalPorVendor !== []) {
+            $subtotal = (float) ($subtotalPorVendor[(int) $cupon->vendor_id] ?? 0);
+
+            if ($subtotal <= 0) {
+                return [
+                    'valido' => false,
+                    'mensaje' => 'Este cupón es de '.($cupon->vendor?->business_name ?? 'otra tienda').' y tu carrito no tiene productos de esa tienda.',
+                    'descuento' => 0.0,
+                    'cupon' => $cupon,
+                ];
+            }
+        }
+
         if ($subtotal < (float) $cupon->minimo_compra) {
             return [
                 'valido' => false,
@@ -62,14 +76,17 @@ class CuponService
             ];
         }
 
-        if (
-            $user !== null
-            && $cupon->solo_primera_compra
-            && Pedido::query()->where('cliente_id', $user->id)->whereNull('pedido_padre_id')->exists()
-        ) {
+        /* Cupón de una tienda: "primera compra" significa primera compra en esa tienda. */
+        $yaCompro = $user !== null && $cupon->solo_primera_compra && Pedido::query()
+            ->where('cliente_id', $user->id)
+            ->whereNotIn('estado', ['cancelado', 'rechazado'])
+            ->when($cupon->vendor_id !== null, fn ($q) => $q->where('vendor_id', $cupon->vendor_id), fn ($q) => $q->whereNull('pedido_padre_id'))
+            ->exists();
+
+        if ($yaCompro) {
             return [
                 'valido' => false,
-                'mensaje' => 'Este cupon solo aplica para tu primera compra.',
+                'mensaje' => $cupon->vendor_id !== null ? 'Este cupón es solo para tu primera compra en esta tienda.' : 'Este cupon solo aplica para tu primera compra.',
                 'descuento' => 0.0,
                 'cupon' => $cupon,
             ];
@@ -77,8 +94,8 @@ class CuponService
 
         if (
             $user !== null
+            && ($cupon->solo_primera_compra || $cupon->un_uso_por_cliente)
             && CuponUso::query()->where('cupon_id', $cupon->id)->where('user_id', $user->id)->exists()
-            && $cupon->solo_primera_compra
         ) {
             return [
                 'valido' => false,
@@ -100,7 +117,9 @@ class CuponService
 
         return [
             'valido' => true,
-            'mensaje' => "Cupon {$cupon->codigo} aplicado correctamente.",
+            'mensaje' => $cupon->vendor_id !== null && $subtotalPorVendor !== []
+                ? "Cupón {$cupon->codigo} aplicado a tus productos de ".($cupon->vendor?->business_name ?? 'la tienda').'.'
+                : "Cupón {$cupon->codigo} aplicado correctamente.",
             'descuento' => $descuento,
             'cupon' => $cupon,
         ];

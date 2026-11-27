@@ -2,201 +2,166 @@
 
 @section('content')
     @php
-        $statusStyles = [
-            'borrador' => 'bg-slate-100 text-slate-700',
-            'certificado' => 'bg-emerald-100 text-emerald-700',
-            'rechazado' => 'bg-rose-100 text-rose-700',
-            'anulado' => 'bg-amber-100 text-amber-700',
+        $estados = [
+            'certificado' => ['Certificado', 'bg-emerald-50 text-emerald-800 ring-emerald-200'],
+            'rechazado' => ['Rechazado', 'bg-red-50 text-red-700 ring-red-200'],
+            'anulado' => ['Anulado', 'bg-slate-100 text-slate-600 ring-slate-200'],
+            'borrador' => ['Sin certificar', 'bg-amber-50 text-amber-800 ring-amber-200'],
         ];
+        $tipos = [
+            'FACT' => 'Factura',
+            'FCAM' => 'Factura cambiaria',
+            'FPEQ' => 'Factura pequeño contribuyente',
+            'NCRE' => 'Nota de crédito',
+            'NDEB' => 'Nota de débito',
+        ];
+
+        /* Modo real de conexion con el certificador, en vez de un aviso fijo. */
+        $simulado = (bool) config('services.infile.mock', app()->environment(['local', 'testing']));
+        $sandbox = str_contains((string) config('services.infile.base_url', 'sandbox'), 'sandbox');
+        [$modoTexto, $modoClase] = $simulado
+            ? ['Modo simulado: las facturas no se envían a la SAT', 'border-amber-200 bg-amber-50 text-amber-800']
+            : ($sandbox
+                ? ['Conectado a Infile en ambiente de pruebas', 'border-sky-200 bg-sky-50 text-sky-800']
+                : ['Conectado a Infile · SAT en producción', 'border-emerald-200 bg-emerald-50 text-emerald-800']);
+
+        $filtros = request()->only(['vendor_id', 'estado', 'tipo_dte', 'fecha_desde', 'fecha_hasta']);
+        $estadoActivo = $filtros['estado'] ?? null;
+        $hayFiltros = collect($filtros)->filter(fn ($valor) => filled($valor))->isNotEmpty();
+        $urlEstado = fn (?string $estado): string => route('admin.dte.index', array_filter([...$filtros, 'estado' => $estado], fn ($valor) => filled($valor)));
+        $tarjeta = 'rounded-2xl border border-atlantia-rose/15 bg-white shadow-[0_8px_20px_rgba(59,6,12,0.04)]';
+        $campo = 'h-9 rounded-lg border border-atlantia-rose/30 bg-white px-3 text-sm focus:border-atlantia-wine focus:outline-none focus:ring-2 focus:ring-atlantia-wine/15';
     @endphp
 
-    <section class="-mx-4 -my-6 overflow-x-hidden bg-atlantia-cream/35 px-4 py-6 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-        <div class="mx-auto max-w-7xl rounded-2xl border border-atlantia-rose/20 bg-white p-5 shadow-sm sm:p-7">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div class="min-w-0">
-                    <p class="text-sm font-black uppercase tracking-[0.18em] text-atlantia-rose">Atlantia Supermarket</p>
-                    <h1 class="mt-2 text-4xl font-black leading-tight text-atlantia-ink">DTE FEL</h1>
-                    <p class="mt-2 max-w-3xl text-sm text-atlantia-ink/65">
-                        Supervisa certificacion, rechazo y anulacion fiscal de documentos emitidos.
-                    </p>
-                </div>
-
-                <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
-                    Modo emulado hasta conectar certificador FEL real.
-                </div>
+    <section class="mx-auto max-w-7xl space-y-4 pb-6 text-atlantia-ink">
+        {{-- Encabezado --}}
+        <header class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h1 class="text-3xl font-black tracking-tight">Facturas electrónicas (FEL)</h1>
+                <p class="mt-0.5 text-sm text-atlantia-ink/60">Las facturas que se emiten a los clientes por cada pedido, certificadas ante la SAT.</p>
             </div>
+            <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black {{ $modoClase }}">
+                <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
+                {{ $modoTexto }}
+            </span>
+        </header>
 
-            <div class="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <article class="rounded-xl border border-emerald-200 bg-white p-4 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-                            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="m6 12 4 4 8-8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </span>
-                        <div>
-                            <p class="text-sm text-atlantia-ink/55">Certificados</p>
-                            <p class="mt-1 text-2xl font-black text-emerald-600">{{ number_format((int) $dashboard['certificados']) }}</p>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="rounded-xl border border-rose-200 bg-white p-4 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600">
-                            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-                                <path d="M10.3 4.7a2 2 0 0 1 3.4 0l7 12.1A2 2 0 0 1 19 19.8H5a2 2 0 0 1-1.7-3l7-12.1Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                            </svg>
-                        </span>
-                        <div>
-                            <p class="text-sm text-atlantia-ink/55">Rechazados</p>
-                            <p class="mt-1 text-2xl font-black text-rose-600">{{ number_format((int) $dashboard['rechazados']) }}</p>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-700">
-                            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>
-                                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
-                            </svg>
-                        </span>
-                        <div>
-                            <p class="text-sm text-atlantia-ink/55">Anulados</p>
-                            <p class="mt-1 text-2xl font-black text-slate-700">{{ number_format((int) $dashboard['anulados']) }}</p>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="rounded-xl border border-atlantia-rose/20 bg-atlantia-blush/35 p-4 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-atlantia-wine">
-                            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M5 4h14v16H5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                                <path d="M8 8h8M8 12h8M8 16h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                            </svg>
-                        </span>
-                        <div>
-                            <p class="text-sm text-atlantia-ink/55">Monto total</p>
-                            <p class="mt-1 text-2xl font-black text-atlantia-wine">Q{{ number_format((float) $dashboard['monto_total'], 2) }}</p>
-                        </div>
-                    </div>
-                </article>
-            </div>
-
-            <div class="mt-6 rounded-2xl border border-atlantia-rose/20 bg-atlantia-blush/25 p-4">
-                <form method="GET" class="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-6">
-                    <label class="min-w-0 lg:col-span-2">
-                        <span class="sr-only">Vendedor</span>
-                        <select name="vendor_id" class="h-11 w-full min-w-0 rounded-lg border border-atlantia-rose/35 bg-white px-3 text-sm font-semibold text-atlantia-ink outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                            <option value="">Todos los vendedores</option>
-                            @foreach ($vendors as $vendor)
-                                <option value="{{ $vendor->id }}" @selected((string) request('vendor_id') === (string) $vendor->id)>{{ $vendor->business_name }}</option>
-                            @endforeach
-                        </select>
-                    </label>
-
-                    <label class="min-w-0">
-                        <span class="sr-only">Estado</span>
-                        <select name="estado" class="h-11 w-full min-w-0 rounded-lg border border-atlantia-rose/35 bg-white px-3 text-sm font-semibold text-atlantia-ink outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                            <option value="">Todos los estados</option>
-                            @foreach (['borrador', 'certificado', 'rechazado', 'anulado'] as $estado)
-                                <option value="{{ $estado }}" @selected(request('estado') === $estado)>{{ ucfirst($estado) }}</option>
-                            @endforeach
-                        </select>
-                    </label>
-
-                    <label class="min-w-0">
-                        <span class="sr-only">Tipo</span>
-                        <select name="tipo_dte" class="h-11 w-full min-w-0 rounded-lg border border-atlantia-rose/35 bg-white px-3 text-sm font-semibold text-atlantia-ink outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                            <option value="">Todos los tipos</option>
-                            @foreach (['FACT', 'FCAM', 'FPEQ', 'NCRE', 'NDEB'] as $tipo)
-                                <option value="{{ $tipo }}" @selected(request('tipo_dte') === $tipo)>{{ $tipo }}</option>
-                            @endforeach
-                        </select>
-                    </label>
-
-                    <label class="min-w-0">
-                        <span class="sr-only">Fecha desde</span>
-                        <input type="date" name="fecha_desde" value="{{ request('fecha_desde') }}" class="h-11 w-full min-w-0 rounded-lg border border-atlantia-rose/35 bg-white px-3 text-sm font-semibold text-atlantia-ink outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                    </label>
-
-                    <label class="min-w-0">
-                        <span class="sr-only">Fecha hasta</span>
-                        <input type="date" name="fecha_hasta" value="{{ request('fecha_hasta') }}" class="h-11 w-full min-w-0 rounded-lg border border-atlantia-rose/35 bg-white px-3 text-sm font-semibold text-atlantia-ink outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                    </label>
-
-                    <div class="sm:col-span-2 lg:col-span-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
-                        <a href="{{ route('admin.dte.index') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-atlantia-rose/35 bg-white px-5 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                            Limpiar
-                        </a>
-                        <button type="submit" class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-atlantia-wine px-6 text-sm font-black text-white shadow-sm transition hover:bg-atlantia-wine-700">
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                            Filtrar
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="mt-6 overflow-hidden rounded-2xl border border-atlantia-rose/20 bg-white">
-                <div class="grid grid-cols-12 border-b border-atlantia-rose/15 bg-atlantia-cream/65 px-4 py-3 text-xs font-black uppercase tracking-wide text-atlantia-ink/55">
-                    <div class="col-span-4">DTE</div>
-                    <div class="col-span-3 hidden md:block">Vendedor</div>
-                    <div class="col-span-2 hidden lg:block">Tipo</div>
-                    <div class="col-span-2 hidden sm:block">Monto</div>
-                    <div class="col-span-4 sm:col-span-2 md:col-span-2 lg:col-span-1">Estado</div>
-                    <div class="col-span-4 sm:col-span-2 md:col-span-1 text-right">Acciones</div>
-                </div>
-
-                @forelse ($dtes as $dte)
-                    <article class="grid grid-cols-12 items-center gap-2 border-b border-atlantia-rose/10 px-4 py-4 last:border-b-0">
-                        <div class="col-span-4 min-w-0">
-                            <p class="truncate font-black text-atlantia-ink">{{ $dte->numero_dte }}</p>
-                            <p class="truncate text-xs text-atlantia-ink/50">{{ $dte->uuid_sat ?? 'Sin UUID SAT' }}</p>
-                            <p class="mt-1 text-xs text-atlantia-ink/55 md:hidden">{{ $dte->vendor?->business_name ?? 'Sin vendedor' }}</p>
-                        </div>
-                        <div class="col-span-3 hidden min-w-0 md:block">
-                            <p class="truncate text-sm font-semibold text-atlantia-ink/70">{{ $dte->vendor?->business_name ?? 'Sin vendedor' }}</p>
-                        </div>
-                        <div class="col-span-2 hidden lg:block">
-                            <span class="rounded-md border border-atlantia-rose/20 bg-white px-2.5 py-1 text-xs font-black text-atlantia-wine">{{ $dte->tipo_dte }}</span>
-                        </div>
-                        <div class="col-span-2 hidden sm:block">
-                            <p class="font-black text-atlantia-wine">Q{{ number_format((float) $dte->monto_total, 2) }}</p>
-                        </div>
-                        <div class="col-span-4 sm:col-span-2 md:col-span-2 lg:col-span-1">
-                            <span class="inline-flex rounded-md px-2.5 py-1 text-xs font-black {{ $statusStyles[$dte->estado] ?? 'bg-atlantia-blush text-atlantia-wine' }}">
-                                {{ ucfirst($dte->estado) }}
-                            </span>
-                        </div>
-                        <div class="col-span-4 sm:col-span-2 md:col-span-1 text-right">
-                            <a href="{{ route('admin.dte.show', $dte->uuid) }}" class="inline-flex rounded-lg border border-atlantia-rose/30 px-3 py-2 text-xs font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                                Gestionar
-                            </a>
-                        </div>
-                    </article>
-                @empty
-                    <div class="px-4 py-12 text-center">
-                        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-atlantia-blush text-atlantia-wine">
-                            <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M5 4h14v16H5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                                <path d="M8 9h8M8 13h8M8 17h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                            </svg>
-                        </div>
-                        <p class="mt-4 text-lg font-black text-atlantia-ink">No hay DTE registrados.</p>
-                        <p class="mt-1 text-sm text-atlantia-ink/60">Cuando se generen comprobantes de compra apareceran aqui.</p>
-                    </div>
-                @endforelse
-            </div>
-
-            <div class="mt-5">
-                {{ $dtes->links() }}
-            </div>
+        {{-- Resumen: los estados filtran la lista --}}
+        <div class="grid grid-cols-2 gap-3 xl:grid-cols-[1.4fr_1fr_1fr_1fr]">
+            <article class="col-span-2 rounded-2xl bg-[linear-gradient(135deg,#3a0004_0%,#5e0008_100%)] px-5 py-3.5 text-white shadow-lg xl:col-span-1">
+                <p class="text-[11px] font-black uppercase tracking-wide text-white/70">Monto facturado</p>
+                <p class="mt-0.5 text-3xl font-black">Q {{ number_format((float) $dashboard['monto_total'], 2) }}</p>
+                <p class="text-xs text-white/70">{{ $hayFiltros ? 'con los filtros aplicados' : 'en todas las facturas' }}</p>
+            </article>
+            @foreach ([
+                'certificado' => ['certificados', 'Certificadas', 'text-emerald-600', 'válidas ante la SAT'],
+                'rechazado' => ['rechazados', 'Rechazadas', 'text-red-600', 'ábrelas para reintentar'],
+                'anulado' => ['anulados', 'Anuladas', 'text-slate-600', 'sin validez fiscal'],
+            ] as $estado => [$clave, $texto, $color, $nota])
+                @php
+                    $cantidad = (int) $dashboard[$clave];
+                @endphp
+                <a href="{{ $urlEstado($estadoActivo === $estado ? null : $estado) }}" @class([
+                    $tarjeta,
+                    'px-4 py-3.5 transition hover:border-atlantia-wine/40',
+                    '!border-atlantia-wine ring-2 ring-atlantia-wine/15' => $estadoActivo === $estado,
+                    '!border-red-300 !bg-red-50/60' => $estado === 'rechazado' && $cantidad > 0 && $estadoActivo !== $estado,
+                ])>
+                    <p class="text-[11px] font-black uppercase tracking-wide text-atlantia-ink/50">{{ $texto }}</p>
+                    <p class="mt-0.5 text-3xl font-black {{ $cantidad > 0 ? $color : 'text-atlantia-ink/30' }}">{{ number_format($cantidad) }}</p>
+                    <p class="text-xs text-atlantia-ink/55">{{ $nota }}</p>
+                </a>
+            @endforeach
         </div>
+
+        {{-- Lista de facturas --}}
+        <article class="{{ $tarjeta }} overflow-hidden">
+            <form method="GET" class="flex flex-wrap items-center gap-2 border-b border-atlantia-rose/10 p-3">
+                <select name="vendor_id" data-autosubmit class="{{ $campo }} min-w-0 flex-1 sm:max-w-60" aria-label="Tienda">
+                    <option value="">Todas las tiendas</option>
+                    @foreach ($vendors as $vendor)
+                        <option value="{{ $vendor->id }}" @selected((string) request('vendor_id') === (string) $vendor->id)>{{ $vendor->business_name }}</option>
+                    @endforeach
+                </select>
+                <select name="estado" data-autosubmit class="{{ $campo }}" aria-label="Estado">
+                    <option value="">Todos los estados</option>
+                    @foreach ($estados as $clave => [$texto])
+                        <option value="{{ $clave }}" @selected($estadoActivo === $clave)>{{ $texto }}</option>
+                    @endforeach
+                </select>
+                <select name="tipo_dte" data-autosubmit class="{{ $campo }}" aria-label="Tipo de documento">
+                    <option value="">Todos los tipos</option>
+                    @foreach ($tipos as $clave => $texto)
+                        <option value="{{ $clave }}" @selected(request('tipo_dte') === $clave)>{{ $texto }}</option>
+                    @endforeach
+                </select>
+                <span class="flex items-center gap-1.5 text-xs font-bold text-atlantia-ink/50">
+                    Del
+                    <input type="date" name="fecha_desde" value="{{ request('fecha_desde') }}" data-autosubmit class="{{ $campo }}" aria-label="Fecha desde">
+                    al
+                    <input type="date" name="fecha_hasta" value="{{ request('fecha_hasta') }}" data-autosubmit class="{{ $campo }}" aria-label="Fecha hasta">
+                </span>
+                <button class="sr-only">Filtrar</button>
+                @if ($hayFiltros)
+                    <a href="{{ route('admin.dte.index') }}" class="text-sm font-bold text-atlantia-wine hover:underline">Quitar filtros</a>
+                @endif
+                <span class="ml-auto text-xs font-bold text-atlantia-ink/50">{{ $dtes->total() }} {{ $dtes->total() === 1 ? 'factura' : 'facturas' }}</span>
+            </form>
+
+            @if ($dtes->isEmpty())
+                <div class="px-6 py-10 text-center">
+                    <p class="font-black">{{ $hayFiltros ? 'Ninguna factura coincide con los filtros.' : 'Aún no hay facturas emitidas.' }}</p>
+                    <p class="mt-1 text-sm text-atlantia-ink/55">{{ $hayFiltros ? 'Prueba con otra tienda, estado o fechas.' : 'Se emiten solas cuando un cliente hace un pedido.' }}</p>
+                </div>
+            @else
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-atlantia-blush/40 text-left text-[11px] font-black uppercase tracking-wide text-atlantia-ink/55">
+                            <tr>
+                                <th class="px-4 py-2.5">Factura</th>
+                                <th class="px-3 py-2.5">Fecha</th>
+                                <th class="px-3 py-2.5">Tienda</th>
+                                <th class="px-3 py-2.5">Pedido</th>
+                                <th class="px-3 py-2.5">Tipo</th>
+                                <th class="px-3 py-2.5 text-right">Monto</th>
+                                <th class="px-3 py-2.5">Estado</th>
+                                <th class="px-4 py-2.5"><span class="sr-only">Acciones</span></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-atlantia-rose/10">
+                            @foreach ($dtes as $dte)
+                                @php
+                                    [$estadoTexto, $estadoClase] = $estados[$dte->estado] ?? [ucfirst($dte->estado), 'bg-atlantia-blush text-atlantia-wine ring-atlantia-rose/20'];
+                                    $fecha = $dte->fecha_certificacion ?? $dte->created_at;
+                                    $accion = in_array($dte->estado, ['rechazado', 'borrador'], true) ? 'Reintentar' : 'Ver';
+                                @endphp
+                                <tr class="hover:bg-atlantia-blush/20">
+                                    <td class="px-4 py-2.5">
+                                        <p class="font-black">{{ $dte->numero_dte }}</p>
+                                        <p class="text-xs text-atlantia-ink/45" title="{{ $dte->uuid_sat }}">{{ $dte->uuid_sat ? 'SAT '.\Illuminate\Support\Str::upper(\Illuminate\Support\Str::before($dte->uuid_sat, '-')) : 'Sin autorización SAT' }}</p>
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-2.5 text-atlantia-ink/70">{{ optional($fecha)->format('d/m/Y') }}</td>
+                                    <td class="max-w-48 truncate px-3 py-2.5 text-atlantia-ink/75">{{ $dte->vendor?->business_name ?? 'Sin tienda' }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2.5 text-atlantia-ink/70">{{ $dte->pedido?->numero_pedido ?? '—' }}</td>
+                                    <td class="px-3 py-2.5"><span class="rounded-md bg-atlantia-blush/50 px-2 py-0.5 text-xs font-black text-atlantia-wine" title="{{ $tipos[$dte->tipo_dte] ?? $dte->tipo_dte }}">{{ $dte->tipo_dte }}</span></td>
+                                    <td class="whitespace-nowrap px-3 py-2.5 text-right font-black text-atlantia-wine">Q {{ number_format((float) $dte->monto_total, 2) }}</td>
+                                    <td class="px-3 py-2.5"><span class="whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-black ring-1 {{ $estadoClase }}">{{ $estadoTexto }}</span></td>
+                                    <td class="whitespace-nowrap px-4 py-2.5 text-right">
+                                        <a href="{{ route('admin.dte.show', $dte->uuid) }}" @class([
+                                            'text-sm font-black hover:underline',
+                                            'text-red-700' => $accion === 'Reintentar',
+                                            'text-atlantia-wine' => $accion === 'Ver',
+                                        ])>{{ $accion }} →</a>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @if ($dtes->hasPages())
+                    <div class="border-t border-atlantia-rose/10 px-4 py-3">{{ $dtes->withQueryString()->links() }}</div>
+                @endif
+            @endif
+        </article>
     </section>
 @endsection
