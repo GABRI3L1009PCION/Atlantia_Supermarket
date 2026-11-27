@@ -4376,16 +4376,16 @@
         },
         {
             "name": "predis/predis",
-            "version": "v3.5.1",
+            "version": "v3.8.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/predis/predis.git",
-                "reference": "5c996db191ee2d9bafe651f454b1fca16754271b"
+                "reference": "874b4e62982c541ffeea4dc7227a8965e695462d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/predis/predis/zipball/5c996db191ee2d9bafe651f454b1fca16754271b",
-                "reference": "5c996db191ee2d9bafe651f454b1fca16754271b",
+                "url": "https://api.github.com/repos/predis/predis/zipball/874b4e62982c541ffeea4dc7227a8965e695462d",
+                "reference": "874b4e62982c541ffeea4dc7227a8965e695462d",
                 "shasum": ""
             },
             "require": {
@@ -4396,7 +4396,7 @@
                 "friendsofphp/php-cs-fixer": "^3.3",
                 "phpstan/phpstan": "^1.9",
                 "phpunit/phpcov": "^6.0 || ^8.0",
-                "phpunit/phpunit": "^8.0 || ~9.4.4"
+                "phpunit/phpunit": "^8.0 || ^9.6"
             },
             "suggest": {
                 "ext-relay": "Faster connection with in-memory caching (>=0.6.2)"
@@ -4427,7 +4427,7 @@
             ],
             "support": {
                 "issues": "https://github.com/predis/predis/issues",
-                "source": "https://github.com/predis/predis/tree/v3.5.1"
+                "source": "https://github.com/predis/predis/tree/v3.8.0"
             },
             "funding": [
                 {
@@ -4435,7 +4435,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-06-11T16:56:53+00:00"
+            "time": "2026-11-23T20:38:59+00:00"
         },
         {
             "name": "psr/clock",
