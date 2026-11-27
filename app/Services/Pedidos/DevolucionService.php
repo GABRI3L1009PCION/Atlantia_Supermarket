@@ -7,13 +7,18 @@ use App\Enums\EstadoPedido;
 use App\Events\DevolucionAprobada;
 use App\Exceptions\TransaccionFallidaException;
 use App\Models\Devolucion;
+use App\Models\PaymentSplit;
 use App\Models\Pedido;
 use App\Models\User;
+use App\Notifications\DevolucionVendedorNotification;
 use App\Services\Inventario\StockService;
 use App\Services\Pagos\PasarelaPagoService;
 use App\ValueObjects\Dinero;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -118,9 +123,9 @@ class DevolucionService
     /**
      * Pedidos de tienda que cubre una devolución: el mismo pedido si es de una tienda, o sus hijos.
      *
-     * @return \Illuminate\Support\Collection<int, Pedido>
+     * @return Collection<int, Pedido>
      */
-    public static function pedidosDeTienda(Pedido $pedido): \Illuminate\Support\Collection
+    public static function pedidosDeTienda(Pedido $pedido): Collection
     {
         return $pedido->vendor_id !== null
             ? collect([$pedido])
@@ -130,9 +135,9 @@ class DevolucionService
     /**
      * Devoluciones que tocan pedidos de una tienda.
      *
-     * @return \Illuminate\Database\Eloquent\Builder<Devolucion>
+     * @return Builder<Devolucion>
      */
-    public static function paraTienda(int $vendorId): \Illuminate\Database\Eloquent\Builder
+    public static function paraTienda(int $vendorId): Builder
     {
         return Devolucion::query()->whereHas('pedido', fn ($q) => $q->where(fn ($w) => $w->where('vendor_id', $vendorId)
             ->orWhereHas('pedidosHijos', fn ($h) => $h->where('vendor_id', $vendorId))));
@@ -166,7 +171,7 @@ class DevolucionService
                 ->filter()
                 ->unique('id');
 
-            \Illuminate\Support\Facades\Notification::send($usuarios, new \App\Notifications\DevolucionVendedorNotification($devolucion, $momento));
+            Notification::send($usuarios, new DevolucionVendedorNotification($devolucion, $momento));
         } catch (\Throwable $exception) {
             report($exception);
         }
@@ -238,7 +243,7 @@ class DevolucionService
                     $pedidoTienda->update(['estado' => EstadoPedido::Cancelado->value, 'estado_pago' => EstadoPago::Reembolsado->value, 'cancelado_at' => now()]);
                     $pedidoTienda->estados()->create(['estado' => EstadoPedido::Cancelado->value, 'notas' => 'Devolucion aprobada por administracion.', 'usuario_id' => $admin->id]);
                 }
-                \App\Models\PaymentSplit::query()
+                PaymentSplit::query()
                     ->where('pedido_id', $pedidoTienda->id)
                     ->whereNull('liquidacion_id')
                     ->where('estado', 'pendiente')

@@ -8,6 +8,7 @@ use App\Models\Vendor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -25,7 +26,7 @@ class CuponController extends Controller
             'vendor' => $vendor,
             'cupones' => Cupon::query()->where('vendor_id', $vendor->id)->latest()->get(),
             /* Lo que te ha costado cada cupón: descuento en tus pedidos donde se usó (sin cancelados). */
-            'descontado' => \Illuminate\Support\Facades\DB::table('cupon_uso')
+            'descontado' => DB::table('cupon_uso')
                 ->join('cupones', 'cupones.id', '=', 'cupon_uso.cupon_id')
                 ->join('pedidos', 'pedidos.pedido_padre_id', '=', 'cupon_uso.pedido_id')
                 ->where('cupones.vendor_id', $vendor->id)

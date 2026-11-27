@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -113,10 +114,10 @@ class Cupon extends Model
     /**
      * Tienda dueña del cupón: solo descuenta sus productos y lo paga ella.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<\App\Models\Vendor, Cupon>
+     * @return BelongsTo<Vendor, Cupon>
      */
-    public function vendor(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function vendor(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Vendor::class);
+        return $this->belongsTo(Vendor::class);
     }
 }

@@ -5,6 +5,7 @@ use App\Http\Controllers\Cliente\CatalogoController;
 use App\Http\Controllers\Cliente\CategoriaController;
 use App\Http\Controllers\Cliente\CheckoutController;
 use App\Http\Controllers\Cliente\ComercioController;
+use App\Http\Controllers\Cliente\DenunciaController;
 use App\Http\Controllers\Cliente\DevolucionController;
 use App\Http\Controllers\Cliente\DireccionController;
 use App\Http\Controllers\Cliente\PagoRecurrenteController;
@@ -80,7 +81,7 @@ Route::prefix('cliente')
     ->middleware(['auth', 'verified', 'role:cliente', 'throttle:120,1'])
     ->group(function (): void {
         Route::get('/pedidos/{pedido:uuid}', [PedidoController::class, 'show'])->name('pedidos.show');
-        Route::post('/tiendas/{vendor:slug}/denunciar', [\App\Http\Controllers\Cliente\DenunciaController::class, 'store'])->middleware('throttle:5,60')->name('tiendas.denunciar');
+        Route::post('/tiendas/{vendor:slug}/denunciar', [DenunciaController::class, 'store'])->middleware('throttle:5,60')->name('tiendas.denunciar');
         Route::post('/pedidos/{pedido:uuid}/calificar-repartidor', [PedidoController::class, 'calificarRepartidor'])->middleware('throttle:10,1')->name('pedidos.calificar-repartidor');
         Route::post('/pedidos/{pedido:uuid}/cancelar', [PedidoController::class, 'cancelar'])->middleware('throttle:5,1')->name('pedidos.cancelar');
         Route::post('/pedidos/{pedido:uuid}/volver-a-pedir', [PedidoController::class, 'repetir'])->name('pedidos.repetir');

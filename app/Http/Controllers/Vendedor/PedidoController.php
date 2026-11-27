@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Vendedor;
 
+use App\Exceptions\PagoRechazadoException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Vendedor\Pedido\UpdatePedidoEstadoRequest;
 use App\Models\Pedido;
@@ -88,7 +89,7 @@ class PedidoController extends Controller
         $this->authorize('updateVendorStatus', $pedido);
         try {
             $pedido = $this->pedidoVendedorService->updateEstado($pedido, $request->validated(), $request->user());
-        } catch (\App\Exceptions\PagoRechazadoException $exception) {
+        } catch (PagoRechazadoException $exception) {
             report($exception);
 
             return back()->with('error', 'No pudimos devolver el pago con tarjeta del cliente, así que el pedido no se canceló. Intenta de nuevo en unos minutos.');

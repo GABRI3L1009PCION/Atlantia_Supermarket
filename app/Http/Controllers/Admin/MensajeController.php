@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\ContactoController;
 use App\Http\Controllers\Controller;
 use App\Models\ContactMessage;
 use App\Services\Contacto\ContactMessageService;
@@ -28,7 +29,7 @@ class MensajeController extends Controller
             'tipo' => $tipo,
             'estado' => $estado,
             'pendientes' => $pendientes,
-            'categorias' => ContactMessage::CATEGORIAS_SOPORTE + \App\Http\Controllers\ContactoController::TEMAS,
+            'categorias' => ContactMessage::CATEGORIAS_SOPORTE + ContactoController::TEMAS,
             'mensajes' => $this->mensajes->paginate([
                 'tipo' => $tipo,
                 'atendido' => match ($estado) {

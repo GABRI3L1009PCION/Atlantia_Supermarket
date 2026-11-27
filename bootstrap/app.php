@@ -2,6 +2,7 @@
 
 use App\Exceptions\AtlantiaDomainException;
 use App\Http\Middleware\AuditoriaRequest;
+use App\Http\Middleware\AutenticarSesion;
 use App\Http\Middleware\BloquearPorIntentos;
 use App\Http\Middleware\ForceHttps;
 use App\Http\Middleware\LimitarPorRuta;
@@ -52,7 +53,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ForceHttps::class,
             SecurityHeaders::class,
             /* Permite "cerrar sesión en los demás dispositivos" al cambiar la contraseña. */
-            \App\Http\Middleware\AutenticarSesion::class,
+            AutenticarSesion::class,
         ]);
         $middleware->api(append: [
             ForceHttps::class,

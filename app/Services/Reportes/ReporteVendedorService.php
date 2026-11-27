@@ -7,6 +7,7 @@ use App\Models\PedidoItem;
 use App\Models\Producto;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -117,7 +118,7 @@ class ReporteVendedorService
      * Filas para descargar las ventas del periodo (una por pedido).
      *
      * @param  array<string, mixed>  $filters
-     * @return array{desde: string, hasta: string, filas: \Illuminate\Support\Collection<int, Pedido>}
+     * @return array{desde: string, hasta: string, filas: Collection<int, Pedido>}
      */
     public function ventasParaExportar(User $user, array $filters = []): array
     {

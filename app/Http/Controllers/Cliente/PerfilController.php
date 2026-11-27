@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Cliente;
 
-use App\Http\Controllers\Controller;
 use App\Exceptions\PagoRechazadoException;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Cliente\Perfil\UpdatePerfilRequest;
 use App\Models\Cliente\ClienteDetalle;
 use App\Models\PushSuscripcion;

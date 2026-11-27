@@ -9,6 +9,7 @@ use App\Services\Clientes\MembresiaService;
 use App\Services\Clientes\SaldoService;
 use App\Services\Fidelizacion\PuntosService;
 use App\Services\Geolocalizacion\DeliveryCoverageService;
+use App\Services\Pedidos\CheckoutService;
 use App\Services\Promociones\CuponService;
 use App\Services\Promociones\PromocionService;
 use App\Support\Iva;
@@ -167,7 +168,7 @@ class ResumenMultivendedor extends Component
             auth()->user(),
             $this->couponCode,
             $subtotal,
-            \App\Services\Pedidos\CheckoutService::subtotalesPorVendor($items, $promo['por_vendor'] ?? []),
+            CheckoutService::subtotalesPorVendor($items, $promo['por_vendor'] ?? []),
         );
 
         $this->dispatch(

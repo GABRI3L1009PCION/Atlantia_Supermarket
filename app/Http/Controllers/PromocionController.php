@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Admin\CuponController;
 use App\Models\Categoria;
 use App\Models\Producto;
 use App\Models\Promocion;
@@ -32,7 +33,7 @@ class PromocionController extends Controller
                 ->latest('id')
                 ->paginate(20),
             'productos' => Producto::query()
-                ->where('vendor_id', $esAdmin ? \App\Http\Controllers\Admin\CuponController::atlantiaId() : $vendor->id)
+                ->where('vendor_id', $esAdmin ? CuponController::atlantiaId() : $vendor->id)
                 ->where('is_active', true)
                 ->orderBy('nombre')
                 ->limit(1000)
@@ -52,7 +53,7 @@ class PromocionController extends Controller
             'nombre' => ['required', 'string', 'max:120'],
             'tipo' => ['required', Rule::in(['2x1', '3x2', 'porcentaje'])],
             'porcentaje' => ['required_if:tipo,porcentaje', 'nullable', 'numeric', 'min:1', 'max:90'],
-            'producto_id' => ['nullable', 'integer', Rule::exists('productos', 'id')->where('vendor_id', $vendor?->id ?? \App\Http\Controllers\Admin\CuponController::atlantiaId())],
+            'producto_id' => ['nullable', 'integer', Rule::exists('productos', 'id')->where('vendor_id', $vendor?->id ?? CuponController::atlantiaId())],
             'categoria_id' => ['nullable', 'integer', 'exists:categorias,id'],
             'inicia_at' => ['nullable', 'date'],
             'termina_at' => ['nullable', 'date', 'after:inicia_at'],
@@ -80,7 +81,7 @@ class PromocionController extends Controller
         Promocion::query()->create([
             'uuid' => (string) Str::uuid(),
             /* Lo que crea la administración es de Atlantia Store: aplica a sus productos y lo paga Atlantia. */
-            'vendor_id' => $vendor?->id ?? \App\Http\Controllers\Admin\CuponController::atlantiaId(),
+            'vendor_id' => $vendor?->id ?? CuponController::atlantiaId(),
             'nombre' => $data['nombre'],
             'tipo' => $data['tipo'] === 'porcentaje' ? 'porcentaje' : 'nxm',
             'lleva' => $lleva,

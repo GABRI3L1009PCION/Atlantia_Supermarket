@@ -7,6 +7,7 @@ use App\Models\Vendor;
 use App\Support\Pdf\DocumentoPdf;
 use App\Support\TiendaAtlantia;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 /**
@@ -151,7 +152,7 @@ class ComprobanteCompraPdf
         }
 
         return $padre->cliente_id === null || str_ends_with((string) $padre->cliente?->email, '@invitados.atlantia.local')
-            ? \Illuminate\Support\Facades\URL::signedRoute('cliente.pedidos.guest-show', $padre)
+            ? URL::signedRoute('cliente.pedidos.guest-show', $padre)
             : route('cliente.pedidos.show', $padre);
     }
 

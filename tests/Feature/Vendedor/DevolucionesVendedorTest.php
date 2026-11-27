@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Vendedor;
 
-use App\Models\Devolucion;
 use App\Models\Payment;
 use App\Models\PaymentSplit;
 use App\Models\Pedido;
@@ -37,8 +36,8 @@ class DevolucionesVendedorTest extends TestCase
 
         $devolucion = app(DevolucionService::class)->solicitar($padre, $cliente, ['motivo' => 'producto_defectuoso', 'descripcion' => 'Llegó roto el frasco.']);
 
-        $this->assertSame(1, $tienda->user->notifications()->where("type", DevolucionVendedorNotification::class)->count());
-        $this->assertSame(0, $otra->user->notifications()->where("type", DevolucionVendedorNotification::class)->count());
+        $this->assertSame(1, $tienda->user->notifications()->where('type', DevolucionVendedorNotification::class)->count());
+        $this->assertSame(0, $otra->user->notifications()->where('type', DevolucionVendedorNotification::class)->count());
 
         $this->actingAs($tienda->user)->get(route('vendedor.devoluciones.index'))
             ->assertOk()
@@ -61,7 +60,7 @@ class DevolucionesVendedorTest extends TestCase
 
         $this->assertSame('cancelado', $hijo->refresh()->estadoValor());
         $this->assertSame('reversado', $split->refresh()->estado);
-        $this->assertSame(2, $tienda->user->notifications()->where("type", DevolucionVendedorNotification::class)->count());
+        $this->assertSame(2, $tienda->user->notifications()->where('type', DevolucionVendedorNotification::class)->count());
         $this->actingAs($tienda->user->fresh())->get(route('vendedor.devoluciones.index'))
             ->assertSee('Esta venta ya no se te paga.');
     }

@@ -9,6 +9,8 @@ use App\Models\Producto;
 use App\Models\Resena;
 use App\Models\Vendor;
 use App\Services\Monetizacion\PlanesVendedorService;
+use App\Support\CategoriasNegocio;
+use App\Support\HorarioTienda;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -60,8 +62,8 @@ class ComercioController extends Controller
                     $nested
                         ->where('business_name', 'like', "%{$search}%")
                         ->orWhere('business_category', 'like', "%{$search}%")
-                        ->when(\App\Support\CategoriasNegocio::buscar($search) !== [], function (Builder $porCategoria) use ($search): void {
-                            foreach (\App\Support\CategoriasNegocio::buscar($search) as $clave) {
+                        ->when(CategoriasNegocio::buscar($search) !== [], function (Builder $porCategoria) use ($search): void {
+                            foreach (CategoriasNegocio::buscar($search) as $clave) {
                                 $porCategoria->orWhereJsonContains('categorias_negocio', $clave);
                             }
                         })
@@ -191,7 +193,7 @@ class ComercioController extends Controller
         return view('cliente.comercios.show', [
             'vendor' => $vendor,
             'products' => $products,
-            'horario' => \App\Support\HorarioTienda::estado($vendor),
+            'horario' => HorarioTienda::estado($vendor),
             'availableCategories' => $availableCategories,
             'rating' => $rating,
             'deliveryFee' => $deliveryFee === null ? null : (float) $deliveryFee,

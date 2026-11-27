@@ -8,6 +8,7 @@ use App\Models\Vendor;
 use App\Services\Vendedores\LiquidacionesVendedorService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
@@ -42,12 +43,12 @@ class PagosController extends Controller
         $vendor = $request->user()->vendor;
         abort_if($vendor === null, 403);
         $data = $request->validate([
-            'frecuencia' => ['required', \Illuminate\Validation\Rule::in(array_keys(\App\Services\Vendedores\LiquidacionesVendedorService::FRECUENCIAS))],
+            'frecuencia' => ['required', Rule::in(array_keys(LiquidacionesVendedorService::FRECUENCIAS))],
         ]);
 
         $vendor->forceFill(['payment_frequency' => $data['frecuencia']])->save();
 
-        return back()->with('success', 'Listo: te pagaremos '.mb_strtolower(\App\Services\Vendedores\LiquidacionesVendedorService::FRECUENCIAS[$data['frecuencia']]).'. No tiene ningún costo.');
+        return back()->with('success', 'Listo: te pagaremos '.mb_strtolower(LiquidacionesVendedorService::FRECUENCIAS[$data['frecuencia']]).'. No tiene ningún costo.');
     }
 
     public function solicitar(Request $request): RedirectResponse

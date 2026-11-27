@@ -7,8 +7,8 @@ use App\Http\Controllers\Vendedor\ComisionController;
 use App\Http\Controllers\Vendedor\CuponController as CuponVendedorController;
 use App\Http\Controllers\Vendedor\DashboardController;
 use App\Http\Controllers\Vendedor\DevolucionController as DevolucionVendedorController;
-use App\Http\Controllers\Vendedor\SoporteController;
 use App\Http\Controllers\Vendedor\DteController;
+use App\Http\Controllers\Vendedor\FacturaManualController;
 use App\Http\Controllers\Vendedor\InventarioController;
 use App\Http\Controllers\Vendedor\OperacionTiendaController;
 use App\Http\Controllers\Vendedor\PagosController;
@@ -19,6 +19,7 @@ use App\Http\Controllers\Vendedor\PrediccionDemandaController;
 use App\Http\Controllers\Vendedor\ProductoController;
 use App\Http\Controllers\Vendedor\ReporteController;
 use App\Http\Controllers\Vendedor\ResenaController;
+use App\Http\Controllers\Vendedor\SoporteController;
 use App\Http\Controllers\Vendedor\SugerenciaReabastoController;
 use App\Http\Controllers\Vendedor\ZonaEntregaController;
 use Illuminate\Support\Facades\Route;
@@ -60,8 +61,8 @@ Route::prefix('vendedor')
         Route::get('/pedidos/{pedido:uuid}/comanda', [PedidoController::class, 'comanda'])->name('pedidos.comanda');
         Route::patch('/pedidos/{pedido:uuid}/estado', [PedidoController::class, 'updateEstado'])
             ->name('pedidos.estado');
-        Route::post('/pedidos/{pedido:uuid}/factura', [\App\Http\Controllers\Vendedor\FacturaManualController::class, 'store'])->middleware('throttle:20,1')->name('pedidos.factura.store');
-        Route::delete('/pedidos/{pedido:uuid}/factura', [\App\Http\Controllers\Vendedor\FacturaManualController::class, 'destroy'])->name('pedidos.factura.destroy');
+        Route::post('/pedidos/{pedido:uuid}/factura', [FacturaManualController::class, 'store'])->middleware('throttle:20,1')->name('pedidos.factura.store');
+        Route::delete('/pedidos/{pedido:uuid}/factura', [FacturaManualController::class, 'destroy'])->name('pedidos.factura.destroy');
 
         Route::get('/promociones', [PromocionController::class, 'index'])->name('promociones.index');
         Route::get('/cupones', [CuponVendedorController::class, 'index'])->name('cupones.index');

@@ -10,6 +10,7 @@ use App\Models\Ml\SalesPrediction;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Services\Ml\PrediccionDemandaService;
 use App\Services\Notificaciones\NotificadorSugerenciaMlService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -158,7 +159,7 @@ class ReabastoInteligenteService
      */
     public function listaCompra(User $user, array $filters = []): array
     {
-        $proyeccion = app(\App\Services\Ml\PrediccionDemandaService::class)
+        $proyeccion = app(PrediccionDemandaService::class)
             ->proyeccionVendedor($user, ['horizonte' => self::DIAS_COBERTURA, 'q' => $filters['q'] ?? null]);
 
         $filas = $proyeccion['filas']->map(function (array $fila): array {

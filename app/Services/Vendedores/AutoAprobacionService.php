@@ -2,7 +2,6 @@
 
 namespace App\Services\Vendedores;
 
-use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorFiscalProfile;
 use App\Notifications\PruebaPlanNotification;

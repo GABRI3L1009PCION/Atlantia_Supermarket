@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Dte\DteFactura;
+use App\Support\CategoriasNegocio;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -138,9 +139,9 @@ class Vendor extends Model
     /**
      * Denuncias de clientes contra la tienda.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany<\App\Models\DenunciaTienda>
+     * @return HasMany<DenunciaTienda>
      */
-    public function denuncias(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function denuncias(): HasMany
     {
         return $this->hasMany(DenunciaTienda::class);
     }
@@ -171,13 +172,13 @@ class Vendor extends Model
         $claves = array_values(array_filter((array) ($this->categorias_negocio ?? [])));
 
         if ($claves === []) {
-            $antigua = \App\Support\CategoriasNegocio::etiqueta($this->business_category);
+            $antigua = CategoriasNegocio::etiqueta($this->business_category);
 
             return $antigua === null ? [] : [$antigua];
         }
 
         return array_values(array_filter(array_map(
-            static fn (string $clave): ?string => \App\Support\CategoriasNegocio::etiqueta($clave),
+            static fn (string $clave): ?string => CategoriasNegocio::etiqueta($clave),
             $claves,
         )));
     }

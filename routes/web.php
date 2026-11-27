@@ -3,6 +3,8 @@
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Cliente\CatalogoController;
 use App\Http\Controllers\Cliente\SaldoController;
+use App\Http\Controllers\ComprobanteCompraController;
+use App\Http\Controllers\ContactoController;
 use App\Http\Controllers\DtePdfController;
 use App\Http\Controllers\EnvioController;
 use App\Http\Controllers\HealthController;
@@ -14,7 +16,6 @@ use App\Http\Controllers\Vendedor\SolicitudVendedorController;
 use App\Models\Categoria;
 use App\Models\Producto;
 use App\Services\Monetizacion\NovedadesService;
-use App\Http\Controllers\ContactoController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -95,7 +96,7 @@ Route::middleware(['web', 'security.headers'])->group(function (): void {
     Route::post('/vendedor/acceso/{usuario}', [CrearAccesoController::class, 'store'])
         ->middleware('throttle:10,1')
         ->name('vendedor.acceso.guardar');
-    Route::get('/pedidos/{pedido:uuid}/comprobante', \App\Http\Controllers\ComprobanteCompraController::class)
+    Route::get('/pedidos/{pedido:uuid}/comprobante', ComprobanteCompraController::class)
         ->middleware('throttle:30,1')
         ->name('pedidos.comprobante');
     Route::get('/dte/{dte:uuid}/pdf', DtePdfController::class)

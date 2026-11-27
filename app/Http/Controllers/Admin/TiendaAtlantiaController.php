@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Pedido;
 use App\Models\Producto;
+use App\Models\Resena;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Notifications\AccesoTiendaAtlantiaNotification;
@@ -39,7 +40,7 @@ class TiendaAtlantiaController extends Controller
                 'pedidos_pendientes' => Pedido::query()->where('vendor_id', $vendor->id)->whereIn('estado', ['pendiente', 'confirmado', 'preparando'])->count(),
                 'productos' => Producto::query()->where('vendor_id', $vendor->id)->count(),
                 'agotados' => Producto::query()->where('vendor_id', $vendor->id)->whereHas('inventario', fn ($q) => $q->whereColumn('stock_reservado', '>=', 'stock_actual'))->count(),
-                'resenas_sin_responder' => \App\Models\Resena::query()
+                'resenas_sin_responder' => Resena::query()
                     ->whereHas('producto', fn ($q) => $q->where('vendor_id', $vendor->id))
                     ->where('aprobada', true)->whereNull('respuesta_vendedor')->count(),
             ],

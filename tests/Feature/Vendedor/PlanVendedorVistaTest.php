@@ -2,7 +2,10 @@
 
 namespace Tests\Feature\Vendedor;
 
+use App\Models\ContactMessage;
+use App\Models\User;
 use App\Models\Vendor;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -32,8 +35,8 @@ class PlanVendedorVistaTest extends TestCase
 
     public function test_seller_requests_custom_plan_quote_from_panel_and_admins_are_notified(): void
     {
-        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
-        $admin = \App\Models\User::factory()->create();
+        $this->seed(RolePermissionSeeder::class);
+        $admin = User::factory()->create();
         $admin->assignRole('admin');
         $vendor = Vendor::factory()->approved()->create(['business_name' => 'Comercial El Puerto']);
         $vendor->user->assignRole('vendedor');
@@ -51,7 +54,7 @@ class PlanVendedorVistaTest extends TestCase
             'mensaje' => 'Tengo dos sucursales.',
         ])->assertSessionHasNoErrors()->assertSessionHas('success');
 
-        $mensaje = \App\Models\ContactMessage::query()->where('user_id', $vendor->user->id)->firstOrFail();
+        $mensaje = ContactMessage::query()->where('user_id', $vendor->user->id)->firstOrFail();
         $this->assertSame('alta', $mensaje->prioridad);
         $this->assertStringContainsString('2,500', $mensaje->mensaje);
         $this->assertStringContainsString('Tengo dos sucursales.', $mensaje->mensaje);
@@ -62,7 +65,7 @@ class PlanVendedorVistaTest extends TestCase
             ->assertDontSee('data-abrir-cotizacion', false);
 
         $this->actingAs($vendor->user)->post(route('vendedor.plan.cotizacion'), ['productos' => 10, 'telefono' => '55551234']);
-        $this->assertSame(1, \App\Models\ContactMessage::query()->where('user_id', $vendor->user->id)->count());
+        $this->assertSame(1, ContactMessage::query()->where('user_id', $vendor->user->id)->count());
     }
 
     public function test_advertising_and_history_tabs_render(): void

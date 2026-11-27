@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Cliente;
 
+use App\Exceptions\PagoRechazadoException;
 use App\Http\Controllers\Controller;
 use App\Models\Pedido;
 use App\Models\PedidoRecurrente;
 use App\Services\Pedidos\CancelacionService;
-use App\Services\Repartidores\CalificacionRepartidorService;
 use App\Services\Pedidos\PedidoClienteService;
 use App\Services\Pedidos\RepetirPedidoService;
+use App\Services\Repartidores\CalificacionRepartidorService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -75,7 +76,7 @@ class PedidoController extends Controller
 
         try {
             $resultado = $cancelacion->cancelarPorCliente($pedido, $request->user(), self::MOTIVOS_CANCELACION[$data['motivo']]);
-        } catch (\App\Exceptions\PagoRechazadoException $exception) {
+        } catch (PagoRechazadoException $exception) {
             report($exception);
 
             return back()->with('error', 'No pudimos devolver el pago con tarjeta en este momento. Intenta de nuevo en unos minutos o escríbenos.');

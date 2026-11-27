@@ -7,15 +7,18 @@ use App\Jobs\LimpiarTokensExpirados;
 use App\Jobs\ProcesarDespachoAutomatico;
 use App\Jobs\RecordarCarritosAbandonados;
 use App\Models\Categoria;
+use App\Models\Cliente\Direccion;
 use App\Models\User;
 use App\Services\Auditoria\ProductionReadinessAuditService;
 use App\Services\Catalogo\LimpiadorImagenCategoria;
 use App\Services\Integrations\ProductionIntegrationReadinessService;
 use App\Services\Monetizacion\PlanesVendedorService;
+use App\Services\Monetizacion\PruebaAperturaService;
 use App\Services\Monetizacion\ServiciosPagadosService;
 use App\Services\Observability\PlatformHealthService;
 use App\Services\Pagos\Recurrente\RecurrenteClient;
 use App\Services\Pagos\Recurrente\RecurrentePagoService;
+use App\Services\Vendedores\LiquidacionesVendedorService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
@@ -313,7 +316,7 @@ Artisan::command('atlantia:ops-snapshot {--json}', function (PlatformHealthServi
 
 Schedule::job(new LimpiarCarritosAbandonados)->daily();
 /* Direcciones escritas en el pago sin compra: se borran a los 2 días. */
-Schedule::call(fn () => \App\Models\Cliente\Direccion::query()
+Schedule::call(fn () => Direccion::query()
     ->where('borrador', true)
     ->where('created_at', '<', now()->subDays(2))
     ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('pedidos')->whereColumn('pedidos.direccion_id', 'direcciones.id'))
@@ -325,10 +328,10 @@ Schedule::call(function (): void {
     app(PlanesVendedorService::class)->bajarVencidos();
 })->dailyAt('00:30')->name('monetizacion-vencimientos')->withoutOverlapping();
 /* Pagos a tiendas: prepara cada pago según la frecuencia que eligió cada tienda y avisa a quien transfiere. */
-Schedule::call(fn () => app(\App\Services\Vendedores\LiquidacionesVendedorService::class)->programarPagosAutomaticos())
+Schedule::call(fn () => app(LiquidacionesVendedorService::class)->programarPagosAutomaticos())
     ->everyTenMinutes()->name('pagos-tiendas-programados')->withoutOverlapping();
 /* Promoción de apertura: avisa en el panel cuando la prueba gratis está por terminar o terminó. */
-Schedule::call(fn () => app(\App\Services\Monetizacion\PruebaAperturaService::class)->avisar())
+Schedule::call(fn () => app(PruebaAperturaService::class)->avisar())
     ->dailyAt('09:00')->name('avisos-prueba-apertura')->withoutOverlapping();
 Schedule::job(new EnviarNovedadesYOfertas)->everyThirtyMinutes()->withoutOverlapping();
 Schedule::command('pagos:recurrente-reconciliar')->everyFiveMinutes()->withoutOverlapping();

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Cupon\StoreCuponRequest;
 use App\Http\Requests\Admin\Cupon\UpdateCuponRequest;
 use App\Models\Cupon;
+use App\Models\Vendor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -72,7 +73,7 @@ class CuponController extends Controller
 
     public static function atlantiaId(): ?int
     {
-        $id = \App\Models\Vendor::query()->where('slug', config('atlantia.vendor_propio_slug', 'atlantia-supermarket'))->value('id');
+        $id = Vendor::query()->where('slug', config('atlantia.vendor_propio_slug', 'atlantia-supermarket'))->value('id');
 
         return $id === null ? null : (int) $id;
     }

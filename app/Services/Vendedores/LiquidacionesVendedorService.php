@@ -2,19 +2,21 @@
 
 namespace App\Services\Vendedores;
 
-use Illuminate\Support\Carbon;
-
 use App\Enums\EstadoPago;
 use App\Enums\EstadoPedido;
 use App\Models\LiquidacionVendedor;
 use App\Models\PaymentSplit;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Notifications\PagoTiendaPendienteNotification;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Role;
 
 /**
  * Pagos a vendedores. Todo el dinero de las ventas entra a la cuenta de Atlantia; el vendedor
@@ -153,9 +155,9 @@ class LiquidacionesVendedorService
     private function avisarPago(LiquidacionVendedor $liquidacion): void
     {
         try {
-            $roles = \Spatie\Permission\Models\Role::query()->whereIn('name', ['super_admin', 'admin'])->pluck('name')->all();
+            $roles = Role::query()->whereIn('name', ['super_admin', 'admin'])->pluck('name')->all();
             if ($roles !== []) {
-                \Illuminate\Support\Facades\Notification::send(\App\Models\User::query()->role($roles)->get(), new \App\Notifications\PagoTiendaPendienteNotification($liquidacion));
+                Notification::send(User::query()->role($roles)->get(), new PagoTiendaPendienteNotification($liquidacion));
             }
         } catch (\Throwable $exception) {
             report($exception);

@@ -10,6 +10,7 @@ use App\Services\Monetizacion\PruebaAperturaService;
 use App\Support\AjustesMonetizacion;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -22,7 +23,7 @@ class PreciosPlanesController extends Controller
     {
         $planes = PlanesVendedorService::todos();
         $tiendas = Vendor::query()->where('slug', '!=', config('atlantia.vendor_propio_slug', 'atlantia-supermarket'))
-            ->selectRaw("coalesce(plan, ?) as plan, count(*) as total", [PlanesVendedorService::base()])
+            ->selectRaw('coalesce(plan, ?) as plan, count(*) as total', [PlanesVendedorService::base()])
             ->groupBy('plan')->pluck('total', 'plan');
 
         return view('admin.precios-planes.index', [
@@ -59,13 +60,13 @@ class PreciosPlanesController extends Controller
         $valor = [
             'activa' => $request->boolean('activa'),
             'dias' => (int) $data['dias'],
-            'hasta' => filled($data['hasta'] ?? null) ? \Illuminate\Support\Carbon::parse($data['hasta'])->toDateString() : null,
+            'hasta' => filled($data['hasta'] ?? null) ? Carbon::parse($data['hasta'])->toDateString() : null,
         ];
         AjustesMonetizacion::guardar('apertura', $valor, $request->user()->id);
         $this->registrar($request, 'precios.apertura_actualizada', $valor);
 
         return redirect()->route('admin.precios-planes.index')->withFragment('apertura')->with('success', $valor['activa']
-            ? 'Promoción de apertura activa: '.$valor['dias'].' días gratis'.($valor['hasta'] ? ' para tiendas que entren hasta el '.\Illuminate\Support\Carbon::parse($valor['hasta'])->format('d/m/Y') : '').'.'
+            ? 'Promoción de apertura activa: '.$valor['dias'].' días gratis'.($valor['hasta'] ? ' para tiendas que entren hasta el '.Carbon::parse($valor['hasta'])->format('d/m/Y') : '').'.'
             : 'Promoción de apertura desactivada. Las tiendas que ya la tienen la terminan normalmente.');
     }
 

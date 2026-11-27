@@ -25,10 +25,12 @@ use App\Models\Pedido;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Services\Clientes\DireccionService;
 use App\Services\Clientes\SaldoService;
 use App\Services\Pedidos\CheckoutService;
 use App\Services\Pedidos\EstadoPedidoService;
 use App\Services\Pedidos\PedidoVendedorService;
+use App\Services\Promociones\CuponService;
 use App\Services\Repartidores\AutomaticDispatchService;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -105,7 +107,7 @@ class CheckoutServiceTest extends TestCase
         $direccion->update(['borrador' => true, 'es_principal' => false]);
 
         /* Mientras no compre, no aparece en "Mis direcciones". */
-        $this->assertCount(0, app(\App\Services\Clientes\DireccionService::class)->forUser($cliente));
+        $this->assertCount(0, app(DireccionService::class)->forUser($cliente));
 
         $producto = $this->createProductoConInventario(3);
         $this->createCarritoActivo($cliente, $producto, 1);
@@ -120,7 +122,7 @@ class CheckoutServiceTest extends TestCase
         $direccion->refresh();
         $this->assertFalse($direccion->borrador);
         $this->assertTrue($direccion->es_principal);
-        $this->assertCount(1, app(\App\Services\Clientes\DireccionService::class)->forUser($cliente));
+        $this->assertCount(1, app(DireccionService::class)->forUser($cliente));
     }
 
     public function test_pago_con_tarjeta_emite_factura_automaticamente(): void
@@ -874,7 +876,7 @@ class CheckoutServiceTest extends TestCase
         $this->createCarritoActivo($cliente, $deB, 2);
         $items = Carrito::query()->where('user_id', $cliente->id)->firstOrFail()->items()->with('producto')->get();
 
-        $respuesta = app(\App\Services\Promociones\CuponService::class)->resolver(
+        $respuesta = app(CuponService::class)->resolver(
             $cliente, 'SOLOA10', 50.0, CheckoutService::subtotalesPorVendor($items)
         );
 

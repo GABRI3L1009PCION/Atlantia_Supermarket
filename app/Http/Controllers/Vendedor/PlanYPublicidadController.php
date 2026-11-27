@@ -8,8 +8,10 @@ use App\Models\ContactMessage;
 use App\Models\HeroBanner;
 use App\Models\Producto;
 use App\Models\ServicioContratado;
+use App\Models\User;
 use App\Models\Vendor;
 use App\Notifications\PruebaPlanNotification;
+use App\Notifications\SolicitudCotizacionPlanNotification;
 use App\Services\Monetizacion\PlanesVendedorService;
 use App\Services\Monetizacion\PruebaAperturaService;
 use App\Services\Monetizacion\ServiciosPagadosService;
@@ -17,8 +19,11 @@ use App\Services\Pagos\Recurrente\RecurrenteClient;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Spatie\Permission\Models\Role;
 
 /**
  * Panel del vendedor: su plan y la compra de publicidad (banner, oferta destacada, patrocinado).
@@ -92,7 +97,7 @@ class PlanYPublicidadController extends Controller
 
         $horarios = ['manana' => 'en la mañana', 'tarde' => 'en la tarde', 'cualquiera' => 'a cualquier hora'];
         ContactMessage::query()->create([
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'user_id' => $request->user()->id,
             'tipo' => 'cotizacion',
             'nombre' => $vendor->business_name,
@@ -107,11 +112,11 @@ class PlanYPublicidadController extends Controller
         ]);
 
         try {
-            $roles = \Spatie\Permission\Models\Role::query()->whereIn('name', ['super_admin', 'admin'])->pluck('name')->all();
+            $roles = Role::query()->whereIn('name', ['super_admin', 'admin'])->pluck('name')->all();
             if ($roles !== []) {
-                \Illuminate\Support\Facades\Notification::send(
-                    \App\Models\User::query()->role($roles)->get(),
-                    new \App\Notifications\SolicitudCotizacionPlanNotification($vendor, (int) $data['productos']),
+                Notification::send(
+                    User::query()->role($roles)->get(),
+                    new SolicitudCotizacionPlanNotification($vendor, (int) $data['productos']),
                 );
             }
         } catch (\Throwable $exception) {

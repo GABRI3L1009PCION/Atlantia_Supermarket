@@ -67,6 +67,7 @@ use App\Services\Ml\MlServiceClientInterface;
 use App\Services\Notificaciones\NotificationService;
 use App\Services\Pagos\PasarelaPagoService;
 use App\Services\Seguridad\ProductionSecurityGuard;
+use App\Support\AjustesMonetizacion;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
@@ -99,7 +100,7 @@ class AppServiceProvider extends ServiceProvider
         app(ProductionSecurityGuard::class)->enforce();
 
         /* Precios de planes y publicidad cambiados desde el panel del administrador. */
-        \App\Support\AjustesMonetizacion::aplicar();
+        AjustesMonetizacion::aplicar();
 
         /* Una cuenta creada despues de abrir un enlace de invitacion queda vinculada a quien invito. */
         User::created(function (User $user): void {

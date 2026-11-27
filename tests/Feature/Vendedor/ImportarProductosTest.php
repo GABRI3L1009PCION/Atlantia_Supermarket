@@ -69,9 +69,9 @@ class ImportarProductosTest extends TestCase
 
         $this->actingAs($vendor->user)
             ->post(route('vendedor.productos.importar.store'), ['archivo' => $this->csv(
-                "sku,nombre,categoria,precio,oferta,existencias
+                'sku,nombre,categoria,precio,oferta,existencias
 JUGO-1,Jugo de naranja,Abarrotes,24.65,21.85,30
-"
+'
             )])
             ->assertSessionHas('resultado_importacion', fn (array $r): bool => $r['creados'] === 1 && $r['errores'] === []);
 

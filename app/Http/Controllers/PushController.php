@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Cliente\ClienteDetalle;
 use App\Models\Pedido;
 use App\Models\PushSuscripcion;
 use Illuminate\Http\JsonResponse;
@@ -34,7 +35,7 @@ class PushController extends Controller
                 'auth' => $data['keys']['auth'],
                 /* Si el cliente apagó los avisos de ofertas en su perfil, se respeta en cada navegador nuevo. */
                 'ofertas' => $request->boolean('ofertas', true)
-                    && ($userId === null || (\App\Models\Cliente\ClienteDetalle::query()->where('user_id', $userId)->first()?->preferencias['ofertas'] ?? true) !== false),
+                    && ($userId === null || (ClienteDetalle::query()->where('user_id', $userId)->first()?->preferencias['ofertas'] ?? true) !== false),
                 'user_agent' => Str::limit((string) $request->userAgent(), 250, ''),
             ]
         );

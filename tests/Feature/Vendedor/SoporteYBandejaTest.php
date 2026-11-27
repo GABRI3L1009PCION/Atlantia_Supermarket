@@ -9,6 +9,7 @@ use App\Notifications\MensajeRespondidoNotification;
 use App\Notifications\SoporteVendedorNotification;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class SoporteYBandejaTest extends TestCase
@@ -94,7 +95,7 @@ class SoporteYBandejaTest extends TestCase
         $vendedor = $this->vendedor();
         $admin = $this->admin();
         $mensaje = ContactMessage::query()->create([
-            'uuid' => (string) \Illuminate\Support\Str::uuid(), 'user_id' => $vendedor->id, 'tipo' => 'cotizacion',
+            'uuid' => (string) Str::uuid(), 'user_id' => $vendedor->id, 'tipo' => 'cotizacion',
             'nombre' => 'Tienda Luna', 'email' => $vendedor->email, 'asunto' => 'Cotización plan Personalizado · Tienda Luna',
             'mensaje' => 'Productos aproximados: 900', 'prioridad' => 'alta', 'atendido' => false,
         ]);
@@ -115,7 +116,7 @@ class SoporteYBandejaTest extends TestCase
 
         for ($i = 0; $i < 5; $i++) {
             ContactMessage::query()->create([
-                'uuid' => (string) \Illuminate\Support\Str::uuid(), 'user_id' => $vendedor->id, 'tipo' => 'soporte', 'categoria' => 'otro',
+                'uuid' => (string) Str::uuid(), 'user_id' => $vendedor->id, 'tipo' => 'soporte', 'categoria' => 'otro',
                 'nombre' => 'Tienda Luna', 'email' => $vendedor->email, 'asunto' => 'Asunto '.$i, 'mensaje' => 'Mensaje de prueba', 'atendido' => false,
             ]);
         }

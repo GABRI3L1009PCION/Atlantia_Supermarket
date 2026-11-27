@@ -77,8 +77,8 @@ class TiendaAtlantiaTest extends TestCase
         $this->actingAs($this->admin)->post(route('admin.tienda-atlantia.entrar'));
 
         $this->assertSame($this->atlantia->id, auth()->user()->vendor->id);
-        $this->assertSame($this->atlantia->id, \App\Support\TiendaAtlantia::vendor()->id);
-        $this->assertSame(auth()->user()->vendor->id, \App\Models\Vendor::query()->where('slug', TiendaAtlantia::slug())->value('id'));
+        $this->assertSame($this->atlantia->id, TiendaAtlantia::vendor()->id);
+        $this->assertSame(auth()->user()->vendor->id, Vendor::query()->where('slug', TiendaAtlantia::slug())->value('id'));
     }
 
     public function test_dar_acceso_a_un_empleado_envia_el_enlace(): void

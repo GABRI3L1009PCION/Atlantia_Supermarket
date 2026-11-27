@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Repartidor\PerfilController as PerfilRepartidorController;
 use App\Http\Controllers\Repartidor\DashboardController;
 use App\Http\Controllers\Repartidor\EstadoController;
 use App\Http\Controllers\Repartidor\ExternalDeliveryController;
@@ -10,6 +9,7 @@ use App\Http\Controllers\Repartidor\HistorialController;
 use App\Http\Controllers\Repartidor\IncidenciaController;
 use App\Http\Controllers\Repartidor\OfertaController;
 use App\Http\Controllers\Repartidor\PedidoController;
+use App\Http\Controllers\Repartidor\PerfilController as PerfilRepartidorController;
 use App\Http\Controllers\Repartidor\RutaController;
 use App\Http\Controllers\Repartidor\SoporteController;
 use Illuminate\Support\Facades\Route;

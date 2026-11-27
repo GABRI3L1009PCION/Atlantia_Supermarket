@@ -9,6 +9,7 @@ use App\Services\Vendedores\DenunciaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * El cliente denuncia a una tienda (no entregó, fraude, productos ilegales, mal uso...).
@@ -31,7 +32,7 @@ class DenunciaController extends Controller
 
         try {
             $denuncias->crear($vendor, $request->user(), $data);
-        } catch (\Illuminate\Validation\ValidationException $exception) {
+        } catch (ValidationException $exception) {
             /* El aviso se muestra dentro del formulario de denuncia. */
             throw $exception->errorBag('denuncia');
         }

@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Models\Empleado;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -56,7 +57,7 @@ class EmpleadosAdminTest extends TestCase
         $admin = $this->superAdmin();
         foreach (['suspended' => 'Puesto Suspendido', 'active' => 'Puesto Activo'] as $estado => $puesto) {
             Empleado::query()->create([
-                'uuid' => (string) \Illuminate\Support\Str::uuid(),
+                'uuid' => (string) Str::uuid(),
                 'user_id' => User::factory()->create()->id,
                 'codigo_empleado' => 'ATL-T-'.$estado,
                 'departamento' => 'operaciones',

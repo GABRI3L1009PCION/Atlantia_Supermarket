@@ -29,7 +29,8 @@ class SeguimientoEnVivoTest extends TestCase
             'pickup_name' => 'Punto de recogida',
             'pickup_latitude' => 15.6866,
             'pickup_longitude' => -88.6118,
-            'estado' => 'en_ruta',
+            /* Estado de la ruta (enum de delivery_routes), no del pedido. */
+            'estado' => 'iniciada',
         ]);
 
         MarketCourierStatus::query()->create([

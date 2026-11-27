@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exceptions\PagoRechazadoException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Pedido\BatchUpdatePedidoRequest;
 use App\Http\Requests\Admin\Pedido\UpdatePedidoRequest;
@@ -56,7 +57,7 @@ class PedidoController extends Controller
         $this->authorize('update', $pedido);
         try {
             $this->pedidoAdminService->update($pedido, $request->validated(), $request->user());
-        } catch (\App\Exceptions\PagoRechazadoException $exception) {
+        } catch (PagoRechazadoException $exception) {
             report($exception);
 
             return back()->with('error', 'La pasarela no pudo devolver el pago con tarjeta, así que el pedido no se canceló. Revisa el pago e intenta de nuevo.');

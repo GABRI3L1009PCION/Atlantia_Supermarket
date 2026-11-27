@@ -3,6 +3,8 @@
 namespace Tests\Feature\Vendedor;
 
 use App\Models\Pedido;
+use App\Models\PedidoItem;
+use App\Models\Producto;
 use App\Models\Vendor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -63,8 +65,8 @@ class PedidosVendedorVistaTest extends TestCase
             'metodo_pago' => 'efectivo', 'estado_pago' => 'pendiente', 'subtotal' => 298, 'descuento_promociones' => 0,
             'notas' => 'Sin bolsa, por favor',
         ]);
-        \App\Models\PedidoItem::query()->create([
-            'pedido_id' => $pedido->id, 'producto_id' => \App\Models\Producto::factory()->create(['vendor_id' => $vendor->id])->id, 'producto_nombre_snapshot' => 'Máscara Sky High',
+        PedidoItem::query()->create([
+            'pedido_id' => $pedido->id, 'producto_id' => Producto::factory()->create(['vendor_id' => $vendor->id])->id, 'producto_nombre_snapshot' => 'Máscara Sky High',
             'cantidad' => 2, 'precio_unitario_snapshot' => 149, 'subtotal' => 298, 'descuento' => 0, 'impuestos' => 0,
         ]);
 

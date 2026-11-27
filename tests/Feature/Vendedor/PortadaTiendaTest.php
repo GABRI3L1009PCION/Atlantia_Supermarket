@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Vendedor;
 
+use App\Models\Inventario;
+use App\Models\Producto;
 use App\Models\User;
 use App\Models\Vendor;
 use Database\Seeders\RolePermissionSeeder;
@@ -75,8 +77,8 @@ class PortadaTiendaTest extends TestCase
     {
         $vendor = Vendor::factory()->approved()->create();
         foreach (['Crema Nivea' => [30, 6], 'Agua micelar' => [4, 1], 'Labial rojo' => [2, 2]] as $nombre => [$actual, $reservado]) {
-            $producto = \App\Models\Producto::factory()->publicado()->create(['vendor_id' => $vendor->id, 'nombre' => $nombre]);
-            \App\Models\Inventario::factory()->create(['producto_id' => $producto->id, 'stock_actual' => $actual, 'stock_reservado' => $reservado]);
+            $producto = Producto::factory()->publicado()->create(['vendor_id' => $vendor->id, 'nombre' => $nombre]);
+            Inventario::factory()->create(['producto_id' => $producto->id, 'stock_actual' => $actual, 'stock_reservado' => $reservado]);
         }
 
         $this->get(route('comercios.show', $vendor->slug))

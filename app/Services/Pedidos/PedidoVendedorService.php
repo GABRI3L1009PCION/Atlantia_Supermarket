@@ -181,7 +181,7 @@ class PedidoVendedorService
             ]);
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($pedido, $data, $user): void {
+        DB::transaction(function () use ($pedido, $data, $user): void {
             $pedido->update(['estado' => $data['estado']]);
             $pedido->estados()->create([
                 'estado' => $data['estado'],

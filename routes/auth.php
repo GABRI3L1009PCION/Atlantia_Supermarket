@@ -6,8 +6,8 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\TwoFactorController;
-use App\Http\Controllers\Cuenta\SeguridadController;
 use App\Http\Controllers\Auth\VerificationController;
+use App\Http\Controllers\Cuenta\SeguridadController;
 use Illuminate\Support\Facades\Route;
 
 /*

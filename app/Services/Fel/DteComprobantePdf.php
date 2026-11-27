@@ -3,6 +3,8 @@
 namespace App\Services\Fel;
 
 use App\Models\Dte\DteFactura;
+use App\Services\Pedidos\ComprobanteCompraPdf;
+use App\Support\Pdf\DocumentoPdf;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -60,7 +62,7 @@ class DteComprobantePdf
         $this->rect($commands, 24, 22, 564, 748, 'B');
 
         /* Encabezado con el logo y el nombre de la tienda que emite la factura. */
-        $this->logo = \App\Support\Pdf\DocumentoPdf::jpegDesde(\App\Services\Pedidos\ComprobanteCompraPdf::logoDe($vendor));
+        $this->logo = DocumentoPdf::jpegDesde(ComprobanteCompraPdf::logoDe($vendor));
         $nombreTienda = (string) ($vendor?->business_name ?? 'Atlantia Store');
         if ($this->logo !== null) {
             $escala = min(120 / $this->logo['ancho'], 52 / $this->logo['alto']);

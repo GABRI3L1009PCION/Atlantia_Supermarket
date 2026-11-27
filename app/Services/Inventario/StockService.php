@@ -7,10 +7,12 @@ use App\Exceptions\TransaccionFallidaException;
 use App\Models\AuditLog;
 use App\Models\Inventario;
 use App\Models\Pedido;
+use App\Models\PedidoItem;
 use App\Models\Producto;
 use App\Models\User;
 use App\Notifications\StockBajoNotification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -98,7 +100,7 @@ class StockService
             })
             ->filter();
 
-        $ventas = \App\Models\PedidoItem::query()
+        $ventas = PedidoItem::query()
             ->join('pedidos', 'pedidos.id', '=', 'pedido_items.pedido_id')
             ->whereIn('pedido_items.producto_id', $items->pluck('producto_id'))
             ->whereNotIn('pedidos.estado', ['cancelado', 'rechazado'])
@@ -108,7 +110,7 @@ class StockService
             ->map(fn ($venta): array => [
                 'type' => 'Vendido · pedido #'.$venta->numero_pedido,
                 'product' => $venta->producto_nombre_snapshot,
-                'date' => \Illuminate\Support\Carbon::parse($venta->fecha),
+                'date' => Carbon::parse($venta->fecha),
                 'delta' => -1 * (int) $venta->cantidad,
             ]);
 
