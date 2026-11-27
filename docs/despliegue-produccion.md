@@ -14,7 +14,20 @@ Caddy obtiene y renueva automaticamente el certificado TLS. El dominio debe reso
 
 ## 2. Crear archivos de configuracion
 
-En el repositorio del servidor:
+**Servidor unico (recomendado para empezar):** genera toda la configuracion con claves aleatorias
+creadas en el propio servidor, con MySQL/Redis/Meilisearch locales (perfil `stateful-local`) y
+archivos en el volumen local:
+
+```bash
+bash scripts/production/init-config.sh store.atlantiasystems.com v1.0.1 operaciones@atlantiasystems.com
+```
+
+Luego completa los valores marcados `CHANGE_ME` (Resend y Recurrente) con `nano`. FEL INFILE,
+S3, Firebase, Mapbox, Google Maps y reCAPTCHA son opcionales: el contenedor solo avisa si faltan.
+`make prod-preflight` no bloquea por integraciones pendientes salvo que
+`ATLANTIA_PREFLIGHT_STRICT_INTEGRATIONS=true`.
+
+**Servicios administrados (manual):** en el repositorio del servidor:
 
 ```bash
 cp docker/env/compose.env.example docker/env/compose.env

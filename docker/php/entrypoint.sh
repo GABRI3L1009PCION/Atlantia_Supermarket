@@ -19,7 +19,11 @@ require_value() {
     local name="$1"
     local value="${!name:-}"
 
-    is_placeholder "$value" && fail "$name is missing or still uses a placeholder."
+    # Con "set -e", un "is_placeholder && fail" como ultima linea devuelve 1 cuando el valor es
+    # valido y detenia el contenedor sin mensaje; por eso se usa un if explicito.
+    if is_placeholder "$value"; then
+        fail "$name is missing or still uses a placeholder."
+    fi
 }
 
 require_equals() {
@@ -87,14 +91,17 @@ production_preflight() {
         fail "REDIS_SCHEME must be 'tls' for a remote Redis service."
     fi
 
-    require_equals FILESYSTEM_DISK s3
-    require_equals PRIVATE_FILESYSTEM_DISK s3
-    require_value AWS_DEFAULT_REGION
-    require_value AWS_BUCKET
-    if [ "${AWS_USE_INSTANCE_PROFILE:-false}" != "true" ]; then
-        require_value AWS_ACCESS_KEY_ID
-        require_value AWS_SECRET_ACCESS_KEY
-    fi
+    # Archivos: S3 o disco local persistente (volumen app-storage). S3 solo se valida si se usa.
+    case "${FILESYSTEM_DISK:-local}:${PRIVATE_FILESYSTEM_DISK:-local}" in
+        *s3*)
+            require_value AWS_DEFAULT_REGION
+            require_value AWS_BUCKET
+            if [ "${AWS_USE_INSTANCE_PROFILE:-false}" != "true" ]; then
+                require_value AWS_ACCESS_KEY_ID
+                require_value AWS_SECRET_ACCESS_KEY
+            fi
+            ;;
+    esac
 
     require_equals MAIL_MAILER smtp
     require_value MAIL_SCHEME
@@ -108,8 +115,13 @@ production_preflight() {
     require_value MEILISEARCH_KEY
     require_min_length MEILISEARCH_KEY 24
 
-    require_value INFILE_USERNAME
-    require_value INFILE_PASSWORD
+    # FEL INFILE es opcional: sin credenciales las tiendas registran su factura SAT manualmente.
+    case "${INFILE_MOCK:-false}" in
+        true|TRUE|True|1) fail "INFILE_MOCK=true is not allowed in production (would issue fake invoices)." ;;
+    esac
+    if ! is_placeholder "${INFILE_USERNAME:-}"; then
+        require_value INFILE_PASSWORD
+    fi
     require_value INFILE_WEBHOOK_SECRET
     require_value PAYMENT_GATEWAY_WEBHOOK_SECRET
     if [ "${ATLANTIA_CARD_PAYMENT_MODE:-pos}" = "recurrente" ]; then
@@ -120,10 +132,13 @@ production_preflight() {
     require_value ML_SERVICE_TOKEN
     require_value ML_WEBHOOK_SECRET
     require_value COURIER_WEBHOOK_SECRET
-    require_value ATLANTIA_MAPBOX_TOKEN
-    require_value GOOGLE_MAPS_API_KEY
-    require_value RECAPTCHA_SITE_KEY
-    require_value RECAPTCHA_SECRET_KEY
+    # Mapbox, Google Maps y reCAPTCHA son recomendados pero no bloquean el arranque:
+    # sin ellos el sistema usa sus alternativas (rutas OSRM, mapas sin selector, sin reCAPTCHA).
+    for optional in ATLANTIA_MAPBOX_TOKEN GOOGLE_MAPS_API_KEY RECAPTCHA_SITE_KEY RECAPTCHA_SECRET_KEY; do
+        if is_placeholder "${!optional:-}"; then
+            echo "Production warning: $optional is not configured." >&2
+        fi
+    done
 
     require_min_length INFILE_WEBHOOK_SECRET 32
     require_min_length PAYMENT_GATEWAY_WEBHOOK_SECRET 32

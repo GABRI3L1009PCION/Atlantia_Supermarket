@@ -40,13 +40,31 @@ if grep -Eiq 'CHANGE_ME|example\.invalid|replace[_ -]?me' "$COMPOSE_ENV"; then
     fail "$COMPOSE_ENV still contains placeholder values."
 fi
 
+# compose.env no tiene secretos: se exporta para que COMPOSE_PROFILES (p. ej. stateful-local) aplique.
+set -a
+# shellcheck disable=SC1090
+. "$COMPOSE_ENV"
+set +a
+
 check_secret_file "$SHARED_DIR/marketplace.env"
 check_secret_file "$SHARED_DIR/integrations.env"
 check_secret_file "$SHARED_DIR/ml.env"
 
+case ",${COMPOSE_PROFILES:-}," in
+    *,stateful-local,*)
+        check_secret_file "$SHARED_DIR/mysql.env"
+        check_secret_file "$SHARED_DIR/redis.env"
+        check_secret_file "$SHARED_DIR/search.env"
+        ;;
+esac
+
 docker compose --env-file "$COMPOSE_ENV" -f "$COMPOSE_FILE" config --quiet
 docker compose --env-file "$COMPOSE_ENV" -f "$COMPOSE_FILE" pull --quiet app nginx ml-api ml-worker
 docker compose --env-file "$COMPOSE_ENV" -f "$COMPOSE_FILE" run --rm --no-deps app php artisan about --only=environment
-docker compose --env-file "$COMPOSE_ENV" -f "$COMPOSE_FILE" run --rm --no-deps app php artisan atlantia:integrations-readiness
+if [ "${ATLANTIA_PREFLIGHT_STRICT_INTEGRATIONS:-false}" = "true" ]; then
+    docker compose --env-file "$COMPOSE_ENV" -f "$COMPOSE_FILE" run --rm --no-deps app php artisan atlantia:integrations-readiness
+elif ! docker compose --env-file "$COMPOSE_ENV" -f "$COMPOSE_FILE" run --rm --no-deps app php artisan atlantia:integrations-readiness; then
+    echo "Preflight warning: some external integrations are pending (see table above). Continuing because ATLANTIA_PREFLIGHT_STRICT_INTEGRATIONS is not true." >&2
+fi
 
 echo "Production preflight completed successfully."
