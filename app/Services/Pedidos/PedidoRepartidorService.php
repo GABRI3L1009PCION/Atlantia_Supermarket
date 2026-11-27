@@ -2,12 +2,14 @@
 
 namespace App\Services\Pedidos;
 
+use App\Enums\EstadoPago;
 use App\Enums\EstadoPedido;
 use App\Exceptions\TransaccionFallidaException;
 use App\Models\DeliveryOffer;
 use App\Models\DeliveryRoute;
 use App\Models\Pedido;
 use App\Models\User;
+use App\Notifications\RepartidorLlegoNotification;
 use App\Services\Repartidores\CourierProfileService;
 use App\Services\Repartidores\CourierWalletService;
 use Illuminate\Database\Eloquent\Collection;
@@ -132,7 +134,8 @@ class PedidoRepartidorService
                 'aceptada_at' => $route->aceptada_at ?? now(),
                 'estimated_earning' => $route->estimated_earning ?: $this->defaultEarning($pedido, $route),
                 'payment_method' => $pedido->metodoPagoValor(),
-                'cash_to_collect' => $pedido->metodoPagoValor() === 'efectivo' ? (float) $pedido->total : 0,
+                'cash_to_collect' => $pedido->metodoPagoValor() === 'efectivo' ? $pedido->montoACobrar() : 0,
+                'tip_amount' => (float) $pedido->propina,
                 'change_required' => $pedido->changeRequiredAmount(),
                 'confirmation_code' => $route->confirmation_code ?? $this->deliveryCode(),
             ]));
@@ -273,6 +276,7 @@ class PedidoRepartidorService
                 throw new TransaccionFallidaException('Primero debes recoger el pedido e iniciar la ruta.');
             }
 
+            $primeraLlegada = $route->arrived_customer_at === null;
             $route->update([
                 'arrived_customer_at' => $route->arrived_customer_at ?? now(),
                 'confirmation_code' => $route->confirmation_code ?? $this->deliveryCode(),
@@ -282,6 +286,10 @@ class PedidoRepartidorService
                 'notas' => 'El repartidor llego al punto de entrega del cliente.',
                 'usuario_id' => $user->id,
             ]);
+
+            if ($primeraLlegada && $pedido->cliente !== null) {
+                $pedido->cliente->notify(new RepartidorLlegoNotification($pedido->fresh(['deliveryRoute', 'direccion'])));
+            }
 
             return $this->detail($pedido->fresh());
         });
@@ -357,6 +365,8 @@ class PedidoRepartidorService
                 throw new TransaccionFallidaException('El codigo de confirmacion no coincide.');
             }
 
+            $this->registrarCobroEnEntrega($pedido, $data, $user);
+
             $evidencePath = $route->foto_entrega_path;
 
             if (($data['foto_entrega'] ?? null) !== null) {
@@ -386,6 +396,98 @@ class PedidoRepartidorService
 
             return $this->detail($pedido->fresh());
         });
+    }
+
+    /**
+     * Registra el cobro hecho por el repartidor al entregar (efectivo, POS o transferencia).
+     *
+     * Efectivo y POS dejan el pedido pagado; la transferencia queda en validacion para
+     * que administracion la concilie. Un pago en linea debe estar acreditado antes.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function registrarCobroEnEntrega(Pedido $pedido, array $data, User $user): void
+    {
+        $estadoPago = $pedido->estadoPagoValor();
+
+        if (in_array($estadoPago, [EstadoPago::Pagado->value, EstadoPago::Aprobado->value], true)) {
+            return;
+        }
+
+        $pedidoConPago = $pedido->pedidoPadre ?? $pedido;
+        $payment = $pedidoConPago->latestPayment()->first();
+        $metodo = $pedido->metodoPagoValor();
+
+        if (CheckoutService::esperaPagoEnLinea($payment)) {
+            throw new TransaccionFallidaException('El pago en linea de este pedido no esta acreditado. No lo entregues y contacta a soporte.');
+        }
+
+        if (! in_array($metodo, ['efectivo', 'tarjeta', 'transferencia'], true)) {
+            return;
+        }
+
+        if (! filter_var($data['collection_confirmed'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            throw new TransaccionFallidaException(sprintf(
+                'Confirma que recibiste el pago de Q %s antes de completar la entrega.',
+                number_format((float) $pedido->total, 2)
+            ));
+        }
+
+        $referencia = trim((string) ($data['collection_reference'] ?? ''));
+
+        if ($metodo === 'tarjeta' && $referencia === '' && (bool) config('atlantia.payments.pos.receipt_required', true)) {
+            throw new TransaccionFallidaException('Ingresa el numero de autorizacion del voucher POS.');
+        }
+
+        if ($metodo === 'transferencia' && $referencia === '') {
+            throw new TransaccionFallidaException('Ingresa la referencia de la transferencia del cliente.');
+        }
+
+        $nuevoEstado = $metodo === 'transferencia' ? EstadoPago::Validando : EstadoPago::Pagado;
+        $pedido->update(['estado_pago' => $nuevoEstado->value]);
+
+        if ($pedidoConPago->isNot($pedido)) {
+            $hijosPendientes = $pedidoConPago->pedidosHijos()
+                ->whereKeyNot($pedido->id)
+                ->whereNotIn('estado', [EstadoPedido::Cancelado->value, EstadoPedido::Rechazado->value])
+                ->where('estado_pago', '!=', $nuevoEstado->value)
+                ->exists();
+
+            if (! $hijosPendientes) {
+                $pedidoConPago->update(['estado_pago' => $nuevoEstado->value]);
+            }
+        }
+
+        if ($payment === null) {
+            return;
+        }
+
+        $payload = $payment->pasarela_payload ?? [];
+        $payload['cobros_entrega'] = [
+            ...($payload['cobros_entrega'] ?? []),
+            [
+                'pedido_uuid' => $pedido->uuid,
+                'metodo' => $metodo,
+                'monto' => (float) $pedido->total,
+                'referencia' => $referencia !== '' ? $referencia : null,
+                'repartidor_id' => $user->id,
+                'registrado_at' => now()->toIso8601String(),
+            ],
+        ];
+        $cambios = ['pasarela_payload' => $payload];
+
+        if ($pedidoConPago->refresh()->estadoPagoValor() === $nuevoEstado->value) {
+            $cambios['estado'] = $nuevoEstado->value;
+
+            if ($nuevoEstado === EstadoPago::Pagado) {
+                $cambios['validado_por'] = $user->id;
+                $cambios['validado_at'] = now();
+            } else {
+                $cambios['referencia_bancaria'] = $payment->referencia_bancaria ?: $referencia;
+            }
+        }
+
+        $payment->update($cambios);
     }
 
     /**

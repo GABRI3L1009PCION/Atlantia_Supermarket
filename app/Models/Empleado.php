@@ -23,6 +23,26 @@ class Empleado extends Model
     use SoftDeletes;
 
     /**
+     * Roles internos que puede tener un empleado (entran al panel /empleado).
+     */
+    public const ROLES = [
+        'empleado' => 'Empleado general',
+        'bodeguero' => 'Bodeguero',
+        'soporte' => 'Atención al cliente',
+        'contabilidad_finanzas' => 'Contabilidad y finanzas',
+        'supervisor_logistica' => 'Supervisor de logística',
+    ];
+
+    public const DEPARTAMENTOS = [
+        'administracion' => 'Administración',
+        'operaciones' => 'Operaciones',
+        'soporte_cliente' => 'Atención al cliente',
+        'finanzas' => 'Finanzas',
+        'logistica' => 'Logística',
+        'moderacion' => 'Moderación',
+    ];
+
+    /**
      * Atributos asignables masivamente.
      *
      * @var array<int, string>

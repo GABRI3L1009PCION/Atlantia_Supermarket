@@ -37,6 +37,12 @@ class PerfilFiscalController extends Controller
         $this->authorize('manageFiscalProfile', $request->user());
         $this->perfilFiscalService->update($request->user(), $request->validated());
 
+        if ($request->input('seccion') === 'modo') {
+            return back()->with('success', $request->input('modo_facturacion') === 'manual_sat'
+                ? 'Listo: facturas tú en la SAT. En cada pedido verás los datos del cliente para copiarlos y dónde registrar tu factura.'
+                : 'Listo: tus ventas se facturarán con tu certificador cuando Atlantia active tus credenciales.');
+        }
+
         return back()->with('success', 'Perfil fiscal actualizado correctamente.');
     }
 }

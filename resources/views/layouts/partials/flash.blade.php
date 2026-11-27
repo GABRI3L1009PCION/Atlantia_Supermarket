@@ -6,6 +6,10 @@
     <x-ui.alert type="error" :message="session('error')" />
 @endif
 
+@if (session('warning'))
+    <x-ui.alert type="warning" :message="session('warning')" />
+@endif
+
 @if ($errors->any())
     <x-ui.alert type="error" message="Revisa los campos marcados antes de continuar." />
 @endif
@@ -16,8 +20,8 @@
         $successMessage = session('success');
         $isLoginSuccess = is_string($successMessage) && str_contains(strtolower($successMessage), 'sesion iniciada');
         $modalTitle = session('success')
-            ? ($isLoginSuccess ? 'Inicio de sesion correcto' : 'Operacion completada')
-            : 'No se pudo completar la accion';
+            ? ($isLoginSuccess ? 'Inicio de sesión correcto' : 'Operación completada')
+            : 'No se pudo completar la acción';
         $modalMessage = session('success')
             ? $successMessage
             : (session('error') ?? 'Corrige los detalles marcados y vuelve a intentar.');
@@ -25,15 +29,15 @@
     @endphp
 
     <div
-        class="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/78 px-4 py-6 backdrop-blur-[2px]"
+        class="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/55 px-6 py-6 backdrop-blur-[2px] sm:bg-slate-950/78 sm:px-4"
         data-flash-modal
         @if ($autoCloseSeconds) data-flash-auto-close="{{ $autoCloseSeconds }}" @endif
         role="dialog"
         aria-modal="true"
         aria-labelledby="flash-modal-title"
     >
-        <section class="w-full max-w-[430px] overflow-hidden rounded-[18px] border border-white/70 bg-white px-8 py-7 text-center text-atlantia-ink shadow-[0_28px_85px_rgba(15,23,42,0.28)]">
-            <div class="mx-auto grid h-[172px] w-[172px] place-items-center" aria-hidden="true">
+        <section class="w-full max-w-[300px] overflow-hidden rounded-[18px] border border-white/70 bg-white px-5 py-5 text-center sm:max-w-[430px] sm:px-8 sm:py-7 text-atlantia-ink shadow-[0_28px_85px_rgba(15,23,42,0.28)]">
+            <div class="mx-auto grid h-[172px] w-[172px] place-items-center max-sm:[zoom:0.56]" aria-hidden="true">
                 @if ($modalType === 'success')
                     <div class="flash-success-orbit relative grid h-[148px] w-[148px] place-items-center rounded-full bg-emerald-50">
                         <span class="absolute h-[118px] w-[118px] rounded-full bg-emerald-100/80"></span>
@@ -56,10 +60,10 @@
                 @endif
             </div>
 
-            <h2 id="flash-modal-title" class="text-[1.45rem] font-black leading-tight text-atlantia-ink sm:text-[1.55rem]">
+            <h2 id="flash-modal-title" class="text-lg font-black leading-tight text-atlantia-ink sm:text-[1.55rem]">
                 {{ $modalTitle }}
             </h2>
-            <p class="mt-3 text-base leading-6 text-atlantia-ink/74">{{ $modalMessage }}</p>
+            <p class="mt-1.5 text-sm leading-5 text-atlantia-ink/74 sm:mt-3 sm:text-base sm:leading-6">{{ $modalMessage }}</p>
 
             @if ($errors->any())
                 <ul class="mt-5 space-y-2 text-left text-sm text-rose-700">
@@ -70,21 +74,21 @@
             @endif
 
             @if ($autoCloseSeconds)
-                <div class="mt-8 h-1.5 overflow-hidden rounded-full bg-emerald-100">
+                <div class="mt-4 h-1 overflow-hidden rounded-full bg-emerald-100 sm:mt-8 sm:h-1.5">
                     <span
                         class="block h-full rounded-full bg-emerald-500"
                         data-flash-progress
                         style="animation-duration: {{ $autoCloseSeconds }}s;"
                     ></span>
                 </div>
-                <p class="mt-3 text-sm leading-5 text-atlantia-ink/72">
-                    Se cerrara automaticamente en <strong class="font-black text-emerald-600" data-flash-countdown>{{ $autoCloseSeconds }}</strong> segundos
+                <p class="mt-2 text-xs leading-5 text-atlantia-ink/72 sm:mt-3 sm:text-sm">
+                    Se cerrará automáticamente en <strong class="font-black text-emerald-600" data-flash-countdown>{{ $autoCloseSeconds }}</strong> segundos
                 </p>
             @else
-                <div class="mt-7 flex justify-center">
+                <div class="mt-5 flex justify-center sm:mt-7">
                     <button
                         type="button"
-                        class="rounded-md bg-atlantia-wine px-6 py-2.5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(122,31,61,0.22)] transition hover:bg-atlantia-wine-700"
+                        class="rounded-md bg-atlantia-wine px-6 py-2.5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(94,0,8,0.22)] transition hover:bg-atlantia-wine-700"
                         data-flash-close
                     >
                         Entendido

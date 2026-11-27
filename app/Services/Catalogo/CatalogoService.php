@@ -2,6 +2,7 @@
 
 namespace App\Services\Catalogo;
 
+use App\Models\Categoria;
 use App\Models\Producto;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,6 +23,15 @@ class CatalogoService
             ->with(['imagenPrincipal', 'media', 'categoria', 'vendor', 'inventario'])
             ->publicados();
 
+        $query->whereHas('vendor', fn (Builder $vendor) => $vendor->approved());
+
+        if (! empty($filtros['municipio'])) {
+            $query->whereHas('vendor', fn (Builder $vendor) => $vendor->where('municipio', $filtros['municipio']));
+        }
+
+        /* La tienda solo muestra productos con existencias disponibles para vender. */
+        $query->whereHas('inventario', fn (Builder $stock) => $stock->whereColumn('stock_actual', '>', 'stock_reservado'));
+
         $busqueda = trim((string) ($filtros['q'] ?? $filtros['buscar'] ?? ''));
 
         if ($busqueda !== '') {
@@ -34,7 +44,9 @@ class CatalogoService
         }
 
         if (! empty($filtros['categoria_id'])) {
-            $query->where('categoria_id', (int) $filtros['categoria_id']);
+            $categoryId = (int) $filtros['categoria_id'];
+            $categoryIds = Categoria::query()->active()->where('parent_id', $categoryId)->pluck('id')->prepend($categoryId);
+            $query->whereIn('categoria_id', $categoryIds);
         }
 
         $orden = (string) ($filtros['orden'] ?? 'recientes');
@@ -53,7 +65,7 @@ class CatalogoService
                 break;
 
             default:
-                $query->latest();
+                $query->latest('publicado_at');
                 break;
         }
 
@@ -67,6 +79,6 @@ class CatalogoService
             $perPage = 48;
         }
 
-        return $query->paginate($perPage)->withQueryString();
+        return $query->orderBy('id')->paginate($perPage)->withQueryString();
     }
 }

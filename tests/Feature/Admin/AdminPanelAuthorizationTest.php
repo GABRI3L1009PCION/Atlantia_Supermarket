@@ -99,7 +99,7 @@ class AdminPanelAuthorizationTest extends TestCase
         $response = $this->actingAs($admin)->get(route('admin.zonas-entrega.index'));
 
         $response->assertOk();
-        $response->assertSee('Buscar zona guardada');
+        $response->assertSee('Buscar zona en el mapa');
         $response->assertSee('stc-banvi-i');
         $response->assertSee('No se encontró ninguna zona con ese nombre');
     }
@@ -172,8 +172,8 @@ class AdminPanelAuthorizationTest extends TestCase
                 'name' => 'Nuevo Administrador',
                 'email' => 'nuevo.admin@atlantia.test',
                 'phone' => '+502 7812-9911',
-                'password' => 'AtlantiaAdmin2026!',
-                'password_confirmation' => 'AtlantiaAdmin2026!',
+                'password' => 'Mango#Lluvia84',
+                'password_confirmation' => 'Mango#Lluvia84',
                 'status' => 'active',
                 'role' => 'admin',
             ]);
@@ -195,8 +195,8 @@ class AdminPanelAuthorizationTest extends TestCase
             'name' => 'Administrador Operativo',
             'email' => 'admin.operativo@atlantia.test',
             'phone' => '+502 7833-1122',
-            'password' => 'AtlantiaAdmin2026!',
-            'password_confirmation' => 'AtlantiaAdmin2026!',
+            'password' => 'Mango#Lluvia84',
+            'password_confirmation' => 'Mango#Lluvia84',
             'status' => 'active',
             'role' => 'admin',
         ]);

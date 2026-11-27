@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Repartidor\StoreRepartidorRequest;
 use App\Http\Requests\Admin\Repartidor\UpdateRepartidorRequest;
+use App\Models\CourierProfile;
+use App\Models\DeliveryRoute;
 use App\Models\User;
 use App\Services\Logistica\RepartidorService;
 use Illuminate\Http\RedirectResponse;
@@ -28,7 +30,39 @@ class RepartidorController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        return view('admin.repartidores.index', ['repartidores' => $this->repartidorService->paginate($request->all())]);
+        $repartidores = $this->repartidorService->paginate($request->all());
+        $ids = $repartidores->getCollection()->pluck('id');
+        $inicioMes = now()->startOfMonth();
+
+        // Entregas y ganancia del mes por repartidor (rutas completadas).
+        $delMes = DeliveryRoute::query()
+            ->whereIn('repartidor_id', $ids)
+            ->where('estado', 'completada')
+            ->where('completada_at', '>=', $inicioMes)
+            ->selectRaw('repartidor_id, COUNT(*) as entregas, COALESCE(SUM(estimated_earning + COALESCE(tip_amount, 0) + COALESCE(bonus_amount, 0)), 0) as ganancia')
+            ->groupBy('repartidor_id')
+            ->get()
+            ->keyBy('repartidor_id');
+        $enRuta = DeliveryRoute::query()
+            ->whereIn('repartidor_id', $ids)
+            ->whereIn('estado', ['asignada', 'iniciada', 'pausada'])
+            ->selectRaw('repartidor_id, COUNT(*) as total')
+            ->groupBy('repartidor_id')
+            ->pluck('total', 'repartidor_id');
+
+        $todos = User::role('repartidor');
+
+        return view('admin.repartidores.index', [
+            'repartidores' => $repartidores,
+            'delMes' => $delMes,
+            'enRuta' => $enRuta,
+            'resumen' => [
+                'total' => (clone $todos)->count(),
+                'disponibles' => CourierProfile::query()->where('availability_status', 'available')->whereIn('user_id', (clone $todos)->select('users.id'))->count(),
+                'en_ruta' => DeliveryRoute::query()->whereIn('estado', ['asignada', 'iniciada', 'pausada'])->count(),
+                'entregas_hoy' => DeliveryRoute::query()->where('estado', 'completada')->whereDate('completada_at', today())->count(),
+            ],
+        ]);
     }
 
     /**

@@ -78,12 +78,30 @@
 
                     <div class="grid gap-4 md:grid-cols-3">
                         <div>
-                            <label class="text-sm font-semibold text-atlantia-ink">Precio base</label>
-                            <input name="precio_base" type="number" step="0.01" min="0.01" value="{{ $producto->precio_base }}" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" required>
+                            <label class="text-sm font-semibold text-atlantia-ink">Precio sin IVA</label>
+                            <input type="hidden" name="precio_sin_iva" value="1">
+                            <input name="precio_base" type="number" step="0.01" min="0.01" value="{{ number_format(\App\Support\Iva::quitar((float) $producto->precio_base), 2, '.', '') }}" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" data-iva-input required>
+                            <span class="mt-1 block text-[11px] font-bold text-emerald-700" data-iva-output>Precio de venta con IVA (12%): Q 0.00</span>
                         </div>
                         <div>
-                            <label class="text-sm font-semibold text-atlantia-ink">Precio oferta</label>
-                            <input name="precio_oferta" type="number" step="0.01" min="0" value="{{ $producto->precio_oferta }}" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2">
+                            <label class="text-sm font-semibold text-atlantia-ink">Oferta sin IVA</label>
+                            <input name="precio_oferta" type="number" step="0.01" min="0" value="{{ $producto->precio_oferta !== null ? number_format(\App\Support\Iva::quitar((float) $producto->precio_oferta), 2, '.', '') : '' }}" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" data-iva-input>
+                            <span class="mt-1 block text-[11px] font-bold text-emerald-700" data-iva-output data-iva-empty="Sin oferta">Sin oferta</span>
+                        </div>
+                        <div>
+                            @php
+                                $margen = \App\Support\MargenProducto::calcular($producto);
+                            @endphp
+                            <label class="text-sm font-semibold text-atlantia-ink">Costo de compra (con IVA)</label>
+                            <input name="costo_compra" type="number" step="0.01" min="0" value="{{ old('costo_compra', $producto->costo_compra !== null ? number_format((float) $producto->costo_compra, 2, '.', '') : '') }}" placeholder="Lo que te cuesta" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2">
+                            @if ($margen !== null)
+                                <span @class(['mt-1 block text-[11px] font-bold', 'text-emerald-700' => $margen['suficiente'], 'text-red-600' => ! $margen['suficiente']])>
+                                    Margen {{ number_format($margen['porcentaje'], 1) }} % (Q {{ number_format($margen['ganancia'], 2) }})
+                                    @unless ($margen['suficiente']) · bajo: sugerido {{ number_format($margen['sugerido'], 0) }} % o más @endunless
+                                </span>
+                            @else
+                                <span class="mt-1 block text-[11px] text-atlantia-ink/55">Interno, el cliente no lo ve.</span>
+                            @endif
                         </div>
                         <div>
                             <label class="text-sm font-semibold text-atlantia-ink">Peso gramos</label>

@@ -25,10 +25,13 @@ class PaymentSplit extends Model
     protected $fillable = [
         'payment_id',
         'vendor_id',
+        'pedido_id',
         'monto_bruto',
         'comision_atlantia',
+        'comision_pasarela',
         'monto_neto_vendedor',
         'estado',
+        'liquidacion_id',
         'liquidado_at',
     ];
 
@@ -43,6 +46,7 @@ class PaymentSplit extends Model
             'monto_bruto' => 'decimal:2',
             'comision_atlantia' => 'decimal:2',
             'monto_neto_vendedor' => 'decimal:2',
+            'comision_pasarela' => 'decimal:2',
             'liquidado_at' => 'datetime',
         ];
     }
@@ -55,6 +59,26 @@ class PaymentSplit extends Model
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
+    }
+
+    /**
+     * Pedido de la tienda al que corresponde esta venta.
+     *
+     * @return BelongsTo<Pedido, PaymentSplit>
+     */
+    public function pedido(): BelongsTo
+    {
+        return $this->belongsTo(Pedido::class);
+    }
+
+    /**
+     * Solicitud de pago en la que se le pago esta venta al vendedor.
+     *
+     * @return BelongsTo<LiquidacionVendedor, PaymentSplit>
+     */
+    public function liquidacion(): BelongsTo
+    {
+        return $this->belongsTo(LiquidacionVendedor::class, 'liquidacion_id');
     }
 
     /**

@@ -21,7 +21,7 @@
         $metricStatus = static fn ($value, $excellent = 90): string => (float) $value >= $excellent ? 'Excelente' : 'Mejorando';
     @endphp
 
-    <section class="-mx-4 -my-6 min-h-screen bg-[#fbf7f9] pb-28 text-atlantia-ink md:hidden">
+    <section class="-mx-4 -my-6 min-h-screen bg-[#fbf7f7] pb-28 text-atlantia-ink md:hidden">
         <header class="bg-atlantia-wine px-5 pb-5 pt-5 text-white">
             <div class="grid min-h-12 grid-cols-[2.75rem_1fr_2.75rem] items-center gap-3">
                 <a href="{{ route('repartidor.dashboard') }}" class="grid h-11 w-11 place-items-center rounded-full text-white active:scale-95" aria-label="Volver">

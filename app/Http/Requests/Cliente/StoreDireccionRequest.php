@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Cliente;
 
+use App\Support\Municipios;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -30,15 +31,8 @@ class StoreDireccionRequest extends FormRequest
             'alias' => ['nullable', 'string', 'max:80'],
             'nombre_contacto' => ['required', 'string', 'min:3', 'max:160'],
             'telefono_contacto' => ['required', 'string', 'regex:/^(\+502)?[2-7][0-9]{7}$/'],
-            'municipio' => ['required', Rule::in([
-                'Puerto Barrios',
-                'Santo Tomas',
-                'Santo Tomás',
-                'Morales',
-                'Los Amates',
-                'Livingston',
-                'El Estor',
-            ])],
+            /* Solo municipios donde entregamos hoy (Santo Tomás se acepta con o sin tilde). */
+            'municipio' => ['required', Rule::in([...Municipios::operativos(), 'Santo Tomás'])],
             'zona_o_barrio' => ['nullable', 'string', 'max:160'],
             'direccion_linea_1' => ['required', 'string', 'min:8', 'max:500'],
             'direccion_linea_2' => ['nullable', 'string', 'max:500'],

@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Admin\Empleado;
 
+use App\Models\Empleado;
+use App\Rules\ContrasenaSegura;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,10 +20,11 @@ class StoreEmpleadoRequest extends FormRequest
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'string', 'email:rfc', 'max:190', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:30'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'confirmed', new ContrasenaSegura],
             'codigo_empleado' => ['required', 'string', 'max:40', 'unique:empleados,codigo_empleado'],
             'departamento' => ['required', Rule::in(['administracion', 'operaciones', 'soporte_cliente', 'finanzas', 'logistica', 'moderacion'])],
             'puesto' => ['required', 'string', 'max:120'],
+            'rol' => ['nullable', Rule::in(array_keys(Empleado::ROLES))],
             'salario_base' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
             'telefono_interno' => ['nullable', 'string', 'max:30'],
             'fecha_contratacion' => ['required', 'date'],

@@ -1,7 +1,8 @@
 @php
     $user = auth()->user();
     $internalRoles = ['empleado', 'bodeguero', 'soporte', 'contabilidad_finanzas', 'supervisor_logistica'];
-    $logoPath = file_exists(public_path('images/logo.png')) ? 'images/logo.png' : 'images/atlantia-logo.svg';
+    $logoPath = collect(['images/logo-atlantia-delivery.png', 'images/logo.png', 'images/atlantia-logo.svg'])
+        ->first(fn (string $ruta): bool => file_exists(public_path($ruta))) ?? 'images/atlantia-logo.svg';
     $adminName = $user?->name ?? 'Administrador';
     $adminEmail = $user?->email ?? 'admin@atlantia.local';
     $nameParts = preg_split('/\s+/', trim($adminName)) ?: [];
@@ -53,11 +54,27 @@
         'Monitor ML', 'Prediccion demanda' => 'activity',
         'Reentrenamiento ML', 'Reabasto ML' => 'cpu',
         'Transferencias' => 'swap',
-        'Mensajes' => 'message',
+        'Mensajes', 'Ayuda y soporte' => 'message',
+        'Atlantia Store' => 'store',
+        'Precios de planes' => 'coins',
+        'Denuncias' => 'shield',
+        'Seguridad de la cuenta' => 'lock',
+        'Mi perfil' => 'users',
+        'Horario y pausa' => 'clock',
+        'Promociones' => 'ticket',
+        'Mi plan y publicidad' => 'megaphone',
+        'Ventas y pagos' => 'coins',
+        'Reseñas' => 'star',
+        'Facturas (DTE)', 'Datos de facturación' => 'file',
+        'Predicción de demanda' => 'activity',
+        'Reabasto sugerido' => 'cpu',
+        'Saldo e invitaciones' => 'coins',
         default => 'dot',
     };
     $icons = [
         'activity' => '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+        'clock' => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+        'megaphone' => '<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1Z"/><path d="M15 8a5 5 0 0 1 0 8"/><path d="M18 5a9 9 0 0 1 0 14"/>',
         'badge' => '<path d="M15 3H9a2 2 0 0 0-2 2v14l5-3 5 3V5a2 2 0 0 0-2-2Z"/>',
         'chart' => '<path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-8"/>',
         'coins' => '<path d="M12 6c0 1.7-2.2 3-5 3S2 7.7 2 6s2.2-3 5-3 5 1.3 5 3Z"/><path d="M2 6v6c0 1.7 2.2 3 5 3 .8 0 1.6-.1 2.2-.3"/><path d="M22 13c0 1.7-2.2 3-5 3s-5-1.3-5-3 2.2-3 5-3 5 1.3 5 3Z"/><path d="M12 13v5c0 1.7 2.2 3 5 3s5-1.3 5-3v-5"/>',
@@ -86,11 +103,14 @@
         $user?->hasRole('admin') => [
             'Gestion' => [
                 ['label' => 'Vista general', 'route' => route('admin.dashboard'), 'active' => request()->routeIs('admin.dashboard')],
+                ['label' => 'Atlantia Store', 'route' => route('admin.tienda-atlantia.index'), 'active' => request()->routeIs('admin.tienda-atlantia.*')],
                 ['label' => 'Usuarios', 'route' => route('admin.usuarios.index'), 'active' => request()->routeIs('admin.usuarios.*')],
                 ['label' => 'Roles y permisos', 'route' => route('admin.roles-permisos.index'), 'active' => request()->routeIs('admin.roles-permisos.*')],
                 ['label' => 'Vendedores', 'route' => route('admin.vendedores.index'), 'active' => request()->routeIs('admin.vendedores.*')],
                 ['label' => 'Empleados', 'route' => route('admin.empleados.index'), 'active' => request()->routeIs('admin.empleados.*')],
                 ['label' => 'Repartidores', 'route' => route('admin.repartidores.index'), 'active' => request()->routeIs('admin.repartidores.*')],
+                ['label' => 'Mensajes', 'route' => route('admin.mensajes.index'), 'active' => request()->routeIs('admin.mensajes.*')],
+                ['label' => 'Denuncias', 'route' => route('admin.denuncias.index'), 'active' => request()->routeIs('admin.denuncias.*')],
             ],
             'Catalogo' => [
                 ['label' => 'Productos', 'route' => route('admin.productos.index'), 'active' => request()->routeIs('admin.productos.*')],
@@ -101,9 +121,15 @@
                 ['label' => 'Zonas de entrega', 'route' => route('admin.zonas-entrega.index'), 'active' => request()->routeIs('admin.zonas-entrega.*')],
             ],
             'Finanzas y ML' => [
+                ['label' => 'Utilidad', 'route' => route('admin.utilidad.index'), 'active' => request()->routeIs('admin.utilidad.*')],
+                ['label' => 'Pagos a vendedores', 'route' => route('admin.liquidaciones.index'), 'active' => request()->routeIs('admin.liquidaciones.*')],
                 ['label' => 'Comisiones', 'route' => route('admin.comisiones.index'), 'active' => request()->routeIs('admin.comisiones.*')],
                 ['label' => 'Nominas', 'route' => route('admin.nominas.index'), 'active' => request()->routeIs('admin.nominas.*')],
                 ['label' => 'Cupones', 'route' => route('admin.cupones.index'), 'active' => request()->routeIs('admin.cupones.*')],
+                ['label' => 'Promociones', 'route' => route('admin.promociones.index'), 'active' => request()->routeIs('admin.promociones.*')],
+                ['label' => 'Planes y publicidad', 'route' => route('admin.servicios.index'), 'active' => request()->routeIs('admin.servicios.*')],
+                ['label' => 'Precios de planes', 'route' => route('admin.precios-planes.index'), 'active' => request()->routeIs('admin.precios-planes.*')],
+                ['label' => 'Datos de mercado', 'route' => route('admin.datos-mercado.index'), 'active' => request()->routeIs('admin.datos-mercado.*')],
                 ['label' => 'DTE y FEL', 'route' => route('admin.dte.index'), 'active' => request()->routeIs('admin.dte.*')],
                 ['label' => 'Resenas', 'route' => route('admin.resenas.index'), 'active' => request()->routeIs('admin.resenas.*')],
                 ['label' => 'Devoluciones', 'route' => route('admin.devoluciones.index'), 'active' => request()->routeIs('admin.devoluciones.*')],
@@ -115,21 +141,41 @@
             ],
         ],
         $user?->hasRole('vendedor') => [
-            'Tienda' => [
+            'Mi tienda' => [
                 ['label' => 'Vista general', 'route' => route('vendedor.dashboard'), 'active' => request()->routeIs('vendedor.dashboard')],
+                ['label' => 'Pedidos', 'route' => route('vendedor.pedidos.index'), 'active' => request()->routeIs('vendedor.pedidos.*')],
+                ['label' => 'Devoluciones', 'route' => route('vendedor.devoluciones.index'), 'active' => request()->routeIs('vendedor.devoluciones.*')],
                 ['label' => 'Productos', 'route' => route('vendedor.productos.index'), 'active' => request()->routeIs('vendedor.productos.*')],
                 ['label' => 'Inventario', 'route' => route('vendedor.inventario.index'), 'active' => request()->routeIs('vendedor.inventario.*')],
-                ['label' => 'Pedidos', 'route' => route('vendedor.pedidos.index'), 'active' => request()->routeIs('vendedor.pedidos.*')],
-                ['label' => 'Zonas de entrega', 'route' => route('vendedor.zonas-entrega.index'), 'active' => request()->routeIs('vendedor.zonas-entrega.*')],
-                ['label' => 'Resenas', 'route' => route('vendedor.resenas.index'), 'active' => request()->routeIs('vendedor.resenas.*')],
+                ['label' => 'Promociones', 'route' => route('vendedor.promociones.index'), 'active' => request()->routeIs('vendedor.promociones.*')],
+                ['label' => 'Cupones', 'route' => route('vendedor.cupones.index'), 'active' => request()->routeIs('vendedor.cupones.*')],
+                ['label' => 'Reseñas', 'route' => route('vendedor.resenas.index'), 'active' => request()->routeIs('vendedor.resenas.*')],
+                ['label' => 'Perfil de la tienda', 'route' => route('vendedor.apariencia.edit'), 'active' => request()->routeIs('vendedor.apariencia.*')],
             ],
-            'Fiscal y ML' => [
-                ['label' => 'Perfil fiscal', 'route' => route('vendedor.perfil-fiscal.edit'), 'active' => request()->routeIs('vendedor.perfil-fiscal.*')],
-                ['label' => 'DTE', 'route' => route('vendedor.dte.index'), 'active' => request()->routeIs('vendedor.dte.*')],
-                ['label' => 'Comisiones', 'route' => route('vendedor.comisiones.index'), 'active' => request()->routeIs('vendedor.comisiones.*')],
+            'Entregas y horario' => [
+                ['label' => 'Zonas de entrega', 'route' => route('vendedor.zonas-entrega.index'), 'active' => request()->routeIs('vendedor.zonas-entrega.*')],
+                ['label' => 'Horario y pausa', 'route' => route('vendedor.operacion.edit'), 'active' => request()->routeIs('vendedor.operacion.*')],
+            ],
+            'Mi dinero' => [
+                ['label' => 'Ventas y pagos', 'route' => route('vendedor.pagos.index'), 'active' => request()->routeIs('vendedor.pagos.*')],
+                /* Atlantia Store no paga comisión ni plan. */
+                ...(\App\Support\TiendaAtlantia::es($user->vendor) ? [] : [
+                    ['label' => 'Comisiones', 'route' => route('vendedor.comisiones.index'), 'active' => request()->routeIs('vendedor.comisiones.*')],
+                    ['label' => 'Mi plan y publicidad', 'route' => route('vendedor.plan.index'), 'active' => request()->routeIs('vendedor.plan.*')],
+                ]),
                 ['label' => 'Reportes', 'route' => route('vendedor.reportes.index'), 'active' => request()->routeIs('vendedor.reportes.*')],
-                ['label' => 'Prediccion demanda', 'route' => route('vendedor.predicciones.index'), 'active' => request()->routeIs('vendedor.predicciones.*')],
-                ['label' => 'Reabasto ML', 'route' => route('vendedor.reabasto.index'), 'active' => request()->routeIs('vendedor.reabasto.*')],
+            ],
+            'Facturación' => [
+                ['label' => 'Datos de facturación', 'route' => route('vendedor.perfil-fiscal.edit'), 'active' => request()->routeIs('vendedor.perfil-fiscal.*')],
+                ['label' => 'Facturas (DTE)', 'route' => route('vendedor.dte.index'), 'active' => request()->routeIs('vendedor.dte.*')],
+            ],
+            'Inteligencia' => [
+                ['label' => 'Predicción de demanda', 'route' => route('vendedor.predicciones.index'), 'active' => request()->routeIs('vendedor.predicciones.*')],
+                ['label' => 'Reabasto sugerido', 'route' => route('vendedor.reabasto.index'), 'active' => request()->routeIs('vendedor.reabasto.*')],
+            ],
+            'Cuenta' => [
+                ['label' => 'Ayuda y soporte', 'route' => route('vendedor.soporte.index'), 'active' => request()->routeIs('vendedor.soporte.*')],
+                ['label' => 'Seguridad de la cuenta', 'route' => route('cuenta.seguridad'), 'active' => request()->routeIs('cuenta.seguridad*')],
             ],
         ],
         $user?->hasAnyRole($internalRoles) => [
@@ -151,31 +197,33 @@
                 ['label' => 'Ganancias', 'route' => route('repartidor.ganancias.index'), 'active' => request()->routeIs('repartidor.ganancias.*')],
                 ['label' => 'Historial', 'route' => route('repartidor.historial.index'), 'active' => request()->routeIs('repartidor.historial.*')],
                 ['label' => 'Soporte', 'route' => route('repartidor.soporte.index'), 'active' => request()->routeIs('repartidor.soporte.*')],
+                ['label' => 'Mi perfil', 'route' => route('repartidor.perfil.edit'), 'active' => request()->routeIs('repartidor.perfil.*')],
             ],
         ],
         default => [
             'Cuenta' => [
                 ['label' => 'Mis pedidos', 'route' => route('cliente.pedidos.index'), 'active' => request()->routeIs('cliente.pedidos.*')],
                 ['label' => 'Direcciones', 'route' => route('cliente.direcciones.index'), 'active' => request()->routeIs('cliente.direcciones.*')],
+                ['label' => 'Saldo e invitaciones', 'route' => route('cliente.saldo.index'), 'active' => request()->routeIs('cliente.saldo.*')],
                 ['label' => 'Wishlist', 'route' => route('cliente.wishlist.index'), 'active' => request()->routeIs('cliente.wishlist.*')],
             ],
         ],
     };
 @endphp
 
-<aside class="hidden border-r border-white/10 bg-gradient-to-b from-[#74133a] via-[#5b0e2d] to-[#340716] text-white shadow-[12px_0_38px_rgba(52,7,22,0.28)] xl:block" aria-label="Navegacion lateral">
-    <div class="sticky top-0 flex h-screen flex-col overflow-y-auto">
+<aside class="hidden border-r border-white/10 bg-gradient-to-b from-[#4d0006] via-[#3a0004] to-[#260002] text-white shadow-[12px_0_38px_rgba(51,5,9,0.28)] print:!hidden xl:block" aria-label="Navegacion lateral">
+    <div id="panel-sidebar" class="sticky top-0 flex h-screen flex-col overflow-y-auto">
         <div class="border-b border-white/10 px-5 py-5">
-            <a href="{{ $dashboardRoute }}" class="block rounded-2xl bg-transparent px-3 py-3 transition hover:bg-white/[0.05]">
-                <img src="{{ asset($logoPath) }}" alt="Atlantia Supermarket" class="mx-auto h-12 w-auto max-w-[12.5rem] object-contain drop-shadow-[0_8px_18px_rgba(255,255,255,0.18)]">
-                <div class="mt-5 flex items-center gap-3">
-                    <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#941a4c] text-sm font-black text-white shadow-[0_12px_28px_rgba(30,4,14,0.28)]">
+            <a href="{{ $dashboardRoute }}" class="block rounded-2xl px-3 py-2 transition hover:bg-white/[0.05]">
+                <img src="{{ asset($logoPath) }}" alt="Atlantia Store" class="mx-auto h-16 w-auto max-w-[12.5rem] object-contain drop-shadow-[0_0_18px_rgba(255,70,90,0.3)]">
+                <div class="mt-4 flex items-center gap-3">
+                    <span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#6e000a] text-sm font-black text-white shadow-[0_12px_28px_rgba(30,3,6,0.28)]">
                         {{ $adminInitials }}
                     </span>
                     <div class="min-w-0">
-                        <p class="truncate text-sm font-black leading-tight text-white">{{ $adminName }}</p>
-                        <p class="mt-0.5 truncate text-xs font-semibold text-white/64">{{ $adminEmail }}</p>
-                        <span class="mt-1.5 inline-flex rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#8b1745] ring-1 ring-white/20">
+                        <p class="truncate text-sm font-black leading-tight text-white">{{ $user?->vendor?->business_name ?? $adminName }}</p>
+                        <p class="mt-0.5 truncate text-xs font-semibold text-white/60">{{ $adminEmail }}</p>
+                        <span class="mt-1.5 inline-flex rounded-full bg-white px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#5e0008]">
                             {{ $panelLabel }}
                         </span>
                     </div>
@@ -183,18 +231,32 @@
             </a>
         </div>
 
-        <nav class="flex-1 space-y-6 px-4 py-5 text-sm" aria-label="Menu principal">
+        <nav class="flex-1 space-y-3 px-4 py-5 text-sm" aria-label="Menu principal">
             @foreach ($sections as $title => $links)
-                <div>
-                    <p class="px-3 text-[11px] font-black uppercase tracking-[0.32em] text-white/35">{{ $title }}</p>
-                    <div class="mt-2 space-y-1">
+                @php
+                    $seccionActiva = collect($links)->contains('active', true);
+                @endphp
+                {{-- Cada sección se despliega; la de la página actual abre sola --}}
+                <details class="group/seccion" data-menu-seccion="{{ $title }}" @if ($seccionActiva || count($sections) === 1) open @endif @if ($seccionActiva) data-menu-activa @endif>
+                    <summary class="flex cursor-pointer list-none items-center gap-2 rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wider text-white/55 transition hover:bg-white/[0.06] hover:text-white/80 group-open/seccion:bg-white/[0.05] group-open/seccion:text-white/85 [&::-webkit-details-marker]:hidden">
+                        <span class="flex-1">{{ $title }}</span>
+                        @if ($seccionActiva)
+                            <span class="h-1.5 w-1.5 rounded-full bg-white/70 group-open/seccion:hidden" aria-hidden="true"></span>
+                        @endif
+                        <span class="rounded-full bg-white/[0.08] px-1.5 text-[10px] font-black text-white/50">{{ count($links) }}</span>
+                        <svg class="h-3.5 w-3.5 transition-transform group-open/seccion:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </summary>
+                    <div class="mt-2 space-y-1 pb-1">
                         @foreach ($links as $link)
-                            @php($icon = $iconFor($link['label']))
+                            @php
+                                $icon = $iconFor($link['label']);
+                            @endphp
                             <a
                                 href="{{ $link['route'] }}"
-                                class="{{ $link['active'] ? 'bg-white/14 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]' : 'text-white/72 hover:bg-white/10 hover:text-white' }} group flex items-center gap-3 rounded-xl px-3 py-2.5 font-bold transition"
+                                @if ($link['active']) aria-current="page" @endif
+                                class="{{ $link['active'] ? 'bg-[#6e000a] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]' : 'text-white/72 hover:bg-white/10 hover:text-white' }} group flex items-center gap-3 rounded-xl px-3 py-2.5 font-bold transition"
                             >
-                                <span class="{{ $link['active'] ? 'bg-white/18 text-white' : 'bg-white/[0.07] text-white/72 group-hover:bg-white/14 group-hover:text-white' }} grid h-8 w-8 shrink-0 place-items-center rounded-lg transition">
+                                <span class="{{ $link['active'] ? 'bg-white/12 text-white' : 'bg-white/[0.07] text-white/72 group-hover:bg-white/14 group-hover:text-white' }} grid h-8 w-8 shrink-0 place-items-center rounded-lg transition">
                                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                         {!! $icons[$icon] ?? $icons['dot'] !!}
                                     </svg>
@@ -206,8 +268,41 @@
                             </a>
                         @endforeach
                     </div>
-                </div>
+                </details>
             @endforeach
         </nav>
     </div>
 </aside>
+
+{{-- Recuerda las secciones abiertas y la posición del menú entre páginas --}}
+<script @nonce>
+    (() => {
+        const menu = document.getElementById('panel-sidebar');
+        if (!menu) return;
+        const claveSecciones = 'atlantia.panelSidebarSecciones';
+        const claveScroll = 'atlantia.panelSidebarScroll';
+        const secciones = [...menu.querySelectorAll('[data-menu-seccion]')];
+        try {
+            const abiertas = JSON.parse(localStorage.getItem(claveSecciones) || 'null');
+            if (Array.isArray(abiertas)) {
+                secciones.forEach((s) => { if (abiertas.includes(s.dataset.menuSeccion) || s.hasAttribute('data-menu-activa')) s.open = true; });
+            }
+        } catch (e) {}
+        secciones.forEach((s) => s.addEventListener('toggle', () => {
+            try { localStorage.setItem(claveSecciones, JSON.stringify(secciones.filter((x) => x.open).map((x) => x.dataset.menuSeccion))); } catch (e) {}
+        }));
+        try {
+            const guardado = sessionStorage.getItem(claveScroll);
+            if (guardado !== null) menu.scrollTop = Number(guardado) || 0;
+        } catch (e) {}
+        const activo = menu.querySelector('[aria-current="page"]');
+        if (activo) {
+            const caja = menu.getBoundingClientRect();
+            const item = activo.getBoundingClientRect();
+            if (item.top < caja.top || item.bottom > caja.bottom) menu.scrollTop += item.top - caja.top - (caja.height / 2) + (item.height / 2);
+        }
+        const guardar = () => { try { sessionStorage.setItem(claveScroll, String(menu.scrollTop)); } catch (e) {} };
+        menu.addEventListener('click', (e) => { if (e.target.closest('a')) guardar(); });
+        window.addEventListener('pagehide', guardar);
+    })();
+</script>

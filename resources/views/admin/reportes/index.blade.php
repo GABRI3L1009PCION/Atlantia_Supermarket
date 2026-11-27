@@ -3,280 +3,356 @@
 @section('content')
     @php
         $filters = $reportes['filters'] ?? [];
+        $anterior = $reportes['anterior'] ?? [];
         $enumValue = fn ($value) => $value instanceof \BackedEnum ? $value->value : (string) $value;
-        $label = fn ($value) => ucfirst(str_replace('_', ' ', $enumValue($value)));
-        $money = fn ($value) => 'Q ' . number_format((float) $value, 2);
-        $ventasTotal = max(1, (float) ($reportes['ventas_total'] ?? 0));
-        $pedidosTotal = max(1, (int) ($reportes['pedidos_total'] ?? 0));
-        $ventasMax = max(1, (float) collect($reportes['ventas_por_periodo'] ?? [])->max('total'));
-        $statusRows = collect($reportes['pedidos_por_estado'] ?? []);
-        $statusColors = ['#f5b544', '#21a36a', '#ef4a72', '#4b8def', '#8b1d4d', '#7c6a74'];
-        $firstVendor = collect($reportes['ingresos_por_vendedor'] ?? [])->first();
-        $quickReports = [
-            ['title' => 'Reporte de ventas', 'text' => 'Resumen de ventas por periodo.', 'tone' => 'rose'],
-            ['title' => 'Reporte de pedidos', 'text' => 'Detalle de pedidos realizados.', 'tone' => 'amber'],
-            ['title' => 'Reporte de productos', 'text' => 'Productos vendidos y rendimiento.', 'tone' => 'purple'],
-            ['title' => 'Reporte de vendedores', 'text' => 'Rendimiento de vendedores.', 'tone' => 'green'],
-            ['title' => 'Reporte de comisiones', 'text' => 'Comisiones pendientes y pagadas.', 'tone' => 'orange'],
-            ['title' => 'Reporte DTE / FEL', 'text' => 'Documentos emitidos y rechazados.', 'tone' => 'pink'],
-            ['title' => 'Reporte de metodos de pago', 'text' => 'Transacciones por metodo de pago.', 'tone' => 'violet'],
-            ['title' => 'Reporte de alertas', 'text' => 'Alertas y notificaciones del sistema.', 'tone' => 'blue'],
+        $money = fn ($value) => 'Q '.number_format((float) $value, 2);
+        $desde = \Illuminate\Support\Carbon::parse($filters['fecha_desde']);
+        $hasta = \Illuminate\Support\Carbon::parse($filters['fecha_hasta']);
+        $rango = fn (\Illuminate\Support\Carbon $a, \Illuminate\Support\Carbon $b) => $a->isSameDay($b)
+            ? $a->translatedFormat('j \d\e F Y')
+            : ($a->isSameMonth($b) ? $a->format('j').' al '.$b->translatedFormat('j \d\e F Y') : $a->translatedFormat('j M Y').' al '.$b->translatedFormat('j M Y'));
+        $cambio = function (float $actual, float $antes): ?float {
+            return abs($antes) < 0.01 ? null : round((($actual - $antes) / abs($antes)) * 100, 1);
+        };
+
+        $estadoNombres = [
+            'pendiente' => 'Por confirmar', 'confirmado' => 'Confirmado', 'en_revision' => 'En revisión',
+            'preparando' => 'Preparando', 'listo_para_entrega' => 'Listo', 'en_ruta' => 'En camino',
+            'entregado' => 'Entregado', 'cancelado' => 'Cancelado', 'rechazado' => 'Rechazado',
         ];
+        $estadoColores = [
+            'entregado' => '#15803d', 'en_ruta' => '#5e0008', 'preparando' => '#a63d44', 'listo_para_entrega' => '#d98a93',
+            'confirmado' => '#0369a1', 'pendiente' => '#d97706', 'en_revision' => '#ca8a04', 'cancelado' => '#94a3b8', 'rechazado' => '#475569',
+        ];
+        $metodoNombres = ['tarjeta' => 'Tarjeta', 'efectivo' => 'Efectivo', 'transferencia' => 'Transferencia', 'saldo' => 'Saldo Atlantia'];
+
+        // Atajos de fecha.
+        $hoy = today();
+        $atajos = [
+            'Hoy' => [$hoy, $hoy, 'dia'],
+            'Últimos 7 días' => [$hoy->copy()->subDays(6), $hoy, 'dia'],
+            'Este mes' => [$hoy->copy()->startOfMonth(), $hoy, 'dia'],
+            'Mes pasado' => [$hoy->copy()->subMonthNoOverflow()->startOfMonth(), $hoy->copy()->subMonthNoOverflow()->endOfMonth(), 'dia'],
+            'Este año' => [$hoy->copy()->startOfYear(), $hoy, 'mes'],
+        ];
+
+        // Indicadores principales.
+        $indicadores = [
+            ['Ventas', $money($reportes['ventas_total'] ?? 0), $cambio((float) ($reportes['ventas_total'] ?? 0), (float) ($anterior['ventas_total'] ?? 0)), true],
+            ['Pedidos', number_format((int) ($reportes['pedidos_total'] ?? 0)), $cambio((float) ($reportes['pedidos_total'] ?? 0), (float) ($anterior['pedidos_total'] ?? 0)), true],
+            ['Ticket promedio', $money($reportes['ticket_promedio'] ?? 0), $cambio((float) ($reportes['ticket_promedio'] ?? 0), (float) ($anterior['ticket_promedio'] ?? 0)), true],
+            ['Cancelados', number_format((int) ($reportes['cancelados'] ?? 0)), null, false],
+        ];
+
+        // Gráfica de ventas.
+        $periodos = collect($reportes['ventas_por_periodo'] ?? []);
+        $maxPeriodo = max(1, (float) $periodos->max('total'));
+        $etiquetaPeriodo = function ($periodo) use ($filters) {
+            try {
+                return ($filters['agrupacion'] ?? 'dia') === 'mes'
+                    ? \Illuminate\Support\Carbon::createFromFormat('Y-m', (string) $periodo)->translatedFormat('M Y')
+                    : \Illuminate\Support\Carbon::parse((string) $periodo)->translatedFormat('j M');
+            } catch (\Throwable) {
+                return (string) $periodo;
+            }
+        };
+
+        // Dona de estados.
+        $estados = collect($reportes['pedidos_por_estado'] ?? []);
+        $totalEstados = max(1, (int) $estados->sum('pedidos'));
+        $acumulado = 0;
+        $segmentos = $estados->map(function ($fila) use (&$acumulado, $totalEstados, $estadoColores, $enumValue) {
+            $clave = $enumValue($fila->estado);
+            $inicio = $acumulado;
+            $acumulado += ((int) $fila->pedidos / $totalEstados) * 100;
+
+            return ($estadoColores[$clave] ?? '#5e0008').' '.round($inicio, 2).'% '.round($acumulado, 2).'%';
+        })->implode(', ');
+
+        $productos = collect($reportes['top_productos'] ?? []);
+        $maxProducto = max(1, (float) $productos->max('unidades'));
+        $tiendas = collect($reportes['ingresos_por_vendedor'] ?? [])->filter(fn ($v) => (float) $v->total_ventas > 0)->values();
+        $totalTiendas = max(1, (float) $tiendas->sum('total_ventas'));
+        $metodos = collect($reportes['metodos_pago'] ?? []);
+        $totalMetodos = max(1, (float) $metodos->sum('total'));
+
+        $estadoControl = [
+            ['Vendedores activos', (int) ($reportes['vendedores_activos'] ?? 0), route('admin.vendedores.index'), false],
+            ['Comisiones por cobrar', (int) ($reportes['comisiones_pendientes'] ?? 0), route('admin.comisiones.index'), true],
+            ['Facturas rechazadas', (int) ($reportes['dtes_rechazados'] ?? 0), route('admin.dte.index'), true],
+            ['Alertas de fraude', (int) ($reportes['alertas_pendientes'] ?? 0), route('admin.antifraude.index'), true],
+        ];
+        $tarjeta = 'rounded-2xl border border-atlantia-rose/15 bg-white p-5 shadow-[0_10px_26px_rgba(59,6,12,0.05)] print:shadow-none print:break-inside-avoid';
     @endphp
 
-    <section class="-mx-4 -my-6 overflow-x-hidden bg-white px-4 py-6 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-        <div class="mx-auto max-w-7xl rounded-2xl border border-atlantia-rose/20 bg-white p-5 shadow-sm sm:p-7">
+    <section class="mx-auto max-w-7xl space-y-5 pb-10">
+        {{-- Encabezado --}}
+        <div class="flex flex-wrap items-end justify-between gap-3">
             <div>
-                <div class="flex flex-col gap-2">
-                    <div>
-                        <p class="text-xs font-black uppercase tracking-[0.22em] text-atlantia-rose">Atlantia Supermarket</p>
-                        <h1 class="mt-2 text-4xl font-black leading-tight text-atlantia-ink">Reportes</h1>
-                        <p class="mt-1 text-sm text-atlantia-ink/65">Ventas, pedidos, productos y metodos de pago de Atlantia.</p>
-                    </div>
-                </div>
-
-                <form id="reports-filter-form" method="GET" class="mt-6 rounded-2xl border border-atlantia-rose/15 bg-white p-4 shadow-sm">
-                    <div class="grid gap-3 lg:grid-cols-12 lg:items-end">
-                    <label class="lg:col-span-2">
-                        <span class="mb-1 block text-xs font-black text-atlantia-ink/60">Desde</span>
-                        <input type="date" name="fecha_desde" value="{{ $filters['fecha_desde'] ?? '' }}" class="h-11 w-full rounded-lg border border-atlantia-rose/30 bg-white px-3 text-sm font-semibold text-atlantia-ink outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                    </label>
-                    <label class="lg:col-span-2">
-                        <span class="mb-1 block text-xs font-black text-atlantia-ink/60">Hasta</span>
-                        <input type="date" name="fecha_hasta" value="{{ $filters['fecha_hasta'] ?? '' }}" class="h-11 w-full rounded-lg border border-atlantia-rose/30 bg-white px-3 text-sm font-semibold text-atlantia-ink outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                    </label>
-                    <label class="lg:col-span-3">
-                        <span class="mb-1 block text-xs font-black text-atlantia-ink/60">Agrupar por</span>
-                        <select name="agrupacion" class="h-11 w-full rounded-lg border border-atlantia-rose/30 bg-white px-3 text-sm font-semibold text-atlantia-ink outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                            <option value="dia" @selected(($filters['agrupacion'] ?? 'dia') === 'dia')>Dia</option>
-                            <option value="mes" @selected(($filters['agrupacion'] ?? 'dia') === 'mes')>Mes</option>
-                        </select>
-                    </label>
-                    <div class="grid gap-2 sm:grid-cols-3 lg:col-span-5">
-                        <button type="submit" class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-atlantia-wine px-5 text-sm font-black text-white shadow-sm transition hover:bg-atlantia-wine-700">
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M20 12a8 8 0 1 1-2.35-5.65M20 4v5h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            Actualizar
-                        </button>
-                        <button type="button" class="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-atlantia-rose/35 bg-white px-4 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M12 3v12M8 11l4 4 4-4M5 19h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            Exportar
-                        </button>
-                        <button type="button" data-print-report class="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-atlantia-rose/35 bg-white px-4 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M7 8V4h10v4M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                            </svg>
-                            Imprimir
-                        </button>
-                    </div>
-                    </div>
-                </form>
+                <h1 class="text-3xl font-black tracking-tight text-atlantia-ink">Reportes</h1>
+                <p class="mt-1 text-sm text-atlantia-ink/60">
+                    Del <strong class="text-atlantia-ink">{{ $rango($desde, $hasta) }}</strong>
+                    @if (! empty($anterior))
+                        <span class="text-atlantia-ink/45">· comparado con {{ $rango(\Illuminate\Support\Carbon::parse($anterior['desde']), \Illuminate\Support\Carbon::parse($anterior['hasta'])) }}</span>
+                    @endif
+                </p>
             </div>
+            <div class="flex gap-2 print:hidden">
+                <a href="{{ route('admin.reportes.exportar', request()->only(['fecha_desde', 'fecha_hasta', 'agrupacion'])) }}" class="inline-flex items-center gap-2 rounded-xl border border-atlantia-rose/25 bg-white px-4 py-2.5 text-sm font-black text-atlantia-wine hover:bg-atlantia-blush" data-exportar>
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12M8 11l4 4 4-4M5 19h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Descargar Excel
+                </a>
+                <button type="button" data-print-report class="inline-flex items-center gap-2 rounded-xl bg-atlantia-wine px-4 py-2.5 text-sm font-black text-white hover:bg-atlantia-wine-700">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 8V4h10v4M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                    Imprimir
+                </button>
+            </div>
+        </div>
 
-            <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
-                @foreach ([
-                    ['Ventas', $money($reportes['ventas_total'] ?? 0), 'Total ventas', 'cart', 'text-atlantia-wine bg-atlantia-blush'],
-                    ['Pedidos', number_format((int) ($reportes['pedidos_total'] ?? 0)), 'Total pedidos', 'box', 'text-blue-700 bg-blue-50'],
-                    ['Ticket promedio', $money($reportes['ticket_promedio'] ?? 0), 'Por pedido', 'ticket', 'text-purple-700 bg-purple-50'],
-                    ['Vendedores activos', number_format((int) ($reportes['vendedores_activos'] ?? 0)), 'Activos', 'user', 'text-emerald-700 bg-emerald-50'],
-                    ['Comisiones pendientes', number_format((int) ($reportes['comisiones_pendientes'] ?? 0)), 'Por pagar', 'wallet', 'text-amber-700 bg-amber-50'],
-                    ['DTE rechazados', number_format((int) ($reportes['dtes_rechazados'] ?? 0)), 'Rechazados', 'doc', 'text-rose-700 bg-rose-50'],
-                    ['Alertas pendientes', number_format((int) ($reportes['alertas_pendientes'] ?? 0)), 'Por revisar', 'bell', 'text-sky-700 bg-sky-50'],
-                ] as [$title, $value, $hint, $icon, $tone])
-                    <article class="rounded-xl border border-atlantia-rose/15 bg-white p-4 shadow-sm">
-                        <div class="flex items-center gap-4">
-                            <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full {{ $tone }}">
-                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                    @if ($icon === 'cart')
-                                        <path d="M6 7h15l-2 7H8L6 4H3M9 20h.01M18 20h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                                    @elseif ($icon === 'box')
-                                        <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                                    @elseif ($icon === 'ticket')
-                                        <path d="M4 8.5V6.75A1.75 1.75 0 0 1 5.75 5h12.5A1.75 1.75 0 0 1 20 6.75V8.5a2.5 2.5 0 0 0 0 5v1.75A1.75 1.75 0 0 1 18.25 17H5.75A1.75 1.75 0 0 1 4 15.25V13.5a2.5 2.5 0 0 0 0-5Z" stroke="currentColor" stroke-width="1.8"/>
-                                    @elseif ($icon === 'user')
-                                        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4.5 20c.55-4.15 3.3-6 7.5-6s6.95 1.85 7.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                                    @elseif ($icon === 'wallet')
-                                        <path d="M5 7h13a2 2 0 0 1 2 2v8H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                                    @elseif ($icon === 'doc')
-                                        <path d="M7 3.75h7l3 3v13.5H7V3.75Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                                    @else
-                                        <path d="M18 9a6 6 0 1 0-12 0c0 7-3 7-3 7h18s-3 0-3-7M10 20h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                                    @endif
-                                </svg>
-                            </span>
-                            <div class="min-w-0">
-                                <p class="text-xs font-black text-atlantia-ink/60">{{ $title }}</p>
-                                <p class="mt-1 text-xl font-black text-atlantia-ink">{{ $value }}</p>
-                                <p class="text-xs text-atlantia-ink/50">{{ $hint }}</p>
-                            </div>
-                        </div>
-                    </article>
+        {{-- Filtros --}}
+        <form method="GET" class="{{ $tarjeta }} !p-4 print:hidden">
+            <div class="flex flex-wrap gap-2">
+                @foreach ($atajos as $texto => [$a, $b, $agr])
+                    @php $activo = $a->toDateString() === $filters['fecha_desde'] && $b->toDateString() === $filters['fecha_hasta']; @endphp
+                    <a href="{{ route('admin.reportes.index', ['fecha_desde' => $a->toDateString(), 'fecha_hasta' => $b->toDateString(), 'agrupacion' => $agr]) }}"
+                       @class(['rounded-full px-3.5 py-1.5 text-xs font-black transition', 'bg-atlantia-wine text-white' => $activo, 'bg-atlantia-blush/60 text-atlantia-wine hover:bg-atlantia-blush' => ! $activo])>{{ $texto }}</a>
                 @endforeach
             </div>
-
-            <div class="mt-5 rounded-2xl border border-atlantia-rose/20 bg-white p-5">
-                <div>
-                    <h2 class="text-lg font-black text-atlantia-wine">Reportes disponibles</h2>
-                    <p class="mt-1 text-sm text-atlantia-ink/60">Genera y consulta los reportes del sistema.</p>
-                </div>
-
-                <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
-                    @foreach ($quickReports as $quick)
-                        <article class="rounded-xl border border-atlantia-rose/15 bg-white p-4 transition hover:-translate-y-0.5 hover:border-atlantia-wine/35 hover:shadow-md">
-                            <div class="flex items-start gap-3">
-                            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-atlantia-blush text-atlantia-wine">
-                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                    <path d="M5 4h14v16H5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                                    <path d="M8 9h8M8 13h8M8 17h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                                </svg>
-                            </div>
-                            <div class="min-w-0">
-                                <h3 class="text-xs font-black leading-5 text-atlantia-ink">{{ $quick['title'] }}</h3>
-                                <p class="mt-1 text-xs leading-5 text-atlantia-ink/55">{{ $quick['text'] }}</p>
-                            </div>
-                            </div>
-                            <button type="button" class="mt-4 w-full rounded-md border border-atlantia-rose/30 px-3 py-1.5 text-xs font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                                Generar
-                            </button>
-                        </article>
-                    @endforeach
-                </div>
+            <div class="mt-3 grid gap-2 border-t border-atlantia-rose/10 pt-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+                <label>
+                    <span class="mb-1 block text-xs font-bold text-atlantia-ink/55">Desde</span>
+                    <input type="date" name="fecha_desde" value="{{ $filters['fecha_desde'] }}" class="h-10 w-full rounded-lg border border-atlantia-rose/30 px-3 text-sm text-atlantia-ink focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
+                </label>
+                <label>
+                    <span class="mb-1 block text-xs font-bold text-atlantia-ink/55">Hasta</span>
+                    <input type="date" name="fecha_hasta" value="{{ $filters['fecha_hasta'] }}" class="h-10 w-full rounded-lg border border-atlantia-rose/30 px-3 text-sm text-atlantia-ink focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
+                </label>
+                <label>
+                    <span class="mb-1 block text-xs font-bold text-atlantia-ink/55">Ver por</span>
+                    <select name="agrupacion" class="h-10 w-full rounded-lg border border-atlantia-rose/30 px-3 text-sm text-atlantia-ink focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
+                        <option value="dia" @selected(($filters['agrupacion'] ?? 'dia') === 'dia')>Día</option>
+                        <option value="mes" @selected(($filters['agrupacion'] ?? 'dia') === 'mes')>Mes</option>
+                    </select>
+                </label>
+                <button type="submit" class="h-10 rounded-lg bg-atlantia-wine px-5 text-sm font-black text-white hover:bg-atlantia-wine-700">Aplicar</button>
             </div>
+        </form>
 
-            <div class="mt-5 grid gap-4 xl:grid-cols-4">
-                <article class="rounded-2xl border border-atlantia-rose/20 bg-white p-5">
-                    <h2 class="text-sm font-black text-atlantia-ink">Ventas por periodo</h2>
-                    <div class="mt-4 flex h-32 items-end justify-center gap-2 border-b border-atlantia-rose/15 px-3">
-                        @forelse (($reportes['ventas_por_periodo'] ?? collect())->take(8) as $row)
-                            <div class="group flex h-full flex-1 items-end justify-center">
-                                <div class="w-full max-w-7 rounded-t-lg bg-atlantia-rose/70 transition group-hover:bg-atlantia-wine" style="height: {{ max(8, min(100, ((float) $row->total / $ventasMax) * 100)) }}%"></div>
-                            </div>
-                        @empty
-                            <div class="flex h-full items-center justify-center text-center text-sm text-atlantia-ink/55">Sin ventas en este periodo.</div>
-                        @endforelse
-                    </div>
-                    <a href="{{ route('admin.pedidos.index') }}" class="mt-4 inline-flex rounded-md border border-atlantia-rose/30 px-3 py-2 text-xs font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                        Ver detalle de ventas
-                    </a>
+        {{-- Indicadores --}}
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            @foreach ($indicadores as [$etiqueta, $valor, $variacion, $comparable])
+                <article class="{{ $tarjeta }}">
+                    <p class="text-xs font-black uppercase tracking-wide text-atlantia-ink/50">{{ $etiqueta }}</p>
+                    <p class="mt-1.5 text-2xl font-black text-atlantia-ink sm:text-3xl">{{ $valor }}</p>
+                    <p class="mt-1 text-xs font-bold">
+                        @if (! $comparable)
+                            <span class="text-atlantia-ink/45">No cuentan en las ventas</span>
+                        @elseif ($variacion === null)
+                            <span class="text-atlantia-ink/45">Sin datos del periodo anterior</span>
+                        @else
+                            <span @class(['text-emerald-700' => $variacion >= 0, 'text-red-700' => $variacion < 0])>{{ $variacion >= 0 ? '▲' : '▼' }} {{ number_format(abs($variacion), 1) }} %</span>
+                            <span class="text-atlantia-ink/45">vs. periodo anterior</span>
+                        @endif
+                    </p>
                 </article>
+            @endforeach
+        </div>
 
-                <article class="rounded-2xl border border-atlantia-rose/20 bg-white p-5">
-                    <h2 class="text-sm font-black text-atlantia-ink">Pedidos por estado</h2>
+        {{-- Estado de control --}}
+        <div class="grid grid-cols-2 gap-2 lg:grid-cols-4">
+            @foreach ($estadoControl as [$texto, $cantidad, $url, $esAlerta])
+                <a href="{{ $url }}" @class([
+                    'flex items-center justify-between gap-2 rounded-xl border px-4 py-2.5 text-sm transition',
+                    'border-red-200 bg-red-50 text-red-800 hover:bg-red-100' => $esAlerta && $cantidad > 0,
+                    'border-atlantia-rose/15 bg-white text-atlantia-ink/70 hover:bg-atlantia-blush/40' => ! ($esAlerta && $cantidad > 0),
+                ])>
+                    <span class="font-bold">{{ $texto }}</span>
+                    <span class="text-base font-black">{{ number_format($cantidad) }}</span>
+                </a>
+            @endforeach
+        </div>
+
+        {{-- Ventas por periodo + estados --}}
+        <div class="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+            <article class="{{ $tarjeta }}">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="text-lg font-black text-atlantia-ink">Ventas por {{ ($filters['agrupacion'] ?? 'dia') === 'mes' ? 'mes' : 'día' }}</h2>
+                    <a href="{{ route('admin.pedidos.index') }}" class="text-sm font-black text-atlantia-wine hover:underline print:hidden">Ver pedidos →</a>
+                </div>
+                @if ($periodos->isEmpty())
+                    <p class="py-16 text-center text-sm text-atlantia-ink/50">No hubo ventas en este periodo.</p>
+                @else
+                    <div class="mt-5 flex h-52 items-end gap-1 border-b border-atlantia-rose/20 sm:gap-1.5" role="img" aria-label="Ventas por periodo">
+                        @foreach ($periodos as $fila)
+                            <div class="group relative flex h-full min-w-0 flex-1 flex-col justify-end">
+                                <span class="pointer-events-none absolute left-1/2 z-10 hidden -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md bg-atlantia-ink px-2 py-1 text-[11px] font-bold text-white group-hover:block" style="bottom: {{ round((float) $fila->total / $maxPeriodo * 100, 2) }}%">
+                                    {{ $etiquetaPeriodo($fila->periodo) }} · {{ $money($fila->total) }} · {{ $fila->pedidos }} ped.
+                                </span>
+                                <span class="block w-full rounded-t bg-atlantia-wine/85 transition group-hover:bg-atlantia-wine" style="height: {{ max(2, round((float) $fila->total / $maxPeriodo * 100, 2)) }}%"></span>
+                            </div>
+                        @endforeach
+                    </div>
+                    <div class="mt-1.5 flex gap-1 sm:gap-1.5">
+                        @foreach ($periodos as $fila)
+                            <span class="min-w-0 flex-1 truncate text-center text-[10px] font-bold text-atlantia-ink/45">{{ $periodos->count() <= 16 || $loop->first || $loop->last || $loop->iteration % 5 === 0 ? $etiquetaPeriodo($fila->periodo) : '' }}</span>
+                        @endforeach
+                    </div>
+                @endif
+            </article>
+
+            <article class="{{ $tarjeta }}">
+                <h2 class="text-lg font-black text-atlantia-ink">Pedidos por estado</h2>
+                @if ($estados->isEmpty())
+                    <p class="py-16 text-center text-sm text-atlantia-ink/50">Sin pedidos en este periodo.</p>
+                @else
                     <div class="mt-4 flex items-center gap-5">
-                        <div class="flex h-28 w-28 shrink-0 items-center justify-center rounded-full" style="background: conic-gradient(#8b1d4d {{ min(100, (($statusRows->sum('pedidos') ?: 0) / $pedidosTotal) * 100) }}%, #f1e7ec 0);">
-                            <div class="flex h-16 w-16 items-center justify-center rounded-full bg-white text-center">
-                                <span class="text-lg font-black text-atlantia-ink">{{ number_format((int) ($reportes['pedidos_total'] ?? 0)) }}</span>
+                        <div class="grid h-32 w-32 shrink-0 place-items-center rounded-full" style="background: conic-gradient({{ $segmentos }});">
+                            <div class="grid h-20 w-20 place-items-center rounded-full bg-white text-center">
+                                <span>
+                                    <span class="block text-xl font-black leading-none text-atlantia-ink">{{ number_format($estados->sum('pedidos')) }}</span>
+                                    <span class="text-[10px] font-bold text-atlantia-ink/50">pedidos</span>
+                                </span>
                             </div>
                         </div>
-                        <div class="min-w-0 flex-1 space-y-2">
-                            @forelse ($statusRows->take(5)->values() as $index => $row)
-                                <div class="flex items-center justify-between gap-2 text-xs">
+                        <ul class="min-w-0 flex-1 space-y-1.5">
+                            @foreach ($estados as $fila)
+                                @php $clave = $enumValue($fila->estado); @endphp
+                                <li class="flex items-center justify-between gap-2 text-xs">
                                     <span class="flex min-w-0 items-center gap-2">
-                                        <span class="h-2.5 w-2.5 rounded-full" style="background-color: {{ $statusColors[$index] ?? '#8b1d4d' }}"></span>
-                                        <span class="truncate text-atlantia-ink/70">{{ $label($row->estado) }}</span>
+                                        <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {{ $estadoColores[$clave] ?? '#5e0008' }}"></span>
+                                        <span class="truncate font-semibold text-atlantia-ink/75">{{ $estadoNombres[$clave] ?? ucfirst(str_replace('_', ' ', $clave)) }}</span>
                                     </span>
-                                    <span class="font-black text-atlantia-ink">{{ $row->pedidos }}</span>
-                                </div>
+                                    <span class="font-black text-atlantia-ink">{{ $fila->pedidos }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+            </article>
+        </div>
+
+        {{-- Productos y tiendas --}}
+        <div class="grid gap-4 lg:grid-cols-2">
+            <article class="{{ $tarjeta }}">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="text-lg font-black text-atlantia-ink">Productos más vendidos</h2>
+                    <a href="{{ route('admin.productos.index') }}" class="text-sm font-black text-atlantia-wine hover:underline print:hidden">Productos →</a>
+                </div>
+                <ol class="mt-3 space-y-3">
+                    @forelse ($productos as $producto)
+                        <li>
+                            <div class="flex items-baseline justify-between gap-3 text-sm">
+                                <span class="min-w-0 truncate font-bold text-atlantia-ink"><span class="mr-1.5 text-atlantia-ink/40">{{ $loop->iteration }}.</span>{{ $producto->nombre }}</span>
+                                <span class="shrink-0 text-xs text-atlantia-ink/55"><strong class="text-atlantia-ink">{{ number_format((int) $producto->unidades) }}</strong> uds · {{ $money($producto->total) }}</span>
+                            </div>
+                            <div class="mt-1 h-1.5 rounded-full bg-atlantia-blush/70"><div class="h-full rounded-full bg-atlantia-wine" style="width: {{ round((float) $producto->unidades / $maxProducto * 100, 1) }}%"></div></div>
+                        </li>
+                    @empty
+                        <li class="py-10 text-center text-sm text-atlantia-ink/50">Sin productos vendidos en este periodo.</li>
+                    @endforelse
+                </ol>
+            </article>
+
+            <article class="{{ $tarjeta }}">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="text-lg font-black text-atlantia-ink">Ventas por tienda</h2>
+                    <a href="{{ route('admin.vendedores.index') }}" class="text-sm font-black text-atlantia-wine hover:underline print:hidden">Tiendas →</a>
+                </div>
+                <div class="mt-3 overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-atlantia-rose/15 text-left text-xs font-black uppercase tracking-wide text-atlantia-ink/45">
+                                <th class="py-2 pr-3">Tienda</th>
+                                <th class="py-2 pr-3 text-right">Pedidos</th>
+                                <th class="py-2 pr-3 text-right">Ventas</th>
+                                <th class="py-2 text-right">Parte</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-atlantia-rose/10">
+                            @forelse ($tiendas as $tienda)
+                                <tr>
+                                    <td class="max-w-[12rem] truncate py-2.5 pr-3 font-bold text-atlantia-ink">{{ $tienda->business_name }}</td>
+                                    <td class="py-2.5 pr-3 text-right text-atlantia-ink/70">{{ number_format((int) $tienda->pedidos) }}</td>
+                                    <td class="py-2.5 pr-3 text-right font-black text-atlantia-ink">{{ $money($tienda->total_ventas) }}</td>
+                                    <td class="py-2.5 text-right text-xs font-bold text-atlantia-wine">{{ number_format((float) $tienda->total_ventas / $totalTiendas * 100, 1) }} %</td>
+                                </tr>
                             @empty
-                                <p class="text-sm text-atlantia-ink/55">Sin pedidos en este periodo.</p>
+                                <tr><td colspan="4" class="py-10 text-center text-sm text-atlantia-ink/50">Ninguna tienda vendió en este periodo.</td></tr>
                             @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        </div>
+
+        {{-- Métodos de pago, facturas y alertas --}}
+        <div class="grid gap-4 lg:grid-cols-3">
+            <article class="{{ $tarjeta }}">
+                <h2 class="text-lg font-black text-atlantia-ink">Métodos de pago</h2>
+                <div class="mt-3 space-y-3">
+                    @forelse ($metodos as $fila)
+                        @php $clave = $enumValue($fila->metodo_pago); $parte = (float) $fila->total / $totalMetodos * 100; @endphp
+                        <div>
+                            <div class="flex justify-between gap-3 text-sm">
+                                <span class="font-bold text-atlantia-ink">{{ $metodoNombres[$clave] ?? ucfirst(str_replace('_', ' ', $clave)) }}</span>
+                                <span class="text-atlantia-ink/60"><strong class="text-atlantia-ink">{{ $money($fila->total) }}</strong> · {{ number_format($parte, 0) }} %</span>
+                            </div>
+                            <div class="mt-1 h-1.5 rounded-full bg-atlantia-blush/70"><div class="h-full rounded-full bg-atlantia-wine" style="width: {{ round($parte, 1) }}%"></div></div>
+                            <p class="mt-0.5 text-[11px] text-atlantia-ink/45">{{ $fila->pedidos }} {{ (int) $fila->pedidos === 1 ? 'pedido' : 'pedidos' }}</p>
                         </div>
-                    </div>
-                </article>
+                    @empty
+                        <p class="py-10 text-center text-sm text-atlantia-ink/50">Sin pagos en este periodo.</p>
+                    @endforelse
+                </div>
+            </article>
 
-                <article class="rounded-2xl border border-atlantia-rose/20 bg-white p-5">
-                    <h2 class="text-sm font-black text-atlantia-ink">Top productos</h2>
-                    <div class="mt-4 space-y-3">
-                        @forelse (($reportes['top_productos'] ?? collect())->take(3) as $producto)
-                            <div class="rounded-xl border border-atlantia-rose/15 bg-atlantia-cream/50 px-3 py-2">
-                                <p class="truncate text-sm font-black text-atlantia-ink">{{ $producto->nombre }}</p>
-                                <p class="mt-1 text-xs text-atlantia-ink/60">{{ number_format((int) $producto->unidades) }} uds - {{ $money($producto->total) }}</p>
+            <article class="{{ $tarjeta }}">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="text-lg font-black text-atlantia-ink">Facturas recientes</h2>
+                    <a href="{{ route('admin.dte.index') }}" class="text-sm font-black text-atlantia-wine hover:underline print:hidden">Ver →</a>
+                </div>
+                <div class="mt-2 divide-y divide-atlantia-rose/10">
+                    @forelse (($reportes['dtes_recientes'] ?? collect())->take(4) as $dte)
+                        <div class="flex items-center justify-between gap-3 py-2.5">
+                            <div class="min-w-0">
+                                <p class="truncate text-sm font-bold text-atlantia-ink">{{ $dte->numero_dte }}</p>
+                                <p class="truncate text-xs text-atlantia-ink/55">{{ $dte->vendor?->business_name ?? 'Sin tienda' }}</p>
                             </div>
-                        @empty
-                            <p class="py-8 text-center text-sm text-atlantia-ink/55">Sin productos vendidos en este periodo.</p>
-                        @endforelse
-                    </div>
-                    <a href="{{ route('admin.productos.index') }}" class="mt-4 inline-flex rounded-md border border-atlantia-rose/30 px-3 py-2 text-xs font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                        Ver productos
-                    </a>
-                </article>
+                            <span @class([
+                                'shrink-0 rounded-full px-2.5 py-0.5 text-xs font-black',
+                                'bg-red-50 text-red-700' => $dte->estado === 'rechazado',
+                                'bg-emerald-50 text-emerald-700' => in_array($dte->estado, ['certificado', 'emitido', 'aceptado'], true),
+                                'bg-atlantia-blush text-atlantia-wine' => ! in_array($dte->estado, ['rechazado', 'certificado', 'emitido', 'aceptado'], true),
+                            ])>{{ ucfirst($dte->estado) }}</span>
+                        </div>
+                    @empty
+                        <p class="py-10 text-center text-sm text-atlantia-ink/50">Aún no hay facturas.</p>
+                    @endforelse
+                </div>
+            </article>
 
-                <article class="rounded-2xl border border-atlantia-rose/20 bg-white p-5">
-                    <h2 class="text-sm font-black text-atlantia-ink">Ingresos por vendedor</h2>
-                    <div class="mt-4 space-y-3">
-                        @forelse (($reportes['ingresos_por_vendedor'] ?? collect())->take(4) as $vendor)
-                            <div class="flex items-center justify-between gap-3 rounded-xl border border-atlantia-rose/15 bg-atlantia-cream/40 px-3 py-2">
-                                <div class="min-w-0">
-                                    <p class="truncate text-sm font-black text-atlantia-ink">{{ $vendor->business_name }}</p>
-                                    <p class="text-xs text-atlantia-ink/55">{{ number_format((int) $vendor->pedidos) }} pedidos</p>
-                                </div>
-                                <p class="shrink-0 text-sm font-black text-emerald-700">{{ $money($vendor->total_ventas) }}</p>
+            <article class="{{ $tarjeta }}">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="text-lg font-black text-atlantia-ink">Alertas de fraude</h2>
+                    <a href="{{ route('admin.antifraude.index') }}" class="text-sm font-black text-atlantia-wine hover:underline print:hidden">Ver →</a>
+                </div>
+                <div class="mt-2 divide-y divide-atlantia-rose/10">
+                    @forelse (($reportes['alertas_recientes'] ?? collect())->take(4) as $alerta)
+                        <div class="flex items-center justify-between gap-3 py-2.5">
+                            <div class="min-w-0">
+                                <p class="truncate text-sm font-bold text-atlantia-ink">{{ ucfirst(str_replace('_', ' ', (string) $alerta->tipo)) }}</p>
+                                <p class="truncate text-xs text-atlantia-ink/55">{{ $alerta->pedido?->numero_pedido ?? 'Sin pedido' }} · {{ $alerta->user?->name ?? 'Sin usuario' }}</p>
                             </div>
-                        @empty
-                            <p class="py-8 text-center text-sm text-atlantia-ink/55">Sin ingresos por vendedor.</p>
-                        @endforelse
-                    </div>
-                    <a href="{{ route('admin.vendedores.index') }}" class="mt-4 inline-flex rounded-md border border-atlantia-rose/30 px-3 py-2 text-xs font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                        Ver todos los vendedores
-                    </a>
-                </article>
-            </div>
-
-            <div class="mt-5 grid gap-4 xl:grid-cols-3">
-                <article class="rounded-2xl border border-atlantia-rose/20 bg-white p-5">
-                    <h2 class="text-sm font-black text-atlantia-ink">Metodos de pago</h2>
-                    <div class="mt-4 space-y-3">
-                        @forelse (($reportes['metodos_pago'] ?? collect())->take(4) as $row)
-                            <div class="flex items-center justify-between rounded-xl border border-atlantia-rose/15 bg-atlantia-cream/45 px-3 py-2">
-                                <span class="text-sm font-black text-atlantia-ink">{{ $label($row->metodo_pago) }}</span>
-                                <span class="text-sm font-black text-atlantia-wine">{{ $money($row->total) }}</span>
-                            </div>
-                        @empty
-                            <p class="py-8 text-center text-sm text-atlantia-ink/55">Sin pagos registrados en este periodo.</p>
-                        @endforelse
-                    </div>
-                </article>
-
-                <article class="rounded-2xl border border-atlantia-rose/20 bg-white p-5">
-                    <h2 class="text-sm font-black text-atlantia-ink">DTE recientes</h2>
-                    <div class="mt-4 space-y-3">
-                        @forelse (($reportes['dtes_recientes'] ?? collect())->take(3) as $dte)
-                            <div class="flex items-center justify-between rounded-xl border border-atlantia-rose/15 bg-atlantia-cream/45 px-3 py-2">
-                                <div class="min-w-0">
-                                    <p class="truncate text-sm font-black text-atlantia-ink">{{ $dte->numero_dte }}</p>
-                                    <p class="text-xs text-atlantia-ink/55">{{ $dte->vendor?->business_name ?? 'Sin vendedor' }}</p>
-                                </div>
-                                <span class="rounded-md bg-atlantia-blush px-2 py-1 text-xs font-black text-atlantia-wine">{{ $dte->estado }}</span>
-                            </div>
-                        @empty
-                            <p class="py-8 text-center text-sm text-atlantia-ink/55">Sin DTE recientes.</p>
-                        @endforelse
-                    </div>
-                </article>
-
-                <article class="rounded-2xl border border-atlantia-rose/20 bg-white p-5">
-                    <div class="flex items-center justify-between gap-3">
-                        <h2 class="text-sm font-black text-atlantia-ink">Alertas recientes</h2>
-                        <a href="{{ route('admin.antifraude.index') }}" class="text-xs font-black text-atlantia-wine hover:underline">Ver todas</a>
-                    </div>
-                    <div class="mt-4 space-y-3">
-                        @forelse (($reportes['alertas_recientes'] ?? collect())->take(3) as $alerta)
-                            <div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
-                                <div class="flex items-center justify-between gap-3">
-                                    <p class="truncate text-sm font-black text-amber-900">{{ $alerta->tipo }}</p>
-                                    <span class="rounded-md bg-amber-100 px-2 py-1 text-xs font-black text-amber-700">{{ $alerta->revisada ? 'Revisada' : 'Pendiente' }}</span>
-                                </div>
-                                <p class="mt-1 text-xs text-amber-800">{{ $alerta->pedido?->numero_pedido ?? 'Sin pedido' }} - {{ $alerta->user?->name ?? 'Sin usuario' }}</p>
-                            </div>
-                        @empty
-                            <p class="py-8 text-center text-sm text-atlantia-ink/55">Sin alertas recientes.</p>
-                        @endforelse
-                    </div>
-                </article>
-            </div>
+                            <span @class(['shrink-0 rounded-full px-2.5 py-0.5 text-xs font-black', 'bg-emerald-50 text-emerald-700' => $alerta->revisada, 'bg-amber-50 text-amber-800' => ! $alerta->revisada])>{{ $alerta->revisada ? 'Revisada' : 'Pendiente' }}</span>
+                        </div>
+                    @empty
+                        <div class="flex flex-col items-center py-8 text-center">
+                            <span class="grid h-9 w-9 place-items-center rounded-full bg-emerald-50 font-black text-emerald-700">✓</span>
+                            <p class="mt-2 text-sm text-atlantia-ink/55">Sin alertas. Todo en orden.</p>
+                        </div>
+                    @endforelse
+                </div>
+            </article>
         </div>
     </section>
 @endsection

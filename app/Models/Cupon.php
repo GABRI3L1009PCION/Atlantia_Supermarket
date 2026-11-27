@@ -29,6 +29,7 @@ class Cupon extends Model
      */
     protected $fillable = [
         'uuid',
+        'vendor_id',
         'codigo',
         'tipo',
         'valor',
@@ -40,6 +41,7 @@ class Cupon extends Model
         'fecha_fin',
         'activo',
         'solo_primera_compra',
+        'un_uso_por_cliente',
         'descripcion',
     ];
 
@@ -58,6 +60,7 @@ class Cupon extends Model
             'fecha_fin' => 'datetime',
             'activo' => 'boolean',
             'solo_primera_compra' => 'boolean',
+            'un_uso_por_cliente' => 'boolean',
         ];
     }
 
@@ -105,5 +108,15 @@ class Cupon extends Model
             ->where(function (Builder $builder): void {
                 $builder->whereNull('fecha_fin')->orWhere('fecha_fin', '>=', now());
             });
+    }
+
+    /**
+     * Tienda dueña del cupón: solo descuenta sus productos y lo paga ella.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<\App\Models\Vendor, Cupon>
+     */
+    public function vendor(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Vendor::class);
     }
 }

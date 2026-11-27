@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\Auth\AccesoRapidoController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\TwoFactorController;
+use App\Http\Controllers\Cuenta\SeguridadController;
 use App\Http\Controllers\Auth\VerificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,6 +26,20 @@ Route::middleware('guest')->group(function (): void {
         ->middleware('login.lockout')
         ->name('login.store');
 
+    /* Acceso sin contrasena para clientes: codigo por WhatsApp o Google. */
+    Route::get('/entrar/telefono', [AccesoRapidoController::class, 'telefono'])->name('acceso.telefono');
+    Route::post('/entrar/telefono', [AccesoRapidoController::class, 'enviarCodigo'])
+        ->middleware('throttle:6,1')
+        ->name('acceso.telefono.enviar');
+    Route::post('/entrar/telefono/verificar', [AccesoRapidoController::class, 'verificarCodigo'])
+        ->middleware('throttle:10,1')
+        ->name('acceso.telefono.verificar');
+    Route::post('/entrar/telefono/cambiar', [AccesoRapidoController::class, 'cambiarNumero'])->name('acceso.telefono.cambiar');
+    Route::get('/entrar/google', [AccesoRapidoController::class, 'google'])->name('acceso.google');
+    Route::get('/entrar/google/callback', [AccesoRapidoController::class, 'googleCallback'])
+        ->middleware('throttle:10,1')
+        ->name('acceso.google.callback');
+
     Route::get('/registro', [RegisterController::class, 'create'])->name('register');
     Route::post('/registro', [RegisterController::class, 'store'])->middleware('throttle:registro')->name('register.store');
 
@@ -38,8 +54,9 @@ Route::middleware('guest')->group(function (): void {
         ->name('password.update');
 
     Route::get('/two-factor/challenge', [TwoFactorController::class, 'challenge'])->name('two-factor.challenge');
+    /* 10 por minuto: el bloqueo real tras 5 códigos fallidos lo aplica TwoFactorService por cuenta. */
     Route::post('/two-factor/verify', [TwoFactorController::class, 'verify'])
-        ->middleware('throttle:5,15')
+        ->middleware('throttle:10,1')
         ->name('two-factor.verify');
 });
 
@@ -57,10 +74,19 @@ Route::middleware('auth')->group(function (): void {
         ->middleware('throttle:6,1')
         ->name('verification.send');
 
+    Route::get('/two-factor/respaldo', [TwoFactorController::class, 'respaldo'])->name('two-factor.respaldo');
     Route::post('/two-factor/enable', [TwoFactorController::class, 'enable'])
         ->middleware('throttle:5,15')
         ->name('two-factor.enable');
     Route::delete('/two-factor/disable', [TwoFactorController::class, 'disable'])
         ->middleware('throttle:5,15')
         ->name('two-factor.disable');
+
+    /* Seguridad de la cuenta: contraseña, códigos de respaldo y sesiones abiertas. */
+    Route::get('/cuenta/seguridad', [SeguridadController::class, 'edit'])->name('cuenta.seguridad');
+    Route::middleware('throttle:6,1')->group(function (): void {
+        Route::put('/cuenta/seguridad/contrasena', [SeguridadController::class, 'cambiarContrasena'])->name('cuenta.seguridad.contrasena');
+        Route::post('/cuenta/seguridad/codigos', [SeguridadController::class, 'regenerarCodigos'])->name('cuenta.seguridad.codigos');
+        Route::post('/cuenta/seguridad/cerrar-otras', [SeguridadController::class, 'cerrarOtrasSesiones'])->name('cuenta.seguridad.cerrar-otras');
+    });
 });

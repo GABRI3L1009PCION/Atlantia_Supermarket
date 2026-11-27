@@ -116,6 +116,7 @@ class ProductoAdminService
                     'descripcion',
                     'precio_base',
                     'precio_oferta',
+                    'costo_compra',
                     'peso_gramos',
                     'unidad_medida',
                     'requiere_refrigeracion',
@@ -224,7 +225,13 @@ class ProductoAdminService
      */
     private function atlantiaVendor(): Vendor
     {
-        $user = User::query()->firstOrCreate(
+        // Si la tienda ya existe se usa tal cual (su dueño puede ser otra cuenta).
+        $existente = Vendor::query()->where('slug', 'atlantia-supermarket')->first();
+        if ($existente !== null) {
+            return $existente;
+        }
+
+        $user = User::withTrashed()->firstOrCreate(
             ['email' => 'inventario@atlantia.local'],
             [
                 'uuid' => (string) Str::uuid(),
@@ -244,8 +251,8 @@ class ProductoAdminService
                 'user_id' => $user->id,
                 'business_name' => 'Atlantia Supermarket',
                 'descripcion' => 'Inventario propio vendido directamente por Atlantia Supermarket.',
-                'telefono_publico' => config('atlantia.contact.phone'),
-                'email_publico' => config('atlantia.contact.email', 'contacto@atlantia.local'),
+                'telefono_publico' => config('atlantia.support.phone'),
+                'email_publico' => config('atlantia.support.email', 'contacto@atlantia.local'),
                 'municipio' => 'Puerto Barrios',
                 'direccion_comercial' => 'Puerto Barrios, Izabal, Guatemala',
                 'is_approved' => true,

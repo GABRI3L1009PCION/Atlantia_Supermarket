@@ -47,9 +47,13 @@
                 'nit_file' => 'NIT/RIT',
             ];
             $documentLinks = collect($vendor->documents ?? [])->filter()->map(function ($path, $key) use ($documentLabels, $vendor): array {
+                $extension = strtolower(pathinfo((string) $path, PATHINFO_EXTENSION));
+
                 return [
                     'label' => $documentLabels[$key] ?? str($key)->replace('_', ' ')->title()->toString(),
                     'url' => route('admin.vendedores.documents.show', [$vendor, $key]),
+                    'ver_url' => route('admin.vendedores.documents.show', [$vendor, $key, 'ver' => 1]),
+                    'tipo' => $extension === 'pdf' ? 'pdf' : 'imagen',
                 ];
             })->values()->all();
 
@@ -71,13 +75,14 @@
                         'calle' => $personalAddress['calle'] ?? null,
                         'numero' => $personalAddress['numero'] ?? null,
                         'apto' => $personalAddress['apto'] ?? null,
+                        'colonia' => $personalAddress['colonia'] ?? null,
                         'municipio' => $personalAddress['municipio'] ?? $vendor->municipio,
                         'departamento' => $personalAddress['departamento'] ?? null,
                         'codigo_postal' => $personalAddress['codigo_postal'] ?? null,
                     ],
                     'document_type' => strtoupper((string) ($vendor->document_type ?? 'DPI')),
                     'document_number' => $vendor->document_number ?: 'Pendiente',
-                    'category' => $vendor->business_category ?: 'Sin categoria',
+                    'category' => $vendor->categoriaTexto() ?: 'Sin categoría',
                     'description' => str($vendor->descripcion ?: 'Sin descripcion registrada.')->limit(180)->toString(),
                     'description_full' => $vendor->descripcion ?: 'Sin descripcion registrada.',
                     'has_nit' => (bool) $vendor->has_nit,
@@ -120,113 +125,106 @@
                     'compliance' => $compliance,
                     'commission_percentage' => (float) $vendor->commission_percentage,
                     'monthly_rent' => (float) $vendor->monthly_rent,
-                    'plan_label' => match (true) {
-                        (int) $vendor->monthly_rent === 0 && (float) $vendor->commission_percentage === 18.0 => 'Emprendedor Starter',
-                        (int) $vendor->monthly_rent === 149 => 'Emprendedor Plus',
-                        (int) $vendor->monthly_rent === 349 => 'Crecimiento',
-                        (int) $vendor->monthly_rent === 699 => 'Profesional',
-                        default => 'Personalizado',
-                    },
+                    'plan_label' => (function () use ($vendor): string {
+                        $planesServicio = app(\App\Services\Monetizacion\PlanesVendedorService::class);
+                        $vigente = $planesServicio->planActual($vendor);
+                        $elegido = config('monetizacion.planes.'.$vendor->plan.'.nombre', 'Personalizado');
+
+                        /* Si eligio un plan con mensualidad pero no lo ha pagado, opera con el plan Inicial. */
+                        return $vigente === $vendor->plan
+                            ? $elegido
+                            : config('monetizacion.planes.'.$vigente.'.nombre').' (eligió '.$elegido.', mensualidad sin pagar)';
+                    })(),
                     'show_url' => route('admin.vendedores.show', $vendor),
                     'approve_url' => route('admin.vendedores.approve', $vendor),
                     'suspend_url' => route('admin.vendedores.suspend', $vendor),
                     'reactivate_url' => route('admin.vendedores.reactivate', $vendor),
+                    'reject_url' => route('admin.vendedores.reject', $vendor),
+                    'resend_url' => route('admin.vendedores.reenviar-acceso', $vendor),
+                    'reset_2fa_url' => route('admin.vendedores.reiniciar-2fa', $vendor),
+                    'tiene_contrasena' => $vendor->user?->email_verified_at !== null,
+                    'tiene_2fa' => $vendor->user?->two_factor_confirmed_at !== null,
                 ],
             ];
         });
     @endphp
 
-    <section class="vendors-light-surface -mx-4 -my-6 bg-white px-4 py-5 text-atlantia-ink sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-        <div class="mx-auto max-w-7xl rounded-2xl border border-atlantia-rose/20 bg-white p-6 shadow-sm">
-            <header class="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+    <section class="vendors-light-surface mx-auto max-w-7xl space-y-4 pb-10 text-atlantia-ink">
+            {{-- Encabezado compacto --}}
+            <header class="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                    <p class="text-xs font-black uppercase tracking-wide text-atlantia-rose">Atlantia Supermarket</p>
-                    <h1 class="mt-2 text-4xl font-black leading-tight text-atlantia-ink">Vendedores</h1>
-                    <p class="mt-3 max-w-3xl text-base leading-7 text-atlantia-ink/70">
-                        Gestiona solicitudes, aprobaciones, comisiones y desempeño de vendedores
-                    </p>
+                    <h1 class="text-3xl font-black tracking-tight text-atlantia-ink">Vendedores</h1>
+                    <p class="mt-1 text-sm text-atlantia-ink/60">Solicitudes, aprobaciones, comisiones y desempeño de las tiendas.</p>
                 </div>
-                <div class="flex flex-wrap gap-3">
-                    <a href="{{ route('admin.vendedores.report.pdf') }}" class="rounded-md border border-atlantia-rose/35 bg-white px-4 py-2.5 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                        Exportar reporte
-                    </a>
-                    <button type="button" class="rounded-md bg-atlantia-wine px-4 py-2.5 text-sm font-black text-white transition hover:bg-atlantia-wine-700" data-open-stats>
-                        Ver estadisticas
-                    </button>
+                <div class="flex gap-2">
+                    <a href="{{ route('admin.vendedores.report.pdf') }}" class="rounded-xl border border-atlantia-rose/25 bg-white px-4 py-2.5 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush">Exportar reporte</a>
+                    <button type="button" class="rounded-xl bg-atlantia-wine px-4 py-2.5 text-sm font-black text-white transition hover:bg-atlantia-wine-700" data-open-stats>Estadísticas</button>
                 </div>
             </header>
 
-            <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <article class="rounded-xl border border-atlantia-rose/20 bg-white p-5 shadow-sm">
-                    <p class="text-sm font-bold text-atlantia-ink/60">Total vendedores</p>
-                    <p class="mt-1 text-3xl font-black text-atlantia-wine">{{ $vendors->total() }}</p>
-                    <p class="text-xs text-atlantia-ink/55">{{ $approvedCount }} activos</p>
-                </article>
-                <article class="rounded-xl border border-atlantia-rose/20 bg-white p-5 shadow-sm">
-                    <p class="text-sm font-bold text-atlantia-ink/60">Ventas 30 dias</p>
-                    <p class="mt-1 text-3xl font-black text-atlantia-wine">Q{{ number_format($salesTotal, 2) }}</p>
-                    <p class="text-xs text-atlantia-ink/55">Suma de vendedores visibles</p>
-                </article>
-                <article class="rounded-xl border border-atlantia-rose/20 bg-white p-5 shadow-sm">
-                    <p class="text-sm font-bold text-atlantia-ink/60">Comision pendiente</p>
-                    <p class="mt-1 text-3xl font-black text-atlantia-wine">Q{{ number_format($pendingTotal, 2) }}</p>
-                    <p class="text-xs text-atlantia-ink/55">Pendiente/facturada</p>
-                </article>
-                <article class="rounded-xl border border-atlantia-rose/20 bg-white p-5 shadow-sm">
-                    <p class="text-sm font-bold text-atlantia-ink/60">Rating promedio</p>
-                    <p class="mt-2 text-3xl font-black text-atlantia-wine">{{ number_format($avgRating, 1) }}★</p>
-                    <p class="text-xs text-atlantia-ink/55">Reseñas aprobadas registradas</p>
-                </article>
-            </div>
-
-            <div class="mt-6 rounded-xl border border-atlantia-rose/20 bg-white p-4">
-                <div class="grid gap-3 xl:grid-cols-[1fr_auto] xl:items-center">
-                    <div class="relative">
-                        <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-atlantia-ink/40">
-                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11 19C15.4 19 19 15.4 19 11C19 6.6 15.4 3 11 3C6.6 3 3 6.6 3 11C3 15.4 6.6 19 11 19Z" stroke="currentColor" stroke-width="2"/><path d="M20.5 20.5L16.7 16.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                        </span>
-                        <input type="search" class="w-full rounded-md border border-atlantia-rose/35 bg-white py-3 pl-12 pr-4 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/25" placeholder="Buscar por nombre, email, negocio, DPI..." data-vendor-search>
-                    </div>
-                    <button type="button" class="rounded-md border border-atlantia-rose/35 px-4 py-3 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush" data-toggle-filters>
-                        Filtros avanzados
-                    </button>
-                </div>
-                <div class="mt-4 hidden grid gap-3 rounded-xl border border-atlantia-rose/15 bg-atlantia-cream p-4 md:grid-cols-4" data-advanced-filters>
-                    <select class="rounded-md border border-atlantia-rose/35 px-3 py-2 text-sm" data-filter-rating>
-                        <option value="">Rating</option>
-                        <option value="4">≥ 4.0</option>
-                        <option value="4.5">≥ 4.5</option>
-                        <option value="3">≥ 3.0</option>
-                        <option value="lt3">&lt; 3.0</option>
-                    </select>
-                    <select class="rounded-md border border-atlantia-rose/35 px-3 py-2 text-sm" data-filter-commission>
-                        <option value="">Comision pendiente</option>
-                        <option value="100">Mayor a Q100</option>
-                        <option value="500">Mayor a Q500</option>
-                        <option value="1000">Mayor a Q1,000</option>
-                    </select>
-                    <select class="rounded-md border border-atlantia-rose/35 px-3 py-2 text-sm" data-filter-compliance>
-                        <option value="">Cumplimiento</option>
-                        <option value="95">≥ 95%</option>
-                        <option value="85">≥ 85%</option>
-                        <option value="lt85">&lt; 85%</option>
-                    </select>
-                    <button type="button" class="rounded-md bg-atlantia-wine px-4 py-2 text-sm font-black text-white" data-clear-filters>Limpiar</button>
-                </div>
-            </div>
-
-            <div class="mt-6 flex flex-wrap gap-2" role="tablist" aria-label="Estados de vendedores">
-                @foreach ($statusTabs as $status => $label)
-                    <button type="button" class="{{ $loop->first ? 'bg-atlantia-wine text-white' : 'bg-white text-atlantia-wine' }} rounded-md border border-atlantia-rose/30 px-4 py-2.5 text-sm font-black transition hover:bg-atlantia-blush hover:text-atlantia-wine" data-vendor-tab="{{ $status }}">
-                        {{ $label }}
-                        <span class="ml-2 rounded-full bg-white/20 px-2 py-0.5">{{ $countByStatus[$status] ?? 0 }}</span>
-                    </button>
+            {{-- Métricas en una franja --}}
+            <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                @foreach ([
+                    ['Vendedores', number_format($vendors->total()), $approvedCount.' activos'],
+                    ['Ventas 30 días', 'Q '.number_format($salesTotal, 2), 'de las tiendas visibles'],
+                    ['Comisión pendiente', 'Q '.number_format($pendingTotal, 2), 'por cobrar o facturada'],
+                    ['Calificación', number_format($avgRating, 1).' ★', 'promedio de reseñas'],
+                ] as [$etiqueta, $valor, $nota])
+                    <article class="rounded-2xl border border-atlantia-rose/15 bg-white px-4 py-3 shadow-[0_8px_20px_rgba(59,6,12,0.04)]">
+                        <p class="text-[11px] font-black uppercase tracking-wide text-atlantia-ink/50">{{ $etiqueta }}</p>
+                        <p class="mt-0.5 text-2xl font-black text-atlantia-ink">{{ $valor }}</p>
+                        <p class="text-xs text-atlantia-ink/50">{{ $nota }}</p>
+                    </article>
                 @endforeach
-                <button type="button" class="bg-white text-atlantia-wine rounded-md border border-atlantia-rose/30 px-4 py-2.5 text-sm font-black transition hover:bg-atlantia-blush" data-vendor-tab="dashboard">
-                    Dashboard
-                </button>
             </div>
 
+            {{-- Pestañas + búsqueda en una sola barra --}}
+            <div class="rounded-2xl border border-atlantia-rose/15 bg-white p-3">
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
+                    <div class="flex gap-1.5 overflow-x-auto" role="tablist" aria-label="Estados de vendedores">
+                        @foreach ($statusTabs as $status => $label)
+                            <button type="button" class="{{ $loop->first ? 'bg-atlantia-wine text-white' : 'bg-white text-atlantia-wine' }} shrink-0 rounded-lg border border-atlantia-rose/25 px-3 py-2 text-sm font-black transition hover:bg-atlantia-blush hover:text-atlantia-wine" data-vendor-tab="{{ $status }}">
+                                {{ $label }}
+                                <span class="ml-1 rounded-full bg-black/5 px-1.5 py-0.5 text-xs">{{ $countByStatus[$status] ?? 0 }}</span>
+                            </button>
+                        @endforeach
+                        <button type="button" class="bg-white text-atlantia-wine shrink-0 rounded-lg border border-atlantia-rose/25 px-3 py-2 text-sm font-black transition hover:bg-atlantia-blush" data-vendor-tab="dashboard">Resumen</button>
+                    </div>
+                    <div class="flex flex-1 gap-2">
+                        <div class="relative flex-1">
+                            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-atlantia-ink/40">
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM20.5 20.5l-3.8-3.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                            </span>
+                            <input type="search" class="h-10 w-full rounded-lg border border-atlantia-rose/30 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/25" placeholder="Buscar por nombre, correo, negocio o código" data-vendor-search>
+                        </div>
+                        <button type="button" class="h-10 shrink-0 rounded-lg border border-atlantia-rose/30 px-3 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush" data-toggle-filters>Filtros</button>
+                    </div>
+                </div>
+                <div class="mt-3 hidden grid gap-2 rounded-xl bg-atlantia-cream p-3 md:grid-cols-4" data-advanced-filters>
+                    <select class="rounded-lg border border-atlantia-rose/30 px-3 py-2 text-sm" data-filter-rating>
+                        <option value="">Calificación</option>
+                        <option value="4">4.0 o más</option>
+                        <option value="4.5">4.5 o más</option>
+                        <option value="3">3.0 o más</option>
+                        <option value="lt3">Menos de 3.0</option>
+                    </select>
+                    <select class="rounded-lg border border-atlantia-rose/30 px-3 py-2 text-sm" data-filter-commission>
+                        <option value="">Comisión pendiente</option>
+                        <option value="100">Más de Q100</option>
+                        <option value="500">Más de Q500</option>
+                        <option value="1000">Más de Q1,000</option>
+                    </select>
+                    <select class="rounded-lg border border-atlantia-rose/30 px-3 py-2 text-sm" data-filter-compliance>
+                        <option value="">Cumplimiento</option>
+                        <option value="95">95 % o más</option>
+                        <option value="85">85 % o más</option>
+                        <option value="lt85">Menos de 85 %</option>
+                    </select>
+                    <button type="button" class="rounded-lg bg-atlantia-wine px-4 py-2 text-sm font-black text-white" data-clear-filters>Limpiar</button>
+                </div>
+            </div>
+
+            {{-- Lista compacta: una fila por tienda --}}
             @foreach ($statusTabs as $status => $label)
                 @php
                     $tabVendors = $vendorsCollection->where('status', $status);
@@ -236,176 +234,68 @@
                         default => $tabVendors->sortByDesc('updated_at'),
                     };
                 @endphp
-                <section class="{{ $loop->first ? '' : 'hidden' }} mt-5" data-vendor-panel="{{ $status }}">
-                    @if (array_key_exists($status, $statusTabs))
-                        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                            @forelse ($tabVendors as $vendor)
-                                @php
-                                    $payload = $vendorsPayload[$vendor->id];
-                                    $initials = collect(explode(' ', $payload['name']))->filter()->take(2)->map(fn ($part) => strtoupper(mb_substr($part, 0, 1)))->join('') ?: 'VD';
-                                    $progress = $payload['documents_total'] > 0 ? ($payload['documents'] / $payload['documents_total']) * 100 : 0;
-                                @endphp
-
-                                <article class="rounded-xl border border-atlantia-rose/20 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-atlantia-wine/40 hover:shadow-md" data-vendor-row data-status="{{ $status }}" data-search="{{ strtolower($payload['name'] . ' ' . $payload['email'] . ' ' . $payload['business'] . ' ' . $payload['code']) }}" data-rating="{{ $payload['rating'] }}" data-commission="{{ $payload['commission_owed'] }}" data-compliance="{{ $payload['compliance'] }}">
-                                    <div class="flex items-start gap-4">
-                                        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-atlantia-blush text-base font-black text-atlantia-wine ring-1 ring-atlantia-rose/20">{{ $initials }}</span>
-                                        <div class="min-w-0 flex-1">
-                                            <div class="flex items-start justify-between gap-3">
-                                                <p class="truncate text-base font-black text-atlantia-ink">{{ $payload['business'] }}</p>
-                                                <span class="{{ $statusClasses[$status] }} rounded-md px-3 py-1 text-xs font-black">{{ $payload['status_label'] }}</span>
-                                            </div>
-                                            <p class="mt-1 text-xs font-semibold text-atlantia-ink/50">{{ $payload['document_type'] }}: {{ $payload['document_number'] }}</p>
-                                        </div>
+                <section class="{{ $loop->first ? '' : 'hidden' }} overflow-hidden rounded-2xl border border-atlantia-rose/15 bg-white" data-vendor-panel="{{ $status }}">
+                    <div class="divide-y divide-atlantia-rose/10">
+                        @forelse ($tabVendors as $vendor)
+                            @php
+                                $payload = $vendorsPayload[$vendor->id];
+                                $initials = collect(explode(' ', $payload['business']))->filter()->take(2)->map(fn ($part) => strtoupper(mb_substr($part, 0, 1)))->join('') ?: 'VD';
+                                $progress = $payload['documents_total'] > 0 ? min(100, ($payload['documents'] / $payload['documents_total']) * 100) : 0;
+                            @endphp
+                            <div class="grid items-center gap-x-4 gap-y-2 px-4 py-3 transition hover:bg-atlantia-cream/60 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_auto]" data-vendor-row data-status="{{ $status }}" data-search="{{ strtolower($payload['name'].' '.$payload['email'].' '.$payload['business'].' '.$payload['code']) }}" data-rating="{{ $payload['rating'] }}" data-commission="{{ $payload['commission_owed'] }}" data-compliance="{{ $payload['compliance'] }}">
+                                {{-- Tienda --}}
+                                <div class="flex min-w-0 items-center gap-3">
+                                    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-atlantia-blush text-sm font-black text-atlantia-wine">{{ $initials }}</span>
+                                    <div class="min-w-0">
+                                        <p class="flex items-center gap-2 truncate text-sm font-black text-atlantia-ink">
+                                            {{ $payload['business'] }}
+                                            <span class="{{ $statusClasses[$status] }} shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-black">{{ $payload['status_label'] }}</span>
+                                        </p>
+                                        <p class="truncate text-xs text-atlantia-ink/55">{{ $payload['name'] }} · {{ str_replace('_', ' ', $payload['category']) }}</p>
                                     </div>
-
-                                    <div class="mt-5 rounded-xl border border-atlantia-rose/15 bg-atlantia-cream/60 p-4">
-                                        <p class="text-xs font-black uppercase tracking-wide text-atlantia-rose">Negocio</p>
-                                        <p class="mt-1 font-black text-atlantia-ink">{{ $payload['name'] }}</p>
-                                        <p class="mt-1 text-xs text-atlantia-ink/55">{{ $payload['category'] }}</p>
-                                    </div>
-
-                                    <div class="mt-4 grid gap-3 text-sm">
-                                        <div>
-                                            <p class="text-xs font-black uppercase tracking-wide text-atlantia-ink/45">Email</p>
-                                            <p class="mt-1 truncate text-atlantia-ink/75">{{ $payload['email'] }}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-black uppercase tracking-wide text-atlantia-ink/45">Telefono</p>
-                                            <p class="mt-1 text-atlantia-ink/75">{{ $payload['phone'] ?: 'No registrado' }}</p>
-                                        </div>
-                                    </div>
-
-                                    <div class="mt-4">
-                                        <div class="flex items-center justify-between gap-3">
-                                            <p class="text-xs font-black uppercase tracking-wide text-atlantia-ink/45">Documentos</p>
-                                            <p class="text-xs font-black text-atlantia-wine">{{ $payload['documents'] }}/{{ $payload['documents_total'] }}</p>
-                                        </div>
-                                        <div class="mt-2 h-2 overflow-hidden rounded-full bg-atlantia-blush">
-                                            <div class="h-full rounded-full bg-atlantia-wine" style="width: {{ $progress }}%"></div>
-                                        </div>
-                                    </div>
-
-                                    <div class="mt-5 flex items-center justify-between gap-3 border-t border-atlantia-rose/15 pt-4">
-                                        <p class="text-xs font-bold text-atlantia-ink/50">{{ $payload['created_relative'] }}</p>
-                                        <div class="flex gap-2">
-                                            <a href="{{ $payload['show_url'] }}" class="rounded-lg border border-atlantia-rose/30 px-4 py-2 text-xs font-black text-atlantia-wine transition hover:bg-atlantia-blush">Ver perfil</a>
-                                            <button type="button" class="rounded-lg bg-atlantia-wine px-4 py-2 text-xs font-black text-white transition hover:bg-atlantia-wine-700" data-open-vendor="{{ $vendor->id }}">Revisar</button>
-                                        </div>
-                                    </div>
-                                </article>
-                            @empty
-                                <div class="rounded-2xl border border-atlantia-rose/20 bg-white p-10 text-center text-atlantia-ink/60 md:col-span-2 xl:col-span-3">
-                                    No hay vendedores en esta pestana.
                                 </div>
-                            @endforelse
-                        </div>
-                    @else
-                    <div class="overflow-x-auto rounded-xl border border-atlantia-rose/20 bg-white">
-                        <table class="min-w-[1100px] w-full text-sm">
-                            <thead class="bg-atlantia-cream">
-                                <tr class="border-b border-atlantia-rose/20 text-left text-xs font-black uppercase tracking-wide text-atlantia-ink/55">
+
+                                {{-- Contacto --}}
+                                <div class="min-w-0 text-xs text-atlantia-ink/65">
+                                    <p class="truncate">{{ $payload['email'] }}</p>
+                                    <p class="truncate">{{ $payload['phone'] ?: 'Sin teléfono' }} · {{ $payload['document_type'] }} {{ $payload['document_number'] }}</p>
+                                </div>
+
+                                {{-- Dato clave según la pestaña --}}
+                                <div class="min-w-0 text-xs">
                                     @if ($status === 'pending')
-                                        <th class="px-4 py-3">Nombre vendedor</th>
-                                        <th class="px-4 py-3">Negocio</th>
-                                        <th class="px-4 py-3">Email</th>
-                                        <th class="px-4 py-3">Telefono</th>
-                                        <th class="px-4 py-3">Documentos</th>
-                                        <th class="px-4 py-3">Fecha solicitud</th>
-                                        <th class="px-4 py-3 text-right">Acciones</th>
+                                        <p class="font-bold text-atlantia-ink/70">Documentos <span class="font-black text-atlantia-wine">{{ $payload['documents'] }}/{{ $payload['documents_total'] }}</span> · {{ $payload['created_relative'] }}</p>
+                                        <div class="mt-1 h-1.5 w-full max-w-[10rem] overflow-hidden rounded-full bg-atlantia-blush"><div class="h-full rounded-full bg-atlantia-wine" style="width: {{ $progress }}%"></div></div>
                                     @elseif ($status === 'approved')
-                                        <th class="px-4 py-3">Nombre vendedor</th>
-                                        <th class="px-4 py-3">Negocio</th>
-                                        <th class="px-4 py-3">Email</th>
-                                        <th class="px-4 py-3">Productos activos</th>
-                                        <th class="px-4 py-3">Ventas mes actual</th>
-                                        <th class="px-4 py-3">Comision owed</th>
-                                        <th class="px-4 py-3">Rating</th>
-                                        <th class="px-4 py-3">Ultimos 30 dias</th>
-                                        <th class="px-4 py-3 text-right">Acciones</th>
+                                        <p class="text-atlantia-ink/60"><strong class="text-sm text-atlantia-ink">Q {{ number_format($payload['sales_30'], 2) }}</strong> en 30 días</p>
+                                        <p class="text-atlantia-ink/55">{{ $payload['active_products'] }} productos · {{ number_format($payload['rating'], 1) }} ★ · {{ $payload['compliance'] }} % cumplimiento</p>
                                     @else
-                                        <th class="px-4 py-3">Nombre</th>
-                                        <th class="px-4 py-3">Negocio</th>
-                                        <th class="px-4 py-3">Email</th>
-                                        <th class="px-4 py-3">{{ $status === 'rejected' ? 'Motivo rechazo' : 'Motivo suspension' }}</th>
-                                        <th class="px-4 py-3">{{ $status === 'rejected' ? 'Fecha rechazo' : 'Fecha suspension' }}</th>
-                                        <th class="px-4 py-3 text-right">Acciones</th>
+                                        <p class="line-clamp-2 text-atlantia-ink/65">{{ $status === 'suspended' ? $payload['suspension_reason'] : $payload['rejection_reason'] }}</p>
                                     @endif
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-atlantia-rose/15">
-                                @forelse ($tabVendors as $vendor)
-                                    @php
-                                        $payload = $vendorsPayload[$vendor->id];
-                                        $initials = collect(explode(' ', $payload['name']))->filter()->take(2)->map(fn ($part) => strtoupper(mb_substr($part, 0, 1)))->join('') ?: 'VD';
-                                        $complianceTone = $payload['compliance'] >= 95 ? 'bg-emerald-500' : ($payload['compliance'] >= 85 ? 'bg-amber-500' : 'bg-rose-600');
-                                        $commissionTone = $payload['commission_owed'] > 1000 ? 'text-rose-700' : ($payload['commission_owed'] > 500 ? 'text-amber-700' : 'text-atlantia-ink');
-                                    @endphp
-                                    <tr class="transition hover:bg-atlantia-cream" data-vendor-row data-status="{{ $status }}" data-search="{{ strtolower($payload['name'] . ' ' . $payload['email'] . ' ' . $payload['business'] . ' ' . $payload['code']) }}" data-rating="{{ $payload['rating'] }}" data-commission="{{ $payload['commission_owed'] }}" data-compliance="{{ $payload['compliance'] }}">
-                                        @if ($status === 'pending')
-                                            <td class="px-4 py-4">
-                                                <div class="flex items-center gap-3">
-                                                    <span class="grid h-10 w-10 place-items-center rounded-full bg-atlantia-blush font-black text-atlantia-wine">{{ $initials }}</span>
-                                                    <div><p class="font-black text-atlantia-ink">{{ $payload['name'] }}</p><p class="text-xs text-atlantia-ink/50">DPI: Pendiente de verificar</p></div>
-                                                </div>
-                                            </td>
-                                            <td class="px-4 py-4"><p class="font-bold text-atlantia-ink">{{ $payload['business'] }}</p><p class="text-xs text-atlantia-ink/50">{{ $payload['category'] }}</p></td>
-                                            <td class="px-4 py-4 text-atlantia-ink/70">{{ $payload['email'] }}</td>
-                                            <td class="px-4 py-4 text-atlantia-ink/70">{{ $payload['phone'] ?: 'No registrado' }}</td>
-                                            <td class="px-4 py-4">
-                                                <div class="w-32">
-                                                    <p class="text-xs font-black text-atlantia-wine">{{ $payload['documents'] }}/{{ $payload['documents_total'] }} documentos</p>
-                                                    <div class="mt-1 h-2 overflow-hidden rounded-full bg-atlantia-blush"><div class="h-full bg-atlantia-wine" style="width: {{ $payload['documents_total'] > 0 ? min(100, ($payload['documents'] / $payload['documents_total']) * 100) : 0 }}%"></div></div>
-                                                </div>
-                                            </td>
-                                            <td class="px-4 py-4 text-atlantia-ink/65">{{ $payload['created_relative'] }}</td>
-                                            <td class="px-4 py-4 text-right">
-                                                <button type="button" class="rounded-md border border-atlantia-rose/30 px-3 py-2 text-xs font-black text-atlantia-wine hover:bg-atlantia-blush" data-open-vendor="{{ $vendor->id }}">Revisar</button>
-                                            </td>
-                                        @elseif ($status === 'approved')
-                                            <td class="px-4 py-4">
-                                                <div class="flex items-center gap-3">
-                                                    <span class="grid h-10 w-10 place-items-center rounded-full bg-atlantia-blush font-black text-atlantia-wine">{{ $initials }}</span>
-                                                    <div><p class="font-black text-atlantia-ink">{{ $payload['name'] }}</p><span class="{{ $statusClasses[$status] }} rounded-md px-2 py-0.5 text-xs font-black">Activo</span></div>
-                                                </div>
-                                            </td>
-                                            <td class="px-4 py-4"><p class="font-bold text-atlantia-ink">{{ $payload['business'] }}</p><p class="text-xs text-atlantia-ink/50">{{ $payload['category'] }}</p></td>
-                                            <td class="px-4 py-4"><button type="button" class="text-atlantia-wine hover:underline" data-copy="{{ $payload['email'] }}">{{ $payload['email'] }}</button></td>
-                                            <td class="px-4 py-4"><a href="{{ route('admin.productos.index', ['vendor' => $vendor->id]) }}" class="font-black text-atlantia-wine">{{ $payload['active_products'] }}</a></td>
-                                            <td class="px-4 py-4"><p class="font-black text-atlantia-ink">Q{{ number_format($payload['sales_30'], 2) }}</p><p class="text-xs text-emerald-700">+{{ min(18, $payload['orders_30'] * 2) }}%</p></td>
-                                            <td class="px-4 py-4"><p class="font-black {{ $commissionTone }}">Q{{ number_format($payload['commission_owed'], 2) }}</p><p class="text-xs text-atlantia-ink/50">{{ number_format($payload['commission_percentage'], 1) }}% de ventas</p></td>
-                                            <td class="px-4 py-4"><p class="font-black text-atlantia-ink">{{ str_repeat('★', (int) round($payload['rating'])) }}<span class="text-atlantia-ink/35">{{ str_repeat('☆', 5 - (int) round($payload['rating'])) }}</span> {{ number_format($payload['rating'], 1) }}</p><p class="text-xs text-atlantia-ink/50">({{ $payload['reviews_count'] }} reviews)</p></td>
-                                            <td class="px-4 py-4"><p class="text-xs font-black text-atlantia-ink">{{ $payload['compliance'] }}% cumplimiento</p><div class="mt-1 h-2 w-28 overflow-hidden rounded-full bg-atlantia-blush"><div class="h-full {{ $complianceTone }}" style="width: {{ $payload['compliance'] }}%"></div></div></td>
-                                            <td class="px-4 py-4 text-right"><button type="button" class="rounded-md border border-atlantia-rose/30 px-3 py-2 text-xs font-black text-atlantia-wine hover:bg-atlantia-blush" data-open-vendor="{{ $vendor->id }}">Ver detalle</button></td>
-                                        @else
-                                            <td class="px-4 py-4 font-black text-atlantia-ink">{{ $payload['name'] }}</td>
-                                            <td class="px-4 py-4 text-atlantia-ink/70">{{ $payload['business'] }}</td>
-                                            <td class="px-4 py-4 text-atlantia-ink/70">{{ $payload['email'] }}</td>
-                                            <td class="px-4 py-4 text-atlantia-ink/70">{{ $status === 'suspended' ? $payload['suspension_reason'] : $payload['rejection_reason'] }}</td>
-                                            <td class="px-4 py-4 text-atlantia-ink/65">{{ $status === 'suspended' ? $payload['suspended_at'] : $payload['created_at'] }}</td>
-                                            <td class="px-4 py-4 text-right">
-                                                @if ($status === 'suspended')
-                                                    <form method="POST" action="{{ route('admin.vendedores.reactivate', $vendor) }}" onsubmit="return confirm('¿Reactivar a {{ $payload['name'] }}?')">
-                                                        @csrf
-                                                        @method('PATCH')
-                                                        <button class="rounded-md bg-emerald-600 px-3 py-2 text-xs font-black text-white hover:bg-emerald-700">Reactivar</button>
-                                                    </form>
-                                                @else
-                                                    <button type="button" class="rounded-md border border-atlantia-rose/30 px-3 py-2 text-xs font-black text-atlantia-wine hover:bg-atlantia-blush">Permitir reintentar</button>
-                                                @endif
-                                            </td>
-                                        @endif
-                                    </tr>
-                                @empty
-                                    <tr><td colspan="9" class="px-4 py-10 text-center text-atlantia-ink/60">No hay vendedores en esta pestaña.</td></tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                                </div>
+
+                                {{-- Acciones --}}
+                                <div class="flex shrink-0 gap-2 md:justify-end">
+                                    <a href="{{ $payload['show_url'] }}" class="rounded-lg border border-atlantia-rose/30 px-3 py-1.5 text-xs font-black text-atlantia-wine transition hover:bg-atlantia-blush">Perfil</a>
+                                    @if ($status === 'suspended')
+                                        <form method="POST" action="{{ route('admin.vendedores.reactivate', $vendor) }}" data-confirm="¿Reactivar a {{ $payload['business'] }}?">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-black text-white hover:bg-emerald-700">Reactivar</button>
+                                        </form>
+                                    @else
+                                        <button type="button" class="rounded-lg bg-atlantia-wine px-3 py-1.5 text-xs font-black text-white transition hover:bg-atlantia-wine-700" data-open-vendor="{{ $vendor->id }}">{{ $status === 'pending' ? 'Revisar' : 'Detalle' }}</button>
+                                    @endif
+                                </div>
+                            </div>
+                        @empty
+                            <p class="px-4 py-10 text-center text-sm text-atlantia-ink/55">No hay vendedores en esta pestaña.</p>
+                        @endforelse
                     </div>
-                    @endif
                 </section>
             @endforeach
 
-            <section class="mt-5 hidden" data-vendor-panel="dashboard">
+            <section class="hidden" data-vendor-panel="dashboard">
                 <div class="grid gap-4 lg:grid-cols-3">
                     <article class="rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-5"><p class="font-black text-atlantia-wine">Vendedores por estado</p><p class="mt-3 text-sm text-atlantia-ink/65">Activos {{ $countByStatus['approved'] ?? 0 }}, pendientes {{ $countByStatus['pending'] ?? 0 }}, rechazados {{ $countByStatus['rejected'] ?? 0 }}, suspendidos {{ $countByStatus['suspended'] ?? 0 }}.</p></article>
                     <article class="rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-5"><p class="font-black text-atlantia-wine">Top vendedores</p><div class="mt-3 space-y-2 text-sm">@foreach ($vendorsCollection->sortByDesc(fn ($vendor) => (float) ($vendor->sales_30_total ?? 0))->take(5) as $vendor)<p>{{ $loop->iteration }}. {{ $vendor->business_name }} - Q{{ number_format((float) ($vendor->sales_30_total ?? 0), 2) }}</p>@endforeach</div></article>
@@ -413,8 +303,7 @@
                 </div>
             </section>
 
-            <div class="mt-4">{{ $vendors->links() }}</div>
-        </div>
+            <div>{{ $vendors->links() }}</div>
 
         <div class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm" data-vendor-drawer>
             <section class="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-atlantia-rose/25 bg-white p-6 shadow-2xl">
@@ -435,11 +324,11 @@
                 </div>
 
                 <div class="mt-5 grid gap-4 lg:grid-cols-2">
-                    <section class="rounded-xl border border-atlantia-rose/20 p-4"><h3 class="font-black text-atlantia-wine">Informacion personal</h3><div class="mt-3 space-y-2 text-sm text-atlantia-ink/70" data-drawer-personal></div></section>
+                    <section class="rounded-xl border border-atlantia-rose/20 p-4"><h3 class="font-black text-atlantia-wine">Información personal</h3><div class="mt-3 space-y-2 text-sm text-atlantia-ink/70" data-drawer-personal></div></section>
                     <section class="rounded-xl border border-atlantia-rose/20 p-4"><h3 class="font-black text-atlantia-wine">Identidad y documentos</h3><div class="mt-3 space-y-2 text-sm text-atlantia-ink/70" data-drawer-identity></div></section>
-                    <section class="rounded-xl border border-atlantia-rose/20 p-4"><h3 class="font-black text-atlantia-wine">Informacion del negocio</h3><div class="mt-3 space-y-2 text-sm text-atlantia-ink/70" data-drawer-business></div></section>
-                    <section class="rounded-xl border border-atlantia-rose/20 p-4"><h3 class="font-black text-atlantia-wine">Informacion fiscal</h3><div class="mt-3 space-y-2 text-sm text-atlantia-ink/70" data-drawer-fiscal></div></section>
-                    <section class="rounded-xl border border-atlantia-rose/20 p-4"><h3 class="font-black text-atlantia-wine">Informacion bancaria y pagos</h3><div class="mt-3 space-y-2 text-sm text-atlantia-ink/70" data-drawer-banking></div></section>
+                    <section class="rounded-xl border border-atlantia-rose/20 p-4"><h3 class="font-black text-atlantia-wine">Información del negocio</h3><div class="mt-3 space-y-2 text-sm text-atlantia-ink/70" data-drawer-business></div></section>
+                    <section class="rounded-xl border border-atlantia-rose/20 p-4"><h3 class="font-black text-atlantia-wine">Información fiscal</h3><div class="mt-3 space-y-2 text-sm text-atlantia-ink/70" data-drawer-fiscal></div></section>
+                    <section class="rounded-xl border border-atlantia-rose/20 p-4"><h3 class="font-black text-atlantia-wine">Información bancaria y pagos</h3><div class="mt-3 space-y-2 text-sm text-atlantia-ink/70" data-drawer-banking></div></section>
                     <section class="rounded-xl border border-atlantia-rose/20 p-4"><h3 class="font-black text-atlantia-wine">Archivos para verificar</h3><div class="mt-3 grid gap-2 text-sm text-atlantia-ink/70" data-drawer-documents></div></section>
                 </div>
 
@@ -455,9 +344,31 @@
 
         <div class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/55 px-4" data-stats-modal>
             <section class="w-full max-w-3xl rounded-2xl border border-atlantia-rose/20 bg-white p-6 shadow-2xl">
-                <div class="flex items-start justify-between gap-4"><div><h2 class="text-2xl font-black text-atlantia-ink">Dashboard de vendedores</h2><p class="mt-1 text-sm text-atlantia-ink/60">Resumen ejecutivo de vendedores visibles.</p></div><button type="button" class="rounded-md border border-atlantia-rose/30 px-3 py-2 text-sm font-black text-atlantia-wine hover:bg-atlantia-blush" data-close-stats>Cerrar</button></div>
-                <div class="mt-5 grid gap-4 md:grid-cols-2"><div class="rounded-xl bg-atlantia-cream p-4"><p class="font-black text-atlantia-wine">Comision acumulada</p><p class="mt-2 text-3xl font-black">Q{{ number_format($pendingTotal, 2) }}</p></div><div class="rounded-xl bg-atlantia-cream p-4"><p class="font-black text-atlantia-wine">Promedio rating</p><p class="mt-2 text-3xl font-black">{{ number_format($avgRating, 1) }}★</p></div></div>
+                <div class="flex items-start justify-between gap-4"><div><h2 class="text-2xl font-black text-atlantia-ink">Resumen de vendedores</h2><p class="mt-1 text-sm text-atlantia-ink/60">Resumen ejecutivo de vendedores visibles.</p></div><button type="button" class="rounded-md border border-atlantia-rose/30 px-3 py-2 text-sm font-black text-atlantia-wine hover:bg-atlantia-blush" data-close-stats>Cerrar</button></div>
+                <div class="mt-5 grid gap-4 md:grid-cols-2"><div class="rounded-xl bg-atlantia-cream p-4"><p class="font-black text-atlantia-wine">Comisión acumulada</p><p class="mt-2 text-3xl font-black">Q{{ number_format($pendingTotal, 2) }}</p></div><div class="rounded-xl bg-atlantia-cream p-4"><p class="font-black text-atlantia-wine">Calificación promedio</p><p class="mt-2 text-3xl font-black">{{ number_format($avgRating, 1) }}★</p></div></div>
             </section>
+        </div>
+
+        {{-- Visor de documentos del vendedor --}}
+        <div class="fixed inset-0 z-[90] hidden flex-col bg-black/85 backdrop-blur-sm" data-visor role="dialog" aria-modal="true" aria-label="Visor de documentos">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3 text-white">
+                <div class="min-w-0">
+                    <p class="truncate text-base font-black" data-visor-titulo></p>
+                    <p class="text-xs text-white/55"><span data-visor-posicion></span> · Usa ← → para cambiar de documento y Esc para cerrar</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <button type="button" data-visor-girar data-visor-solo-imagen class="rounded-lg bg-white/10 px-3 py-2 text-sm font-bold hover:bg-white/20" title="Girar 90°">↻ Girar</button>
+                    <button type="button" data-visor-zoom data-visor-solo-imagen class="rounded-lg bg-white/10 px-3 py-2 text-sm font-bold hover:bg-white/20" title="Acercar o alejar">🔍 Zoom</button>
+                    <a href="#" target="_blank" rel="noopener" data-visor-nueva class="rounded-lg bg-white/10 px-3 py-2 text-sm font-bold hover:bg-white/20" title="Abrir en otra pestaña">↗</a>
+                    <a href="#" data-visor-descargar class="rounded-lg bg-white/10 px-3 py-2 text-sm font-bold hover:bg-white/20">Descargar</a>
+                    <button type="button" data-visor-cerrar class="rounded-lg bg-white px-3 py-2 text-sm font-black text-atlantia-wine hover:bg-atlantia-blush">Cerrar ✕</button>
+                </div>
+            </div>
+            <div class="relative flex min-h-0 flex-1 items-center gap-3 p-4">
+                <button type="button" data-visor-anterior class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/10 text-2xl font-black text-white hover:bg-white/20 disabled:opacity-30" aria-label="Documento anterior">‹</button>
+                <div class="flex h-full min-w-0 flex-1 items-center justify-center overflow-auto" data-visor-cuerpo></div>
+                <button type="button" data-visor-siguiente class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/10 text-2xl font-black text-white hover:bg-white/20 disabled:opacity-30" aria-label="Documento siguiente">›</button>
+            </div>
         </div>
     </section>
 
@@ -471,6 +382,7 @@
             const commission = document.querySelector('[data-filter-commission]');
             const compliance = document.querySelector('[data-filter-compliance]');
             let active = 'pending';
+            let documentosActuales = [];
             const money = (value) => `Q${Number(value || 0).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const numeric = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
             const escapeHtml = (value) => String(value ?? '')
@@ -480,7 +392,7 @@
                 .replaceAll('"', '&quot;')
                 .replaceAll("'", '&#039;');
             const field = (label, value) => `<p><span class="font-black text-atlantia-ink">${escapeHtml(label)}:</span> ${escapeHtml(value || 'No registrado')}</p>`;
-            const formatAddress = (address = {}) => [address.calle, address.numero, address.apto, address.municipio, address.departamento, address.codigo_postal].filter(Boolean).join(', ') || 'No registrada';
+            const formatAddress = (address = {}) => [address.calle, address.numero, address.apto, address.colonia, address.municipio, address.departamento, address.codigo_postal].filter(Boolean).join(', ') || 'No registrada';
 
             const applyFilters = () => {
                 const term = (search?.value || '').toLowerCase().trim();
@@ -569,8 +481,9 @@
                         field('Comision vigente', `${vendor.commission_percentage}%`),
                         field('Renta mensual', money(vendor.monthly_rent)),
                     ].join('');
-                    drawer.querySelector('[data-drawer-documents]').innerHTML = (vendor.document_links || []).length
-                        ? vendor.document_links.map((document) => `<a href="${escapeHtml(document.url)}" target="_blank" rel="noopener" class="flex items-center justify-between rounded-lg border border-atlantia-rose/20 px-3 py-2 font-bold text-atlantia-wine transition hover:bg-atlantia-blush"><span>${escapeHtml(document.label)}</span><span class="text-xs">Ver archivo</span></a>`).join('')
+                    documentosActuales = vendor.document_links || [];
+                    drawer.querySelector('[data-drawer-documents]').innerHTML = documentosActuales.length
+                        ? documentosActuales.map((document, indice) => `<button type="button" data-ver-documento="${indice}" class="flex w-full items-center justify-between gap-3 rounded-lg border border-atlantia-rose/20 px-3 py-2 text-left font-bold text-atlantia-wine transition hover:bg-atlantia-blush"><span class="flex items-center gap-2"><span class="rounded bg-atlantia-blush px-1.5 py-0.5 text-[10px] font-black uppercase">${document.tipo === 'pdf' ? 'PDF' : 'IMG'}</span>${escapeHtml(document.label)}</span><span class="text-xs">Ver aquí →</span></button>`).join('')
                         : '<p>No hay archivos cargados.</p>';
                     const vendorName = String(vendor.name ?? 'este vendedor');
                     const approveUrl = escapeHtml(vendor.approve_url);
@@ -579,26 +492,120 @@
                     const showUrl = escapeHtml(vendor.show_url);
                     const commissionPercentage = numeric(vendor.commission_percentage);
                     const monthlyRent = numeric(vendor.monthly_rent);
+                    const token = '<input type="hidden" name="_token" value="{{ csrf_token() }}">';
+                    const rejectUrl = escapeHtml(vendor.reject_url);
+                    const resendUrl = escapeHtml(vendor.resend_url);
+                    const reset2faUrl = escapeHtml(vendor.reset_2fa_url);
+                    /* Estado del acceso del vendedor aprobado y acciones de soporte. */
+                    const accesoAprobado = `<div class="mt-3 w-full rounded-lg border border-atlantia-rose/20 bg-atlantia-cream/50 p-3 text-xs">
+                        <p class="font-black text-atlantia-ink">Acceso del vendedor</p>
+                        <p class="mt-1 text-atlantia-ink/70">${vendor.tiene_contrasena ? '✓ Ya creó su contraseña' : '○ Aún no crea su contraseña'} · ${vendor.tiene_2fa ? '✓ Doble factor activo' : '○ Doble factor pendiente'}</p>
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            <form method="POST" action="${resendUrl}" data-confirm="${escapeHtml(`Enviar a ${vendorName} un enlace nuevo para crear su contraseña?`)}">${token}<button class="rounded-md border border-atlantia-rose/30 bg-white px-3 py-1.5 font-black text-atlantia-wine">Reenviar acceso</button></form>
+                            ${vendor.tiene_2fa ? `<form method="POST" action="${reset2faUrl}" data-confirm="${escapeHtml(`Reiniciar el doble factor de ${vendorName}? Deberá escanear un QR nuevo al entrar. Hazlo solo si confirmaste su identidad.`)}">${token}<input type="hidden" name="_method" value="DELETE"><button class="rounded-md border border-amber-300 bg-white px-3 py-1.5 font-black text-amber-800">Reiniciar doble factor</button></form>` : ''}
+                        </div>
+                    </div>`;
                     drawer.querySelector('[data-drawer-actions]').innerHTML = vendor.status === 'pending'
-                        ? `<form method="POST" action="${approveUrl}" data-confirm="${escapeHtml(`Aprobar a ${vendorName} con ${money(monthlyRent)} mensual y ${commissionPercentage}% de comision?`)}"><input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="_method" value="PATCH"><input type="hidden" name="commission_percentage" value="${commissionPercentage}"><input type="hidden" name="monthly_rent" value="${monthlyRent}"><button class="rounded-md bg-atlantia-wine px-4 py-2 text-sm font-black text-white">Aprobar plan</button></form><button class="rounded-md border border-atlantia-rose/30 px-4 py-2 text-sm font-black text-atlantia-wine">Rechazar</button>`
+                        ? `<form method="POST" action="${approveUrl}" data-confirm="${escapeHtml(`Aprobar a ${vendorName} con ${money(monthlyRent)} mensual y ${commissionPercentage}% de comision? Se le enviará un correo para crear su contraseña.`)}">${token}<input type="hidden" name="_method" value="PATCH"><input type="hidden" name="commission_percentage" value="${commissionPercentage}"><input type="hidden" name="monthly_rent" value="${monthlyRent}"><button class="rounded-md bg-atlantia-wine px-4 py-2 text-sm font-black text-white">Aprobar plan</button></form>
+                           <details class="w-full" data-rechazo>
+                               <summary class="inline-flex cursor-pointer list-none rounded-md border border-atlantia-rose/30 px-4 py-2 text-sm font-black text-atlantia-wine hover:bg-atlantia-blush">Rechazar…</summary>
+                               <form method="POST" action="${rejectUrl}" class="mt-2 space-y-2" data-confirm="${escapeHtml(`Rechazar la solicitud de ${vendorName}? Se le enviará el motivo por correo.`)}">${token}<input type="hidden" name="_method" value="PATCH">
+                                   <textarea name="motivo" required minlength="10" maxlength="500" rows="3" placeholder="Motivo que verá el solicitante. Ej.: La foto del DPI no se lee; envía una más clara." class="w-full rounded-lg border border-atlantia-rose/30 px-3 py-2 text-sm"></textarea>
+                                   <button class="rounded-md bg-red-700 px-4 py-2 text-sm font-black text-white">Rechazar y avisar</button>
+                               </form>
+                           </details>`
                         : vendor.status === 'suspended'
                             ? `<form method="POST" action="${reactivateUrl}" data-confirm="${escapeHtml(`Reactivar a ${vendorName}?`)}"><input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="_method" value="PATCH"><button class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-black text-white">Reactivar</button></form>`
-                            : `<form method="POST" action="${suspendUrl}" data-confirm="${escapeHtml(`Suspender a ${vendorName}?`)}"><input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="_method" value="PATCH"><input type="hidden" name="motivo_suspension" value="Suspension administrativa desde panel."><input type="hidden" name="tipo_suspension" value="operativa"><button class="rounded-md bg-amber-600 px-4 py-2 text-sm font-black text-white">Suspender</button></form><a href="${showUrl}" class="rounded-md border border-atlantia-rose/30 px-4 py-2 text-sm font-black text-atlantia-wine">Abrir ficha</a>`;
+                            : `<form method="POST" action="${suspendUrl}" data-confirm="${escapeHtml(`Suspender a ${vendorName}?`)}"><input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="_method" value="PATCH"><input type="hidden" name="motivo_suspension" value="Suspension administrativa desde panel."><input type="hidden" name="tipo_suspension" value="operativa"><button class="rounded-md bg-amber-600 px-4 py-2 text-sm font-black text-white">Suspender</button></form><a href="${showUrl}" class="rounded-md border border-atlantia-rose/30 px-4 py-2 text-sm font-black text-atlantia-wine">Abrir ficha</a>${vendor.status === 'approved' ? accesoAprobado : ''}`;
                 });
             });
-            drawer?.addEventListener('submit', (event) => {
-                const form = event.target;
-                if (!(form instanceof HTMLFormElement)) {
+            /* La confirmacion de data-confirm la maneja resources/js/acciones-seguras.js. */
+            document.querySelector('[data-close-drawer]')?.addEventListener('click', () => { drawer.classList.add('hidden'); drawer.classList.remove('flex'); });
+            drawer?.addEventListener('click', (event) => { if (event.target === drawer) { drawer.classList.add('hidden'); drawer.classList.remove('flex'); } });
+
+            /* Visor de documentos: imágenes y PDF dentro del panel, sin descargar ni salir. */
+            const visor = document.querySelector('[data-visor]');
+            const visorCuerpo = visor?.querySelector('[data-visor-cuerpo]');
+            let indiceVisor = 0;
+            let giro = 0;
+            let ampliado = false;
+
+            const pintarVisor = () => {
+                const doc = documentosActuales[indiceVisor];
+                if (!visor || !doc) return;
+                giro = 0;
+                ampliado = false;
+                visor.querySelector('[data-visor-titulo]').textContent = doc.label;
+                visor.querySelector('[data-visor-posicion]').textContent = `${indiceVisor + 1} de ${documentosActuales.length}`;
+                visor.querySelector('[data-visor-descargar]').href = doc.url;
+                visor.querySelector('[data-visor-nueva]').href = doc.ver_url;
+                visor.querySelectorAll('[data-visor-solo-imagen]').forEach((b) => b.classList.toggle('hidden', doc.tipo === 'pdf'));
+                visor.querySelector('[data-visor-anterior]').disabled = documentosActuales.length < 2;
+                visor.querySelector('[data-visor-siguiente]').disabled = documentosActuales.length < 2;
+                visorCuerpo.replaceChildren();
+
+                if (doc.tipo === 'pdf') {
+                    const marco = document.createElement('iframe');
+                    marco.src = doc.ver_url;
+                    marco.title = doc.label;
+                    marco.className = 'h-full w-full rounded-lg bg-white';
+                    visorCuerpo.append(marco);
                     return;
                 }
 
-                const message = form.dataset.confirm;
-                if (message && ! window.confirm(message)) {
-                    event.preventDefault();
-                }
+                const imagen = document.createElement('img');
+                imagen.src = doc.ver_url;
+                imagen.alt = doc.label;
+                imagen.dataset.visorImagen = '';
+                imagen.className = 'max-h-full max-w-full cursor-zoom-in select-none rounded-lg object-contain shadow-2xl transition-transform duration-200';
+                imagen.addEventListener('click', () => { ampliado = !ampliado; aplicarTransformacion(); });
+                imagen.addEventListener('error', () => {
+                    visorCuerpo.replaceChildren(Object.assign(document.createElement('p'), { className: 'text-sm font-bold text-white/80', textContent: 'No se pudo cargar el archivo. Usa «Descargar» para revisarlo.' }));
+                });
+                visorCuerpo.append(imagen);
+            };
+
+            const aplicarTransformacion = () => {
+                const imagen = visorCuerpo?.querySelector('[data-visor-imagen]');
+                if (!imagen) return;
+                imagen.style.transform = `rotate(${giro}deg) scale(${ampliado ? 1.8 : 1})`;
+                imagen.classList.toggle('cursor-zoom-in', !ampliado);
+                imagen.classList.toggle('cursor-zoom-out', ampliado);
+            };
+
+            const abrirVisor = (indice) => {
+                indiceVisor = indice;
+                pintarVisor();
+                visor.classList.remove('hidden');
+                visor.classList.add('flex');
+            };
+            const cerrarVisor = () => {
+                visor?.classList.add('hidden');
+                visor?.classList.remove('flex');
+                visorCuerpo?.replaceChildren();
+            };
+            const mover = (paso) => {
+                if (documentosActuales.length < 2) return;
+                indiceVisor = (indiceVisor + paso + documentosActuales.length) % documentosActuales.length;
+                pintarVisor();
+            };
+
+            drawer?.addEventListener('click', (event) => {
+                const boton = event.target.closest('[data-ver-documento]');
+                if (boton) abrirVisor(Number(boton.dataset.verDocumento));
             });
-            document.querySelector('[data-close-drawer]')?.addEventListener('click', () => { drawer.classList.add('hidden'); drawer.classList.remove('flex'); });
-            drawer?.addEventListener('click', (event) => { if (event.target === drawer) { drawer.classList.add('hidden'); drawer.classList.remove('flex'); } });
+            visor?.querySelector('[data-visor-cerrar]')?.addEventListener('click', cerrarVisor);
+            visor?.addEventListener('click', (event) => { if (event.target === visor || event.target === visorCuerpo) cerrarVisor(); });
+            visor?.querySelector('[data-visor-anterior]')?.addEventListener('click', () => mover(-1));
+            visor?.querySelector('[data-visor-siguiente]')?.addEventListener('click', () => mover(1));
+            visor?.querySelector('[data-visor-girar]')?.addEventListener('click', () => { giro = (giro + 90) % 360; aplicarTransformacion(); });
+            visor?.querySelector('[data-visor-zoom]')?.addEventListener('click', () => { ampliado = !ampliado; aplicarTransformacion(); });
+            document.addEventListener('keydown', (event) => {
+                if (!visor || visor.classList.contains('hidden')) return;
+                if (event.key === 'Escape') cerrarVisor();
+                if (event.key === 'ArrowLeft') mover(-1);
+                if (event.key === 'ArrowRight') mover(1);
+            });
 
             document.querySelector('[data-open-stats]')?.addEventListener('click', () => { document.querySelector('[data-stats-modal]')?.classList.remove('hidden'); document.querySelector('[data-stats-modal]')?.classList.add('flex'); });
             document.querySelector('[data-close-stats]')?.addEventListener('click', () => { document.querySelector('[data-stats-modal]')?.classList.add('hidden'); document.querySelector('[data-stats-modal]')?.classList.remove('flex'); });

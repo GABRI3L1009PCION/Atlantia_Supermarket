@@ -1,7 +1,7 @@
 @extends('layouts.marketplace')
 
 @section('content')
-    <section class="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <section class="mx-auto w-full max-w-[1680px] px-4 py-8 sm:px-6 lg:px-8">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <x-page-header
                 title="Mis favoritos"
@@ -24,7 +24,7 @@
                 />
             </div>
         @else
-            <div class="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5">
                 @foreach ($productos as $producto)
                     @if ($producto)
                         <div class="space-y-3">

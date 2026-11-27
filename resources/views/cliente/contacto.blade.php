@@ -8,7 +8,7 @@
         $vendorHref = $isVendor ? route('vendedor.dashboard') : route('vendedor.solicitar.create');
     @endphp
 
-    <section class="bg-[#fff8fb] px-4 py-8 sm:px-6 lg:px-8">
+    <section class="bg-[#fff8f8] px-4 py-8 sm:px-6 lg:px-8">
         <div class="mx-auto max-w-7xl space-y-4">
             <header class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_460px] lg:items-center">
                 <div>
@@ -208,24 +208,71 @@
                 </div>
             </section>
 
-            <section class="flex flex-col gap-4 rounded-xl border border-atlantia-rose/20 bg-atlantia-blush/45 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-                <div class="flex items-center gap-4">
-                    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-atlantia-wine">
+            @php
+                $cuenta = auth()->user();
+                $campoContacto = 'mt-1 h-11 w-full rounded-lg border border-atlantia-rose/30 bg-white px-3 text-sm text-atlantia-ink outline-none focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-blush';
+            @endphp
+            <section id="escribenos" class="scroll-mt-24 rounded-xl border border-atlantia-rose/20 bg-white p-5 shadow-sm sm:p-6">
+                <div class="flex items-start gap-4">
+                    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-atlantia-blush text-atlantia-wine">
                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z" />
                         </svg>
                     </span>
                     <div>
-                        <h2 class="font-black text-atlantia-ink">&iquest;No encontraste lo que buscabas?</h2>
-                        <p class="text-sm text-atlantia-ink/65">Nuestro equipo est&aacute; listo para ayudarte.</p>
+                        <h2 class="font-black text-atlantia-ink">&iquest;No encontraste lo que buscabas? Escr&iacute;benos</h2>
+                        <p class="text-sm text-atlantia-ink/65">Te respondemos a tu correo. Si es sobre un pedido, incluye su n&uacute;mero.</p>
                     </div>
                 </div>
-                <a href="mailto:ayuda@atlantia.gt" class="inline-flex h-11 items-center justify-center gap-3 rounded-lg border border-atlantia-rose/40 bg-white px-5 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z" />
-                    </svg>
-                    Contactar soporte
-                </a>
+
+                <form method="POST" action="{{ route('contacto.store') }}" class="mt-4 grid gap-3 sm:grid-cols-2" data-form-contacto>
+                    @csrf
+                    {{-- Campo trampa para robots: las personas no lo ven. --}}
+                    <div class="hidden" aria-hidden="true">
+                        <label>No llenar <input type="text" name="sitio_web" tabindex="-1" autocomplete="off"></label>
+                    </div>
+                    <label class="block">
+                        <span class="text-xs font-bold text-atlantia-ink/70">Tu nombre</span>
+                        <input type="text" name="nombre" required maxlength="160" autocomplete="name" value="{{ old('nombre', $cuenta?->name) }}" class="{{ $campoContacto }}">
+                        @error('nombre') <span class="mt-1 block text-xs font-bold text-red-600">{{ $message }}</span> @enderror
+                    </label>
+                    <label class="block">
+                        <span class="text-xs font-bold text-atlantia-ink/70">Tu correo</span>
+                        <input type="email" name="email" required maxlength="190" autocomplete="email" value="{{ old('email', $cuenta?->email) }}" class="{{ $campoContacto }}">
+                        @error('email') <span class="mt-1 block text-xs font-bold text-red-600">{{ $message }}</span> @enderror
+                    </label>
+                    <label class="block">
+                        <span class="text-xs font-bold text-atlantia-ink/70">&iquest;De qu&eacute; se trata?</span>
+                        <select name="tema" required class="{{ $campoContacto }}">
+                            <option value="">Elige un tema</option>
+                            @foreach (\App\Http\Controllers\ContactoController::TEMAS as $clave => $texto)
+                                <option value="{{ $clave }}" @selected(old('tema') === $clave)>{{ $texto }}</option>
+                            @endforeach
+                        </select>
+                        @error('tema') <span class="mt-1 block text-xs font-bold text-red-600">{{ $message }}</span> @enderror
+                    </label>
+                    <label class="block">
+                        <span class="text-xs font-bold text-atlantia-ink/70">Tel&eacute;fono (opcional)</span>
+                        <input type="tel" name="telefono" maxlength="20" autocomplete="tel" placeholder="5555 1234" value="{{ old('telefono', $cuenta?->phone) }}" class="{{ $campoContacto }}">
+                        @error('telefono') <span class="mt-1 block text-xs font-bold text-red-600">{{ $message }}</span> @enderror
+                    </label>
+                    <label class="block sm:col-span-2">
+                        <span class="text-xs font-bold text-atlantia-ink/70">Tu mensaje</span>
+                        <textarea name="mensaje" rows="4" required minlength="10" maxlength="2000" class="mt-1 w-full resize-y rounded-lg border border-atlantia-rose/30 bg-white px-3 py-2 text-sm text-atlantia-ink outline-none focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-blush">{{ old('mensaje') }}</textarea>
+                        @error('mensaje') <span class="mt-1 block text-xs font-bold text-red-600">{{ $message }}</span> @enderror
+                    </label>
+                    <div class="flex flex-wrap items-center justify-between gap-3 sm:col-span-2">
+                        <p class="text-xs text-atlantia-ink/55">
+                            @if (config('atlantia.support.email'))
+                                Tambi&eacute;n puedes escribir a <a href="mailto:{{ config('atlantia.support.email') }}" class="font-bold text-atlantia-wine hover:underline">{{ config('atlantia.support.email') }}</a>
+                            @endif
+                            @if (config('atlantia.support.whatsapp'))
+                                o por <a href="https://wa.me/{{ \App\Services\Notificaciones\WhatsAppService::normalizarTelefono(config('atlantia.support.whatsapp')) }}" target="_blank" rel="noopener" class="font-bold text-atlantia-wine hover:underline">WhatsApp</a>
+                            @endif
+                        </p>
+                        <button type="submit" class="inline-flex h-11 items-center justify-center rounded-lg bg-atlantia-wine px-6 text-sm font-black text-white transition hover:bg-atlantia-wine-700">Enviar mensaje</button>
+                    </div>
+                </form>
             </section>
         </div>
     </section>

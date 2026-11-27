@@ -46,11 +46,28 @@ class VerificarWebhookHmac
             return response()->json(['message' => 'Firma HMAC invalida.'], Response::HTTP_UNAUTHORIZED);
         }
 
-        if (! Cache::add($this->replayCacheKey($request, $eventId), true, now()->addSeconds(self::REPLAY_TTL_SECONDS))) {
+        $key = $this->replayCacheKey($request, $eventId);
+        $lock = Cache::lock($key.':processing', self::REPLAY_TTL_SECONDS);
+
+        if (! $lock->get()) {
             return response()->json(['message' => 'Webhook ya procesado.'], Response::HTTP_CONFLICT);
         }
 
-        return $next($request);
+        try {
+            if (Cache::has($key)) {
+                return response()->json(['message' => 'Webhook ya procesado.'], Response::HTTP_CONFLICT);
+            }
+
+            $response = $next($request);
+
+            if ($response->isSuccessful()) {
+                Cache::put($key, true, now()->addSeconds(self::REPLAY_TTL_SECONDS));
+            }
+
+            return $response;
+        } finally {
+            $lock->release();
+        }
     }
 
     /**

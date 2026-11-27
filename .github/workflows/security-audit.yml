@@ -1,0 +1,31 @@
+name: security-audit
+
+on:
+  push:
+    paths: ['composer.json', 'composer.lock', '**/package.json', '**/package-lock.json', '.github/workflows/security-audit.yml']
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 12 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: composer validate --strict
+      - run: composer audit --locked
+      - run: npm audit --package-lock-only --audit-level=low
+      - run: npm --prefix mobile/repartidor audit --package-lock-only --audit-level=low
+      - run: npm --prefix mobile/repartidor run test:security

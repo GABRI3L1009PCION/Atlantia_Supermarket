@@ -55,9 +55,18 @@ class TwoFactorChallengeTest extends TestCase
             'code' => $code,
         ]);
 
-        $response->assertRedirect(route('catalogo.index'));
+        /* Primera configuración: antes de entrar se muestran los códigos de respaldo. */
+        $response->assertRedirect(route('two-factor.respaldo'));
         $this->assertAuthenticatedAs($user);
         $this->assertNotNull($user->fresh()->two_factor_confirmed_at);
+
+        $this->get(route('two-factor.respaldo'))
+            ->assertOk()
+            ->assertSee('Guarda tus códigos de respaldo')
+            ->assertSee(route('catalogo.index'), false);
+
+        /* Solo se muestran una vez. */
+        $this->get(route('two-factor.respaldo'))->assertRedirect(route('home'));
     }
 
     public function test_admin_without_confirmed_two_factor_is_redirected_to_challenge_on_login(): void

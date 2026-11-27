@@ -30,6 +30,7 @@ class Carrito extends Model
         'session_id',
         'estado',
         'expira_at',
+        'recordatorio_enviado_at',
     ];
 
     /**
@@ -41,6 +42,7 @@ class Carrito extends Model
     {
         return [
             'expira_at' => 'datetime',
+            'recordatorio_enviado_at' => 'datetime',
         ];
     }
 

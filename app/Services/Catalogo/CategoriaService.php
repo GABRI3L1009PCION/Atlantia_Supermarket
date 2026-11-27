@@ -26,6 +26,7 @@ class CategoriaService
 
         return Categoria::query()
             ->with('children')
+            ->withCount('productos')
             ->root()
             ->ordered()
             ->get();
@@ -41,7 +42,7 @@ class CategoriaService
         $data['slug'] = $data['slug'] ?? Str::slug((string) $data['nombre']);
 
         if (isset($data['imagen']) && $data['imagen'] instanceof UploadedFile) {
-            $data['imagen'] = $data['imagen']->store('categorias', 'public');
+            $data['imagen'] = app(LimpiadorImagenCategoria::class)->procesar($data['imagen']->store('categorias', 'public'), true);
         }
 
         $categoria = Categoria::query()->create($data);
@@ -65,7 +66,7 @@ class CategoriaService
             if ($categoria->imagen) {
                 Storage::disk('public')->delete($categoria->imagen);
             }
-            $data['imagen'] = $data['imagen']->store('categorias', 'public');
+            $data['imagen'] = app(LimpiadorImagenCategoria::class)->procesar($data['imagen']->store('categorias', 'public'), true);
         } else {
             unset($data['imagen']);
         }

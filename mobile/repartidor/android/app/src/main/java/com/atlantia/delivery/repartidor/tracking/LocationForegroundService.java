@@ -53,7 +53,6 @@ public class LocationForegroundService extends Service {
     private static final String PREFS_NAME = "atlantia_courier_tracking";
     private static final String PREF_RUNNING = "running";
     private static final String PREF_API_BASE_URL = "apiBaseUrl";
-    private static final String PREF_TOKEN = "token";
     private static final String PREF_INTERVAL_MS = "intervalMs";
     private static final String PREF_ESTADO = "estado";
 
@@ -113,7 +112,17 @@ public class LocationForegroundService extends Service {
             return START_NOT_STICKY;
         }
 
-        loadConfig(intent);
+        try {
+            loadConfig(intent);
+        } catch (java.security.GeneralSecurityException e) {
+            TrackingTokenStore.clear(getSharedPreferences(PREFS_NAME, MODE_PRIVATE));
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+        if (token == null || token.trim().isEmpty()) {
+            stopSelf();
+            return START_NOT_STICKY;
+        }
         startForeground(NOTIFICATION_ID, buildNotification());
         startTracking();
 
@@ -139,11 +148,15 @@ public class LocationForegroundService extends Service {
             .getBoolean(PREF_RUNNING, false);
     }
 
-    private void loadConfig(@Nullable Intent intent) {
+    private void loadConfig(@Nullable Intent intent) throws java.security.GeneralSecurityException {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
 
         apiBaseUrl = valueOrSaved(intent, EXTRA_API_BASE_URL, prefs.getString(PREF_API_BASE_URL, ""));
-        token = valueOrSaved(intent, EXTRA_TOKEN, prefs.getString(PREF_TOKEN, ""));
+        token = intent != null && intent.hasExtra(EXTRA_TOKEN)
+            ? intent.getStringExtra(EXTRA_TOKEN) : TrackingTokenStore.read(prefs);
+        if (token != null && ! token.trim().isEmpty()) {
+            TrackingTokenStore.save(prefs, token);
+        }
         estado = valueOrSaved(intent, EXTRA_ESTADO, prefs.getString(PREF_ESTADO, "disponible"));
         intervalMs = intent != null
             ? intent.getIntExtra(EXTRA_INTERVAL_MS, prefs.getInt(PREF_INTERVAL_MS, 15000))
@@ -153,7 +166,6 @@ public class LocationForegroundService extends Service {
         prefs.edit()
             .putBoolean(PREF_RUNNING, true)
             .putString(PREF_API_BASE_URL, apiBaseUrl)
-            .putString(PREF_TOKEN, token)
             .putString(PREF_ESTADO, estado)
             .putInt(PREF_INTERVAL_MS, intervalMs)
             .apply();
@@ -197,6 +209,7 @@ public class LocationForegroundService extends Service {
             .edit()
             .putBoolean(PREF_RUNNING, false)
             .apply();
+        TrackingTokenStore.clear(getSharedPreferences(PREFS_NAME, MODE_PRIVATE));
     }
 
     private void requestUpdates(String provider) {

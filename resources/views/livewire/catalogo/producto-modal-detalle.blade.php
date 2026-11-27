@@ -187,7 +187,7 @@
                                         <button
                                             type="button"
                                             class="flex h-14 flex-1 items-center justify-center text-[1.75rem] font-light text-atlantia-wine transition hover:bg-[#fbf3f6]"
-                                            onclick="const i=document.getElementById('mq-{{ $producto->id }}');i.value=Math.max(1, +i.value - 1)"
+                                            data-qty-step="-1" data-qty-target="mq-{{ $producto->id }}"
                                             aria-label="Reducir cantidad"
                                         >
                                             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.3">
@@ -206,7 +206,7 @@
                                         <button
                                             type="button"
                                             class="flex h-14 flex-1 items-center justify-center text-[1.75rem] font-light text-atlantia-wine transition hover:bg-[#fbf3f6]"
-                                            onclick="const i=document.getElementById('mq-{{ $producto->id }}');i.value=Math.min(+i.max, +i.value + 1)"
+                                            data-qty-step="1" data-qty-target="mq-{{ $producto->id }}"
                                             aria-label="Aumentar cantidad"
                                         >
                                             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.3">

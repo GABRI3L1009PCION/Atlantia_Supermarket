@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * Categoria jerarquica del catalogo.
@@ -50,6 +52,32 @@ class Categoria extends Model
             'deleted_at' => 'datetime',
             'imagen' => 'string',
         ];
+    }
+
+    /**
+     * URL publica de la imagen de la categoria, o null si no tiene o el archivo ya no existe.
+     */
+    public function imagenUrl(): ?string
+    {
+        $path = trim((string) $this->imagen);
+
+        if ($path === '') {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            $storagePath = parse_url($path, PHP_URL_PATH);
+
+            return is_string($storagePath) && str_contains($storagePath, '/storage/') ? $storagePath : $path;
+        }
+
+        if (str_starts_with($path, '/storage/') || str_starts_with($path, 'storage/')) {
+            return '/'.ltrim($path, '/');
+        }
+
+        $path = Str::after($path, 'public/');
+
+        return Storage::disk('public')->exists($path) ? '/storage/'.ltrim($path, '/') : null;
     }
 
     /**

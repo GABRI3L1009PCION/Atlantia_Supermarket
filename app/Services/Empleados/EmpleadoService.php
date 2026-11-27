@@ -8,6 +8,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 /**
  * Servicio administrativo de empleados.
@@ -22,7 +23,8 @@ class EmpleadoService
     public function paginate(array $filters = []): LengthAwarePaginator
     {
         return Empleado::query()
-            ->with(['user', 'supervisor.user'])
+            ->with(['user.roles', 'supervisor.user'])
+            ->when(in_array($filters['estado'] ?? null, ['active', 'inactive', 'suspended'], true), fn ($query) => $query->where('status', $filters['estado']))
             ->when($filters['q'] ?? null, function ($query, string $search): void {
                 $query->where(function ($builder) use ($search): void {
                     $builder->where('codigo_empleado', 'like', '%'.$search.'%')
@@ -67,7 +69,9 @@ class EmpleadoService
                 'two_factor_enabled' => false,
             ]);
 
-            $user->assignRole('empleado');
+            $rol = array_key_exists($data['rol'] ?? '', Empleado::ROLES) ? $data['rol'] : 'empleado';
+            Role::findOrCreate($rol, 'web');
+            $user->assignRole($rol);
 
             return Empleado::query()->create([
                 'uuid' => (string) Str::uuid(),
@@ -117,7 +121,7 @@ class EmpleadoService
                 'permisos_operativos' => $data['permisos_operativos'] ?? [],
             ]);
 
-            if ($empleado->user !== null && ! $empleado->user->hasRole('empleado')) {
+            if ($empleado->user !== null && ! $empleado->user->hasAnyRole(array_keys(Empleado::ROLES))) {
                 $empleado->user->syncRoles(['empleado']);
             }
 

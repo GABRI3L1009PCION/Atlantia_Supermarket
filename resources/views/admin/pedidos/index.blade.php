@@ -4,212 +4,180 @@
     @php
         $estadoOptions = ['pendiente', 'confirmado', 'preparando', 'en_ruta', 'entregado', 'cancelado'];
         $estadoPagoOptions = ['pendiente', 'validando', 'pagado', 'rechazado', 'reembolsado'];
-        $metodoPagoOptions = ['efectivo', 'transferencia', 'tarjeta'];
+        $metodoPagoOptions = ['efectivo' => 'Efectivo', 'transferencia' => 'Transferencia', 'tarjeta' => 'Tarjeta'];
         $metrics = $pedidoMetrics ?? ['today' => 0, 'pending' => 0, 'delivered' => 0, 'paid' => 0];
-        $paymentClasses = [
-            'pagado' => 'bg-atlantia-blush text-atlantia-wine',
-            'aprobado' => 'bg-emerald-50 text-emerald-700',
-            'pendiente' => 'bg-amber-50 text-amber-700',
-            'validando' => 'bg-sky-50 text-sky-700',
-            'rechazado' => 'bg-red-50 text-red-700',
-            'reembolsado' => 'bg-slate-100 text-slate-700',
+        $estadoActual = (string) request('estado', '');
+
+        $estados = [
+            'pendiente' => ['Por confirmar', 'bg-amber-50 text-amber-800'],
+            'confirmado' => ['Confirmado', 'bg-sky-50 text-sky-800'],
+            'en_revision' => ['En revisión', 'bg-amber-50 text-amber-800'],
+            'preparando' => ['Preparando', 'bg-violet-50 text-violet-800'],
+            'listo_para_entrega' => ['Listo', 'bg-indigo-50 text-indigo-800'],
+            'en_ruta' => ['En camino', 'bg-atlantia-blush text-atlantia-wine'],
+            'entregado' => ['Entregado', 'bg-emerald-50 text-emerald-700'],
+            'cancelado' => ['Cancelado', 'bg-slate-100 text-slate-600'],
+            'rechazado' => ['Rechazado', 'bg-red-50 text-red-700'],
         ];
+        $pagos = [
+            'pagado' => ['Pagado', 'text-emerald-700'],
+            'aprobado' => ['Pagado', 'text-emerald-700'],
+            'pendiente' => ['Pago pendiente', 'text-amber-700'],
+            'validando' => ['Validando pago', 'text-sky-700'],
+            'rechazado' => ['Pago rechazado', 'text-red-700'],
+            'reembolsado' => ['Reembolsado', 'text-slate-500'],
+        ];
+        $chips = ['' => 'Todos', 'pendiente' => 'Por confirmar', 'confirmado' => 'Confirmados', 'preparando' => 'Preparando', 'en_ruta' => 'En camino', 'entregado' => 'Entregados', 'cancelado' => 'Cancelados'];
+        $control = 'h-10 rounded-lg border border-atlantia-rose/30 bg-white px-3 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20';
     @endphp
 
-    <section class="-mx-4 -my-6 bg-atlantia-cream/35 px-4 py-6 text-atlantia-ink sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-        <div class="mx-auto max-w-7xl">
-            <header class="mb-6">
-                <p class="text-xs font-black uppercase tracking-[0.18em] text-atlantia-rose">Atlantia Supermarket</p>
-                <h1 class="mt-2 text-5xl font-black leading-tight text-atlantia-ink">Pedidos</h1>
-                <p class="mt-3 text-base text-atlantia-ink/65">Supervisa el flujo comercial, pagos y reparto de todo el marketplace.</p>
-            </header>
+    <section class="mx-auto max-w-7xl space-y-4 pb-24" x-data="{ seleccion: [], todos(e) { this.seleccion = e.target.checked ? [...document.querySelectorAll('[data-pedido-check]')].map(c => c.value) : [] } }">
+        {{-- Encabezado --}}
+        <header>
+            <h1 class="text-3xl font-black tracking-tight text-atlantia-ink">Pedidos</h1>
+            <p class="mt-1 text-sm text-atlantia-ink/60">Todos los pedidos de Atlantia Store y de las tiendas locales: pago, preparación y reparto.</p>
+        </header>
 
-            <div class="rounded-xl border border-atlantia-rose/20 bg-white p-4 shadow-sm">
-                <form method="GET" class="grid gap-3 lg:grid-cols-[1fr_240px_240px_160px]">
-                    <label class="relative block">
-                        <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-atlantia-ink/45">
-                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11 19C15.4 19 19 15.4 19 11C19 6.6 15.4 3 11 3C6.6 3 3 6.6 3 11C3 15.4 6.6 19 11 19Z" stroke="currentColor" stroke-width="2"/><path d="M20.5 20.5L16.7 16.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                        </span>
-                        <input type="search" name="q" value="{{ request('q') }}" placeholder="Buscar por numero, cliente, vendedor o UUID" class="w-full rounded-md border border-atlantia-rose/30 bg-white py-3 pl-12 pr-4 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                    </label>
-                    <select name="estado" class="rounded-md border border-atlantia-rose/30 bg-white px-4 py-3 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                        <option value="">Todos los estados</option>
-                        @foreach ($estadoOptions as $estado)
-                            <option value="{{ $estado }}" @selected(request('estado') === $estado)>{{ ucfirst(str_replace('_', ' ', $estado)) }}</option>
-                        @endforeach
-                    </select>
-                    <select name="metodo_pago" class="rounded-md border border-atlantia-rose/30 bg-white px-4 py-3 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                        <option value="">Todos los metodos</option>
-                        @foreach ($metodoPagoOptions as $metodo)
-                            <option value="{{ $metodo }}" @selected(request('metodo_pago') === $metodo)>{{ ucfirst($metodo) }}</option>
-                        @endforeach
-                    </select>
-                    <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md bg-atlantia-wine px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-atlantia-wine-700">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6H20M7 12H17M10 18H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                        Filtrar
-                    </button>
-                </form>
+        {{-- Resumen --}}
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            @foreach ([
+                ['Hoy', $metrics['today'], 'pedidos recibidos', null],
+                ['Por atender', $metrics['pending'], 'sin entregar todavía', 'pendiente'],
+                ['Entregados', $metrics['delivered'], 'en total', 'entregado'],
+                ['Pagados', $metrics['paid'], 'con pago confirmado', null],
+            ] as [$etiqueta, $valor, $nota, $filtro])
+                <a href="{{ $filtro ? route('admin.pedidos.index', ['estado' => $filtro]) : route('admin.pedidos.index') }}" class="rounded-2xl border border-atlantia-rose/15 bg-white px-4 py-3 shadow-[0_8px_20px_rgba(59,6,12,0.04)] transition hover:border-atlantia-wine/30">
+                    <p class="text-[11px] font-black uppercase tracking-wide text-atlantia-ink/50">{{ $etiqueta }}</p>
+                    <p class="mt-0.5 text-2xl font-black text-atlantia-ink">{{ number_format($valor) }}</p>
+                    <p class="text-xs text-atlantia-ink/50">{{ $nota }}</p>
+                </a>
+            @endforeach
+        </div>
 
-                <form method="POST" action="{{ route('admin.pedidos.batch-update') }}" class="mt-4 rounded-xl bg-atlantia-cream/45 p-3" id="orders-batch-form">
-                    @csrf
-                    <div class="grid gap-3 lg:grid-cols-[220px_220px_1fr_220px]">
-                        <select name="estado" class="rounded-md border border-atlantia-rose/30 bg-white px-4 py-3 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                            <option value="" disabled selected>Nuevo estado</option>
-                            @foreach ($estadoOptions as $estado)
-                                <option value="{{ $estado }}">{{ ucfirst(str_replace('_', ' ', $estado)) }}</option>
-                            @endforeach
-                        </select>
-                        <select name="estado_pago" class="rounded-md border border-atlantia-rose/30 bg-white px-4 py-3 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                            <option value="" disabled selected>Estado de pago</option>
-                            @foreach ($estadoPagoOptions as $estadoPago)
-                                <option value="{{ $estadoPago }}">{{ ucfirst($estadoPago) }}</option>
-                            @endforeach
-                        </select>
-                        <input type="text" name="notas_historial" placeholder="Nota comun para el historial del lote" class="rounded-md border border-atlantia-rose/30 bg-white px-4 py-3 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                        <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md bg-atlantia-wine px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-atlantia-wine-700">
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                            Actualizar lote
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <article class="rounded-xl border border-atlantia-rose/20 bg-white p-5 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <span class="grid h-14 w-14 place-items-center rounded-full bg-atlantia-blush text-atlantia-wine">
-                            <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 8V6C7 3.8 8.8 2 11 2H13C15.2 2 17 3.8 17 6V8" stroke="currentColor" stroke-width="2"/><path d="M5 8H19L18 21H6L5 8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-                        </span>
-                        <div>
-                            <p class="text-sm font-semibold text-atlantia-ink/65">Pedidos hoy</p>
-                            <p class="mt-1 text-2xl font-black text-atlantia-wine">{{ number_format($metrics['today']) }}</p>
-                            <p class="text-xs text-atlantia-ink/50">Datos reales</p>
-                        </div>
-                    </div>
-                </article>
-                <article class="rounded-xl border border-atlantia-rose/20 bg-white p-5 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <span class="grid h-14 w-14 place-items-center rounded-full bg-amber-50 text-amber-700">
-                            <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 7V12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M21 12C21 17 17 21 12 21C7 21 3 17 3 12C3 7 7 3 12 3C17 3 21 7 21 12Z" stroke="currentColor" stroke-width="2"/></svg>
-                        </span>
-                        <div>
-                            <p class="text-sm font-semibold text-atlantia-ink/65">Pendientes</p>
-                            <p class="mt-1 text-2xl font-black text-atlantia-wine">{{ number_format($metrics['pending']) }}</p>
-                            <p class="text-xs text-atlantia-ink/50">En flujo operativo</p>
-                        </div>
-                    </div>
-                </article>
-                <article class="rounded-xl border border-atlantia-rose/20 bg-white p-5 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <span class="grid h-14 w-14 place-items-center rounded-full bg-emerald-50 text-emerald-700">
-                            <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        </span>
-                        <div>
-                            <p class="text-sm font-semibold text-atlantia-ink/65">Entregados</p>
-                            <p class="mt-1 text-2xl font-black text-atlantia-wine">{{ number_format($metrics['delivered']) }}</p>
-                            <p class="text-xs text-atlantia-ink/50">Historico</p>
-                        </div>
-                    </div>
-                </article>
-                <article class="rounded-xl border border-atlantia-rose/20 bg-white p-5 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <span class="grid h-14 w-14 place-items-center rounded-full bg-violet-50 text-violet-700">
-                            <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 6H21V18H3V6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3 10H21" stroke="currentColor" stroke-width="2"/><path d="M7 15H10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                        </span>
-                        <div>
-                            <p class="text-sm font-semibold text-atlantia-ink/65">Pagados</p>
-                            <p class="mt-1 text-2xl font-black text-atlantia-wine">{{ number_format($metrics['paid']) }}</p>
-                            <p class="text-xs text-atlantia-ink/50">Pago confirmado</p>
-                        </div>
-                    </div>
-                </article>
-            </div>
-
-            <div class="mt-5">
-                <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    @forelse ($pedidos as $pedido)
-                        @php
-                            $estadoPedido = str_replace('_', ' ', $pedido->estadoValor());
-                            $estadoPago = str_replace('_', ' ', $pedido->estadoPagoValor());
-                            $paymentClass = $paymentClasses[$pedido->estadoPagoValor()] ?? 'bg-atlantia-blush text-atlantia-wine';
-                        @endphp
-
-                        <article class="rounded-xl border border-atlantia-rose/20 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-atlantia-wine/35 hover:shadow-md">
-                            <div class="flex items-start justify-between gap-3">
-                                <label class="inline-flex items-center gap-2 text-xs font-black text-atlantia-ink/65">
-                                    <input form="orders-batch-form" type="checkbox" name="pedidos[]" value="{{ $pedido->uuid }}" class="h-4 w-4 rounded border-atlantia-rose/40 text-atlantia-wine focus:ring-atlantia-wine">
-                                    Seleccionar
-                                </label>
-                                <span class="{{ $paymentClass }} rounded-full px-4 py-1 text-xs font-black">
-                                    {{ $estadoPago }}
-                                </span>
-                            </div>
-
-                            <div class="mt-4">
-                                <p class="text-xl font-black text-atlantia-ink">{{ $pedido->numero_pedido }}</p>
-                                <p class="mt-1 text-sm font-semibold text-atlantia-ink/55">{{ $pedido->created_at?->format('d/m/Y H:i') }}</p>
-                            </div>
-
-                            <div class="mt-4 grid grid-cols-2 gap-0 overflow-hidden rounded-lg border border-atlantia-rose/15 bg-atlantia-cream/40 text-sm">
-                                <div class="border-r border-atlantia-rose/15 p-4">
-                                    <div class="flex items-start gap-3">
-                                        <svg class="mt-1 h-5 w-5 shrink-0 text-atlantia-ink/65" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 12C14.2 12 16 10.2 16 8C16 5.8 14.2 4 12 4C9.8 4 8 5.8 8 8C8 10.2 9.8 12 12 12Z" stroke="currentColor" stroke-width="2"/><path d="M5 21C5.8 17.6 8.5 15.5 12 15.5C15.5 15.5 18.2 17.6 19 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                                        <div class="min-w-0">
-                                            <p class="text-xs text-atlantia-ink/55">Cliente</p>
-                                            <p class="truncate font-black text-atlantia-ink">{{ $pedido->cliente?->name ?? 'Sin cliente' }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="p-4">
-                                    <div class="flex items-start gap-3">
-                                        <svg class="mt-1 h-5 w-5 shrink-0 text-atlantia-ink/65" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 10L5.5 5H18.5L20 10" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M5 10H19V19H5V10Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 14H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                                        <div class="min-w-0">
-                                            <p class="text-xs text-atlantia-ink/55">Vendedor</p>
-                                            <p class="truncate font-black text-atlantia-ink">{{ $pedido->vendor?->business_name ?? 'Pedido consolidado' }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
-                                <div class="rounded-lg border border-atlantia-rose/15 bg-white px-4 py-3">
-                                    <p class="text-xs text-atlantia-ink/55">Total</p>
-                                    <p class="mt-1 text-xl font-black text-atlantia-wine">Q{{ number_format((float) $pedido->total, 2) }}</p>
-                                </div>
-                                <div class="rounded-lg border border-atlantia-rose/15 bg-white px-4 py-3">
-                                    <div class="flex items-start gap-3">
-                                        <svg class="mt-1 h-5 w-5 shrink-0 text-atlantia-ink/65" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 7H15V17H3V7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M15 10H19L21 13V17H15V10Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 19C8.1 19 9 18.1 9 17H5C5 18.1 5.9 19 7 19Z" stroke="currentColor" stroke-width="2"/><path d="M18 19C19.1 19 20 18.1 20 17H16C16 18.1 16.9 19 18 19Z" stroke="currentColor" stroke-width="2"/></svg>
-                                        <div class="min-w-0">
-                                            <p class="text-xs text-atlantia-ink/55">Entrega</p>
-                                            <p class="truncate font-black capitalize text-atlantia-ink">{{ $estadoPedido }}</p>
-                                            <p class="truncate text-xs text-atlantia-ink/55">{{ $pedido->deliveryRoute?->repartidor?->name ?? 'Sin asignar' }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mt-4 flex justify-end">
-                                <a href="{{ route('admin.pedidos.show', $pedido->uuid) }}" class="inline-flex items-center gap-2 rounded-md bg-atlantia-wine px-5 py-2 text-sm font-black text-white transition hover:bg-atlantia-wine-700">
-                                    Gestionar
-                                    <span aria-hidden="true">></span>
-                                </a>
-                            </div>
-                        </article>
-                    @empty
-                        <div class="rounded-xl border border-dashed border-atlantia-rose/30 bg-white px-4 py-10 text-center md:col-span-2 xl:col-span-3">
-                            <p class="text-base font-black text-atlantia-ink">No hay pedidos registrados.</p>
-                            <p class="mt-1 text-sm text-atlantia-ink/60">Cuando entren ordenes, apareceran como tarjetas aqui.</p>
-                        </div>
-                    @endforelse
+        <div class="overflow-hidden rounded-2xl border border-atlantia-rose/15 bg-white shadow-[0_10px_26px_rgba(59,6,12,0.05)]">
+            {{-- Filtros --}}
+            <form method="GET" class="space-y-3 border-b border-atlantia-rose/10 p-3">
+                <div class="flex gap-1.5 overflow-x-auto">
+                    @foreach ($chips as $valor => $texto)
+                        <a href="{{ route('admin.pedidos.index', array_filter(['estado' => $valor, 'q' => request('q'), 'metodo_pago' => request('metodo_pago')])) }}"
+                           @class(['shrink-0 rounded-lg border px-3 py-2 text-sm font-black transition', 'border-atlantia-wine bg-atlantia-wine text-white' => $estadoActual === (string) $valor, 'border-atlantia-rose/25 bg-white text-atlantia-wine hover:bg-atlantia-blush' => $estadoActual !== (string) $valor])>{{ $texto }}</a>
+                    @endforeach
                 </div>
+                @if ($estadoActual !== '')
+                    <input type="hidden" name="estado" value="{{ $estadoActual }}">
+                @endif
+                <div class="flex flex-col gap-2 sm:flex-row">
+                    <div class="relative flex-1">
+                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-atlantia-ink/40">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM20.5 20.5l-3.8-3.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        </span>
+                        <input type="search" name="q" value="{{ request('q') }}" placeholder="Buscar por número de pedido, cliente o tienda" aria-label="Buscar pedido" class="{{ $control }} w-full pl-9">
+                    </div>
+                    <select name="metodo_pago" aria-label="Método de pago" class="{{ $control }} sm:w-48" data-autosubmit>
+                        <option value="">Cualquier pago</option>
+                        @foreach ($metodoPagoOptions as $metodo => $texto)
+                            <option value="{{ $metodo }}" @selected(request('metodo_pago') === $metodo)>{{ $texto }}</option>
+                        @endforeach
+                    </select>
+                    <button type="submit" class="h-10 shrink-0 rounded-lg border border-atlantia-rose/30 px-4 text-sm font-black text-atlantia-wine hover:bg-atlantia-blush">Buscar</button>
+                </div>
+            </form>
+
+            {{-- Lista --}}
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[900px] text-sm">
+                    <thead>
+                        <tr class="border-b border-atlantia-rose/10 bg-atlantia-cream/50 text-left text-[11px] font-black uppercase tracking-wide text-atlantia-ink/50">
+                            <th class="w-10 px-4 py-2.5"><input type="checkbox" class="h-4 w-4 rounded border-atlantia-rose/40 text-atlantia-wine focus:ring-atlantia-wine" aria-label="Seleccionar todos" @change="todos($event)" :checked="seleccion.length > 0 && seleccion.length === document.querySelectorAll('[data-pedido-check]').length"></th>
+                            <th class="px-3 py-2.5">Pedido</th>
+                            <th class="px-3 py-2.5">Cliente</th>
+                            <th class="px-3 py-2.5">Tienda</th>
+                            <th class="px-3 py-2.5">Estado</th>
+                            <th class="px-3 py-2.5">Repartidor</th>
+                            <th class="px-3 py-2.5 text-right">Total</th>
+                            <th class="px-4 py-2.5"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-atlantia-rose/10">
+                        @forelse ($pedidos as $pedido)
+                            @php
+                                [$estadoTexto, $estadoClase] = $estados[$pedido->estadoValor()] ?? [ucfirst(str_replace('_', ' ', $pedido->estadoValor())), 'bg-slate-100 text-slate-600'];
+                                [$pagoTexto, $pagoClase] = $pagos[$pedido->estadoPagoValor()] ?? [ucfirst($pedido->estadoPagoValor()), 'text-atlantia-ink/55'];
+                                $metodo = $pedido->metodo_pago instanceof \BackedEnum ? $pedido->metodo_pago->value : (string) $pedido->metodo_pago;
+                            @endphp
+                            <tr class="transition hover:bg-atlantia-cream/60" :class="seleccion.includes('{{ $pedido->uuid }}') && 'bg-atlantia-blush/40'">
+                                <td class="px-4 py-3">
+                                    <input form="orders-batch-form" type="checkbox" name="pedidos[]" value="{{ $pedido->uuid }}" x-model="seleccion" data-pedido-check aria-label="Seleccionar {{ $pedido->numero_pedido }}" class="h-4 w-4 rounded border-atlantia-rose/40 text-atlantia-wine focus:ring-atlantia-wine">
+                                </td>
+                                <td class="px-3 py-3">
+                                    <a href="{{ route('admin.pedidos.show', $pedido->uuid) }}" class="font-black text-atlantia-ink hover:text-atlantia-wine">{{ $pedido->numero_pedido }}</a>
+                                    <p class="text-xs text-atlantia-ink/50" title="{{ $pedido->created_at?->format('d/m/Y H:i') }}">{{ $pedido->created_at?->diffForHumans() }}</p>
+                                </td>
+                                <td class="max-w-[10rem] truncate px-3 py-3 text-atlantia-ink/80">{{ $pedido->cliente?->name ?? 'Sin cliente' }}</td>
+                                <td class="max-w-[11rem] px-3 py-3">
+                                    @if ($pedido->vendor)
+                                        <span class="block truncate text-atlantia-ink/80">{{ $pedido->vendor->business_name }}</span>
+                                    @else
+                                        <span class="rounded-full bg-atlantia-cream px-2 py-0.5 text-xs font-bold text-atlantia-ink/60" title="Pedido de varias tiendas; cada tienda tiene su propio pedido">Varias tiendas</span>
+                                    @endif
+                                </td>
+                                <td class="px-3 py-3">
+                                    <span class="rounded-full px-2.5 py-1 text-xs font-black {{ $estadoClase }}">{{ $estadoTexto }}</span>
+                                    <p class="mt-1 text-[11px] font-bold {{ $pagoClase }}">{{ $pagoTexto }}</p>
+                                </td>
+                                <td class="max-w-[9rem] truncate px-3 py-3 text-xs text-atlantia-ink/65">{{ $pedido->deliveryRoute?->repartidor?->name ?? '—' }}</td>
+                                <td class="px-3 py-3 text-right">
+                                    <p class="font-black text-atlantia-ink">Q {{ number_format((float) $pedido->total, 2) }}</p>
+                                    <p class="text-[11px] text-atlantia-ink/50">{{ $metodoPagoOptions[$metodo] ?? ucfirst($metodo) }}</p>
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <a href="{{ route('admin.pedidos.show', $pedido->uuid) }}" class="rounded-lg border border-atlantia-rose/30 px-3 py-1.5 text-xs font-black text-atlantia-wine transition hover:bg-atlantia-blush">Gestionar</a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="px-4 py-12 text-center">
+                                    <p class="font-black text-atlantia-ink">{{ request('q') || $estadoActual !== '' || request('metodo_pago') ? 'No hay pedidos con ese filtro.' : 'Todavía no hay pedidos.' }}</p>
+                                    <p class="mt-1 text-sm text-atlantia-ink/55">Cuando un cliente compre, el pedido aparecerá aquí.</p>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
 
-            <div class="mt-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <p class="text-sm font-semibold text-atlantia-ink/65">
-                    Mostrando {{ $pedidos->firstItem() ?? 0 }} a {{ $pedidos->lastItem() ?? 0 }} de {{ $pedidos->total() }} resultados
-                </p>
-                <div>{{ $pedidos->links() }}</div>
+            <div class="flex flex-col items-center justify-between gap-2 border-t border-atlantia-rose/10 px-4 py-3 sm:flex-row">
+                <p class="text-xs font-semibold text-atlantia-ink/55">Mostrando {{ $pedidos->firstItem() ?? 0 }}-{{ $pedidos->lastItem() ?? 0 }} de {{ $pedidos->total() }} pedidos</p>
+                <div>{{ $pedidos->withQueryString()->links() }}</div>
             </div>
         </div>
+
+        {{-- Barra de cambio en lote: aparece al seleccionar pedidos --}}
+        <form method="POST" action="{{ route('admin.pedidos.batch-update') }}" id="orders-batch-form"
+              class="fixed inset-x-3 bottom-3 z-40 mx-auto hidden max-w-5xl rounded-2xl border border-atlantia-rose/20 bg-white p-3 shadow-[0_18px_44px_rgba(59,6,12,0.22)] xl:left-[19rem]"
+              :class="{ 'hidden': seleccion.length === 0 }"
+              data-confirm="¿Cambiar el estado de los pedidos seleccionados?">
+            @csrf
+            <div class="flex flex-col gap-2 lg:flex-row lg:items-center">
+                <p class="shrink-0 text-sm font-black text-atlantia-ink"><span x-text="seleccion.length"></span> <span x-text="seleccion.length === 1 ? 'seleccionado' : 'seleccionados'"></span></p>
+                <select name="estado" required aria-label="Nuevo estado" class="{{ $control }} lg:w-44">
+                    <option value="" disabled selected>Nuevo estado</option>
+                    @foreach ($estadoOptions as $estado)
+                        <option value="{{ $estado }}">{{ $estados[$estado][0] ?? ucfirst($estado) }}</option>
+                    @endforeach
+                </select>
+                <select name="estado_pago" required aria-label="Estado del pago" class="{{ $control }} lg:w-44">
+                    <option value="" disabled selected>Estado del pago</option>
+                    @foreach ($estadoPagoOptions as $estadoPago)
+                        <option value="{{ $estadoPago }}">{{ ucfirst($estadoPago) }}</option>
+                    @endforeach
+                </select>
+                <input type="text" name="notas_historial" maxlength="1000" placeholder="Nota para el historial (opcional)" class="{{ $control }} min-w-0 flex-1">
+                <div class="flex shrink-0 gap-2">
+                    <button type="button" class="h-10 rounded-lg px-3 text-sm font-bold text-atlantia-ink/60 hover:bg-atlantia-cream" @click="seleccion = []">Cancelar</button>
+                    <button type="submit" class="h-10 rounded-lg bg-atlantia-wine px-4 text-sm font-black text-white hover:bg-atlantia-wine-700">Aplicar cambio</button>
+                </div>
+            </div>
+        </form>
     </section>
 @endsection

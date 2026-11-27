@@ -122,7 +122,7 @@ class VendorFactory extends Factory
         return $this->state(fn (): array => [
             'is_approved' => true,
             'status' => 'approved',
-            'approved_at' => now(),
+            'approved_at' => now()->subMonths(3),
             'suspendido_at' => null,
             'motivo_suspension' => null,
         ]);

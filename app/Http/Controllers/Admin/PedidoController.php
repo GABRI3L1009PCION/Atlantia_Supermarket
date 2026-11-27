@@ -54,7 +54,13 @@ class PedidoController extends Controller
     public function update(UpdatePedidoRequest $request, Pedido $pedido): RedirectResponse
     {
         $this->authorize('update', $pedido);
-        $this->pedidoAdminService->update($pedido, $request->validated(), $request->user());
+        try {
+            $this->pedidoAdminService->update($pedido, $request->validated(), $request->user());
+        } catch (\App\Exceptions\PagoRechazadoException $exception) {
+            report($exception);
+
+            return back()->with('error', 'La pasarela no pudo devolver el pago con tarjeta, así que el pedido no se canceló. Revisa el pago e intenta de nuevo.');
+        }
 
         return back()->with('success', 'Pedido actualizado correctamente.');
     }

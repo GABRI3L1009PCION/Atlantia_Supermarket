@@ -85,6 +85,7 @@ class AdminCrudOperationsTest extends TestCase
             'descripcion' => 'Producto creado desde pruebas administrativas.',
             'precio_base' => '18.50',
             'precio_oferta' => '',
+            'precio_sin_iva' => '1',
             'peso_gramos' => 907,
             'unidad_medida' => 'paquete',
             'stock_actual' => 40,
@@ -98,6 +99,9 @@ class AdminCrudOperationsTest extends TestCase
         $response->assertRedirect();
 
         $producto = Producto::query()->where('sku', 'ATL-PRUEBA-001')->firstOrFail();
+
+        /* El formulario pide el precio sin IVA; se publica con el 12% incluido (18.50 -> 20.72). */
+        $this->assertEqualsWithDelta(20.72, (float) $producto->precio_base, 0.001);
 
         $this->assertDatabaseHas('inventarios', [
             'producto_id' => $producto->id,

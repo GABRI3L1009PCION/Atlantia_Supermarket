@@ -19,6 +19,7 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <env name="TRUSTED_PROXIES" value="127.0.0.1"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
@@ -32,5 +33,14 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!-- Tienda abierta todo el dia en pruebas; HorarioTiendaTest fija su propio horario. -->
+        <env name="ATLANTIA_VERIFICAR_CONTRASENAS_FILTRADAS" value="false"/>
+        <env name="ATLANTIA_HORARIO_APERTURA" value="00:00"/>
+        <env name="ATLANTIA_HORARIO_CIERRE" value="23:59"/>
+        <env name="WHATSAPP_DRIVER" value="log"/>
+        <!-- Las pruebas no deben usar la llave de Recurrente del .env local. -->
+        <env name="ATLANTIA_CARD_PAYMENT_MODE" value="pos" force="true"/>
+        <env name="RECURRENTE_SECRET_KEY" value="" force="true"/>
+        <env name="RECURRENTE_WEBHOOK_SECRET" value="" force="true"/>
     </php>
 </phpunit>

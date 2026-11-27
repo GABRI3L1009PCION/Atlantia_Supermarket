@@ -10,6 +10,8 @@ use App\Models\User;
 use App\Notifications\PedidoConfirmadoNotification;
 use App\Notifications\PedidoEnCaminoNotification;
 use App\Notifications\PedidoEntregadoNotification;
+use App\Services\Clientes\ReferidosService;
+use App\Services\Clientes\SaldoService;
 use App\Services\Fidelizacion\PuntosService;
 use Illuminate\Support\Facades\DB;
 
@@ -56,6 +58,12 @@ class EstadoPedidoService
 
             if ($estadoValue === EstadoPedido::Entregado->value) {
                 $this->puntosService->otorgarPorPedido($pedido);
+                app(ReferidosService::class)->recompensarPorEntrega($pedido);
+            }
+
+            /* Si se cancela el pedido completo, el saldo a favor usado vuelve al cliente. */
+            if ($estadoValue === EstadoPedido::Cancelado->value && $pedido->pedido_padre_id === null) {
+                app(SaldoService::class)->revertirPedido($pedido);
             }
 
             return $pedido;

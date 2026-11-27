@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Repartidor\PerfilController as PerfilRepartidorController;
 use App\Http\Controllers\Repartidor\DashboardController;
 use App\Http\Controllers\Repartidor\EstadoController;
 use App\Http\Controllers\Repartidor\ExternalDeliveryController;
@@ -30,6 +31,8 @@ Route::prefix('repartidor')
         Route::patch('/estado-disponibilidad', [EstadoController::class, 'availability'])->name('estado.disponibilidad');
         Route::patch('/auto-aceptacion', [EstadoController::class, 'autoAcceptance'])->name('estado.auto-aceptacion');
 
+        Route::get('/perfil', [PerfilRepartidorController::class, 'edit'])->name('perfil.edit');
+        Route::put('/perfil', [PerfilRepartidorController::class, 'update'])->middleware('throttle:10,1')->name('perfil.update');
         Route::get('/ganancias', GananciasController::class)->name('ganancias.index');
         Route::patch('/ganancias/cuenta-bancaria', [GananciasController::class, 'updateBankAccount'])->name('ganancias.bank-account.update');
         Route::post('/ganancias/retiros', [GananciasController::class, 'requestWithdrawal'])->name('ganancias.withdrawals.store');

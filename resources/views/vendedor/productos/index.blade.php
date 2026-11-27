@@ -4,22 +4,18 @@
     @php
         $user = auth()->user();
         $puedeCrear = $user?->can('create', App\Models\Producto::class);
-        $modeloCobro = match (true) {
-            $vendor?->monthly_rent > 0 && $vendor?->commission_percentage > 0 => 'Renta mensual + comision',
-            $vendor?->monthly_rent > 0 => 'Renta mensual',
-            $vendor?->commission_percentage > 0 => 'Comision sobre ventas',
-            default => 'Pendiente de configurar',
-        };
-        $initials = collect(preg_split('/\s+/', trim((string) ($user?->name ?? 'V'))))
-            ->filter()
-            ->take(2)
-            ->map(fn ($part) => \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($part, 0, 1)))
-            ->join('') ?: 'V';
         $inputBase = 'mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm text-atlantia-ink outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20 disabled:cursor-not-allowed disabled:bg-atlantia-cream disabled:text-atlantia-ink/45';
         $inputNormal = 'border-atlantia-rose/30';
         $inputError = 'border-rose-500 bg-rose-50';
         $errorText = 'mt-1 text-xs font-semibold text-rose-700';
         $showCreateModal = $errors->any();
+        /* Pasos de las ventanas de crear y editar producto. */
+        $pasosProducto = [
+            'producto' => ['1', 'Producto'],
+            'precio' => ['2', 'Precio y cantidad'],
+            'fotos' => ['3', 'Fotos'],
+            'publicar' => ['4', 'Publicar'],
+        ];
         $filterValues = [
             'q' => (string) request('q', ''),
             'categoria_id' => (string) request('categoria_id', ''),
@@ -36,169 +32,81 @@
         ])->filter();
     @endphp
 
-    <section class="mx-auto max-w-[1280px] space-y-5 pb-10">
-        <div class="grid gap-4 lg:grid-cols-[1fr_330px] lg:items-end">
+    <section class="mx-auto max-w-[1280px] space-y-4 pb-10">
+        <div class="flex flex-wrap items-end justify-between gap-3">
             <div>
-                <p class="text-xs font-black uppercase tracking-[0.22em] text-atlantia-rose">Atlantia Supermarket</p>
-                <h1 class="mt-2 text-3xl font-black leading-tight text-atlantia-ink sm:text-4xl">Mis productos</h1>
-                <p class="mt-2 max-w-2xl text-sm leading-6 text-atlantia-ink/62">
-                    Administra tu catalogo como vendedor local independiente dentro de Atlantia.
-                </p>
+                <h1 class="text-2xl font-black text-atlantia-ink">Productos</h1>
+                <p class="mt-0.5 text-sm text-atlantia-ink/60">{{ $vendor?->business_name ?? $user?->name }} · {{ $productos->total() }} {{ $productos->total() === 1 ? 'producto' : 'productos' }}{{ $activeFilters->isNotEmpty() ? ' con estos filtros' : '' }}</p>
             </div>
-
-            <a href="{{ route('vendedor.perfil-fiscal.edit') }}" class="group flex min-h-[5.5rem] items-center gap-4 rounded-lg border border-atlantia-rose/15 bg-white p-4 shadow-[0_14px_34px_rgba(42,16,24,0.07)] transition hover:border-atlantia-wine/30">
-                <span class="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-atlantia-blush/70 text-atlantia-wine">
-                    <span class="grid h-10 w-10 place-items-center rounded-full bg-white text-sm font-black shadow-sm">{{ $initials }}</span>
-                </span>
-                <span class="min-w-0 flex-1">
-                    <span class="block truncate text-sm font-black text-atlantia-ink">{{ $vendor?->business_name ?? $user?->name }}</span>
-                    <span class="mt-1 block text-xs font-bold text-orange-600">{{ $modeloCobro }}</span>
-                </span>
-                <span class="text-atlantia-ink/45 transition group-hover:translate-x-0.5 group-hover:text-atlantia-wine" aria-hidden="true">
-                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m9 18 6-6-6-6"/>
-                    </svg>
-                </span>
-            </a>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('vendedor.productos.importar') }}" class="inline-flex h-10 items-center gap-2 rounded-lg border border-atlantia-rose/25 bg-white px-4 text-sm font-bold text-atlantia-wine hover:bg-atlantia-blush">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21V9m0 0-4 4m4-4 4 4M4 3h16"/></svg>
+                    Carga masiva
+                </a>
+                <button
+                    type="button"
+                    class="inline-flex h-10 items-center gap-2 rounded-lg bg-atlantia-wine px-4 text-sm font-bold text-white hover:bg-atlantia-wine-700 disabled:cursor-not-allowed disabled:opacity-55"
+                    data-open-create-product-modal
+                    @disabled(! $puedeCrear)
+                >
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    Crear producto
+                </button>
+            </div>
         </div>
 
         @if ($vendor === null)
-            <article class="rounded-lg border border-amber-200 bg-amber-50 p-5 text-amber-900">
-                <h2 class="text-lg font-black">Tu cuenta aun no tiene perfil de vendedor</h2>
-                <p class="mt-2 text-sm">Para crear productos se necesita un perfil comercial con datos de tienda, modelo de cobro y configuracion fiscal.</p>
+            <article class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                <p class="font-black">Tu cuenta aún no tiene perfil de vendedor.</p>
+                <p class="mt-1">Para crear productos se necesita un perfil de tienda aprobado.</p>
             </article>
         @elseif (! $puedeCrear)
-            <article class="rounded-lg border border-amber-200 bg-amber-50 p-5 text-amber-900">
-                <h2 class="text-lg font-black">Tu puesto de venta esta pendiente de aprobacion</h2>
-                <p class="mt-2 text-sm">Puedes revisar el panel, pero la publicacion de productos se habilita cuando Atlantia aprueba tu perfil comercial.</p>
+            <article class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                <p class="font-black">Tu tienda está pendiente de aprobación.</p>
+                <p class="mt-1">Puedes revisar el panel; podrás publicar productos cuando Atlantia apruebe tu tienda.</p>
             </article>
         @endif
 
-        <article class="rounded-lg border border-atlantia-rose/15 bg-white shadow-[0_12px_32px_rgba(42,16,24,0.05)]">
-            <div class="border-b border-atlantia-rose/15 p-5 sm:p-6">
-                <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                    <div class="flex items-start gap-3">
-                        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-atlantia-blush text-atlantia-wine">
-                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M7 8V6a5 5 0 0 1 10 0v2"/><path d="M5 8h14l-1 11H6L5 8Z"/>
-                            </svg>
-                        </span>
-                        <div>
-                            <h2 class="text-xl font-black text-atlantia-ink">Catalogo propio</h2>
-                            <p class="mt-1 text-sm text-atlantia-ink/58">Busca, filtra y administra los productos de tu tienda.</p>
-                        </div>
-                    </div>
+        <article class="overflow-hidden rounded-xl border border-atlantia-rose/15 bg-white shadow-[0_12px_32px_rgba(42,16,24,0.05)]">
+            <form method="GET" action="{{ route('vendedor.productos.index') }}" class="flex flex-wrap items-center gap-2 border-b border-atlantia-rose/10 p-3" autocomplete="off" data-vendor-product-filters>
+                <label class="relative min-w-[14rem] flex-1">
+                    <span class="sr-only">Buscar producto</span>
+                    <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-atlantia-ink/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                    <input type="search" name="q" value="{{ $filterValues['q'] }}" placeholder="Nombre, SKU o código de barras" class="h-10 w-full rounded-lg border border-atlantia-rose/25 pl-9 pr-3 text-sm outline-none focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-blush">
+                </label>
+                <select name="categoria_id" aria-label="Categoría" class="h-10 min-w-0 grow basis-[calc(50%-0.25rem)] rounded-lg border border-atlantia-rose/25 bg-white px-2 text-sm outline-none focus:border-atlantia-wine sm:grow-0 sm:basis-auto sm:px-3" data-vendor-product-filter>
+                    <option value="">Todas las categorías</option>
+                    @foreach ($categorias as $categoria)
+                        <option value="{{ $categoria->id }}" @selected($filterValues['categoria_id'] === (string) $categoria->id)>{{ $categoria->nombre }}</option>
+                    @endforeach
+                </select>
+                <select name="estado" aria-label="Estado" class="h-10 min-w-0 grow basis-[calc(50%-0.25rem)] rounded-lg border border-atlantia-rose/25 bg-white px-2 text-sm outline-none focus:border-atlantia-wine sm:grow-0 sm:basis-auto sm:px-3" data-vendor-product-filter>
+                    <option value="">Todos los estados</option>
+                    <option value="visible" @selected($filterValues['estado'] === 'visible')>En la tienda</option>
+                    <option value="oculto" @selected($filterValues['estado'] === 'oculto')>Ocultos</option>
+                    <option value="activo" @selected($filterValues['estado'] === 'activo')>Activos</option>
+                    <option value="inactivo" @selected($filterValues['estado'] === 'inactivo')>Desactivados</option>
+                </select>
+                <select name="stock" aria-label="Existencias" class="h-10 min-w-0 grow basis-[calc(50%-0.25rem)] rounded-lg border border-atlantia-rose/25 bg-white px-2 text-sm outline-none focus:border-atlantia-wine sm:grow-0 sm:basis-auto sm:px-3" data-vendor-product-filter>
+                    <option value="">Todas las existencias</option>
+                    <option value="disponible" @selected($filterValues['stock'] === 'disponible')>Con existencias</option>
+                    <option value="bajo" @selected($filterValues['stock'] === 'bajo')>Quedan pocos</option>
+                    <option value="agotado" @selected($filterValues['stock'] === 'agotado')>Agotados</option>
+                </select>
+                <select name="orden" aria-label="Ordenar" class="h-10 min-w-0 grow basis-[calc(50%-0.25rem)] rounded-lg border border-atlantia-rose/25 bg-white px-2 text-sm outline-none focus:border-atlantia-wine sm:grow-0 sm:basis-auto sm:px-3" data-vendor-product-filter>
+                    <option value="recientes" @selected($filterValues['orden'] === 'recientes')>Más recientes</option>
+                    <option value="nombre" @selected($filterValues['orden'] === 'nombre')>Nombre A–Z</option>
+                    <option value="precio_asc" @selected($filterValues['orden'] === 'precio_asc')>Menor precio</option>
+                    <option value="precio_desc" @selected($filterValues['orden'] === 'precio_desc')>Mayor precio</option>
+                    <option value="stock_asc" @selected($filterValues['orden'] === 'stock_asc')>Menos existencias</option>
+                </select>
+                @if ($activeFilters->isNotEmpty())
+                    <a href="{{ route('vendedor.productos.index') }}" class="px-1 text-sm font-bold text-atlantia-wine hover:underline">Quitar filtros</a>
+                @endif
+            </form>
 
-                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                        <span class="w-fit rounded-md bg-atlantia-blush px-3 py-1.5 text-xs font-black text-atlantia-wine">
-                            {{ $productos->total() }} {{ \Illuminate\Support\Str::plural('producto', $productos->total()) }}
-                        </span>
-                        <button
-                            type="button"
-                            class="inline-flex items-center justify-center gap-2 rounded-lg bg-atlantia-wine px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-atlantia-wine-700 disabled:cursor-not-allowed disabled:opacity-55"
-                            data-open-create-product-modal
-                            @disabled(! $puedeCrear)
-                        >
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M12 5v14"/><path d="M5 12h14"/>
-                            </svg>
-                            Crear producto
-                        </button>
-                    </div>
-                </div>
-
-                <form method="GET" action="{{ route('vendedor.productos.index') }}" class="mt-5 space-y-3" autocomplete="off" data-vendor-product-filters>
-                    <div class="flex flex-col gap-3 lg:flex-row">
-                        <div class="relative flex-1">
-                            <input
-                                type="search"
-                                name="q"
-                                value="{{ $filterValues['q'] }}"
-                                placeholder="Buscar producto, SKU o codigo de barras"
-                                class="w-full rounded-lg border border-atlantia-rose/25 bg-white px-4 py-3 pr-12 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20"
-                            >
-                            <button type="submit" class="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-atlantia-wine transition hover:bg-atlantia-blush" aria-label="Buscar">
-                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
-                                </svg>
-                            </button>
-                        </div>
-                        <button type="submit" class="rounded-lg border border-atlantia-rose/25 bg-white px-5 py-3 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                            Aplicar filtros
-                        </button>
-                    </div>
-
-                    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                        <label class="block">
-                            <span class="text-xs font-black uppercase tracking-wide text-atlantia-ink/55">Categoria</span>
-                            <select name="categoria_id" class="mt-1 w-full rounded-lg border border-atlantia-rose/25 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20" data-vendor-product-filter>
-                                <option value="">Todas</option>
-                                @foreach ($categorias as $categoria)
-                                    <option value="{{ $categoria->id }}" @selected($filterValues['categoria_id'] === (string) $categoria->id)>{{ $categoria->nombre }}</option>
-                                @endforeach
-                            </select>
-                        </label>
-
-                        <label class="block">
-                            <span class="text-xs font-black uppercase tracking-wide text-atlantia-ink/55">Estado</span>
-                            <select name="estado" class="mt-1 w-full rounded-lg border border-atlantia-rose/25 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20" data-vendor-product-filter>
-                                <option value="">Todos</option>
-                                <option value="activo" @selected($filterValues['estado'] === 'activo')>Activos</option>
-                                <option value="inactivo" @selected($filterValues['estado'] === 'inactivo')>Inactivos</option>
-                                <option value="visible" @selected($filterValues['estado'] === 'visible')>Visibles</option>
-                                <option value="oculto" @selected($filterValues['estado'] === 'oculto')>Ocultos</option>
-                            </select>
-                        </label>
-
-                        <label class="block">
-                            <span class="text-xs font-black uppercase tracking-wide text-atlantia-ink/55">Stock</span>
-                            <select name="stock" class="mt-1 w-full rounded-lg border border-atlantia-rose/25 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20" data-vendor-product-filter>
-                                <option value="">Todos</option>
-                                <option value="disponible" @selected($filterValues['stock'] === 'disponible')>Disponible</option>
-                                <option value="bajo" @selected($filterValues['stock'] === 'bajo')>Stock bajo</option>
-                                <option value="agotado" @selected($filterValues['stock'] === 'agotado')>Agotado</option>
-                            </select>
-                        </label>
-
-                        <label class="block">
-                            <span class="text-xs font-black uppercase tracking-wide text-atlantia-ink/55">Ordenar por</span>
-                            <select name="orden" class="mt-1 w-full rounded-lg border border-atlantia-rose/25 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20" data-vendor-product-filter>
-                                <option value="recientes" @selected($filterValues['orden'] === 'recientes')>Mas recientes</option>
-                                <option value="nombre" @selected($filterValues['orden'] === 'nombre')>Nombre</option>
-                                <option value="precio_asc" @selected($filterValues['orden'] === 'precio_asc')>Precio menor</option>
-                                <option value="precio_desc" @selected($filterValues['orden'] === 'precio_desc')>Precio mayor</option>
-                                <option value="stock_asc" @selected($filterValues['orden'] === 'stock_asc')>Menor stock</option>
-                            </select>
-                        </label>
-
-                        <label class="block">
-                            <span class="text-xs font-black uppercase tracking-wide text-atlantia-ink/55">Mostrar</span>
-                            <select name="per_page" class="mt-1 w-full rounded-lg border border-atlantia-rose/25 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20" data-vendor-product-filter>
-                                @foreach ([8, 12, 24, 48] as $size)
-                                    <option value="{{ $size }}" @selected((int) $filterValues['per_page'] === $size)>{{ $size }} por pagina</option>
-                                @endforeach
-                            </select>
-                        </label>
-                    </div>
-
-                    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                        <div class="flex flex-wrap items-center gap-2 text-xs font-bold">
-                            <span class="rounded-full border border-atlantia-rose/20 bg-white px-3 py-1.5 text-atlantia-ink/65">
-                                Filtros activos: {{ $activeFilters->count() }}
-                            </span>
-                            @foreach ($activeFilters as $label => $value)
-                                <span class="rounded-full bg-atlantia-blush px-3 py-1.5 text-atlantia-wine">{{ $label }}</span>
-                            @endforeach
-                            @if ($activeFilters->isNotEmpty())
-                                <a href="{{ route('vendedor.productos.index') }}" class="rounded-full px-3 py-1.5 text-atlantia-wine underline-offset-4 hover:underline">Limpiar filtros</a>
-                            @endif
-                        </div>
-                    </div>
-                </form>
-            </div>
-
-            <div class="p-5 sm:p-6">
-                <div class="grid grid-cols-[repeat(auto-fill,minmax(165px,1fr))] gap-3">
+            <div>
+                <div class="divide-y divide-atlantia-rose/10" data-lista-productos>
                     @forelse ($productos as $producto)
                         @php
                             $imageUrl = $producto->getFirstMediaUrl('productos', 'thumbnail')
@@ -209,749 +117,482 @@
                             $displayPrice = $hasOffer ? $producto->precio_oferta : $producto->precio_base;
                         @endphp
 
-                        <article class="group overflow-hidden rounded-2xl border border-atlantia-rose/20 bg-white shadow-[0_10px_24px_rgba(68,32,50,0.08)] transition hover:-translate-y-0.5 hover:border-atlantia-rose/40 hover:shadow-[0_18px_34px_rgba(68,32,50,0.14)]">
-                            <div class="relative h-28 bg-gradient-to-br from-atlantia-cream via-white to-atlantia-blush/30 p-3">
+                        @php
+                            $reservado = (int) ($producto->inventario?->stock_reservado ?? 0);
+                            $disponible = max(0, $stockActual - $reservado);
+                            $minimo = max(1, (int) ($producto->inventario?->stock_minimo ?? 5));
+                            $etiquetaDatos = [
+                                'data-product-name' => $producto->nombre,
+                                'data-product-sku' => $producto->sku,
+                                'data-product-barcode' => $producto->codigo_barras ?: $producto->sku,
+                                'data-product-price' => 'Q'.number_format((float) $displayPrice, 2),
+                                'data-product-vendor' => $vendor?->business_name ?? $user?->name,
+                                'data-product-image' => $imageUrl,
+                            ];
+                        @endphp
+                        <div class="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition hover:bg-[#fdfafa] md:grid-cols-[3.5rem_minmax(0,1fr)_7rem_8rem_8rem_auto]" data-producto-fila="{{ $producto->uuid }}">
+                            <div class="relative grid h-14 w-14 place-items-center overflow-hidden rounded-lg bg-[#f8f4f3] p-1">
+                                @if ($imageUrl)
+                                    <img src="{{ $imageUrl }}" alt="{{ $producto->nombre }}" class="h-full w-full object-contain mix-blend-multiply" loading="lazy">
+                                @else
+                                    <span class="text-lg font-black text-atlantia-wine">{{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($producto->nombre ?? 'P', 0, 1)) }}</span>
+                                @endif
                                 @if ($producto->requiere_refrigeracion)
-                                    <span class="absolute left-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-sky-50/90 text-sky-500 shadow-sm ring-1 ring-sky-200 backdrop-blur" title="Requiere refrigeracion" aria-label="Requiere refrigeracion">
-                                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                            <path d="M12 2v20"/><path d="M2 12h20"/><path d="m5 5 14 14"/><path d="m19 5-14 14"/>
-                                        </svg>
+                                    <span class="absolute bottom-0.5 right-0.5 grid h-5 w-5 place-items-center rounded-full bg-sky-50 text-sky-600 ring-1 ring-sky-200" title="Requiere refrigeración" aria-label="Requiere refrigeración">
+                                        <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 2v20M2 12h20m-15-7 14 14M19 5 5 19"/></svg>
                                     </span>
                                 @endif
+                            </div>
 
-                                @if ($imageUrl)
-                                    <img src="{{ $imageUrl }}" alt="{{ $producto->nombre }}" class="h-full w-full object-contain drop-shadow-md transition duration-300 group-hover:scale-105">
-                                @else
-                                    <div class="grid h-full place-items-center">
-                                        <div class="grid h-12 w-12 place-items-center rounded-xl bg-atlantia-blush text-lg font-black text-atlantia-wine">
-                                            {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($producto->nombre ?? 'P', 0, 1)) }}
-                                        </div>
-                                    </div>
+                            <div class="min-w-0">
+                                <p class="line-clamp-2 font-bold leading-snug text-atlantia-ink md:line-clamp-1">{{ $producto->nombre }}</p>
+                                <p class="truncate text-xs text-atlantia-ink/50">{{ $producto->categoria?->nombre ?? 'Sin categoría' }} · <span class="font-mono">{{ $producto->codigo_barras ?: $producto->sku }}</span></p>
+                                <p class="mt-0.5 text-xs md:hidden">
+                                    <span class="font-black text-atlantia-wine">Q{{ number_format((float) $displayPrice, 2) }}</span>
+                                    · <span @class(['font-bold', 'text-rose-700' => $disponible <= 0, 'text-amber-700' => $disponible > 0 && $disponible <= $minimo, 'text-emerald-700' => $disponible > $minimo])>{{ $disponible <= 0 ? 'Agotado' : $disponible.' disponibles' }}</span>
+                                </p>
+                            </div>
+
+                            <div class="hidden md:block">
+                                <p class="font-black text-atlantia-ink">Q{{ number_format((float) $displayPrice, 2) }}</p>
+                                @if ($hasOffer)
+                                    <p class="text-xs text-atlantia-ink/40 line-through">Q{{ number_format((float) $producto->precio_base, 2) }}</p>
                                 @endif
-
-                                <div class="absolute right-2 top-2 flex flex-col items-end gap-1">
-                                    <span @class([
-                                        'rounded-full px-2 py-0.5 text-[9px] font-black shadow-sm ring-1 backdrop-blur',
-                                        'bg-emerald-50 text-emerald-700 ring-emerald-200' => $producto->is_active,
-                                        'bg-slate-100 text-slate-600 ring-slate-200' => ! $producto->is_active,
-                                    ])>{{ $producto->is_active ? 'Activo' : 'Inactivo' }}</span>
-                                    <span @class([
-                                        'rounded-full px-2 py-0.5 text-[9px] font-black shadow-sm ring-1 backdrop-blur',
-                                        'bg-emerald-50 text-emerald-700 ring-emerald-200' => $producto->visible_catalogo,
-                                        'bg-orange-50 text-orange-700 ring-orange-200' => ! $producto->visible_catalogo,
-                                    ])>{{ $producto->visible_catalogo ? 'Visible' : 'Oculto' }}</span>
-                                </div>
                             </div>
 
-                            <div class="space-y-2.5 p-3">
-                                <div>
-                                    <h3 class="line-clamp-1 text-[13px] font-black leading-tight text-atlantia-ink">{{ $producto->nombre }}</h3>
-                                    <p class="mt-1 truncate font-mono text-[9px] font-semibold text-atlantia-ink/45">{{ $producto->codigo_barras ?: $producto->sku }}</p>
-                                    <p class="mt-0.5 truncate text-[10px] text-atlantia-ink/45">{{ $producto->categoria?->nombre ?? 'Sin categoria' }}</p>
-                                </div>
+                            <div class="hidden md:block">
+                                <p @class(['text-sm font-bold', 'text-rose-700' => $disponible <= 0, 'text-amber-700' => $disponible > 0 && $disponible <= $minimo, 'text-emerald-700' => $disponible > $minimo])>
+                                    {{ $disponible <= 0 ? 'Agotado' : ($disponible <= $minimo ? 'Quedan '.$disponible : $disponible.' disponibles') }}
+                                </p>
+                                @if ($reservado > 0)
+                                    <p class="text-xs text-atlantia-ink/45">{{ $reservado }} en pedidos</p>
+                                @endif
+                            </div>
 
-                                <div class="flex items-end justify-between gap-3 rounded-xl bg-atlantia-cream/45 px-2 py-1.5">
-                                    <div>
-                                        <p class="text-[9px] font-bold uppercase tracking-wide text-atlantia-ink/45">Precio</p>
-                                        <p class="text-[15px] font-black leading-tight text-atlantia-wine">Q{{ number_format((float) $displayPrice, 2) }}</p>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="text-[9px] font-bold uppercase tracking-wide text-atlantia-ink/45">Stock</p>
-                                        <p @class([
-                                            'text-xs font-black',
-                                            'text-emerald-700' => $stockActual > 10,
-                                            'text-amber-700' => $stockActual > 0 && $stockActual <= 10,
-                                            'text-rose-700' => $stockActual <= 0,
-                                        ])>{{ $stockActual }}</p>
-                                    </div>
-                                </div>
+                            <div class="hidden md:block">
+                                <span @class([
+                                    'inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1',
+                                    'bg-emerald-50 text-emerald-700 ring-emerald-200' => $producto->is_active && $producto->visible_catalogo,
+                                    'bg-amber-50 text-amber-800 ring-amber-200' => $producto->is_active && ! $producto->visible_catalogo,
+                                    'bg-slate-100 text-slate-600 ring-slate-200' => ! $producto->is_active,
+                                ]) data-estado-producto>{{ ! $producto->is_active ? 'Desactivado' : ($producto->visible_catalogo ? 'En la tienda' : 'Oculto') }}</span>
+                            </div>
 
-                                <div class="grid grid-cols-2 gap-1.5 border-t border-atlantia-rose/15 pt-2 text-[10px] font-black">
-                                    <button
-                                        type="button"
-                                        class="inline-flex items-center justify-center rounded-lg border border-atlantia-rose/20 bg-white px-1.5 py-1.5 text-atlantia-ink/70 transition hover:bg-atlantia-blush hover:text-atlantia-wine"
-                                        data-open-edit-product-modal="{{ $producto->uuid }}"
-                                    >
-                                        Editar
-                                    </button>
-                                    <form method="POST" action="{{ route('vendedor.productos.destroy', $producto->uuid) }}" onsubmit="return confirm('Deseas retirar este producto del catalogo?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="w-full rounded-lg border border-rose-200 bg-white px-1.5 py-1.5 text-rose-700 transition hover:bg-rose-50">
-                                            Retirar
+                            <div class="flex items-center justify-end gap-1.5">
+                                <button type="button" class="h-9 rounded-lg border border-atlantia-rose/25 px-3 text-xs font-bold text-atlantia-wine hover:bg-atlantia-blush" data-open-edit-product-modal="{{ $producto->uuid }}">Editar</button>
+                                <details class="relative" data-close-outside>
+                                    <summary class="grid h-9 w-9 cursor-pointer list-none place-items-center rounded-lg text-atlantia-ink/55 hover:bg-atlantia-blush hover:text-atlantia-wine [&::-webkit-details-marker]:hidden" aria-label="Más opciones de {{ $producto->nombre }}" title="Más opciones">
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+                                    </summary>
+                                    <div class="absolute right-0 top-full z-30 mt-1 w-64 rounded-xl border border-atlantia-rose/15 bg-white p-1.5 shadow-[0_18px_40px_rgba(42,16,24,0.18)]">
+                                        <button type="button" class="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-semibold text-atlantia-ink/80 hover:bg-atlantia-blush hover:text-atlantia-wine" data-print-product-label data-label-type="barcode" @foreach ($etiquetaDatos as $atributo => $valor) {{ $atributo }}="{{ $valor }}" @endforeach>
+                                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6v12M7 6v12M10 6v12M14 6v12M17 6v12M20 6v12"/></svg>
+                                            Imprimir código de barras
                                         </button>
-                                    </form>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-1.5">
-                                    <button
-                                        type="button"
-                                        class="inline-flex items-center justify-center gap-1 rounded-lg border border-atlantia-rose/20 bg-gradient-to-r from-white to-atlantia-cream/80 px-2 py-1.5 text-[9px] font-black leading-tight text-atlantia-wine transition hover:bg-atlantia-blush"
-                                        data-print-product-label
-                                        data-label-type="barcode"
-                                        data-product-name="{{ $producto->nombre }}"
-                                        data-product-sku="{{ $producto->sku }}"
-                                        data-product-barcode="{{ $producto->codigo_barras ?: $producto->sku }}"
-                                        data-product-price="Q{{ number_format((float) $displayPrice, 2) }}"
-                                        data-product-vendor="{{ $vendor?->business_name ?? $user?->name }}"
-                                        data-product-image="{{ $imageUrl }}"
-                                    >
-                                        <span class="text-sm leading-none">|||</span>
-                                        <span>Imprimir codigo</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="inline-flex items-center justify-center gap-1 rounded-lg border border-atlantia-rose/20 bg-gradient-to-r from-white to-atlantia-cream/80 px-2 py-1.5 text-[9px] font-black leading-tight text-atlantia-wine transition hover:bg-atlantia-blush"
-                                        data-print-product-label
-                                        data-label-type="price"
-                                        data-product-name="{{ $producto->nombre }}"
-                                        data-product-sku="{{ $producto->sku }}"
-                                        data-product-barcode="{{ $producto->codigo_barras ?: $producto->sku }}"
-                                        data-product-price="Q{{ number_format((float) $displayPrice, 2) }}"
-                                        data-product-vendor="{{ $vendor?->business_name ?? $user?->name }}"
-                                        data-product-image="{{ $imageUrl }}"
-                                    >
-                                        <span class="text-sm leading-none">◆</span>
-                                        <span>Imprimir precio</span>
-                                    </button>
-                                </div>
+                                        <button type="button" class="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-semibold text-atlantia-ink/80 hover:bg-atlantia-blush hover:text-atlantia-wine" data-print-product-label data-label-type="price" @foreach ($etiquetaDatos as $atributo => $valor) {{ $atributo }}="{{ $valor }}" @endforeach>
+                                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8L3 12Zm5-4h.01"/></svg>
+                                            Imprimir etiqueta de precio
+                                        </button>
+                                        <form method="POST" action="{{ route('vendedor.productos.destroy', $producto->uuid) }}" data-confirm="¿Retirar «{{ $producto->nombre }}» de tu tienda? Los clientes ya no lo verán." class="border-t border-atlantia-rose/10 pt-1">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50">
+                                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+                                                Retirar de la tienda
+                                            </button>
+                                        </form>
+                                    </div>
+                                </details>
                             </div>
-                        </article>
+                        </div>
 
+                        @php
+                            $stockActual = (int) ($producto->inventario?->stock_actual ?? 0);
+                            $stockReservado = (int) ($producto->inventario?->stock_reservado ?? 0);
+                        @endphp
                         <div
-                            class="fixed inset-0 z-[72] hidden items-start justify-center overflow-y-auto bg-slate-950/55 px-3 py-6 backdrop-blur-sm sm:py-10"
+                            class="fixed inset-0 z-[72] hidden items-center justify-center bg-slate-950/55 p-3 backdrop-blur-sm"
                             data-edit-product-modal="{{ $producto->uuid }}"
                             role="dialog"
                             aria-modal="true"
                             aria-labelledby="edit-product-title-{{ $producto->uuid }}"
+                            x-data="{ paso: 'producto', orden: ['producto', 'precio', 'fotos', 'publicar'], mover(d) { const i = this.orden.indexOf(this.paso) + d; if (i >= 0 && i < this.orden.length) this.paso = this.orden[i]; } }"
                         >
-                            <div class="w-full max-w-[92rem] overflow-hidden rounded-2xl border border-atlantia-rose/20 bg-white shadow-[0_28px_90px_rgba(33,25,32,0.28)]">
-                                <div class="flex items-start justify-between gap-3 px-6 pt-5">
-                                    <div class="flex items-start gap-6">
-                                        <span class="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-atlantia-wine text-white shadow-lg shadow-atlantia-wine/20">
-                                            <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                                <path d="M20 13 11 4 4 11l9 9 7-7Z"/><path d="M7.5 7.5h.01"/>
-                                            </svg>
-                                        </span>
-                                        <div>
-                                            <h2 id="edit-product-title-{{ $producto->uuid }}" class="text-3xl font-black leading-tight text-atlantia-ink">Editar producto</h2>
-                                            <p class="mt-1 text-base text-atlantia-ink/58">{{ $producto->nombre }}</p>
-                                        </div>
+                            <div class="flex max-h-[calc(100vh-1.5rem)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-atlantia-rose/20 bg-white shadow-[0_28px_90px_rgba(33,25,32,0.28)]">
+                                {{-- Encabezado --}}
+                                <div class="flex items-center justify-between gap-3 border-b border-atlantia-rose/10 px-5 py-3.5">
+                                    <div class="min-w-0">
+                                        <h2 id="edit-product-title-{{ $producto->uuid }}" class="text-xl font-black text-atlantia-ink">Editar producto</h2>
+                                        <p class="truncate text-sm text-atlantia-ink/55">{{ $producto->nombre }}</p>
                                     </div>
                                     <button type="button" class="rounded-lg p-2 text-atlantia-ink/50 transition hover:bg-atlantia-blush hover:text-atlantia-wine" data-close-edit-product-modal aria-label="Cerrar">
-                                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                            <path d="m6 6 12 12M18 6 6 18"/>
-                                        </svg>
+                                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
                                     </button>
                                 </div>
 
-                                <form method="POST" action="{{ route('vendedor.productos.update', $producto->uuid) }}" enctype="multipart/form-data">
+                                {{-- Pasos --}}
+                                <nav class="grid grid-cols-4 gap-1 border-b border-atlantia-rose/10 bg-atlantia-blush/20 px-3 py-2" aria-label="Secciones del producto">
+                                    @foreach ($pasosProducto as $clave => [$numero, $texto])
+                                        <button type="button" x-on:click="paso = @js($clave)"
+                                            @class(['flex items-center justify-center gap-2 rounded-lg px-2 py-2 text-sm font-bold transition', 'bg-white text-atlantia-wine shadow-sm' => $loop->first, 'text-atlantia-ink/55 hover:bg-white/60' => ! $loop->first])
+                                            :class="paso === @js($clave) ? 'bg-white text-atlantia-wine shadow-sm' : 'text-atlantia-ink/55 hover:bg-white/60'">
+                                            <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] font-black" :class="paso === @js($clave) ? 'bg-atlantia-wine text-white' : 'bg-atlantia-ink/10'">{{ $numero }}</span>
+                                            <span class="hidden sm:inline">{{ $texto }}</span>
+                                        </button>
+                                    @endforeach
+                                </nav>
+
+                                <form method="POST" action="{{ route('vendedor.productos.update', $producto->uuid) }}" enctype="multipart/form-data" class="flex min-h-0 flex-1 flex-col"
+                                    x-on:invalid.capture="const panel = $event.target.closest('[data-paso]'); if (panel) paso = panel.dataset.paso">
                                     @csrf
                                     @method('PUT')
-                                    <div class="max-h-[calc(100vh-12rem)] overflow-y-auto px-6 pb-4 pt-5">
-                                        <div class="mb-4 grid grid-cols-5 gap-5 border-b border-atlantia-rose/15 text-sm">
-                                            @foreach (['General', 'Precios', 'Inventario', 'Imagenes', 'Publicacion'] as $tab)
-                                                <span class="{{ $loop->first ? 'border-atlantia-wine text-atlantia-wine' : 'border-transparent text-atlantia-ink/58' }} flex items-center gap-2 border-b-2 px-2 pb-3 font-black">
-                                                    {{ $tab }}
-                                                </span>
-                                            @endforeach
+                                    <input type="hidden" name="precio_sin_iva" value="0">
+                                    <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+
+                                        {{-- 1. Producto --}}
+                                        <div data-paso="producto" class="space-y-3" :class="{ 'hidden': paso !== 'producto' }">
+                                            <div class="grid gap-3 sm:grid-cols-2">
+                                                <label class="block sm:col-span-2">
+                                                    <span class="text-xs font-bold text-atlantia-ink">Nombre del producto <span class="text-atlantia-wine">*</span></span>
+                                                    <input name="nombre" value="{{ $producto->nombre }}" class="{{ $inputBase }} {{ $inputNormal }}" required minlength="3" maxlength="180">
+                                                </label>
+                                                <label class="block">
+                                                    <span class="text-xs font-bold text-atlantia-ink">Categoría <span class="text-atlantia-wine">*</span></span>
+                                                    <select name="categoria_id" class="{{ $inputBase }} {{ $inputNormal }}" required>
+                                                        @foreach ($categorias as $categoria)
+                                                            <option value="{{ $categoria->id }}" @selected((int) $producto->categoria_id === (int) $categoria->id)>{{ $categoria->nombre }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </label>
+                                                <label class="block">
+                                                    <span class="text-xs font-bold text-atlantia-ink">Se vende por <span class="text-atlantia-wine">*</span></span>
+                                                    <select name="unidad_medida" class="{{ $inputBase }} {{ $inputNormal }}" required>
+                                                        @foreach (['unidad' => 'Unidad', 'libra' => 'Libra', 'kilogramo' => 'Kilogramo', 'gramo' => 'Gramo', 'litro' => 'Litro', 'mililitro' => 'Mililitro', 'paquete' => 'Paquete'] as $valor => $texto)
+                                                            <option value="{{ $valor }}" @selected($producto->unidad_medida === $valor)>{{ $texto }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </label>
+                                                <label class="block sm:col-span-2">
+                                                    <span class="text-xs font-bold text-atlantia-ink">Descripción <span class="font-normal text-atlantia-ink/45">(opcional)</span></span>
+                                                    <textarea name="descripcion" rows="3" maxlength="5000" class="{{ $inputBase }} {{ $inputNormal }}" placeholder="Cuéntale al cliente cómo es: tamaño, sabor, marca, para qué sirve...">{{ $producto->descripcion }}</textarea>
+                                                </label>
+                                            </div>
+                                            <div class="grid gap-3 rounded-xl bg-atlantia-blush/25 p-3 sm:grid-cols-2">
+                                                <label class="block">
+                                                    <span class="text-[11px] font-bold text-atlantia-ink/60">Código interno</span>
+                                                    {{-- Si no tiene código, no se envía el campo: así no bloquea guardar otros cambios. --}}
+                                                    <input @if (filled($producto->sku)) name="sku" required @else disabled placeholder="Sin código interno" @endif value="{{ $producto->sku }}" class="{{ $inputBase }} {{ $inputNormal }} bg-white/70 font-mono text-xs font-black uppercase tracking-wide text-atlantia-wine">
+                                                </label>
+                                                <label class="block">
+                                                    <span class="text-[11px] font-bold text-atlantia-ink/60">Código de barras</span>
+                                                    <input @if (filled($producto->codigo_barras)) name="codigo_barras" required @else disabled placeholder="Sin código de barras" @endif value="{{ $producto->codigo_barras }}" class="{{ $inputBase }} {{ $inputNormal }} bg-white/70 font-mono text-xs font-black tracking-[0.14em] text-atlantia-ink/70">
+                                                </label>
+                                            </div>
                                         </div>
 
-                                        <div class="grid gap-3 xl:grid-cols-[1.1fr_0.75fr]">
+                                        {{-- 2. Precio y cantidad --}}
+                                        <div data-paso="precio" class="hidden space-y-3" :class="{ 'hidden': paso !== 'precio' }">
+                                            <div class="grid gap-3 sm:grid-cols-2">
+                                                <label class="block">
+                                                    <span class="text-xs font-bold text-atlantia-ink">Precio de venta <span class="text-atlantia-wine">*</span> <span class="font-normal text-atlantia-ink/45">(lo que paga el cliente, con IVA)</span></span>
+                                                    <span class="relative mt-1 block"><span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-black text-atlantia-ink/45">Q</span><input name="precio_base" inputmode="decimal" value="{{ number_format((float) $producto->precio_base, 2, '.', '') }}" class="{{ $inputBase }} {{ $inputNormal }} !mt-0 pl-8" data-iva-input data-iva-modo="final" required></span>
+                                                    <span class="mt-1 block text-[11px] font-bold text-emerald-700" data-iva-output>Escribe el precio para ver el desglose</span>
+                                                </label>
+                                                <label class="block">
+                                                    <span class="text-xs font-bold text-atlantia-ink">Precio de oferta <span class="font-normal text-atlantia-ink/45">(opcional, con IVA)</span></span>
+                                                    <span class="relative mt-1 block"><span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-black text-atlantia-ink/45">Q</span><input name="precio_oferta" inputmode="decimal" value="{{ $producto->precio_oferta !== null ? number_format((float) $producto->precio_oferta, 2, '.', '') : '' }}" placeholder="Vacío si no hay oferta" class="{{ $inputBase }} {{ $inputNormal }} !mt-0 pl-8" data-iva-input data-iva-modo="final"></span>
+                                                    <span class="mt-1 block text-[11px] font-bold text-emerald-700" data-iva-output data-iva-empty="Sin oferta">Sin oferta</span>
+                                                </label>
+                                            </div>
+                                            <div class="grid gap-3 sm:grid-cols-3">
+                                                <label class="block">
+                                                    <span class="text-xs font-bold text-atlantia-ink">¿Cuántos tienes?</span>
+                                                    <input name="stock_actual" type="number" min="0" value="{{ $stockActual }}" class="{{ $inputBase }} {{ $inputNormal }}">
+                                                </label>
+                                                <label class="block">
+                                                    <span class="text-xs font-bold text-atlantia-ink">Avisarme cuando queden</span>
+                                                    <input name="stock_minimo" type="number" min="0" value="{{ (int) ($producto->inventario?->stock_minimo ?? 5) }}" class="{{ $inputBase }} {{ $inputNormal }}">
+                                                </label>
+                                                <label class="block">
+                                                    <span class="text-xs font-bold text-atlantia-ink">Máximo en bodega <span class="font-normal text-atlantia-ink/45">(opcional)</span></span>
+                                                    <input name="stock_maximo" type="number" min="0" value="{{ (int) ($producto->inventario?->stock_maximo ?? 100) }}" class="{{ $inputBase }} {{ $inputNormal }}">
+                                                </label>
+                                            </div>
+                                            @if ($stockReservado > 0)
+                                                <p class="rounded-xl bg-sky-50 px-4 py-2.5 text-xs text-sky-900">
+                                                    <strong>{{ $stockReservado }}</strong> {{ $stockReservado === 1 ? 'está apartado' : 'están apartados' }} en pedidos sin entregar. Puedes vender <strong>{{ max(0, $stockActual - $stockReservado) }}</strong> más.
+                                                </p>
+                                            @endif
+                                            <label class="block sm:max-w-xs">
+                                                <span class="text-xs font-bold text-atlantia-ink">Peso en gramos <span class="font-normal text-atlantia-ink/45">(opcional, ayuda al repartidor)</span></span>
+                                                <input name="peso_gramos" type="number" min="1" value="{{ $producto->peso_gramos }}" placeholder="Ej. 454" class="{{ $inputBase }} {{ $inputNormal }}">
+                                            </label>
+                                        </div>
+
+                                        {{-- 3. Fotos --}}
+                                        <div data-paso="fotos" class="hidden" :class="{ 'hidden': paso !== 'fotos' }">
                                             <div class="space-y-3">
-                                                <section class="rounded-xl border border-atlantia-rose/15 bg-white p-3 shadow-sm">
-                                                    <h3 class="text-sm font-black text-atlantia-wine">Informacion basica</h3>
-                                                    <div class="mt-3 grid gap-3 md:grid-cols-2">
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Categoria <span class="text-atlantia-wine">*</span></span>
-                                                            <select name="categoria_id" class="{{ $inputBase }} {{ $inputNormal }}" required>
-                                                                @foreach ($categorias as $categoria)
-                                                                    <option value="{{ $categoria->id }}" @selected((int) $producto->categoria_id === (int) $categoria->id)>{{ $categoria->nombre }}</option>
-                                                                @endforeach
-                                                            </select>
-                                                        </label>
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Nombre del producto <span class="text-atlantia-wine">*</span></span>
-                                                            <input name="nombre" value="{{ $producto->nombre }}" class="{{ $inputBase }} {{ $inputNormal }}" required>
-                                                        </label>
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Subcategoria</span>
-                                                            <select class="{{ $inputBase }} {{ $inputNormal }}">
-                                                                <option>Alimentos secos</option>
-                                                                <option>Producto refrigerado</option>
-                                                                <option>Producto general</option>
-                                                            </select>
-                                                        </label>
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Marca</span>
-                                                            <input placeholder="Marca o fabricante" value="{{ $producto->nombre }}" class="{{ $inputBase }} {{ $inputNormal }}">
-                                                            <span class="mt-1 block text-[11px] text-atlantia-ink/45">Marca o fabricante del producto.</span>
-                                                        </label>
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">SKU <span class="text-atlantia-wine">*</span></span>
-                                                            <input name="sku" value="{{ $producto->sku }}" class="{{ $inputBase }} {{ $inputNormal }} font-mono text-xs font-black uppercase tracking-wide text-atlantia-wine" required>
-                                                            <span class="mt-1 block text-[11px] text-atlantia-ink/45">Codigo unico interno para este producto.</span>
-                                                        </label>
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Unidad de medida <span class="text-atlantia-wine">*</span></span>
-                                                            <select name="unidad_medida" class="{{ $inputBase }} {{ $inputNormal }}" required>
-                                                                @foreach (['unidad', 'libra', 'kilogramo', 'gramo', 'litro', 'mililitro', 'paquete'] as $unidad)
-                                                                    <option value="{{ $unidad }}" @selected($producto->unidad_medida === $unidad)>{{ ucfirst($unidad) }}</option>
-                                                                @endforeach
-                                                            </select>
-                                                        </label>
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Codigo de barras <span class="text-atlantia-wine">*</span></span>
-                                                            <input name="codigo_barras" value="{{ $producto->codigo_barras }}" class="{{ $inputBase }} {{ $inputNormal }} font-mono text-xs font-black tracking-[0.16em] text-atlantia-ink/70" required>
-                                                            <span class="mt-1 block text-[11px] text-atlantia-ink/45">EAN/UPC del producto.</span>
-                                                        </label>
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Presentacion</span>
-                                                            <input value="1 {{ $producto->unidad_medida }}" class="{{ $inputBase }} {{ $inputNormal }}">
-                                                            <span class="mt-1 block text-[11px] text-atlantia-ink/45">Referencia visual; no se guarda como campo separado.</span>
-                                                        </label>
-                                                    </div>
-                                                </section>
-
-                                                <section class="rounded-xl border border-atlantia-rose/15 bg-white p-3 shadow-sm">
-                                                    <h3 class="text-sm font-black text-atlantia-wine">Descripcion</h3>
-                                                    <div class="mt-3 grid gap-3 md:grid-cols-2">
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Descripcion corta</span>
-                                                            <textarea name="descripcion" rows="3" maxlength="5000" class="{{ $inputBase }} {{ $inputNormal }}">{{ $producto->descripcion }}</textarea>
-                                                            <span class="mt-1 block text-[11px] text-atlantia-ink/45">Max. 160 caracteres sugeridos.</span>
-                                                        </label>
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Descripcion larga</span>
-                                                            <textarea rows="3" class="{{ $inputBase }} {{ $inputNormal }}" placeholder="Cuentales a tus clientes caracteristicas, beneficios y uso.">{{ $producto->descripcion }}</textarea>
-                                                            <span class="mt-1 block text-[11px] text-atlantia-ink/45">Referencia visual; usa la descripcion corta para guardar.</span>
-                                                        </label>
-                                                    </div>
-                                                </section>
-
-                                                <section class="rounded-xl border border-atlantia-rose/15 bg-white p-3 shadow-sm">
-                                                    <h3 class="text-sm font-black text-atlantia-wine">Imagenes</h3>
-                                                    <div class="mt-3 grid gap-3 md:grid-cols-[220px_1fr]">
-                                                        <label class="flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-atlantia-rose/45 bg-white px-4 py-4 text-center transition hover:border-atlantia-wine hover:bg-atlantia-blush/35">
-                                                            <svg class="h-7 w-7 text-atlantia-wine" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                                                <path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 20h16"/>
-                                                            </svg>
-                                                            <span class="mt-2 text-sm font-black text-atlantia-wine">Subir imagenes</span>
-                                                            <span class="mt-1 text-[11px] leading-4 text-atlantia-ink/55">Hasta 8 imagenes JPG, PNG o WEBP.</span>
-                                                            <input name="imagenes[]" type="file" accept="image/png,image/jpeg,image/webp" multiple class="sr-only" data-product-image-input>
-                                                        </label>
-                                                        <div>
-                                                            <div class="grid grid-cols-[repeat(auto-fill,minmax(90px,1fr))] gap-2">
-                                                                @forelse ($producto->imagenes as $imagen)
-                                                                    <div class="overflow-hidden rounded-lg border border-atlantia-rose/15 bg-atlantia-cream">
-                                                                        <img src="{{ \Illuminate\Support\Facades\Storage::url($imagen->path) }}" alt="{{ $imagen->alt_text }}" class="h-24 w-full object-cover">
-                                                                    </div>
-                                                                @empty
-                                                                    <div class="grid h-24 place-items-center rounded-lg border border-dashed border-atlantia-rose/25 text-xs text-atlantia-ink/45">Sin imagenes</div>
-                                                                @endforelse
-                                                            </div>
-                                                            <div class="mt-2 hidden grid-cols-[repeat(auto-fill,minmax(90px,1fr))] gap-2" data-product-image-preview></div>
+                                                @if ($producto->imagenes->isNotEmpty())
+                                                    <div>
+                                                        <p class="mb-2 text-xs font-bold text-atlantia-ink/60">Fotos actuales</p>
+                                                        <div class="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-2">
+                                                            @foreach ($producto->imagenes as $imagen)
+                                                                <div class="overflow-hidden rounded-lg border border-atlantia-rose/15 bg-atlantia-cream">
+                                                                    <img src="{{ \Illuminate\Support\Facades\Storage::url($imagen->path) }}" alt="{{ $imagen->alt_text }}" class="h-20 w-full object-cover">
+                                                                </div>
+                                                            @endforeach
                                                         </div>
                                                     </div>
-                                                </section>
+                                                @endif
+                                                <label class="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-atlantia-rose/40 bg-atlantia-blush/15 px-4 py-6 text-center transition hover:border-atlantia-wine hover:bg-atlantia-blush/35">
+                                                    <svg class="h-7 w-7 text-atlantia-wine" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 20h16"/></svg>
+                                                    <span class="mt-2 text-sm font-black text-atlantia-wine">{{ $producto->imagenes->isNotEmpty() ? 'Agregar más fotos' : 'Toca aquí para subir fotos' }}</span>
+                                                    <span class="mt-1 text-xs text-atlantia-ink/55">Hasta 8 fotos (JPG, PNG o WEBP, máximo 5 MB cada una).</span>
+                                                    <input name="imagenes[]" type="file" accept="image/png,image/jpeg,image/webp" multiple class="sr-only" data-product-image-input>
+                                                </label>
+                                                <div class="hidden grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-2" data-product-image-preview></div>
                                             </div>
+                                        </div>
 
-                                            <div class="space-y-3">
-                                                <section class="rounded-xl border border-atlantia-rose/15 bg-white p-3 shadow-sm">
-                                                    <h3 class="text-sm font-black text-atlantia-wine">Precios</h3>
-                                                    <div class="mt-3 grid gap-3 sm:grid-cols-3">
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Precio base Q <span class="text-atlantia-wine">*</span></span>
-                                                            <input name="precio_base" inputmode="decimal" value="{{ number_format((float) $producto->precio_base, 2, '.', '') }}" class="{{ $inputBase }} {{ $inputNormal }}" required>
-                                                        </label>
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Precio oferta Q</span>
-                                                            <input name="precio_oferta" inputmode="decimal" value="{{ $producto->precio_oferta !== null ? number_format((float) $producto->precio_oferta, 2, '.', '') : '' }}" placeholder="Opcional" class="{{ $inputBase }} {{ $inputNormal }}">
-                                                            <span class="mt-1 block text-[11px] text-atlantia-ink/45">Dejar vacio si no hay oferta.</span>
-                                                        </label>
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Costo interno Q</span>
-                                                            <input inputmode="decimal" placeholder="12.00" class="{{ $inputBase }} {{ $inputNormal }}">
-                                                            <span class="mt-1 block text-[11px] text-atlantia-ink/45">Solo visible para ti.</span>
-                                                        </label>
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Inicio oferta</span>
-                                                            <input type="date" class="{{ $inputBase }} {{ $inputNormal }}">
-                                                        </label>
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Fin oferta</span>
-                                                            <input type="date" class="{{ $inputBase }} {{ $inputNormal }}">
-                                                        </label>
-                                                        <div class="rounded-lg border border-atlantia-rose/15 bg-atlantia-cream/45 p-3 sm:col-span-3">
-                                                            <p class="text-sm font-black text-atlantia-wine">Margen estimado: <span class="text-emerald-700">52.0%</span></p>
-                                                            <p class="mt-1 text-[11px] text-atlantia-ink/55">Basado en precio base y costo interno.</p>
-                                                        </div>
-                                                    </div>
-                                                </section>
-
-                                                <section class="rounded-xl border border-atlantia-rose/15 bg-white p-3 shadow-sm">
-                                                    <h3 class="text-sm font-black text-atlantia-wine">Inventario</h3>
-                                                    <div class="mt-3 grid gap-3 sm:grid-cols-3">
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Stock actual</span>
-                                                            <input name="stock_actual" type="number" min="0" value="{{ (int) ($producto->inventario?->stock_actual ?? 0) }}" class="{{ $inputBase }} {{ $inputNormal }}">
-                                                        </label>
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Stock minimo</span>
-                                                            <input name="stock_minimo" type="number" min="0" value="{{ (int) ($producto->inventario?->stock_minimo ?? 5) }}" class="{{ $inputBase }} {{ $inputNormal }}">
-                                                        </label>
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Stock maximo</span>
-                                                            <input name="stock_maximo" type="number" min="0" value="{{ (int) ($producto->inventario?->stock_maximo ?? 100) }}" class="{{ $inputBase }} {{ $inputNormal }}">
-                                                        </label>
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Stock reservado</span>
-                                                            <input type="number" value="{{ (int) ($producto->inventario?->stock_reservado ?? 0) }}" class="{{ $inputBase }} {{ $inputNormal }}" readonly>
-                                                        </label>
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Stock disponible</span>
-                                                            <input type="number" value="{{ max(0, (int) ($producto->inventario?->stock_actual ?? 0) - (int) ($producto->inventario?->stock_reservado ?? 0)) }}" class="{{ $inputBase }} border-emerald-200 bg-emerald-50 text-emerald-700" readonly>
-                                                        </label>
-                                                        <label class="block">
-                                                            <span class="text-xs font-bold text-atlantia-ink">Ubicacion interna</span>
-                                                            <input placeholder="Estante A3" class="{{ $inputBase }} {{ $inputNormal }}">
-                                                        </label>
-                                                    </div>
-                                                </section>
-
-                                                <section class="rounded-xl border border-atlantia-rose/15 bg-white p-3 shadow-sm">
-                                                    <h3 class="text-sm font-black text-atlantia-wine">Publicacion y operacion</h3>
-                                                    <div class="mt-3 grid gap-x-4 gap-y-3 sm:grid-cols-2">
-                                                        <input type="hidden" name="is_active" value="0">
-                                                        <input type="hidden" name="visible_catalogo" value="0">
-                                                        <input type="hidden" name="requiere_refrigeracion" value="0">
-                                                        @foreach ([
-                                                            ['name' => 'is_active', 'checked' => $producto->is_active, 'label' => 'Activo', 'hint' => 'El producto esta activo.'],
-                                                            ['name' => 'visible_catalogo', 'checked' => $producto->visible_catalogo, 'label' => 'Visible en catalogo', 'hint' => 'Los clientes pueden verlo.'],
-                                                            ['name' => 'requiere_refrigeracion', 'checked' => $producto->requiere_refrigeracion, 'label' => 'Requiere refrigeracion', 'hint' => 'Mantener temperatura controlada.'],
-                                                        ] as $toggle)
-                                                            <label class="flex items-start gap-2">
-                                                                <input type="checkbox" name="{{ $toggle['name'] }}" value="1" @checked($toggle['checked']) class="peer sr-only">
-                                                                <span class="mt-0.5 flex h-4 w-8 shrink-0 items-center rounded-full bg-slate-200 p-0.5 transition peer-checked:bg-atlantia-wine peer-checked:[&>span]:translate-x-4">
-                                                                    <span class="h-3 w-3 rounded-full bg-white shadow transition"></span>
-                                                                </span>
-                                                                <span class="min-w-0">
-                                                                    <span class="block text-[11px] font-black leading-4 text-atlantia-ink">{{ $toggle['label'] }}</span>
-                                                                    <span class="block text-[10px] leading-3 text-atlantia-ink/48">{{ $toggle['hint'] }}</span>
-                                                                </span>
-                                                            </label>
-                                                        @endforeach
-                                                        <label class="flex items-start gap-2 opacity-80">
-                                                            <input type="checkbox" disabled class="peer sr-only">
-                                                            <span class="mt-0.5 flex h-4 w-8 shrink-0 items-center rounded-full bg-slate-200 p-0.5 transition peer-checked:bg-atlantia-wine peer-checked:[&>span]:translate-x-4"><span class="h-3 w-3 rounded-full bg-white shadow transition"></span></span>
-                                                            <span><span class="block text-[11px] font-black leading-4 text-atlantia-ink">Producto destacado</span><span class="block text-[10px] leading-3 text-atlantia-ink/48">Aparecer en destacados.</span></span>
-                                                        </label>
-                                                    </div>
-                                                </section>
-                                            </div>
+                                        {{-- 4. Publicar --}}
+                                        <div data-paso="publicar" class="hidden space-y-2" :class="{ 'hidden': paso !== 'publicar' }">
+                                            @foreach ([
+                                                ['is_active', 'Producto activo', 'Puedes venderlo. Desactívalo si ya no lo tienes.', $producto->is_active],
+                                                ['visible_catalogo', 'Mostrar en la tienda', 'Los clientes lo ven en tu tienda y en el catálogo.', $producto->visible_catalogo],
+                                                ['requiere_refrigeracion', 'Necesita refrigeración', 'El repartidor lo llevará con cuidado de la temperatura.', $producto->requiere_refrigeracion],
+                                            ] as [$campo, $titulo, $ayuda, $marcado])
+                                                <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-atlantia-rose/15 px-4 py-3 transition hover:bg-atlantia-blush/20">
+                                                    <input type="hidden" name="{{ $campo }}" value="0">
+                                                    <input type="checkbox" name="{{ $campo }}" value="1" @checked($marcado) class="peer sr-only">
+                                                    <span class="flex h-5 w-9 shrink-0 items-center rounded-full bg-slate-200 p-0.5 transition peer-checked:bg-atlantia-wine peer-checked:[&>span]:translate-x-4">
+                                                        <span class="h-4 w-4 rounded-full bg-white shadow transition"></span>
+                                                    </span>
+                                                    <span class="min-w-0">
+                                                        <span class="block text-sm font-black text-atlantia-ink">{{ $titulo }}</span>
+                                                        <span class="block text-xs text-atlantia-ink/55">{{ $ayuda }}</span>
+                                                    </span>
+                                                </label>
+                                            @endforeach
                                         </div>
                                     </div>
 
-                                    <div class="flex flex-col-reverse gap-2 border-t border-atlantia-rose/15 bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-                                        <button type="button" class="rounded-lg border border-atlantia-rose/30 bg-white px-6 py-2.5 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush" data-close-edit-product-modal>
-                                            Cancelar
-                                        </button>
-                                        <div class="flex flex-col-reverse gap-2 sm:flex-row">
-                                            <button type="button" class="rounded-lg border border-atlantia-rose/30 bg-white px-6 py-2.5 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                                                Guardar borrador
-                                            </button>
-                                            <button type="submit" class="rounded-lg bg-atlantia-wine px-8 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-atlantia-wine-700">
-                                                Guardar cambios
-                                            </button>
+                                    {{-- Botones siempre visibles --}}
+                                    <div class="flex items-center justify-between gap-2 border-t border-atlantia-rose/10 bg-white px-5 py-3">
+                                        <button type="button" class="rounded-lg px-3 py-2 text-sm font-black text-atlantia-ink/55 hover:bg-atlantia-blush/40 hover:text-atlantia-wine" data-close-edit-product-modal>Cancelar</button>
+                                        <div class="flex items-center gap-2">
+                                            <button type="button" x-on:click="mover(-1)" x-show="paso !== 'producto'" class="rounded-lg border border-atlantia-rose/30 bg-white px-4 py-2 text-sm font-black text-atlantia-wine hover:bg-atlantia-blush">← Anterior</button>
+                                            <button type="button" x-on:click="mover(1)" x-show="paso !== 'publicar'" class="rounded-lg border border-atlantia-rose/30 bg-white px-4 py-2 text-sm font-black text-atlantia-wine hover:bg-atlantia-blush">Siguiente →</button>
+                                            <button type="submit" class="rounded-lg bg-atlantia-wine px-5 py-2 text-sm font-black text-white shadow-sm transition hover:bg-atlantia-wine-700">Guardar cambios</button>
                                         </div>
                                     </div>
                                 </form>
                             </div>
                         </div>
                     @empty
-                        <div class="col-span-full rounded-2xl border border-dashed border-atlantia-rose/30 bg-atlantia-cream/60 px-6 py-12 text-center">
-                            <p class="text-lg font-black text-atlantia-ink">No hay productos con estos filtros.</p>
-                            <p class="mt-1 text-sm text-atlantia-ink/60">Limpia los filtros o crea un nuevo producto para activar tu catalogo.</p>
-                            <button type="button" class="mt-5 rounded-lg bg-atlantia-wine px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-atlantia-wine-700" data-open-create-product-modal>
-                                Crear producto
-                            </button>
+                        <div class="px-6 py-14 text-center">
+                            @if ($activeFilters->isNotEmpty())
+                                <p class="text-base font-black text-atlantia-ink">No hay productos con estos filtros</p>
+                                <p class="mt-1 text-sm text-atlantia-ink/60">Prueba con otra búsqueda o <a href="{{ route('vendedor.productos.index') }}" class="font-bold text-atlantia-wine hover:underline">quita los filtros</a>.</p>
+                            @else
+                                <p class="text-base font-black text-atlantia-ink">Aún no tienes productos</p>
+                                <p class="mt-1 text-sm text-atlantia-ink/60">Crea el primero o súbelos todos de una vez con la carga masiva.</p>
+                                <button type="button" class="mt-4 h-10 rounded-lg bg-atlantia-wine px-5 text-sm font-bold text-white hover:bg-atlantia-wine-700" data-open-create-product-modal @disabled(! $puedeCrear)>Crear producto</button>
+                            @endif
                         </div>
                     @endforelse
                 </div>
 
-                <div class="mt-5">
-                    {{ $productos->links() }}
-                </div>
+                @if ($productos->hasPages())
+                    <div class="border-t border-atlantia-rose/10 px-4 py-3">
+                        {{ $productos->links() }}
+                    </div>
+                @endif
             </div>
         </article>
     </section>
 
+    @php
+        /* Si el servidor devolvió errores, se abre la pestaña donde está el primero. */
+        $pasoInicial = match (true) {
+            $errors->hasAny(['categoria_id', 'nombre', 'sku', 'codigo_barras', 'descripcion', 'unidad_medida']) => 'producto',
+            $errors->hasAny(['precio_base', 'precio_oferta', 'stock_actual', 'stock_minimo', 'stock_maximo', 'peso_gramos']) => 'precio',
+            $errors->hasAny(['imagenes', 'imagenes.*']) => 'fotos',
+            default => 'producto',
+        };
+    @endphp
+
     <div
-        class="{{ $showCreateModal ? 'flex' : 'hidden' }} fixed inset-0 z-[70] items-start justify-center overflow-y-auto bg-slate-950/55 px-3 py-6 backdrop-blur-sm sm:py-10"
+        class="{{ $showCreateModal ? 'flex' : 'hidden' }} fixed inset-0 z-[70] items-center justify-center bg-slate-950/55 p-3 backdrop-blur-sm"
         data-create-product-modal
         role="dialog"
         aria-modal="true"
         aria-labelledby="create-product-title"
+        x-data="{ paso: @js($pasoInicial), orden: @js(array_keys($pasosProducto)), mover(d) { const i = this.orden.indexOf(this.paso) + d; if (i >= 0 && i < this.orden.length) this.paso = this.orden[i]; } }"
     >
-        <div class="w-full max-w-[92rem] overflow-hidden rounded-2xl border border-atlantia-rose/20 bg-white shadow-[0_28px_90px_rgba(33,25,32,0.28)]">
-            <div class="flex items-start justify-between gap-3 px-6 pt-5">
-                <div class="flex items-start gap-6">
-                    <span class="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-atlantia-wine text-white shadow-lg shadow-atlantia-wine/25">
-                        <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M20 13 11 4 4 11l9 9 7-7Z"/><path d="M7.5 7.5h.01"/>
-                        </svg>
-                    </span>
-                    <div>
-                        <h2 id="create-product-title" class="text-3xl font-black leading-tight text-atlantia-ink">Crear producto</h2>
-                        <p class="mt-1 text-base text-atlantia-ink/58" data-product-modal-subtitle>Nuevo producto</p>
-                    </div>
+        <div class="flex max-h-[calc(100vh-1.5rem)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-atlantia-rose/20 bg-white shadow-[0_28px_90px_rgba(33,25,32,0.28)]">
+            {{-- Encabezado --}}
+            <div class="flex items-center justify-between gap-3 border-b border-atlantia-rose/10 px-5 py-3.5">
+                <div class="min-w-0">
+                    <h2 id="create-product-title" class="text-xl font-black text-atlantia-ink">Nuevo producto</h2>
+                    <p class="truncate text-sm text-atlantia-ink/55" data-product-modal-subtitle>Nuevo producto</p>
                 </div>
                 <button type="button" class="rounded-lg p-2 text-atlantia-ink/50 transition hover:bg-atlantia-blush hover:text-atlantia-wine" data-close-create-product-modal aria-label="Cerrar">
-                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <path d="m6 6 12 12M18 6 6 18"/>
-                    </svg>
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
                 </button>
             </div>
 
-            <div class="border-b border-atlantia-rose/15 px-6 pt-4">
-                <nav class="flex flex-wrap gap-8 text-sm font-bold text-atlantia-ink/62" aria-label="Secciones del producto">
-                    <span class="inline-flex items-center gap-2 border-b-2 border-atlantia-wine px-1 pb-3 text-atlantia-wine">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="m9 12 2 2 4-5"/></svg>
-                        General
-                    </span>
-                    <span class="inline-flex items-center gap-2 px-1 pb-3">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13 11 4 4 11l9 9 7-7Z"/><path d="M7.5 7.5h.01"/></svg>
-                        Precios
-                    </span>
-                    <span class="inline-flex items-center gap-2 px-1 pb-3">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 8 4.5-8 4.5-8-4.5L12 3Z"/><path d="M4 7.5v9L12 21l8-4.5v-9"/></svg>
-                        Inventario
-                    </span>
-                    <span class="inline-flex items-center gap-2 px-1 pb-3">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 16 5-5 4 4 2-2 7 7"/></svg>
-                        Imagenes
-                    </span>
-                    <span class="inline-flex items-center gap-2 px-1 pb-3">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                        Publicacion
-                    </span>
-                </nav>
-            </div>
+            {{-- Pasos --}}
+            <nav class="grid grid-cols-4 gap-1 border-b border-atlantia-rose/10 bg-atlantia-blush/20 px-3 py-2" aria-label="Secciones del producto">
+                @foreach ($pasosProducto as $clave => [$numero, $texto])
+                    <button type="button" x-on:click="paso = @js($clave)"
+                        @class(['flex items-center justify-center gap-2 rounded-lg px-2 py-2 text-sm font-bold transition', 'bg-white text-atlantia-wine shadow-sm' => $clave === $pasoInicial, 'text-atlantia-ink/55 hover:bg-white/60' => $clave !== $pasoInicial])
+                        :class="paso === @js($clave) ? 'bg-white text-atlantia-wine shadow-sm' : 'text-atlantia-ink/55 hover:bg-white/60'">
+                        <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] font-black" :class="paso === @js($clave) ? 'bg-atlantia-wine text-white' : 'bg-atlantia-ink/10'">{{ $numero }}</span>
+                        <span class="hidden sm:inline">{{ $texto }}</span>
+                    </button>
+                @endforeach
+            </nav>
 
-            <form method="POST" action="{{ route('vendedor.productos.store') }}" enctype="multipart/form-data">
+            <form method="POST" action="{{ route('vendedor.productos.store') }}" enctype="multipart/form-data" class="flex min-h-0 flex-1 flex-col"
+                x-on:invalid.capture="const panel = $event.target.closest('[data-paso]'); if (panel) paso = panel.dataset.paso"
+                x-on:keydown.enter="if (paso !== 'publicar' && $event.target.tagName !== 'TEXTAREA') { $event.preventDefault(); mover(1); }">
                 @csrf
-                <fieldset @disabled(! $puedeCrear) class="px-5 py-4">
-                    <div class="grid gap-3 xl:grid-cols-[1.2fr_0.85fr]">
-                        <div class="space-y-3">
-                            <section class="rounded-xl border border-atlantia-rose/15 bg-white p-3 shadow-sm">
-                                <div class="flex items-center gap-2">
-                                    <span class="grid h-8 w-8 place-items-center rounded-lg bg-atlantia-blush text-atlantia-wine">
-                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                            <path d="M5 3v18l2-1 2 1 2-1 2 1 2-1 2 1 2-1V3Z"/><path d="M8 7h8"/><path d="M8 11h8"/>
-                                        </svg>
-                                    </span>
-                                    <h3 class="text-sm font-black text-atlantia-wine">Informacion basica</h3>
-                                </div>
+                <input type="hidden" name="precio_sin_iva" value="0">
+                <fieldset @disabled(! $puedeCrear) class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
 
-                                <div class="mt-3 grid gap-3 md:grid-cols-2">
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Categoria <span class="text-atlantia-wine">*</span></span>
-                                        <select name="categoria_id" class="{{ $inputBase }} {{ $errors->has('categoria_id') ? $inputError : $inputNormal }}" required>
-                                            <option value="">Selecciona una categoria</option>
-                                            @foreach ($categorias as $categoria)
-                                                <option value="{{ $categoria->id }}" @selected((string) old('categoria_id') === (string) $categoria->id)>{{ $categoria->nombre }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('categoria_id') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Nombre del producto <span class="text-atlantia-wine">*</span></span>
-                                        <input name="nombre" value="{{ old('nombre') }}" placeholder="Ej. Naruto" class="{{ $inputBase }} {{ $errors->has('nombre') ? $inputError : $inputNormal }}" data-product-name required>
-                                        @error('nombre') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Subcategoria</span>
-                                        <select class="{{ $inputBase }} {{ $inputNormal }}">
-                                            <option>Alimentos secos</option>
-                                            <option>Producto refrigerado</option>
-                                            <option>Producto general</option>
-                                        </select>
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Marca</span>
-                                        <input placeholder="Marca o fabricante" class="{{ $inputBase }} {{ $inputNormal }}">
-                                        <span class="mt-1 block text-[11px] text-atlantia-ink/45">Marca o fabricante del producto.</span>
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">SKU automatico <span class="text-atlantia-wine">*</span></span>
-                                        <input name="sku" value="{{ old('sku') }}" placeholder="Se genera al escribir el nombre" class="{{ $inputBase }} {{ $errors->has('sku') ? $inputError : $inputNormal }} font-mono text-xs font-black uppercase tracking-wide text-atlantia-wine" data-product-sku required readonly>
-                                        <span class="mt-1 block text-[11px] text-atlantia-ink/45">Codigo unico interno para este producto.</span>
-                                        @error('sku') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Unidad de medida <span class="text-atlantia-wine">*</span></span>
-                                        <select name="unidad_medida" class="{{ $inputBase }} {{ $inputNormal }}" required>
-                                            @foreach (['unidad', 'libra', 'kilogramo', 'gramo', 'litro', 'mililitro', 'paquete'] as $unidad)
-                                                <option value="{{ $unidad }}" @selected(old('unidad_medida', 'unidad') === $unidad)>{{ ucfirst($unidad) }}</option>
-                                            @endforeach
-                                        </select>
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Codigo de barras automatico <span class="text-atlantia-wine">*</span></span>
-                                        <input name="codigo_barras" value="{{ old('codigo_barras') }}" placeholder="Se genera al escribir el nombre" class="{{ $inputBase }} {{ $errors->has('codigo_barras') ? $inputError : $inputNormal }} font-mono text-xs font-black tracking-[0.16em] text-atlantia-ink/70" data-product-barcode required readonly>
-                                        <span class="mt-1 block text-[11px] text-atlantia-ink/45">EAN/UPC generado automaticamente.</span>
-                                        @error('codigo_barras') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Presentacion</span>
-                                        <input value="{{ old('presentacion') }}" placeholder="Ej. 1 unidad" class="{{ $inputBase }} {{ $inputNormal }}" data-product-presentation>
-                                        <span class="mt-1 block text-[11px] text-atlantia-ink/45">Texto de referencia visual; no se guarda como campo separado.</span>
-                                    </label>
-                                </div>
-                            </section>
-
-                            <section class="rounded-xl border border-atlantia-rose/15 bg-white p-3 shadow-sm">
-                                <div class="flex items-center gap-2">
-                                    <span class="grid h-8 w-8 place-items-center rounded-lg bg-atlantia-blush text-atlantia-wine">
-                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                            <path d="M4 19V5"/><path d="M4 19h16"/><path d="m7 15 4-4 3 3 5-7"/>
-                                        </svg>
-                                    </span>
-                                    <h3 class="text-sm font-black text-atlantia-wine">Descripcion</h3>
-                                </div>
-                                <div class="mt-3 grid gap-3 md:grid-cols-2">
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Descripcion corta</span>
-                                        <textarea name="descripcion" rows="3" maxlength="5000" class="{{ $inputBase }} {{ $errors->has('descripcion') ? $inputError : $inputNormal }}" placeholder="Describe origen, presentacion y calidad.">{{ old('descripcion') }}</textarea>
-                                        <span class="mt-1 block text-[11px] text-atlantia-ink/45">Max. 160 caracteres sugeridos.</span>
-                                        @error('descripcion') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Descripcion larga</span>
-                                        <textarea rows="3" class="{{ $inputBase }} {{ $inputNormal }}" placeholder="Cuentales a tus clientes caracteristicas, beneficios y uso."></textarea>
-                                        <span class="mt-1 block text-[11px] text-atlantia-ink/45">Referencia visual; usa la descripcion corta para guardar.</span>
-                                    </label>
-                                </div>
-                            </section>
-
-                            <section class="rounded-xl border border-atlantia-rose/15 bg-white p-3 shadow-sm">
-                                <div class="flex items-center gap-2">
-                                    <span class="grid h-8 w-8 place-items-center rounded-lg bg-atlantia-blush text-atlantia-wine">
-                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                            <rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 16 5-5 4 4 2-2 7 7"/>
-                                        </svg>
-                                    </span>
-                                    <h3 class="text-sm font-black text-atlantia-wine">Imagenes</h3>
-                                </div>
-                                <div class="mt-3 grid gap-3 md:grid-cols-[220px_1fr]">
-                                    <label class="flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-atlantia-rose/45 bg-white px-4 py-4 text-center transition hover:border-atlantia-wine hover:bg-atlantia-blush/35">
-                                        <svg class="h-7 w-7 text-atlantia-wine" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                            <path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 20h16"/>
-                                        </svg>
-                                        <span class="mt-2 text-sm font-black text-atlantia-wine">Subir imagenes</span>
-                                        <span class="mt-1 text-[11px] leading-4 text-atlantia-ink/55">Hasta 8 imagenes JPG, PNG o WEBP. Maximo 5 MB cada una.</span>
-                                        <input name="imagenes[]" type="file" accept="image/png,image/jpeg,image/webp" multiple class="sr-only" data-product-image-input>
-                                    </label>
-                                    <div class="hidden grid-cols-[repeat(auto-fill,minmax(90px,1fr))] gap-2" data-product-image-preview></div>
-                                </div>
-                                @error('imagenes') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                                @error('imagenes.*') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                            </section>
+                    {{-- 1. Producto --}}
+                    <div data-paso="producto" @class(['space-y-3', 'hidden' => $pasoInicial !== 'producto']) :class="{ 'hidden': paso !== 'producto' }">
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <label class="block sm:col-span-2">
+                                <span class="text-xs font-bold text-atlantia-ink">Nombre del producto <span class="text-atlantia-wine">*</span></span>
+                                <input name="nombre" value="{{ old('nombre') }}" placeholder="Ej. Arroz blanco 1 libra" class="{{ $inputBase }} {{ $errors->has('nombre') ? $inputError : $inputNormal }}" data-product-name required minlength="3" maxlength="180">
+                                @error('nombre') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
+                            </label>
+                            <label class="block">
+                                <span class="text-xs font-bold text-atlantia-ink">Categoría <span class="text-atlantia-wine">*</span></span>
+                                <select name="categoria_id" class="{{ $inputBase }} {{ $errors->has('categoria_id') ? $inputError : $inputNormal }}" required>
+                                    <option value="">Elige una categoría</option>
+                                    @foreach ($categorias as $categoria)
+                                        <option value="{{ $categoria->id }}" @selected((string) old('categoria_id') === (string) $categoria->id)>{{ $categoria->nombre }}</option>
+                                    @endforeach
+                                </select>
+                                @error('categoria_id') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
+                            </label>
+                            <label class="block">
+                                <span class="text-xs font-bold text-atlantia-ink">Se vende por <span class="text-atlantia-wine">*</span></span>
+                                <select name="unidad_medida" class="{{ $inputBase }} {{ $inputNormal }}" required>
+                                    @foreach (['unidad' => 'Unidad', 'libra' => 'Libra', 'kilogramo' => 'Kilogramo', 'gramo' => 'Gramo', 'litro' => 'Litro', 'mililitro' => 'Mililitro', 'paquete' => 'Paquete'] as $valor => $texto)
+                                        <option value="{{ $valor }}" @selected(old('unidad_medida', 'unidad') === $valor)>{{ $texto }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                            <label class="block sm:col-span-2">
+                                <span class="text-xs font-bold text-atlantia-ink">Descripción <span class="font-normal text-atlantia-ink/45">(opcional)</span></span>
+                                <textarea name="descripcion" rows="3" maxlength="5000" class="{{ $inputBase }} {{ $errors->has('descripcion') ? $inputError : $inputNormal }}" placeholder="Cuéntale al cliente cómo es: tamaño, sabor, marca, para qué sirve...">{{ old('descripcion') }}</textarea>
+                                @error('descripcion') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
+                            </label>
                         </div>
-
-                        <div class="space-y-3">
-                            <section class="rounded-xl border border-atlantia-rose/15 bg-white p-3 shadow-sm">
-                                <div class="flex items-center gap-2">
-                                    <span class="grid h-8 w-8 place-items-center rounded-lg bg-atlantia-blush text-atlantia-wine">
-                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                            <path d="M20 13 11 4 4 11l9 9 7-7Z"/><path d="M7.5 7.5h.01"/>
-                                        </svg>
-                                    </span>
-                                    <h3 class="text-sm font-black text-atlantia-wine">Precios</h3>
-                                </div>
-                                <div class="mt-3 grid gap-3 sm:grid-cols-3">
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Precio base Q <span class="text-atlantia-wine">*</span></span>
-                                        <input name="precio_base" inputmode="decimal" value="{{ old('precio_base') }}" placeholder="25.00" class="{{ $inputBase }} {{ $errors->has('precio_base') ? $inputError : $inputNormal }}" data-price-base required>
-                                        @error('precio_base') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Precio oferta Q</span>
-                                        <input name="precio_oferta" inputmode="decimal" value="{{ old('precio_oferta') }}" placeholder="Opcional" class="{{ $inputBase }} {{ $errors->has('precio_oferta') ? $inputError : $inputNormal }}">
-                                        <span class="mt-1 block text-[11px] text-atlantia-ink/45">Dejar vacio si no hay oferta.</span>
-                                        @error('precio_oferta') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Costo interno Q</span>
-                                        <input inputmode="decimal" placeholder="12.00" class="{{ $inputBase }} {{ $inputNormal }}">
-                                        <span class="mt-1 block text-[11px] text-atlantia-ink/45">Solo visible para ti.</span>
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Inicio oferta</span>
-                                        <input type="date" class="{{ $inputBase }} {{ $inputNormal }}">
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Fin oferta</span>
-                                        <input type="date" class="{{ $inputBase }} {{ $inputNormal }}">
-                                    </label>
-                                    <div class="rounded-lg border border-atlantia-rose/15 bg-atlantia-cream/45 p-3 sm:col-span-3">
-                                        <p class="text-sm font-black text-atlantia-wine">Margen estimado: <span class="text-emerald-700">52.0%</span></p>
-                                        <p class="mt-1 text-[11px] text-atlantia-ink/55">Basado en precio base y costo interno.</p>
-                                    </div>
-                                </div>
-                            </section>
-
-                            <section class="rounded-xl border border-atlantia-rose/15 bg-white p-3 shadow-sm">
-                                <div class="flex items-center gap-2">
-                                    <span class="grid h-8 w-8 place-items-center rounded-lg bg-atlantia-blush text-atlantia-wine">
-                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                            <path d="m12 3 8 4.5-8 4.5-8-4.5L12 3Z"/><path d="M4 7.5v9L12 21l8-4.5v-9"/>
-                                        </svg>
-                                    </span>
-                                    <h3 class="text-sm font-black text-atlantia-wine">Inventario</h3>
-                                </div>
-                                <div class="mt-3 grid gap-3 sm:grid-cols-3">
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Stock actual <span class="text-atlantia-wine">*</span></span>
-                                        <input name="stock_actual" type="number" min="0" value="{{ old('stock_actual', 0) }}" class="{{ $inputBase }} {{ $errors->has('stock_actual') ? $inputError : $inputNormal }}" required>
-                                        @error('stock_actual') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Stock minimo <span class="text-atlantia-wine">*</span></span>
-                                        <input name="stock_minimo" type="number" min="0" value="{{ old('stock_minimo', 5) }}" class="{{ $inputBase }} {{ $errors->has('stock_minimo') ? $inputError : $inputNormal }}" required>
-                                        @error('stock_minimo') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Stock maximo</span>
-                                        <input name="stock_maximo" type="number" min="0" value="{{ old('stock_maximo', 100) }}" class="{{ $inputBase }} {{ $errors->has('stock_maximo') ? $inputError : $inputNormal }}">
-                                        <span class="mt-1 block text-[11px] text-atlantia-ink/45">Max. sugerido para reposicion.</span>
-                                        @error('stock_maximo') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Stock reservado</span>
-                                        <input type="number" value="0" class="{{ $inputBase }} {{ $inputNormal }}" readonly>
-                                        <span class="mt-1 block text-[11px] text-atlantia-ink/45">Pedidos pendientes.</span>
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Stock disponible</span>
-                                        <input type="number" value="{{ old('stock_actual', 0) }}" class="{{ $inputBase }} border-emerald-200 bg-emerald-50 text-emerald-700" data-stock-available readonly>
-                                        <span class="mt-1 block text-[11px] text-atlantia-ink/45">Lo que puedes vender.</span>
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-bold text-atlantia-ink">Ubicacion interna</span>
-                                        <input placeholder="Estante A3" class="{{ $inputBase }} {{ $inputNormal }}">
-                                        <span class="mt-1 block text-[11px] text-atlantia-ink/45">Ej. Bodega, Estante A3.</span>
-                                    </label>
-                                    <label class="block sm:col-span-1">
-                                        <span class="text-xs font-bold text-atlantia-ink">Estado de stock</span>
-                                        <select class="{{ $inputBase }} border-emerald-200 bg-emerald-50 text-emerald-700">
-                                            <option>Disponible</option>
-                                            <option>Stock bajo</option>
-                                            <option>Agotado</option>
-                                        </select>
-                                    </label>
-                                    <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 sm:col-span-2">
-                                        <p class="text-sm font-black text-emerald-700">Stock normal</p>
-                                        <p class="mt-1 text-[11px] text-emerald-700/75">Niveles dentro del rango establecido.</p>
-                                    </div>
-                                </div>
-                            </section>
-
-                            <section class="rounded-xl border border-atlantia-rose/15 bg-white p-3 shadow-sm">
-                                <div class="flex items-center gap-2">
-                                    <span class="grid h-7 w-7 place-items-center rounded-lg bg-atlantia-blush text-atlantia-wine">
-                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                            <path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="m9 12 2 2 4-5"/>
-                                        </svg>
-                                    </span>
-                                    <h3 class="text-sm font-black text-atlantia-wine">Publicacion y operacion</h3>
-                                </div>
-                                <div class="mt-3 grid gap-x-4 gap-y-3 sm:grid-cols-2">
-                                    <label class="flex items-start gap-2">
-                                        <input type="checkbox" name="is_active" value="1" checked class="peer sr-only">
-                                        <span class="mt-0.5 flex h-4 w-8 shrink-0 items-center rounded-full bg-slate-200 p-0.5 transition peer-checked:bg-atlantia-wine peer-checked:[&>span]:translate-x-4">
-                                            <span class="h-3 w-3 rounded-full bg-white shadow transition"></span>
-                                        </span>
-                                        <span class="min-w-0">
-                                            <span class="block text-[11px] font-black leading-4 text-atlantia-ink">Activo</span>
-                                            <span class="block text-[10px] leading-3 text-atlantia-ink/48">El producto esta activo.</span>
-                                        </span>
-                                    </label>
-                                    <label class="flex items-start gap-2">
-                                        <input type="checkbox" name="visible_catalogo" value="1" @checked(old('visible_catalogo', true)) class="peer sr-only">
-                                        <span class="mt-0.5 flex h-4 w-8 shrink-0 items-center rounded-full bg-slate-200 p-0.5 transition peer-checked:bg-atlantia-wine peer-checked:[&>span]:translate-x-4">
-                                            <span class="h-3 w-3 rounded-full bg-white shadow transition"></span>
-                                        </span>
-                                        <span class="min-w-0">
-                                            <span class="block text-[11px] font-black leading-4 text-atlantia-ink">Visible en catalogo</span>
-                                            <span class="block text-[10px] leading-3 text-atlantia-ink/48">Los clientes pueden verlo.</span>
-                                        </span>
-                                    </label>
-                                    <label class="flex items-start gap-2 opacity-80">
-                                        <input type="checkbox" disabled class="peer sr-only">
-                                        <span class="mt-0.5 flex h-4 w-8 shrink-0 items-center rounded-full bg-slate-200 p-0.5 transition peer-checked:bg-atlantia-wine peer-checked:[&>span]:translate-x-4">
-                                            <span class="h-3 w-3 rounded-full bg-white shadow transition"></span>
-                                        </span>
-                                        <span class="min-w-0">
-                                            <span class="block text-[11px] font-black leading-4 text-atlantia-ink">Producto destacado</span>
-                                            <span class="block text-[10px] leading-3 text-atlantia-ink/48">Aparecer en destacados.</span>
-                                        </span>
-                                    </label>
-                                    <label class="flex items-start gap-2">
-                                        <input type="checkbox" name="requiere_refrigeracion" value="1" @checked(old('requiere_refrigeracion')) class="peer sr-only">
-                                        <span class="mt-0.5 flex h-4 w-8 shrink-0 items-center rounded-full bg-slate-200 p-0.5 transition peer-checked:bg-atlantia-wine peer-checked:[&>span]:translate-x-4">
-                                            <span class="h-3 w-3 rounded-full bg-white shadow transition"></span>
-                                        </span>
-                                        <span class="min-w-0">
-                                            <span class="block text-[11px] font-black leading-4 text-atlantia-ink">Requiere refrigeracion</span>
-                                            <span class="block text-[10px] leading-3 text-atlantia-ink/48">Mantener temperatura controlada.</span>
-                                        </span>
-                                    </label>
-                                    <label class="flex items-start gap-2">
-                                        <input type="checkbox" checked disabled class="peer sr-only">
-                                        <span class="mt-0.5 flex h-4 w-8 shrink-0 items-center rounded-full bg-slate-200 p-0.5 transition peer-checked:bg-atlantia-wine peer-checked:[&>span]:translate-x-4">
-                                            <span class="h-3 w-3 rounded-full bg-white shadow transition"></span>
-                                        </span>
-                                        <span class="min-w-0">
-                                            <span class="block text-[11px] font-black leading-4 text-atlantia-ink">Disponible para entrega</span>
-                                            <span class="block text-[10px] leading-3 text-atlantia-ink/48">Disponible para envio a domicilio.</span>
-                                        </span>
-                                    </label>
-                                    <label class="flex items-start gap-2">
-                                        <input type="checkbox" checked disabled class="peer sr-only">
-                                        <span class="mt-0.5 flex h-4 w-8 shrink-0 items-center rounded-full bg-slate-200 p-0.5 transition peer-checked:bg-atlantia-wine peer-checked:[&>span]:translate-x-4">
-                                            <span class="h-3 w-3 rounded-full bg-white shadow transition"></span>
-                                        </span>
-                                        <span class="min-w-0">
-                                            <span class="block text-[11px] font-black leading-4 text-atlantia-ink">Disponible para recoger en tienda</span>
-                                            <span class="block text-[10px] leading-3 text-atlantia-ink/48">Los clientes pueden recoger en tienda.</span>
-                                        </span>
-                                    </label>
-                                </div>
-                            </section>
-
-                            <section class="rounded-xl border border-atlantia-rose/15 bg-atlantia-cream/40 p-3">
-                                <h3 class="text-sm font-black text-atlantia-wine">Informacion del vendedor</h3>
-                                <p class="mt-3 text-xs text-atlantia-ink/55">Vendedor</p>
-                                <p class="text-sm font-black text-atlantia-ink">{{ $vendor?->business_name ?? $user?->name }}</p>
-                                <p class="mt-3 text-xs text-atlantia-ink/55">Estado</p>
-                                <span class="mt-1 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-200">Aprobado</span>
-                            </section>
+                        <div class="grid gap-3 rounded-xl bg-atlantia-blush/25 p-3 sm:grid-cols-2">
+                            <label class="block">
+                                <span class="text-[11px] font-bold text-atlantia-ink/60">Código interno (se crea solo)</span>
+                                <input name="sku" value="{{ old('sku') }}" placeholder="Se crea al escribir el nombre" class="{{ $inputBase }} {{ $errors->has('sku') ? $inputError : $inputNormal }} bg-white/70 font-mono text-xs font-black uppercase tracking-wide text-atlantia-wine" data-product-sku required readonly>
+                                @error('sku') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
+                            </label>
+                            <label class="block">
+                                <span class="text-[11px] font-bold text-atlantia-ink/60">Código de barras (se crea solo)</span>
+                                <input name="codigo_barras" value="{{ old('codigo_barras') }}" placeholder="Se crea al escribir el nombre" class="{{ $inputBase }} {{ $errors->has('codigo_barras') ? $inputError : $inputNormal }} bg-white/70 font-mono text-xs font-black tracking-[0.14em] text-atlantia-ink/70" data-product-barcode required readonly>
+                                @error('codigo_barras') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
+                            </label>
                         </div>
+                    </div>
+
+                    {{-- 2. Precio y cantidad --}}
+                    <div data-paso="precio" @class(['space-y-3', 'hidden' => $pasoInicial !== 'precio']) :class="{ 'hidden': paso !== 'precio' }">
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <label class="block">
+                                <span class="text-xs font-bold text-atlantia-ink">Precio de venta <span class="text-atlantia-wine">*</span> <span class="font-normal text-atlantia-ink/45">(lo que paga el cliente, con IVA)</span></span>
+                                <span class="relative mt-1 block"><span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-black text-atlantia-ink/45">Q</span><input name="precio_base" inputmode="decimal" value="{{ old('precio_base') }}" placeholder="149.00" class="{{ $inputBase }} {{ $errors->has('precio_base') ? $inputError : $inputNormal }} !mt-0 pl-8" data-price-base data-iva-input data-iva-modo="final" required></span>
+                                <span class="mt-1 block text-[11px] font-bold text-emerald-700" data-iva-output>Escribe el precio para ver el desglose</span>
+                                @error('precio_base') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
+                            </label>
+                            <label class="block">
+                                <span class="text-xs font-bold text-atlantia-ink">Precio de oferta <span class="font-normal text-atlantia-ink/45">(opcional, con IVA)</span></span>
+                                <span class="relative mt-1 block"><span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-black text-atlantia-ink/45">Q</span><input name="precio_oferta" inputmode="decimal" value="{{ old('precio_oferta') }}" placeholder="Vacío si no hay oferta" class="{{ $inputBase }} {{ $errors->has('precio_oferta') ? $inputError : $inputNormal }} !mt-0 pl-8" data-iva-input data-iva-modo="final"></span>
+                                <span class="mt-1 block text-[11px] font-bold text-emerald-700" data-iva-output data-iva-empty="Sin oferta">Sin oferta</span>
+                                @error('precio_oferta') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
+                            </label>
+                        </div>
+                        <div class="grid gap-3 sm:grid-cols-3">
+                            <label class="block">
+                                <span class="text-xs font-bold text-atlantia-ink">¿Cuántos tienes? <span class="text-atlantia-wine">*</span></span>
+                                <input name="stock_actual" type="number" min="0" value="{{ old('stock_actual', 0) }}" class="{{ $inputBase }} {{ $errors->has('stock_actual') ? $inputError : $inputNormal }}" required>
+                                @error('stock_actual') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
+                            </label>
+                            <label class="block">
+                                <span class="text-xs font-bold text-atlantia-ink">Avisarme cuando queden <span class="text-atlantia-wine">*</span></span>
+                                <input name="stock_minimo" type="number" min="0" value="{{ old('stock_minimo', 5) }}" class="{{ $inputBase }} {{ $errors->has('stock_minimo') ? $inputError : $inputNormal }}" required>
+                                @error('stock_minimo') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
+                            </label>
+                            <label class="block">
+                                <span class="text-xs font-bold text-atlantia-ink">Máximo en bodega <span class="font-normal text-atlantia-ink/45">(opcional)</span></span>
+                                <input name="stock_maximo" type="number" min="0" value="{{ old('stock_maximo', 100) }}" class="{{ $inputBase }} {{ $errors->has('stock_maximo') ? $inputError : $inputNormal }}">
+                                @error('stock_maximo') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
+                            </label>
+                        </div>
+                        <label class="block sm:max-w-xs">
+                            <span class="text-xs font-bold text-atlantia-ink">Peso en gramos <span class="font-normal text-atlantia-ink/45">(opcional, ayuda al repartidor)</span></span>
+                            <input name="peso_gramos" type="number" min="1" value="{{ old('peso_gramos') }}" placeholder="Ej. 454" class="{{ $inputBase }} {{ $errors->has('peso_gramos') ? $inputError : $inputNormal }}">
+                            @error('peso_gramos') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
+                        </label>
+                    </div>
+
+                    {{-- 3. Fotos --}}
+                    <div data-paso="fotos" @class(['hidden' => $pasoInicial !== 'fotos']) :class="{ 'hidden': paso !== 'fotos' }">
+                        <div class="space-y-3">
+                            <label class="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-atlantia-rose/40 bg-atlantia-blush/15 px-4 py-8 text-center transition hover:border-atlantia-wine hover:bg-atlantia-blush/35">
+                                <svg class="h-8 w-8 text-atlantia-wine" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 20h16"/></svg>
+                                <span class="mt-2 text-sm font-black text-atlantia-wine">Toca aquí para subir fotos</span>
+                                <span class="mt-1 text-xs text-atlantia-ink/55">Hasta 8 fotos (JPG, PNG o WEBP, máximo 5 MB cada una). La primera será la principal.</span>
+                                <input name="imagenes[]" type="file" accept="image/png,image/jpeg,image/webp" multiple class="sr-only" data-product-image-input>
+                            </label>
+                            <div class="hidden grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-2" data-product-image-preview></div>
+                        </div>
+                        @error('imagenes') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
+                        @error('imagenes.*') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
+                    </div>
+
+                    {{-- 4. Publicar --}}
+                    <div data-paso="publicar" @class(['space-y-2', 'hidden' => $pasoInicial !== 'publicar']) :class="{ 'hidden': paso !== 'publicar' }">
+                        @foreach ([
+                            ['is_active', 'Producto activo', 'Puedes venderlo. Desactívalo si ya no lo tienes.', old('is_active', true)],
+                            ['visible_catalogo', 'Mostrar en la tienda', 'Los clientes lo ven en tu tienda y en el catálogo.', old('visible_catalogo', true)],
+                            ['requiere_refrigeracion', 'Necesita refrigeración', 'El repartidor lo llevará con cuidado de la temperatura.', old('requiere_refrigeracion', false)],
+                        ] as [$campo, $titulo, $ayuda, $marcado])
+                            <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-atlantia-rose/15 px-4 py-3 transition hover:bg-atlantia-blush/20">
+                                <input type="hidden" name="{{ $campo }}" value="0">
+                                <input type="checkbox" name="{{ $campo }}" value="1" @checked($marcado) class="peer sr-only">
+                                <span class="flex h-5 w-9 shrink-0 items-center rounded-full bg-slate-200 p-0.5 transition peer-checked:bg-atlantia-wine peer-checked:[&>span]:translate-x-4">
+                                    <span class="h-4 w-4 rounded-full bg-white shadow transition"></span>
+                                </span>
+                                <span class="min-w-0">
+                                    <span class="block text-sm font-black text-atlantia-ink">{{ $titulo }}</span>
+                                    <span class="block text-xs text-atlantia-ink/55">{{ $ayuda }}</span>
+                                </span>
+                            </label>
+                        @endforeach
+                        <p class="rounded-xl bg-emerald-50 px-4 py-3 text-xs text-emerald-900">
+                            Al guardar, el producto queda en tu catálogo. Puedes cambiar el precio, la cantidad o las fotos cuando quieras.
+                        </p>
                     </div>
                 </fieldset>
 
-                <div class="flex flex-col-reverse gap-2 border-t border-atlantia-rose/15 bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-                    <button type="button" class="rounded-lg border border-atlantia-rose/30 bg-white px-6 py-2.5 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush" data-close-create-product-modal>
-                        Cancelar
-                    </button>
-                    <div class="flex flex-col-reverse gap-2 sm:flex-row">
-                        <button type="button" class="rounded-lg border border-atlantia-rose/30 bg-white px-6 py-2.5 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                            Guardar borrador
-                        </button>
-                        <button type="submit" class="rounded-lg bg-atlantia-wine px-8 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-atlantia-wine-700 disabled:cursor-not-allowed disabled:opacity-55" @disabled(! $puedeCrear)>
-                            Guardar cambios
-                        </button>
+                {{-- Botones: se avanza paso a paso y se guarda al final --}}
+                <div class="flex items-center justify-between gap-2 border-t border-atlantia-rose/10 bg-white px-5 py-3">
+                    <button type="button" class="rounded-lg px-3 py-2 text-sm font-black text-atlantia-ink/55 hover:bg-atlantia-blush/40 hover:text-atlantia-wine" data-close-create-product-modal>Cancelar</button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" x-on:click="mover(-1)" @class(['rounded-lg border border-atlantia-rose/30 bg-white px-4 py-2 text-sm font-black text-atlantia-wine hover:bg-atlantia-blush', 'hidden' => $pasoInicial === 'producto']) :class="{ 'hidden': paso === 'producto' }">← Anterior</button>
+                        <button type="button" x-on:click="mover(1)" @class(['rounded-lg bg-atlantia-wine px-5 py-2 text-sm font-black text-white shadow-sm transition hover:bg-atlantia-wine-700', 'hidden' => $pasoInicial === 'publicar']) :class="{ 'hidden': paso === 'publicar' }">Siguiente →</button>
+                        <button type="submit" @class(['rounded-lg bg-atlantia-wine px-5 py-2 text-sm font-black text-white shadow-sm transition hover:bg-atlantia-wine-700 disabled:cursor-not-allowed disabled:opacity-55', 'hidden' => $pasoInicial !== 'publicar']) :class="{ 'hidden': paso !== 'publicar' }" @disabled(! $puedeCrear)>Guardar producto</button>
                     </div>
                 </div>
             </form>
@@ -1211,11 +852,12 @@
                         <!doctype html>
                         <html>
                             <head>
+                                @include('layouts.partials.favicon')
                                 <title>${isPrice ? 'Etiqueta de precio' : 'Codigo de barras'} - ${escapeHtml(product.name)}</title>
                                 <style>
                                     * { box-sizing: border-box; }
                                     @page { size: letter; margin: 10mm; }
-                                    body { margin: 0; background: #f7f2f4; font-family: Arial, sans-serif; color: #2a1018; }
+                                    body { margin: 0; background: #f7f2f4; font-family: Arial, sans-serif; color: #2a0f12; }
                                     .toolbar {
                                         position: sticky;
                                         top: 0;
@@ -1225,7 +867,7 @@
                                         justify-content: space-between;
                                         gap: 16px;
                                         padding: 14px 18px;
-                                        border-bottom: 1px solid #ead5dd;
+                                        border-bottom: 1px solid #ecd5d7;
                                         background: #fff;
                                         box-shadow: 0 8px 24px rgba(42, 16, 24, .08);
                                     }
@@ -1236,12 +878,12 @@
                                         border: 1px solid #d9a9b9;
                                         border-radius: 8px;
                                         background: #fff;
-                                        color: #7a1f3d;
+                                        color: #5e0008;
                                         cursor: pointer;
                                         font-weight: 900;
                                         padding: 10px 16px;
                                     }
-                                    button.primary { border-color: #7a1f3d; background: #7a1f3d; color: #fff; }
+                                    button.primary { border-color: #5e0008; background: #5e0008; color: #fff; }
                                     .sheet {
                                         width: 216mm;
                                         min-height: 279mm;
@@ -1270,8 +912,8 @@
                                     .label img { width: 24mm; height: 18mm; object-fit: contain; margin-bottom: 2mm; }
                                     .label h1 { margin: 0; max-width: 100%; font-size: ${isPrice ? '13px' : '10px'}; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
                                     .vendor { margin: 1.5mm 0 0; max-width: 100%; color: #6d5560; font-size: ${isPrice ? '10px' : '8px'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-                                    .price { margin: 2mm 0; color: #7a1f3d; font-size: 24px; font-weight: 900; line-height: 1; }
-                                    .mini-price { margin: 1.5mm 0 0; color: #7a1f3d; font-size: 12px; font-weight: 900; }
+                                    .price { margin: 2mm 0; color: #5e0008; font-size: 24px; font-weight: 900; line-height: 1; }
+                                    .mini-price { margin: 1.5mm 0 0; color: #5e0008; font-size: 12px; font-weight: 900; }
                                     .barcode { margin-top: 2mm; line-height: 0; white-space: nowrap; transform-origin: center; transform: scaleX(${isPrice ? '.72' : '.62'}); }
                                     .code { margin: 1.5mm 0 0; font-family: "Courier New", monospace; font-size: ${isPrice ? '10px' : '8px'}; font-weight: 900; letter-spacing: .08em; }
                                     .sku { margin: .5mm 0 0; color: #6d5560; font-size: ${isPrice ? '9px' : '7px'}; }
@@ -1290,22 +932,21 @@
                                         <p>${escapeHtml(product.name)} · ${copies} etiquetas listas para imprimir</p>
                                     </div>
                                     <div class="actions">
-                                        <button onclick="window.close()">Cerrar</button>
-                                        <button class="primary" onclick="window.print()">Imprimir</button>
+                                        <button data-popup-close>Cerrar</button>
+                                        <button class="primary" data-popup-print>Imprimir</button>
                                     </div>
                                 </header>
                                 <div class="sheet">
                                     <div class="grid">${labels}</div>
                                 </div>
-                                <script>
-                                    window.addEventListener('load', () => {
-                                        setTimeout(() => window.print(), 350);
-                                    });
-                                <\/script>
                             </body>
                         </html>
                     `);
                     popup.document.close();
+                    /* Los scripts dentro de la ventana los bloquea la CSP: se controlan desde aqui. */
+                    popup.document.querySelector('[data-popup-close]')?.addEventListener('click', () => popup.close());
+                    popup.document.querySelector('[data-popup-print]')?.addEventListener('click', () => popup.print());
+                    setTimeout(() => { popup.focus(); popup.print(); }, 350);
                 });
             });
         })();

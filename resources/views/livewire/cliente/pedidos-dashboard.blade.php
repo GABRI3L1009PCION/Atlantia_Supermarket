@@ -193,7 +193,7 @@
                                     </span>
                                     <div class="min-w-0">
                                         <p class="text-[10px] font-black uppercase text-atlantia-ink/45">{{ $vendors->count() > 1 ? $vendors->count().' comercios' : 'Comercio' }}</p>
-                                        <h2 class="truncate text-lg font-black text-atlantia-ink">{{ $vendors->pluck('business_name')->join(', ') ?: 'Atlantia Delivery' }}</h2>
+                                        <h2 class="truncate text-lg font-black text-atlantia-ink">{{ $vendors->pluck('business_name')->join(', ') ?: 'Atlantia Store' }}</h2>
                                         <p class="mt-1 text-xs font-semibold text-atlantia-ink/50">{{ $order->numero_pedido }} · {{ ($order->confirmado_at ?? $order->created_at)->format('d/m/Y h:i a') }}</p>
                                     </div>
                                 </div>
@@ -259,6 +259,8 @@
                     <section class="rounded-2xl border border-atlantia-rose/12 bg-white p-5 shadow-sm">
                         <h2 class="font-black text-atlantia-ink">Informacion util</h2>
                         <div class="mt-4 grid gap-2 text-sm">
+                            <a href="{{ route('cliente.saldo.index') }}" class="flex items-center justify-between rounded-xl bg-atlantia-blush/45 px-4 py-3 font-bold text-atlantia-ink hover:bg-atlantia-blush"><span>Mi saldo e invitaciones</span><span aria-hidden="true">›</span></a>
+                            <a href="{{ route('cliente.membresia.index') }}" class="flex items-center justify-between rounded-xl bg-atlantia-blush/45 px-4 py-3 font-bold text-atlantia-ink hover:bg-atlantia-blush"><span>{{ \App\Services\Clientes\MembresiaService::habilitada() ? 'Membresía y tarjeta guardada' : 'Tarjeta guardada' }}</span><span aria-hidden="true">›</span></a>
                             <a href="{{ route('cliente.direcciones.index') }}" class="flex items-center justify-between rounded-xl bg-atlantia-blush/45 px-4 py-3 font-bold text-atlantia-ink hover:bg-atlantia-blush"><span>Direcciones de entrega</span><span aria-hidden="true">›</span></a>
                             <a href="{{ route('contacto') }}" class="flex items-center justify-between rounded-xl bg-atlantia-blush/45 px-4 py-3 font-bold text-atlantia-ink hover:bg-atlantia-blush"><span>Ayuda y soporte</span><span aria-hidden="true">›</span></a>
                         </div>
@@ -297,7 +299,7 @@
                                 <div class="grid gap-4 lg:grid-cols-[minmax(180px,.85fr)_minmax(0,1fr)_150px] lg:items-center">
                                     <div class="min-w-0">
                                         <p class="text-[10px] font-black uppercase text-atlantia-ink/45">{{ $vendors->count() > 1 ? $vendors->count().' comercios' : 'Comercio' }}</p>
-                                        <h2 class="mt-1 truncate font-black text-atlantia-ink">{{ $vendors->pluck('business_name')->join(', ') ?: 'Atlantia Delivery' }}</h2>
+                                        <h2 class="mt-1 truncate font-black text-atlantia-ink">{{ $vendors->pluck('business_name')->join(', ') ?: 'Atlantia Store' }}</h2>
                                         <p class="mt-1 text-xs font-semibold text-atlantia-ink/55">{{ $order->numero_pedido }}</p>
                                         <p class="mt-1 text-xs text-atlantia-ink/50">{{ ($order->confirmado_at ?? $order->created_at)->format('d/m/Y h:i a') }}</p>
                                     </div>
@@ -322,6 +324,15 @@
                                     <div class="flex flex-col items-stretch gap-2">
                                         <span class="inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-black ring-1 {{ $statusClasses[$state] ?? 'bg-slate-50 text-slate-700 ring-slate-200' }}">{{ $statusLabels[$state] ?? ucfirst($state) }}</span>
                                         <a href="{{ route('cliente.pedidos.show', $order) }}" class="inline-flex min-h-9 items-center justify-center rounded-lg border border-atlantia-rose/25 px-3 text-xs font-black text-atlantia-wine hover:bg-atlantia-blush">Ver detalle</a>
+                                        @if ($state === 'entregado')
+                                            <form method="POST" action="{{ route('cliente.pedidos.repetir', $order) }}">
+                                                @csrf
+                                                <button type="submit" class="inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-atlantia-wine px-3 text-xs font-black text-white hover:bg-atlantia-wine-700" data-volver-a-pedir>
+                                                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                                    Volver a pedir
+                                                </button>
+                                            </form>
+                                        @endif
                                     </div>
                                 </div>
 

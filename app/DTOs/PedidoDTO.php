@@ -20,7 +20,6 @@ final readonly class PedidoDTO
         public MetodoPago $metodoPago,
         public Dinero $envio,
         public ?string $notas,
-        public ?string $cardToken,
         public ?string $referenciaBancaria,
         public ?float $cambioPara,
         public bool $solicitaCambio,
@@ -29,8 +28,20 @@ final readonly class PedidoDTO
         public string $facturacionTipo = 'cf',
         public ?string $facturacionNombre = null,
         public ?string $facturacionNit = null,
-        public ?string $facturacionEmail = null
+        public ?string $facturacionEmail = null,
+        public string $tipoEntrega = 'domicilio',
+        public float $propina = 0.0,
+        public bool $usarSaldo = false,
+        public bool $usarTarjetaGuardada = false
     ) {}
+
+    /**
+     * Indica si el cliente recoge el pedido en el comercio (sin envio ni repartidor).
+     */
+    public function esRecogerEnTienda(): bool
+    {
+        return $this->tipoEntrega === 'recoger';
+    }
 
     /**
      * Crea DTO desde payload de checkout validado.
@@ -48,7 +59,6 @@ final readonly class PedidoDTO
             metodoPago: MetodoPago::from((string) $data['metodo_pago']),
             envio: Dinero::from($data['envio'] ?? 0),
             notas: isset($data['notas']) ? (string) $data['notas'] : null,
-            cardToken: isset($data['card_token']) ? (string) $data['card_token'] : null,
             referenciaBancaria: isset($data['referencia_bancaria']) ? (string) $data['referencia_bancaria'] : null,
             cambioPara: isset($data['cambio_para']) ? (float) $data['cambio_para'] : null,
             solicitaCambio: (bool) ($data['solicita_cambio'] ?? false),
@@ -58,6 +68,12 @@ final readonly class PedidoDTO
             facturacionNombre: isset($data['razon_social']) ? (string) $data['razon_social'] : null,
             facturacionNit: isset($data['nit_facturacion']) ? (string) $data['nit_facturacion'] : null,
             facturacionEmail: isset($data['correo_facturacion']) ? (string) $data['correo_facturacion'] : null,
+            tipoEntrega: in_array($data['tipo_entrega'] ?? null, ['domicilio', 'recoger', 'programado'], true)
+                ? (string) $data['tipo_entrega']
+                : 'domicilio',
+            propina: ($data['tipo_entrega'] ?? null) === 'recoger' ? 0.0 : round(max(0, min(500, (float) ($data['propina'] ?? 0))), 2),
+            usarSaldo: (bool) ($data['usar_saldo'] ?? false),
+            usarTarjetaGuardada: (bool) ($data['usar_tarjeta_guardada'] ?? false),
         );
     }
 
@@ -75,7 +91,6 @@ final readonly class PedidoDTO
             metodoPago: $pedido->metodo_pago instanceof MetodoPago ? $pedido->metodo_pago : MetodoPago::from($pedido->metodoPagoValor()),
             envio: Dinero::from($pedido->envio),
             notas: $pedido->notas,
-            cardToken: null,
             referenciaBancaria: null,
             cambioPara: null,
             solicitaCambio: false,
@@ -85,6 +100,7 @@ final readonly class PedidoDTO
             facturacionNombre: $pedido->facturacion_nombre,
             facturacionNit: $pedido->facturacion_nit,
             facturacionEmail: $pedido->facturacion_email,
+            tipoEntrega: (string) ($pedido->tipo_entrega ?? 'domicilio'),
         );
     }
 
@@ -99,7 +115,6 @@ final readonly class PedidoDTO
             'metodo_pago' => $this->metodoPago,
             'envio' => $this->envio->toDecimal(),
             'notas' => $this->notas,
-            'card_token' => $this->cardToken,
             'referencia_bancaria' => $this->referenciaBancaria,
             'cambio_para' => $this->cambioPara,
             'solicita_cambio' => $this->solicitaCambio,
@@ -108,6 +123,7 @@ final readonly class PedidoDTO
             'facturacion_nombre' => $this->facturacionNombre,
             'facturacion_nit' => $this->facturacionNit,
             'facturacion_email' => $this->facturacionEmail,
+            'tipo_entrega' => $this->tipoEntrega,
         ];
     }
 }

@@ -1,114 +1,193 @@
 @extends(auth()->user()?->isSuperAdmin() && request()->routeIs('admin.*') ? 'layouts.super-admin' : 'layouts.app')
 
 @section('content')
-    <section class="mx-auto max-w-full py-2">
-        <div class="space-y-6 rounded-2xl border border-atlantia-rose/20 bg-white p-6 shadow-sm">
-            <x-page-header title="Antifraude" subtitle="Prioriza alertas de riesgo, revisa casos y registra resoluciones operativas." />
+    @php
+        $tipos = [
+            'monto_alto' => 'Monto muy alto',
+            'pedido_monto_inusual' => 'Monto inusual',
+            'tarjeta_no_confirmada' => 'Tarjeta sin confirmar',
+            'frecuencia_alta' => 'Muchos pedidos seguidos',
+            'zona_remota_monto_alto' => 'Zona remota con monto alto',
+            'ml_order_fraud' => 'Detectado por la IA',
+            'riesgo_operativo' => 'Riesgo operativo',
+        ];
+        $acciones = [
+            'pedido_aprobado' => 'Todo bien: pedido aprobado',
+            'cliente_contactado' => 'Se contactó al cliente',
+            'revision_manual' => 'Revisado manualmente',
+            'pedido_bloqueado' => 'Pedido bloqueado',
+            'escalado' => 'Escalado',
+        ];
+        $nombreTipo = fn (?string $tipo): string => $tipos[$tipo] ?? ucfirst(str_replace('_', ' ', (string) $tipo));
+        $nivel = function (float $score): array {
+            return match (true) {
+                $score >= 0.8 => ['Alto', 'bg-red-50 text-red-700 ring-red-200', 'bg-red-600'],
+                $score >= 0.5 => ['Medio', 'bg-amber-50 text-amber-800 ring-amber-200', 'bg-amber-500'],
+                default => ['Bajo', 'bg-slate-100 text-slate-600 ring-slate-200', 'bg-slate-400'],
+            };
+        };
 
-            <div class="grid gap-4 md:grid-cols-4">
-                <div class="rounded-xl border border-amber-200 bg-white p-4">
-                    <p class="text-sm text-atlantia-ink/55">Pendientes</p>
-                    <p class="mt-2 text-2xl font-bold text-amber-600">{{ $dashboard['pendientes'] }}</p>
-                </div>
-                <div class="rounded-xl border border-emerald-200 bg-white p-4">
-                    <p class="text-sm text-atlantia-ink/55">Resueltas</p>
-                    <p class="mt-2 text-2xl font-bold text-emerald-600">{{ $dashboard['resueltas'] }}</p>
-                </div>
-                <div class="rounded-xl border border-rose-200 bg-white p-4">
-                    <p class="text-sm text-atlantia-ink/55">Alto riesgo</p>
-                    <p class="mt-2 text-2xl font-bold text-rose-600">{{ $dashboard['alto_riesgo'] }}</p>
-                </div>
-                <div class="rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-4">
-                    <p class="text-sm text-atlantia-ink/55">Tipos detectados</p>
-                    <p class="mt-2 text-xl font-bold text-atlantia-wine">{{ $dashboard['tipos']->count() }}</p>
-                </div>
-            </div>
+        $resuelta = request('resuelta');
+        $riesgoMin = request('riesgo_min');
+        $tipoActivo = request('tipo');
+        $vistas = [
+            ['Todas', [], $resuelta === null && blank($riesgoMin)],
+            ['Abiertas', ['resuelta' => '0'], $resuelta === '0' && blank($riesgoMin)],
+            ['Alto riesgo', ['riesgo_min' => '0.8'], $riesgoMin === '0.8' && $resuelta === null],
+            ['Resueltas', ['resuelta' => '1'], $resuelta === '1' && blank($riesgoMin)],
+        ];
+        $hayFiltros = $resuelta !== null || filled($riesgoMin) || filled($tipoActivo) || request('revisada') !== null;
+        $tipoFrecuente = $dashboard['tipos']->sortDesc()->keys()->first();
+        $tarjeta = 'rounded-2xl border border-atlantia-rose/15 bg-white shadow-[0_8px_20px_rgba(59,6,12,0.04)]';
+        $campo = 'h-9 rounded-lg border border-atlantia-rose/30 bg-white px-3 text-sm focus:border-atlantia-wine focus:outline-none focus:ring-2 focus:ring-atlantia-wine/15';
+    @endphp
 
-            <div class="rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-4">
-                <form method="GET" class="grid gap-3 xl:grid-cols-[1fr_0.8fr_0.7fr_0.7fr_auto]">
-                    <input type="text" name="tipo" value="{{ request('tipo') }}" placeholder="Tipo de alerta" class="rounded-md border border-atlantia-rose/35 px-3 py-2">
-                    <select name="revisada" class="rounded-md border border-atlantia-rose/35 px-3 py-2">
-                        <option value="">Revisadas y pendientes</option>
-                        <option value="1" @selected(request('revisada') === '1')>Revisadas</option>
-                        <option value="0" @selected(request('revisada') === '0')>Pendientes</option>
+    <section class="mx-auto max-w-7xl space-y-4 pb-6 text-atlantia-ink">
+        {{-- Encabezado --}}
+        <header>
+            <h1 class="text-3xl font-black tracking-tight">Antifraude</h1>
+            <p class="mt-0.5 text-sm text-atlantia-ink/60">El sistema revisa cada pedido y te avisa cuando algo se ve raro: montos muy altos, tarjetas sin confirmar o muchos pedidos seguidos del mismo cliente.</p>
+        </header>
+
+        {{-- Resumen --}}
+        <div class="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <a href="{{ route('admin.antifraude.index', ['revisada' => '0']) }}" @class([
+                'rounded-2xl px-5 py-3.5 transition',
+                'bg-[linear-gradient(135deg,#3a0004_0%,#5e0008_100%)] text-white shadow-lg' => $dashboard['pendientes'] > 0,
+                $tarjeta.' hover:border-atlantia-wine/40' => $dashboard['pendientes'] === 0,
+            ])>
+                <p @class(['text-[11px] font-black uppercase tracking-wide', 'text-white/70' => $dashboard['pendientes'] > 0, 'text-atlantia-ink/50' => $dashboard['pendientes'] === 0])>Por revisar</p>
+                <p @class(['mt-0.5 text-3xl font-black', 'text-atlantia-ink/30' => $dashboard['pendientes'] === 0])>{{ $dashboard['pendientes'] }}</p>
+                <p @class(['text-xs', 'text-white/70' => $dashboard['pendientes'] > 0, 'text-atlantia-ink/55' => $dashboard['pendientes'] === 0])>{{ $dashboard['pendientes'] > 0 ? 'alertas sin revisar' : 'todo al día' }}</p>
+            </a>
+            <a href="{{ route('admin.antifraude.index', ['riesgo_min' => '0.8']) }}" @class([
+                $tarjeta,
+                'px-5 py-3.5 transition hover:border-atlantia-wine/40',
+                '!border-red-300 !bg-red-50/60' => $dashboard['alto_riesgo'] > 0,
+            ])>
+                <p class="text-[11px] font-black uppercase tracking-wide text-atlantia-ink/50">Alto riesgo</p>
+                <p class="mt-0.5 text-3xl font-black {{ $dashboard['alto_riesgo'] > 0 ? 'text-red-600' : 'text-atlantia-ink/30' }}">{{ $dashboard['alto_riesgo'] }}</p>
+                <p class="text-xs text-atlantia-ink/55">riesgo de 80 % o más</p>
+            </a>
+            <a href="{{ route('admin.antifraude.index', ['resuelta' => '1']) }}" class="{{ $tarjeta }} px-5 py-3.5 transition hover:border-atlantia-wine/40">
+                <p class="text-[11px] font-black uppercase tracking-wide text-atlantia-ink/50">Resueltas</p>
+                <p class="mt-0.5 text-3xl font-black {{ $dashboard['resueltas'] > 0 ? 'text-emerald-600' : 'text-atlantia-ink/30' }}">{{ $dashboard['resueltas'] }}</p>
+                <p class="text-xs text-atlantia-ink/55">casos cerrados</p>
+            </a>
+            <article class="{{ $tarjeta }} px-5 py-3.5">
+                <p class="text-[11px] font-black uppercase tracking-wide text-atlantia-ink/50">Motivo más frecuente</p>
+                <p class="mt-1 truncate text-lg font-black {{ $tipoFrecuente ? '' : 'text-atlantia-ink/30' }}">{{ $tipoFrecuente ? $nombreTipo($tipoFrecuente) : '—' }}</p>
+                <p class="text-xs text-atlantia-ink/55">{{ $tipoFrecuente ? $dashboard['tipos'][$tipoFrecuente].' '.($dashboard['tipos'][$tipoFrecuente] === 1 ? 'alerta' : 'alertas') : 'sin alertas todavía' }}</p>
+            </article>
+        </div>
+
+        {{-- Bandeja de alertas --}}
+        <article class="{{ $tarjeta }} overflow-hidden" x-data="{ seleccion: [], todos(e) { this.seleccion = e.target.checked ? [...document.querySelectorAll('[data-alerta-check]')].map(c => c.value) : []; } }">
+            <div class="flex flex-wrap items-center gap-2 border-b border-atlantia-rose/10 p-3">
+                @foreach ($vistas as [$texto, $parametros, $activa])
+                    <a href="{{ route('admin.antifraude.index', array_filter([...$parametros, 'tipo' => $tipoActivo], fn ($valor) => filled($valor))) }}" @class([
+                        'rounded-full px-3 py-1 text-xs font-black transition',
+                        'bg-atlantia-wine text-white' => $activa,
+                        'bg-atlantia-blush/50 text-atlantia-wine hover:bg-atlantia-blush' => ! $activa,
+                    ])>{{ $texto }}</a>
+                @endforeach
+                <form method="GET" class="ml-auto flex items-center gap-2">
+                    @if ($resuelta !== null)<input type="hidden" name="resuelta" value="{{ $resuelta }}">@endif
+                    @if (filled($riesgoMin))<input type="hidden" name="riesgo_min" value="{{ $riesgoMin }}">@endif
+                    <select name="tipo" data-autosubmit class="{{ $campo }}" aria-label="Motivo de la alerta">
+                        <option value="">Todos los motivos</option>
+                        @foreach ($dashboard['tipos'] as $tipo => $cantidad)
+                            <option value="{{ $tipo }}" @selected($tipoActivo === $tipo)>{{ $nombreTipo($tipo) }} ({{ $cantidad }})</option>
+                        @endforeach
                     </select>
-                    <select name="resuelta" class="rounded-md border border-atlantia-rose/35 px-3 py-2">
-                        <option value="">Resueltas y abiertas</option>
-                        <option value="1" @selected(request('resuelta') === '1')>Resueltas</option>
-                        <option value="0" @selected(request('resuelta') === '0')>Abiertas</option>
-                    </select>
-                    <input type="number" name="riesgo_min" step="0.01" min="0" max="1" value="{{ request('riesgo_min') }}" placeholder="Riesgo minimo" class="rounded-md border border-atlantia-rose/35 px-3 py-2">
-                    <x-ui.button type="submit" variant="secondary">Filtrar</x-ui.button>
+                    <button class="sr-only">Filtrar</button>
                 </form>
             </div>
 
-            <form method="POST" action="{{ route('admin.antifraude.batch-resolve') }}">
+            {{-- Barra de acciones: aparece al seleccionar alertas --}}
+            <form
+                id="alertas-lote"
+                method="POST"
+                action="{{ route('admin.antifraude.batch-resolve') }}"
+                class="hidden flex-wrap items-center gap-2 border-b border-atlantia-rose/10 bg-atlantia-blush/40 px-3 py-2"
+                :class="{ 'hidden': seleccion.length === 0, 'flex': seleccion.length > 0 }"
+                data-protect-submit
+            >
                 @csrf
-
-                <div class="flex flex-col gap-3 rounded-xl border border-atlantia-rose/20 bg-atlantia-cream p-4 xl:flex-row xl:items-end">
-                    <div class="xl:min-w-[260px]">
-                        <label class="text-sm font-semibold text-atlantia-ink">Accion de resolucion</label>
-                        <input type="text" name="accion" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" placeholder="ej. validacion_manual" required>
-                    </div>
-                    <div class="flex-1">
-                        <label class="text-sm font-semibold text-atlantia-ink">Notas operativas</label>
-                        <input type="text" name="notas" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2" placeholder="Comentario comun para las alertas seleccionadas">
-                    </div>
-                    <x-ui.button type="submit">Resolver lote</x-ui.button>
-                </div>
-
-                <div class="mt-4 overflow-x-auto">
-                    <table class="min-w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-atlantia-rose/20 text-left text-atlantia-ink/55">
-                            <th class="pb-3">
-                                <span class="sr-only">Seleccion</span>
-                            </th>
-                            <th class="pb-3">Alerta</th>
-                            <th class="pb-3">Pedido</th>
-                            <th class="pb-3">Cliente</th>
-                            <th class="pb-3">Riesgo</th>
-                            <th class="pb-3">Estado</th>
-                            <th class="pb-3 text-right">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-atlantia-rose/15">
-                        @forelse ($alerts as $alert)
-                            <tr>
-                                <td class="py-3 align-top">
-                                    @if (! $alert->resuelta)
-                                        <input type="checkbox" name="alertas[]" value="{{ $alert->uuid }}" class="h-4 w-4 rounded border-atlantia-rose/40 text-atlantia-wine focus:ring-atlantia-wine">
-                                    @endif
-                                </td>
-                                <td class="py-3">
-                                    <p class="font-semibold text-atlantia-ink">{{ $alert->tipo }}</p>
-                                    <p class="text-xs text-atlantia-ink/55">{{ $alert->created_at?->format('d/m/Y H:i') }}</p>
-                                </td>
-                                <td class="py-3 text-atlantia-ink/70">{{ $alert->pedido?->numero_pedido ?? 'Sin pedido' }}</td>
-                                <td class="py-3 text-atlantia-ink/70">{{ $alert->user?->name ?? 'Sin usuario' }}</td>
-                                <td class="py-3">
-                                    <span class="rounded-md bg-rose-100 px-3 py-1 text-xs font-bold text-rose-700">{{ number_format((float) $alert->score_riesgo, 2) }}</span>
-                                </td>
-                                <td class="py-3">
-                                    <span class="rounded-md bg-atlantia-blush px-3 py-1 text-xs font-bold text-atlantia-wine">
-                                        {{ $alert->resuelta ? 'Resuelta' : ($alert->revisada ? 'Revisada' : 'Pendiente') }}
-                                    </span>
-                                </td>
-                                <td class="py-3 text-right">
-                                    <a href="{{ route('admin.antifraude.show', $alert->uuid) }}" class="font-semibold text-atlantia-wine hover:underline">Revisar</a>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="7" class="py-6 text-center text-atlantia-ink/60">No hay alertas que coincidan con los filtros.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                    </table>
-                </div>
+                <span class="text-sm font-black text-atlantia-wine" x-text="seleccion.length + (seleccion.length === 1 ? ' seleccionada' : ' seleccionadas')"></span>
+                <select name="accion" class="{{ $campo }}" aria-label="Cómo se resolvió" required>
+                    @foreach ($acciones as $valor => $texto)
+                        <option value="{{ $valor }}">{{ $texto }}</option>
+                    @endforeach
+                </select>
+                <input name="notas" maxlength="1000" placeholder="Nota (opcional)" class="{{ $campo }} min-w-0 flex-1 sm:max-w-xs">
+                <button class="h-9 rounded-lg bg-atlantia-wine px-4 text-sm font-black text-white hover:bg-atlantia-wine-700">Marcar como resueltas</button>
             </form>
 
-            <div>{{ $alerts->links() }}</div>
-        </div>
+            @if ($alerts->isEmpty())
+                <div class="px-6 py-10 text-center">
+                    <p class="font-black">{{ $hayFiltros ? 'Ninguna alerta coincide.' : 'No hay alertas de fraude.' }}</p>
+                    <p class="mt-1 text-sm text-atlantia-ink/55">{{ $hayFiltros ? 'Prueba con otra pestaña o motivo.' : 'Cuando un pedido parezca riesgoso aparecerá aquí.' }}</p>
+                </div>
+            @else
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-atlantia-blush/40 text-left text-[11px] font-black uppercase tracking-wide text-atlantia-ink/55">
+                            <tr>
+                                <th class="w-10 px-4 py-2.5"><input type="checkbox" x-on:change="todos($event)" class="h-4 w-4 rounded border-atlantia-rose/40 text-atlantia-wine" aria-label="Seleccionar todas las abiertas"></th>
+                                <th class="px-3 py-2.5">Motivo</th>
+                                <th class="px-3 py-2.5">Pedido</th>
+                                <th class="px-3 py-2.5">Cliente</th>
+                                <th class="px-3 py-2.5">Riesgo</th>
+                                <th class="px-3 py-2.5">Estado</th>
+                                <th class="px-4 py-2.5"><span class="sr-only">Acciones</span></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-atlantia-rose/10">
+                            @foreach ($alerts as $alert)
+                                @php
+                                    $score = (float) $alert->score_riesgo;
+                                    [$nivelTexto, $nivelClase, $nivelBarra] = $nivel($score);
+                                @endphp
+                                <tr class="hover:bg-atlantia-blush/20">
+                                    <td class="px-4 py-2.5">
+                                        @if (! $alert->resuelta)
+                                            <input type="checkbox" form="alertas-lote" name="alertas[]" value="{{ $alert->uuid }}" x-model="seleccion" data-alerta-check class="h-4 w-4 rounded border-atlantia-rose/40 text-atlantia-wine" aria-label="Seleccionar alerta">
+                                        @endif
+                                    </td>
+                                    <td class="px-3 py-2.5">
+                                        <p class="font-black">{{ $nombreTipo($alert->tipo) }}</p>
+                                        <p class="text-xs text-atlantia-ink/50">{{ $alert->created_at?->format('d/m/Y H:i') }}</p>
+                                    </td>
+                                    <td class="px-3 py-2.5 text-atlantia-ink/75">{{ $alert->pedido?->numero_pedido ?? 'Sin pedido' }}</td>
+                                    <td class="px-3 py-2.5 text-atlantia-ink/75">{{ $alert->user?->name ?? 'Sin cliente' }}</td>
+                                    <td class="px-3 py-2.5">
+                                        <div class="flex items-center gap-2">
+                                            <div class="h-1.5 w-16 overflow-hidden rounded-full bg-atlantia-rose/15"><div class="h-full rounded-full {{ $nivelBarra }}" style="width: {{ round($score * 100) }}%"></div></div>
+                                            <span class="text-xs font-black">{{ round($score * 100) }} %</span>
+                                            <span class="rounded-full px-2 py-0.5 text-[11px] font-black ring-1 {{ $nivelClase }}">{{ $nivelTexto }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-3 py-2.5">
+                                        <span @class([
+                                            'whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-black ring-1',
+                                            'bg-emerald-50 text-emerald-800 ring-emerald-200' => $alert->resuelta,
+                                            'bg-sky-50 text-sky-800 ring-sky-200' => ! $alert->resuelta && $alert->revisada,
+                                            'bg-amber-50 text-amber-800 ring-amber-200' => ! $alert->resuelta && ! $alert->revisada,
+                                        ])>{{ $alert->resuelta ? 'Resuelta' : ($alert->revisada ? 'En revisión' : 'Por revisar') }}</span>
+                                    </td>
+                                    <td class="whitespace-nowrap px-4 py-2.5 text-right">
+                                        <a href="{{ route('admin.antifraude.show', $alert->uuid) }}" class="text-sm font-black text-atlantia-wine hover:underline">{{ $alert->resuelta ? 'Ver' : 'Revisar' }} →</a>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @if ($alerts->hasPages())
+                    <div class="border-t border-atlantia-rose/10 px-4 py-3">{{ $alerts->withQueryString()->links() }}</div>
+                @endif
+            @endif
+        </article>
     </section>
 @endsection

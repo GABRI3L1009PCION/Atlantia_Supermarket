@@ -118,6 +118,8 @@ class PedidoController extends Controller
             'confirmation_code' => ['nullable', 'digits:4'],
             'notas' => ['nullable', 'string', 'max:1000'],
             'foto_entrega' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'collection_confirmed' => ['nullable', 'boolean'],
+            'collection_reference' => ['nullable', 'string', 'max:80'],
         ]);
 
         return $this->respondOrder(function () use ($pedido, $request, $data): Pedido {

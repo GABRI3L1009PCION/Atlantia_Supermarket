@@ -303,6 +303,19 @@
                     </div>
                 </div>
 
+                @if ($pedido->cliente)
+                    <form method="POST" action="{{ route('admin.pedidos.saldo', $pedido->uuid) }}" class="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 shadow-sm" data-admin-saldo>
+                        @csrf
+                        <h2 class="text-base font-black text-atlantia-ink">Acreditar saldo a favor</h2>
+                        <p class="mt-1 text-xs text-atlantia-ink/60">Para productos faltantes pagados en efectivo: en lugar de devolver dinero, el cliente lo usa en su próxima compra.</p>
+                        <div class="mt-3 grid gap-2 sm:grid-cols-[8rem_1fr_auto]">
+                            <input name="monto" type="number" min="0.01" step="0.01" required placeholder="Q 0.00" class="rounded-md border border-atlantia-rose/30 px-3 py-2 text-sm">
+                            <input name="motivo" maxlength="200" required placeholder="Ej. Faltó 1 aceite 900 ml" class="rounded-md border border-atlantia-rose/30 px-3 py-2 text-sm">
+                            <button type="submit" class="rounded-md bg-emerald-700 px-4 py-2 text-sm font-black text-white hover:bg-emerald-800">Acreditar</button>
+                        </div>
+                    </form>
+                @endif
+
                 <form method="POST" action="{{ route('admin.pedidos.update', $pedido->uuid) }}" class="rounded-2xl border border-atlantia-rose/20 bg-white p-5 shadow-sm" data-order-admin-form>
                     @csrf
                     @method('PUT')
@@ -392,7 +405,7 @@
         </div>
     </section>
 
-    <script>
+    <script @nonce>
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.querySelector('[data-order-admin-form]');
             if (!form) {

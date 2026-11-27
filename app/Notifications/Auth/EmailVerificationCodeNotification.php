@@ -34,8 +34,8 @@ class EmailVerificationCodeNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->from(config('mail.from.address'), 'Atlantia Delivery')
-            ->subject('Tu codigo de verificacion de Atlantia Delivery')
+            ->from(config('mail.from.address'), 'Atlantia Store')
+            ->subject('Tu codigo de verificacion de Atlantia Store')
             ->view('emails.auth.verification-code', [
                 'user' => $notifiable,
                 'code' => $this->code,

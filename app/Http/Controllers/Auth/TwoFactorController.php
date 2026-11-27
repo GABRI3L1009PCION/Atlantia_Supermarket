@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\TwoFactorChallengeRequest;
 use App\Services\Auth\TwoFactorService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Illuminate\View\View;
 use Throwable;
 
@@ -38,10 +39,36 @@ class TwoFactorController extends Controller
         try {
             $redirectRoute = $this->twoFactorService->verifyChallenge($request->validated(), $request);
 
+            /* Primera configuración: antes de entrar, mostrar los códigos de respaldo una sola vez. */
+            if ($request->session()->has('auth.2fa_codigos_nuevos')) {
+                $request->session()->put('auth.2fa_destino', $redirectRoute);
+
+                return redirect()->route('two-factor.respaldo');
+            }
+
             return redirect()->route($redirectRoute)->with('success', 'Verificacion completada.');
         } catch (Throwable) {
             return back()->with('error', 'El codigo de verificacion no es valido.');
         }
+    }
+
+    /**
+     * Muestra una sola vez los códigos de respaldo recién creados.
+     */
+    public function respaldo(Request $request): View|RedirectResponse
+    {
+        $codigos = (array) $request->session()->pull('auth.2fa_codigos_nuevos', []);
+        $destino = (string) $request->session()->pull('auth.2fa_destino', 'home');
+        $destino = Route::has($destino) ? $destino : 'home';
+
+        if ($codigos === []) {
+            return redirect()->route($destino);
+        }
+
+        return view('auth.two-factor-respaldo', [
+            'codigos' => array_map(fn (string $c): string => substr($c, 0, 5).'-'.substr($c, 5), $codigos),
+            'destino' => route($destino),
+        ]);
     }
 
     /**

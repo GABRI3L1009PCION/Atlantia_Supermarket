@@ -86,6 +86,93 @@ class PrediccionDemandaService
         })->count();
     }
 
+    /** Horizontes que el vendedor puede elegir (días). */
+    public const HORIZONTES = [7, 14, 30];
+
+    /**
+     * Proyección honesta para el vendedor: parte de sus ventas reales de los últimos 30 días
+     * y usa la predicción del modelo cuando existe. Nunca inventa demanda para productos sin ventas.
+     *
+     * @return array{horizonte: int, filas: Collection<int, array<string, mixed>>, resumen: array<string, int>}
+     */
+    public function proyeccionVendedor(User $user, array $filters = []): array
+    {
+        $pedido = (int) ($filters['horizonte'] ?? 7);
+        $horizonte = in_array($pedido, self::HORIZONTES, true) ? $pedido : 7;
+        $vendorId = $user->vendor?->id;
+        $termino = trim((string) ($filters['q'] ?? ''));
+
+        $productos = Producto::query()
+            ->with(['inventario', 'imagenPrincipal', 'media'])
+            ->where('vendor_id', $vendorId)
+            ->where('is_active', true)
+            ->when($termino !== '', fn ($q) => $q->where(fn ($w) => $w->where('nombre', 'like', "%{$termino}%")->orWhere('sku', 'like', "%{$termino}%")))
+            ->get();
+
+        $vendidas = PedidoItem::query()
+            ->join('pedidos', 'pedidos.id', '=', 'pedido_items.pedido_id')
+            ->whereIn('pedido_items.producto_id', $productos->pluck('id'))
+            ->whereNotIn('pedidos.estado', ['cancelado', 'rechazado'])
+            ->where('pedidos.created_at', '>=', now()->subDays(30))
+            ->groupBy('pedido_items.producto_id')
+            ->selectRaw('pedido_items.producto_id, SUM(pedido_items.cantidad) as unidades')
+            ->pluck('unidades', 'pedido_items.producto_id');
+
+        $modelo = SalesPrediction::query()
+            ->whereIn('producto_id', $productos->pluck('id'))
+            ->where('horizonte_dias', $horizonte)
+            ->whereNotNull('modelo_version_id')
+            ->where('fecha_prediccion', '>=', now()->subDays(2)->toDateString())
+            ->latest('fecha_prediccion')
+            ->get()
+            ->unique('producto_id')
+            ->keyBy('producto_id');
+
+        $prioridad = ['agotado' => 0, 'pedir' => 1, 'atento' => 2, 'bien' => 3, 'sin_ventas' => 4];
+
+        $filas = $productos->map(function (Producto $producto) use ($vendidas, $modelo, $horizonte): array {
+            $vendidas30 = (int) ($vendidas[$producto->id] ?? 0);
+            $ritmo = $vendidas30 / 30;
+            $prediccion = $modelo->get($producto->id);
+            $esperado = $prediccion !== null ? (float) $prediccion->valor_predicho : $ritmo * $horizonte;
+            $disponible = max(0, (int) ($producto->inventario?->stock_actual ?? 0) - (int) ($producto->inventario?->stock_reservado ?? 0));
+            $ritmoUsado = $esperado > 0 ? $esperado / $horizonte : 0;
+            $alcanza = $ritmoUsado > 0 ? (int) floor($disponible / $ritmoUsado) : null;
+
+            $estado = match (true) {
+                $esperado <= 0 => 'sin_ventas',
+                $disponible <= 0 => 'agotado',
+                $esperado > $disponible => 'pedir',
+                $alcanza !== null && $alcanza < $horizonte * 2 => 'atento',
+                default => 'bien',
+            };
+
+            return [
+                'producto' => $producto,
+                'vendidas_30' => $vendidas30,
+                'esperado' => (int) ceil($esperado),
+                'disponible' => $disponible,
+                'alcanza_dias' => $alcanza,
+                'faltan' => max(0, (int) ceil($esperado) - $disponible),
+                'estado' => $estado,
+                'fuente' => $prediccion !== null ? 'modelo' : 'ventas',
+            ];
+        })->sortBy([fn ($a, $b) => $prioridad[$a['estado']] <=> $prioridad[$b['estado']], fn ($a, $b) => $b['esperado'] <=> $a['esperado']])->values();
+
+        return [
+            'horizonte' => $horizonte,
+            'filas' => $filas,
+            'resumen' => [
+                'productos' => $filas->count(),
+                'con_ventas' => $filas->where('estado', '!=', 'sin_ventas')->count(),
+                'esperado' => (int) $filas->sum('esperado'),
+                'pedir' => $filas->whereIn('estado', ['agotado', 'pedir'])->count(),
+                'sin_ventas' => $filas->where('estado', 'sin_ventas')->count(),
+                'con_modelo' => $filas->where('fuente', 'modelo')->count(),
+            ],
+        ];
+    }
+
     /**
      * Obtiene o genera prediccion para un producto.
      *

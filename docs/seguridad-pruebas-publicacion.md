@@ -4,7 +4,7 @@
 
 - El panel administrativo e interno sensible ahora obliga 2FA en login si el usuario tiene rol `super_admin`, `admin`, `empleado`, `soporte`, `contabilidad_finanzas` o `supervisor_logistica`.
 - Los tokens Passport ya no quedan indefinidos: se controlan por variables de entorno y se purgan automáticamente todos los días.
-- La app Android guarda sesión, UUID de instalación y preferencias operativas en almacenamiento cifrado.
+- El token del servicio GPS Android se cifra con AES-GCM y una clave de Android Keystore. La sesión de la interfaz se mantiene en memoria; las preferencias no sensibles no se presentan como almacenamiento cifrado.
 - Producción queda parametrizada para rotación de secretos y para respaldos automáticos del MySQL.
 
 ## Variables nuevas

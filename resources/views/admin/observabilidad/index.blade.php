@@ -204,5 +204,9 @@
                 </div>
             </article>
         </div>
+
+        @isset($plataforma)
+            @include('admin.observabilidad.partials.plataforma')
+        @endisset
     </section>
 @endsection

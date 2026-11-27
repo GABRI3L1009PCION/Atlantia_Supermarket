@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Vendedor\Pedido;
 
+use App\Models\Pedido;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdatePedidoEstadoRequest extends FormRequest
@@ -14,7 +15,22 @@ class UpdatePedidoEstadoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'estado' => ['required', 'in:confirmado,preparando,listo_para_entrega,cancelado'],
+            'estado' => [
+                'required',
+                'in:confirmado,preparando,listo_para_entrega,entregado,cancelado',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($value !== 'entregado') {
+                        return;
+                    }
+                    /* Solo los pedidos para recoger en tienda los entrega el comercio, y cuando ya estan listos. */
+                    $pedido = $this->route('pedido');
+                    if (! $pedido instanceof Pedido || $pedido->tipo_entrega !== 'recoger') {
+                        $fail('Solo puedes marcar como entregados los pedidos que el cliente recoge en tienda.');
+                    } elseif ($pedido->estadoValor() !== 'listo_para_entrega') {
+                        $fail('Marca el pedido como listo antes de entregarlo al cliente.');
+                    }
+                },
+            ],
             'notas' => ['nullable', 'string', 'max:1000'],
         ];
     }

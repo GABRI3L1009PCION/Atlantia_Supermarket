@@ -18,6 +18,7 @@ class VerifyCsrfToken extends Middleware
      */
     protected $except = [
         'webhooks/pasarela-pago',
+        'webhooks/recurrente',
         'webhooks/certificador-fel',
         'webhooks/courier-externo',
         'webhooks/ml-service',

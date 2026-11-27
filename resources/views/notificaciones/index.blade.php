@@ -1,11 +1,10 @@
-@extends('layouts.app')
+@extends(auth()->user()?->isSuperAdmin() ? 'layouts.super-admin' : 'layouts.app')
 
 @section('content')
     <section class="-mx-4 -my-6 min-h-[calc(100vh-4rem)] bg-white px-4 py-6 text-atlantia-ink sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <div class="mx-auto max-w-5xl">
             <div class="flex flex-col gap-4 rounded-md border border-atlantia-rose/20 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <p class="text-xs font-black uppercase tracking-[0.18em] text-atlantia-rose">Atlantia Supermarket</p>
                     <h1 class="mt-1 text-3xl font-black text-atlantia-ink">Notificaciones</h1>
                     <p class="mt-1 text-sm text-atlantia-ink/60">
                         Revisa novedades de pedidos, inventario, pagos y actividad operativa.

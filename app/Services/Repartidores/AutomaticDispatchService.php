@@ -45,6 +45,9 @@ class AutomaticDispatchService
 
         Pedido::query()
             ->whereIn('estado', self::INTERNAL_ELIGIBLE_STATES)
+            ->where('tipo_entrega', '!=', 'recoger')
+            /* El pedido padre solo agrupa: cada tienda (pedido hijo) tiene su propia entrega. */
+            ->whereDoesntHave('pedidosHijos')
             ->whereDoesntHave('deliveryOffers', fn ($query) => $query->where('status', 'accepted'))
             ->oldest()
             ->limit($batchSize)
@@ -81,7 +84,8 @@ class AutomaticDispatchService
                 ->lockForUpdate()
                 ->findOrFail($pedido->id);
 
-            if (! in_array($pedido->estadoValor(), self::INTERNAL_ELIGIBLE_STATES, true)) {
+            /* Los pedidos para recoger en tienda no llevan repartidor. */
+            if (! in_array($pedido->estadoValor(), self::INTERNAL_ELIGIBLE_STATES, true) || $pedido->tipo_entrega === 'recoger') {
                 return null;
             }
 
@@ -421,7 +425,8 @@ class AutomaticDispatchService
                 'asignada_at' => null,
                 'aceptada_at' => null,
                 'estimated_earning' => round(max(15, ((float) $pedido->envio) * 0.75, 12 + ($deliveryDistance * 2.5)), 2),
-                'cash_to_collect' => $pedido->metodoPagoValor() === 'efectivo' ? (float) $pedido->total : 0,
+                'cash_to_collect' => $pedido->metodoPagoValor() === 'efectivo' ? $pedido->montoACobrar() : 0,
+                'tip_amount' => (float) $pedido->propina,
                 'change_required' => $pedido->changeRequiredAmount(),
                 'payment_method' => $pedido->metodoPagoValor(),
                 'proof_type' => 'photo',

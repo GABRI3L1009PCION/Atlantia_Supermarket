@@ -104,7 +104,7 @@
                                     >
                                         Editar
                                     </button>
-                                    <form method="POST" action="{{ route('admin.hero-banners.destroy', $banner->uuid) }}" onsubmit="return confirm('Eliminar el banner {{ addslashes($banner->nombre) }}?')">
+                                    <form method="POST" action="{{ route('admin.hero-banners.destroy', $banner->uuid) }}" data-confirm="Eliminar el banner {{ $banner->nombre }}?">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="rounded-md px-3 py-2 text-xs font-black text-red-600 transition hover:bg-red-50">
@@ -190,9 +190,19 @@
                         @error('termina_en') <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
+                        <label class="text-sm font-semibold text-atlantia-ink">Anunciante (empresa que paga)</label>
+                        <input name="anunciante" value="{{ old('anunciante') }}" maxlength="160" placeholder="Opcional" class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-atlantia-ink">Enlace al tocar el banner</label>
+                        <input name="url_destino" type="url" value="{{ old('url_destino') }}" placeholder="https://..." class="mt-1 w-full rounded-md border border-atlantia-rose/35 px-3 py-2">
+                        @error('url_destino') <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
                         <label class="text-sm font-semibold text-atlantia-ink">Imagen desktop</label>
                         <input name="desktop_image" type="file" accept="image/*" class="mt-1 w-full rounded-md border border-atlantia-rose/35 bg-white px-3 py-2 outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20" required>
                         @error('desktop_image') <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
+                        <p class="mt-1 text-[11px] text-atlantia-ink/55" data-medida-banner>Medida recomendada: <strong>1500 × 600 px</strong> (proporción 2.5 : 1), JPG o WebP de menos de 400 KB. Deja el texto al centro, lejos de los bordes.</p>
                     </div>
                     <div>
                         <label class="text-sm font-semibold text-atlantia-ink">Imagen mobile</label>

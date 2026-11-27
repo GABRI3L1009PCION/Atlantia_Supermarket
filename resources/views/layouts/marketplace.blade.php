@@ -5,23 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $title ?? 'Atlantia Delivery' }}</title>
+    @include('layouts.partials.favicon')
+    <title>{{ $title ?? 'Atlantia Store' }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles(['nonce' => request()->attributes->get('csp_nonce')])
 </head>
+@php
+    /* Pantallas de acceso: ocupan justo el alto disponible bajo el navbar, sin footer. */
+    $pantallaAcceso = request()->routeIs('login', 'login.*', 'register', 'register.*', 'password.*', 'two-factor.*', 'verification.*', 'vendedor.acceso.*', 'acceso.*');
+@endphp
 <body class="flex min-h-screen flex-col overflow-x-hidden bg-white text-atlantia-ink antialiased">
     @include('layouts.partials.header')
 
-    <main id="contenido-principal" class="flex-1 pb-20 lg:pb-0" tabindex="-1">
+    <main id="contenido-principal" @class(['flex-1 pb-20 lg:pb-0', 'flex flex-col' => $pantallaAcceso]) tabindex="-1">
+        <div class="px-4 sm:px-6 lg:px-8">@include('layouts.partials.aviso-horario')</div>
+        @if (request()->routeIs(...collect(\App\Support\MenuCuenta::cliente())->pluck('activa')->flatten()->all()))
+            <x-cuenta-cliente-nav />
+        @endif
         @include('layouts.partials.flash')
 
         {{ $slot ?? '' }}
         @yield('content')
     </main>
 
-    @include('layouts.partials.footer')
+    @unless ($pantallaAcceso)
+        @include('layouts.partials.footer')
+    @endunless
     @include('layouts.partials.mobile-bottom-nav')
+    @include('layouts.partials.whatsapp-soporte')
+    @include('layouts.partials.instalar-app')
     <x-toast />
 
     <div

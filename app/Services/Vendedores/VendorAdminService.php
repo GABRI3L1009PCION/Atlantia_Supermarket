@@ -61,7 +61,7 @@ class VendorAdminService
                 'phone' => $vendor->telefono_publico ?: $vendor->user?->phone ?: 'No registrado',
                 'document_type' => strtoupper((string) ($vendor->document_type ?? 'DPI')),
                 'document_number' => $vendor->document_number ?: 'Pendiente',
-                'category' => $vendor->business_category ?: 'Sin categoria',
+                'category' => $vendor->categoriaTexto() ?: 'Sin categoría',
                 'status' => $vendor->status,
                 'status_label' => $statusLabels[$vendor->status] ?? ucfirst((string) $vendor->status),
                 'documents' => $documents,
@@ -125,6 +125,24 @@ class VendorAdminService
             ]);
 
             $vendor->user?->update(['status' => 'active']);
+
+            return $vendor->refresh();
+        });
+    }
+
+    /**
+     * Rechaza una solicitud pendiente con el motivo que verá el solicitante.
+     */
+    public function reject(Vendor $vendor, string $motivo, User $admin): Vendor
+    {
+        return DB::transaction(function () use ($vendor, $motivo): Vendor {
+            $vendor->update([
+                'is_approved' => false,
+                'status' => 'rejected',
+                'rejection_reason' => $motivo,
+            ]);
+
+            $vendor->user?->update(['status' => 'inactive']);
 
             return $vendor->refresh();
         });

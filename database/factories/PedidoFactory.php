@@ -6,6 +6,7 @@ use App\Models\Cliente\Direccion;
 use App\Models\Pedido;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Support\Iva;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -32,9 +33,10 @@ class PedidoFactory extends Factory
     {
         $subtotal = fake()->randomFloat(2, 65, 620);
         $envio = fake()->randomElement([15.00, 20.00, 25.00, 35.00]);
-        $impuestos = round($subtotal * 0.12, 2);
         $descuento = fake()->optional(0.2, 0.00)->randomFloat(2, 5, 30);
-        $total = $subtotal + $envio + $impuestos - $descuento;
+        /* Los precios ya incluyen IVA: se desglosa, no se suma al total. */
+        $impuestos = Iva::incluido($subtotal - $descuento);
+        $total = $subtotal + $envio - $descuento;
 
         return [
             'uuid' => (string) Str::uuid(),

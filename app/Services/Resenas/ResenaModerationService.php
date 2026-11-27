@@ -59,6 +59,10 @@ class ResenaModerationService
             'pendientes' => $resenas->where('aprobada', false)->count(),
             'aprobadas' => $resenas->where('aprobada', true)->count(),
             'flagged_ml' => $resenas->where('flagged_ml', true)->count(),
+            /* Promedio de las aprobadas: es el que ven los clientes en la tienda. */
+            'promedio' => $resenas->where('aprobada', true)->isNotEmpty()
+                ? round((float) $resenas->where('aprobada', true)->avg('calificacion'), 1)
+                : null,
         ];
     }
 

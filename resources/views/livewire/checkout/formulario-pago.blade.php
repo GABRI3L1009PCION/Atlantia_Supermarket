@@ -3,6 +3,7 @@
     aria-labelledby="metodo-pago-title"
 >
     @php
+        $tarjetaEnLinea = config('atlantia.payments.card.mode') === 'recurrente';
         $fieldIcon = function (string $field): string {
             return match ($this->fieldState($field)) {
                 'valid' => 'text-emerald-600',
@@ -53,6 +54,8 @@
                             Efectivo
                         @elseif ($metodo === 'transferencia')
                             Transferencia bancaria al entregar
+                        @elseif ($tarjetaEnLinea)
+                            Tarjeta de credito o debito en linea
                         @else
                             Tarjeta con POS al entregar
                         @endif
@@ -62,6 +65,8 @@
                             Pagas cuando llegue el repartidor. Si necesitas cambio, indicanos para que billete.
                         @elseif ($metodo === 'transferencia')
                             La transferencia se realiza al momento de la entrega y el repartidor valida el comprobante.
+                        @elseif ($tarjetaEnLinea)
+                            Pagas ahora en la pagina segura de Recurrente. Confirmamos tu pedido al acreditarse el pago.
                         @else
                             El repartidor llevara terminal POS para cobrar con tarjeta en la entrega.
                         @endif
@@ -71,7 +76,22 @@
         @endforeach
     </div>
 
-    @if ($metodoPago === 'tarjeta')
+    @if ($metodoPago === 'tarjeta' && $tarjetaEnLinea)
+        <div class="mt-4 rounded-lg border border-atlantia-rose/25 bg-atlantia-blush/35 p-4">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-sm font-bold text-atlantia-ink">Pago seguro con Recurrente</p>
+                    <p class="mt-1 text-xs leading-5 text-atlantia-ink/65">
+                        Al confirmar el pedido te llevaremos a la pagina de pago de Recurrente. Atlantia no recibe ni guarda los datos de tu tarjeta.
+                        Si no completas el pago en {{ (int) config('services.recurrente.checkout_expires_minutes', 30) }} minutos, el pedido se cancela y los productos se liberan.
+                    </p>
+                </div>
+                <span class="rounded-full border border-emerald-500/25 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                    Pago en linea
+                </span>
+            </div>
+        </div>
+    @elseif ($metodoPago === 'tarjeta')
         <div class="mt-4 rounded-lg border border-atlantia-rose/25 bg-atlantia-blush/35 p-4">
             <div class="flex items-start justify-between gap-4">
                 <div>
@@ -117,7 +137,7 @@
                     id="referencia_bancaria"
                     name="referencia_bancaria"
                     type="text"
-                    wire:model.live.debounce.250ms="referenciaTransferencia"
+                    wire:model.blur="referenciaTransferencia"
                     autocomplete="off"
                     placeholder="Ej. BANRURAL-8842 o transferencia 123456"
                     class="w-full rounded-md border border-atlantia-rose/30 bg-white px-4 py-3 pr-11 text-sm font-semibold text-atlantia-ink focus:border-atlantia-wine focus:ring-atlantia-rose"
@@ -164,7 +184,7 @@
                         type="number"
                         min="1"
                         step="0.01"
-                        wire:model.live.debounce.250ms="cambioPara"
+                        wire:model.blur="cambioPara"
                         placeholder="Ej. 200.00"
                         class="mt-2 w-full rounded-md border border-atlantia-rose/30 bg-white px-4 py-3 text-sm font-semibold text-atlantia-ink focus:border-atlantia-wine focus:ring-atlantia-rose"
                     >

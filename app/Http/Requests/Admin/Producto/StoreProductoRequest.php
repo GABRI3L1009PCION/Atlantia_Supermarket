@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Producto;
 
+use App\Http\Requests\Concerns\AplicaIvaAPrecios;
 use App\Models\Vendor;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
@@ -12,6 +13,8 @@ use Illuminate\Validation\Rule;
  */
 class StoreProductoRequest extends FormRequest
 {
+    use AplicaIvaAPrecios;
+
     public function authorize(): bool
     {
         return $this->user()?->hasAnyRole(['admin', 'super_admin']) === true;
@@ -37,6 +40,8 @@ class StoreProductoRequest extends FormRequest
             'descripcion' => ['nullable', 'string', 'max:5000'],
             'precio_base' => ['required', 'numeric', 'min:0.01', 'decimal:0,2'],
             'precio_oferta' => ['nullable', 'numeric', 'min:0.01', 'lt:precio_base', 'decimal:0,2'],
+            /* Costo interno (con IVA) para calcular el margen. Nunca se muestra al cliente. */
+            'costo_compra' => ['nullable', 'numeric', 'min:0', 'decimal:0,2'],
             'peso_gramos' => ['nullable', 'integer', 'min:1', 'max:100000'],
             'unidad_medida' => ['required', Rule::in(['unidad', 'libra', 'kilogramo', 'gramo', 'litro', 'mililitro', 'paquete'])],
             'stock_actual' => ['required', 'integer', 'min:0'],
@@ -63,10 +68,13 @@ class StoreProductoRequest extends FormRequest
             'slug' => $this->input('slug') ? Str::slug((string) $this->input('slug')) : Str::slug($nombre),
             'precio_base' => $this->normalizeDecimal($this->input('precio_base')),
             'precio_oferta' => $this->optionalOfferToNull($this->normalizeDecimal($this->input('precio_oferta'))),
+            'costo_compra' => $this->filled('costo_compra') ? $this->normalizeDecimal($this->input('costo_compra')) : null,
             'requiere_refrigeracion' => filter_var($this->input('requiere_refrigeracion', false), FILTER_VALIDATE_BOOLEAN),
             'is_active' => filter_var($this->input('is_active', true), FILTER_VALIDATE_BOOLEAN),
             'visible_catalogo' => filter_var($this->input('visible_catalogo', true), FILTER_VALIDATE_BOOLEAN),
         ]);
+
+        $this->aplicarIvaAPrecios();
     }
 
     /**

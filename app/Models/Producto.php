@@ -37,6 +37,13 @@ class Producto extends Model implements HasMedia
      *
      * @var array<int, string>
      */
+    /**
+     * El costo de compra es interno: nunca se envia al cliente ni a la API publica.
+     *
+     * @var list<string>
+     */
+    protected $hidden = ['costo_compra'];
+
     protected $fillable = [
         'uuid',
         'vendor_id',
@@ -48,6 +55,7 @@ class Producto extends Model implements HasMedia
         'descripcion',
         'precio_base',
         'precio_oferta',
+        'costo_compra',
         'peso_gramos',
         'unidad_medida',
         'requiere_refrigeracion',
@@ -66,6 +74,7 @@ class Producto extends Model implements HasMedia
         return [
             'precio_base' => 'decimal:2',
             'precio_oferta' => 'decimal:2',
+            'costo_compra' => 'decimal:2',
             'peso_gramos' => 'integer',
             'requiere_refrigeracion' => 'boolean',
             'is_active' => 'boolean',

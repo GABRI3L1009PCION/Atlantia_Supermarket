@@ -105,12 +105,12 @@
                     <h1 class="text-2xl font-black tracking-tight text-[#211920] sm:text-3xl">
                         Centro de operaciones
                     </h1>
-                    <p class="mt-1 text-xs font-medium text-[#6f626a]">Atlantia Delivery controla marketplace, supermercado propio, tiendas aliadas y entregas externas desde este panel.</p>
+                    <p class="mt-1 text-xs font-medium text-[#6f626a]">Atlantia Store controla marketplace, supermercado propio, tiendas aliadas y entregas externas desde este panel.</p>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-3 text-xs text-[#6f626a]">
-                    <span class="inline-flex items-center gap-2 rounded-md bg-[#fbf7f9] px-3 py-2 font-semibold ring-1 ring-[#ead8df]">
-                        <svg class="h-4 w-4 text-[#8b1d4d]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <span class="inline-flex items-center gap-2 rounded-md bg-[#fbf7f7] px-3 py-2 font-semibold ring-1 ring-[#ecd7d9]">
+                        <svg class="h-4 w-4 text-[#6e000a]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <path d="M7 3V6M17 3V6M4 9H20M6 5H18C19.1 5 20 5.9 20 7V19C20 20.1 19.1 21 18 21H6C4.9 21 4 20.1 4 19V7C4 5.9 4.9 5 6 5Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                         </svg>
                         Actualizado {{ now()->format('d/m/Y H:i') }}
@@ -121,7 +121,7 @@
             @if ($alerts['total'] > 0)
                 <a
                     href="{{ route('admin.antifraude.index') }}"
-                    class="mt-4 flex flex-col justify-between gap-2 rounded-md border border-[#f3c8d5] bg-[#fff5f8] px-4 py-3 text-xs font-bold text-[#7a183f] sm:flex-row sm:items-center"
+                    class="mt-4 flex flex-col justify-between gap-2 rounded-md border border-[#f3c8d5] bg-[#fff6f6] px-4 py-3 text-xs font-bold text-[#7a183f] sm:flex-row sm:items-center"
                 >
                     <span>
                         {{ number_format($alerts['total']) }} alertas requieren atencion:
@@ -134,9 +134,9 @@
             @endif
 
             <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <article class="rounded-md border border-[#ead8df] bg-white p-4 shadow-sm">
+                <article class="rounded-md border border-[#ecd7d9] bg-white p-4 shadow-sm">
                     <div class="flex items-center gap-3">
-                        <span class="grid h-11 w-11 place-items-center rounded-full bg-[#fff0f5] text-[#8b1d4d]">
+                        <span class="grid h-11 w-11 place-items-center rounded-full bg-[#fff0f5] text-[#6e000a]">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                 <path d="M8 7V5C8 3.9 8.9 3 10 3H14C15.1 3 16 3.9 16 5V7M6 7H18V20H6V7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
                                 <path d="M10 11H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -150,7 +150,7 @@
                     </div>
                 </article>
 
-                <article class="rounded-md border border-[#ead8df] bg-white p-4 shadow-sm">
+                <article class="rounded-md border border-[#ecd7d9] bg-white p-4 shadow-sm">
                     <div class="flex items-center gap-3">
                         <span class="grid h-11 w-11 place-items-center rounded-full bg-emerald-50 text-emerald-700">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -165,9 +165,9 @@
                     </div>
                 </article>
 
-                <article class="rounded-md border border-[#ead8df] bg-white p-4 shadow-sm">
+                <article class="rounded-md border border-[#ecd7d9] bg-white p-4 shadow-sm">
                     <div class="flex items-center gap-3">
-                        <span class="grid h-11 w-11 place-items-center rounded-full bg-[#fff0f5] text-[#8b1d4d]">
+                        <span class="grid h-11 w-11 place-items-center rounded-full bg-[#fff0f5] text-[#6e000a]">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                 <path d="M4 7H20V17H4V7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
                                 <path d="M8 7V17M16 7V17M10 12H14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -176,12 +176,12 @@
                         <div>
                             <p class="text-xs font-bold text-[#7c7178]">Ticket promedio</p>
                             <p class="text-2xl font-black leading-tight text-[#211920]">Q {{ number_format($overview['ticket_promedio'], 2) }}</p>
-                            <p class="text-[11px] font-black text-[#8b1d4d]">Pedidos padre</p>
+                            <p class="text-[11px] font-black text-[#6e000a]">Pedidos padre</p>
                         </div>
                     </div>
                 </article>
 
-                <article class="rounded-md border border-[#ead8df] bg-white p-4 shadow-sm">
+                <article class="rounded-md border border-[#ecd7d9] bg-white p-4 shadow-sm">
                     <div class="flex items-center gap-3">
                         <span class="grid h-11 w-11 place-items-center rounded-full bg-emerald-50 text-emerald-700">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -199,7 +199,7 @@
             </div>
 
             <div class="mt-4 grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-                <article class="rounded-md border border-[#ead8df] bg-white p-4 shadow-sm">
+                <article class="rounded-md border border-[#ecd7d9] bg-white p-4 shadow-sm">
                     <div class="flex items-center justify-between">
                         <h2 class="text-base font-black text-[#211920]">Operacion en vivo</h2>
                         <span class="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase text-emerald-700 ring-1 ring-emerald-100">
@@ -247,22 +247,22 @@
                         </div>
                     </div>
 
-                    <div class="mt-4 grid gap-3 border-t border-[#ead8df] pt-3 text-xs sm:grid-cols-2">
+                    <div class="mt-4 grid gap-3 border-t border-[#ecd7d9] pt-3 text-xs sm:grid-cols-2">
                         <p class="text-[#5f555c]">
                             Repartidores:
                             <strong class="text-[#211920]">{{ number_format($courierStatus['total']) }} activos</strong>
                             / {{ number_format($courierStatus['disponibles']) }} disponibles
                         </p>
-                        <a href="{{ route('admin.pedidos.index') }}" class="font-black text-[#8b1d4d] hover:underline">
+                        <a href="{{ route('admin.pedidos.index') }}" class="font-black text-[#6e000a] hover:underline">
                             {{ number_format($operacion['pedidos_pendientes']) }} pedidos pendientes por revisar
                         </a>
                     </div>
                 </article>
 
-                <article class="rounded-md border border-[#ead8df] bg-white p-4 shadow-sm">
+                <article class="rounded-md border border-[#ecd7d9] bg-white p-4 shadow-sm">
                     <h2 class="text-base font-black text-[#211920]">Alertas operativas</h2>
 
-                    <div class="mt-3 divide-y divide-[#ead8df] text-xs">
+                    <div class="mt-3 divide-y divide-[#ecd7d9] text-xs">
                         <a href="{{ route('admin.antifraude.index') }}" class="flex items-center justify-between py-2">
                             <span class="inline-flex items-center gap-2 font-black text-rose-700">
                                 <span class="dashboard-alert-icon grid h-5 w-5 place-items-center rounded bg-rose-50">!</span>
@@ -303,10 +303,10 @@
             </div>
 
             <div class="mt-4 grid gap-4 xl:grid-cols-[1fr_0.95fr]">
-                <article class="rounded-md border border-[#ead8df] bg-white p-4 shadow-sm">
+                <article class="rounded-md border border-[#ecd7d9] bg-white p-4 shadow-sm">
                     <div class="flex items-center justify-between gap-3">
                         <h2 class="text-base font-black text-[#211920]">Ventas ultimos 6 meses</h2>
-                        <a href="{{ route('admin.reportes.index') }}" class="text-xs font-black text-[#8b1d4d] hover:underline">
+                        <a href="{{ route('admin.reportes.index') }}" class="text-xs font-black text-[#6e000a] hover:underline">
                             Ver reportes ->
                         </a>
                     </div>
@@ -316,7 +316,7 @@
                             @foreach ($monthlySales as $sale)
                                 <div class="flex flex-1 flex-col items-center justify-end gap-2">
                                     <div
-                                        class="w-full rounded-t bg-[#9a285a] shadow-[0_10px_20px_rgba(154,40,90,0.18)]"
+                                        class="w-full rounded-t bg-[#8f1a26] shadow-[0_10px_20px_rgba(154,40,90,0.18)]"
                                         style="height: {{ max(8, round(((float) $sale['total'] / $maxSale) * 100)) }}%;"
                                         title="Q {{ number_format($sale['total'], 2) }}"
                                     ></div>
@@ -326,28 +326,28 @@
                         </div>
                     </div>
 
-                    <div class="mt-3 rounded-md border border-[#ead8df] bg-white px-3 py-2 text-xs text-[#5f555c]">
+                    <div class="mt-3 rounded-md border border-[#ecd7d9] bg-white px-3 py-2 text-xs text-[#5f555c]">
                         Total 6m:
-                        <strong class="ml-2 text-sm text-[#8b1d4d]">Q {{ number_format($monthlySales->sum('total'), 2) }}</strong>
+                        <strong class="ml-2 text-sm text-[#6e000a]">Q {{ number_format($monthlySales->sum('total'), 2) }}</strong>
                     </div>
                 </article>
 
-                <article class="rounded-md border border-[#ead8df] bg-white p-4 shadow-sm">
+                <article class="rounded-md border border-[#ecd7d9] bg-white p-4 shadow-sm">
                     <div class="flex items-center justify-between gap-3">
                         <h2 class="text-base font-black text-[#211920]">Ultimos pedidos</h2>
-                        <a href="{{ route('admin.pedidos.index') }}" class="text-xs font-black text-[#8b1d4d] hover:underline">
+                        <a href="{{ route('admin.pedidos.index') }}" class="text-xs font-black text-[#6e000a] hover:underline">
                             Ver todos ->
                         </a>
                     </div>
 
-                    <div class="mt-3 overflow-hidden rounded-md border border-[#ead8df]">
-                        <div class="grid grid-cols-[0.9fr_1fr_0.75fr_auto] bg-[#fbf7f9] px-3 py-2 text-[11px] font-black uppercase text-[#7c7178]">
+                    <div class="mt-3 overflow-hidden rounded-md border border-[#ecd7d9]">
+                        <div class="grid grid-cols-[0.9fr_1fr_0.75fr_auto] bg-[#fbf7f7] px-3 py-2 text-[11px] font-black uppercase text-[#7c7178]">
                             <span>ID Pedido</span>
                             <span>Cliente</span>
                             <span>Estado</span>
                             <span>Total</span>
                         </div>
-                        <div class="divide-y divide-[#ead8df]">
+                        <div class="divide-y divide-[#ecd7d9]">
                             @forelse ($recentOrders as $order)
                                 @php
                                     $estado = $order['estado'];
@@ -371,7 +371,7 @@
                 </article>
             </div>
 
-            <article class="mt-4 rounded-md border border-[#ead8df] bg-white p-4 shadow-sm">
+            <article class="mt-4 rounded-md border border-[#ecd7d9] bg-white p-4 shadow-sm">
                 <div class="flex items-center justify-between">
                     <h2 class="text-base font-black text-[#211920]">Inteligencia del negocio</h2>
                     <span class="text-[11px] font-black text-[#8f828a]">Powered by ML</span>
@@ -402,9 +402,9 @@
                             </svg>
                         </span>
                         <span>
-                            <span class="block text-xs font-black text-[#9a285a]">Antifraude</span>
+                            <span class="block text-xs font-black text-[#8f1a26]">Antifraude</span>
                             <span class="block text-lg font-black leading-tight text-[#211920]">{{ number_format($alerts['fraud']) }} casos</span>
-                            <span class="block text-[11px] font-semibold text-[#9a285a]">Revision pendiente</span>
+                            <span class="block text-[11px] font-semibold text-[#8f1a26]">Revision pendiente</span>
                         </span>
                         <svg class="h-12 w-full text-[#ff8ab5]" viewBox="0 0 88 42" fill="none" aria-hidden="true">
                             <path class="dashboard-sparkline" d="M2 34L13 30L24 32L36 18L47 30L58 26L70 11L86 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>

@@ -53,7 +53,16 @@ class MobileRepartidorPayloadService
      */
     public function dashboard(array $metrics): array
     {
+        $mapboxToken = trim((string) config('services.mapbox.token'));
+
         return [
+            /* Solo se expone un token publico de Mapbox (pk.), igual que en el mapa web. */
+            'map' => [
+                'mapbox_token' => str_starts_with($mapboxToken, 'pk.') ? $mapboxToken : null,
+                'tiles_url' => config('services.mapas.tiles_url'),
+                'tiles_attribution' => config('services.mapas.tiles_attribution'),
+                'routing_url' => config('services.mapas.routing_url'),
+            ],
             'overview' => $metrics['overview'] ?? [],
             'profile' => $this->profile($metrics['profile']),
             'reward' => $metrics['reward'] ?? [],
@@ -136,6 +145,9 @@ class MobileRepartidorPayloadService
             'tip_earnings' => (float) ($summary['tip_earnings'] ?? 0),
             'transit_balance' => (float) ($summary['transit_balance'] ?? 0),
             'previous_week_earnings' => (float) ($summary['previous_week_earnings'] ?? 0),
+            'current_month_earnings' => (float) ($summary['current_month_earnings'] ?? 0),
+            'daily_earnings' => $summary['daily_earnings'] ?? [],
+            'weekly_earnings' => $summary['weekly_earnings'] ?? [],
             'pending_withdrawal_amount' => (float) ($summary['pending_withdrawal_amount'] ?? 0),
             'available_to_withdraw' => (float) ($summary['available_to_withdraw'] ?? 0),
             'bank_account' => is_array($summary['bank_account'] ?? null) ? $summary['bank_account'] : null,

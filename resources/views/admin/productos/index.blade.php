@@ -16,151 +16,106 @@
             'orden' => (string) request('orden', 'recientes'),
         ];
         $activeFilters = collect([
-            'Busqueda: ' . $filterValues['q'] => $filterValues['q'],
-            'Categoria activa' => $filterValues['categoria_id'],
-            'Proveedor activo' => $filterValues['vendor_id'],
+            'Búsqueda: ' . $filterValues['q'] => $filterValues['q'],
+            'Categoría' => $filterValues['categoria_id'],
+            'Tienda' => $filterValues['vendor_id'],
             'Estado: ' . $filterValues['estado'] => $filterValues['estado'],
             'Stock: ' . $filterValues['stock'] => $filterValues['stock'],
         ])->filter();
     @endphp
 
-    <section class="mx-auto max-w-full py-2">
-        <div class="rounded-2xl border border-atlantia-rose/20 bg-white p-6 shadow-sm">
-            <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                <x-page-header title="Productos" subtitle="Administra el catalogo multivendedor y el inventario inicial." />
+    @php
+        $selectClase = 'h-10 w-full rounded-lg border border-atlantia-rose/25 bg-white px-3 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20';
+    @endphp
 
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <div class="rounded-xl border border-atlantia-rose/25 bg-atlantia-cream px-4 py-3">
-                        <p class="text-sm font-black text-atlantia-wine">{{ $productos->total() }} productos registrados</p>
-                        <p class="text-xs text-atlantia-ink/60">Catalogo propio y de vendedores locales.</p>
-                    </div>
-                    <button
-                        type="button"
-                        class="rounded-lg bg-atlantia-wine px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-atlantia-wine-700"
-                        data-open-create-modal
-                    >
-                        Crear nuevo producto
+    <section class="mx-auto max-w-full pb-10">
+        <div class="space-y-4">
+            {{-- Encabezado: título a la izquierda, acciones a la derecha --}}
+            <header class="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <h1 class="text-3xl font-black tracking-tight text-atlantia-ink">Productos</h1>
+                    <p class="mt-1 text-sm text-atlantia-ink/60">
+                        <strong class="text-atlantia-ink">{{ number_format($productos->total()) }} productos</strong> · catálogo de Atlantia Store y de las tiendas locales.
+                    </p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <a href="{{ route('admin.promociones.index') }}" class="inline-flex items-center gap-2 rounded-xl border border-atlantia-rose/25 bg-white px-4 py-2.5 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8ZM7.5 7.5h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Promociones
+                    </a>
+                    <a href="{{ route('admin.productos.importar') }}" class="inline-flex items-center gap-2 rounded-xl border border-atlantia-rose/25 bg-white px-4 py-2.5 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Carga masiva
+                    </a>
+                    <button type="button" class="inline-flex items-center gap-2 rounded-xl bg-atlantia-wine px-4 py-2.5 text-sm font-black text-white transition hover:bg-atlantia-wine-700" data-open-create-modal>
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+                        Nuevo producto
                     </button>
                 </div>
-            </div>
+            </header>
 
-            <div class="mt-7 overflow-hidden rounded-2xl border border-atlantia-rose/20 bg-white shadow-sm">
-                <div class="border-b border-atlantia-rose/15 bg-gradient-to-r from-white via-white to-atlantia-blush/20 p-5">
-                    <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                        <div>
-                            <h2 class="text-2xl font-black leading-tight text-atlantia-wine">Catalogo registrado</h2>
-                            <p class="mt-1 text-sm text-atlantia-ink/60">Administra inventario, precios y estado de forma visual y rapida.</p>
-                        </div>
-                        <button
-                            type="button"
-                            class="inline-flex items-center justify-center gap-2 rounded-lg bg-atlantia-wine px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-atlantia-wine-700"
-                            data-open-create-modal
-                        >
-                            <span class="text-lg leading-none">+</span>
-                            Agregar producto
-                        </button>
-                    </div>
-
-                    <form method="GET" action="{{ route('admin.productos.index') }}" class="mt-5 space-y-3" autocomplete="off" data-admin-product-filters>
+            <div class="overflow-hidden rounded-2xl border border-atlantia-rose/15 bg-white shadow-[0_10px_26px_rgba(59,6,12,0.05)]">
+                {{-- Búsqueda y filtros en un solo bloque --}}
+                <div class="border-b border-atlantia-rose/10 p-4">
+                    <form method="GET" action="{{ route('admin.productos.index') }}" class="space-y-3" autocomplete="off" data-admin-product-filters>
                         <input type="hidden" name="per_page" value="{{ $currentPerPage }}">
 
-                        <div class="flex flex-col gap-3 lg:flex-row">
-                            <div class="relative flex-1">
-                                <input
-                                    type="search"
-                                    name="q"
-                                    value="{{ $filterValues['q'] }}"
-                                    placeholder="Buscar producto, SKU o codigo de barras"
-                                    class="w-full rounded-lg border border-atlantia-rose/25 bg-white px-4 py-3 pr-12 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20"
-                                    autocomplete="off"
-                                    data-admin-products-server-value="{{ $filterValues['q'] }}"
-                                >
-                                <button type="submit" class="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-atlantia-wine transition hover:bg-atlantia-blush" aria-label="Buscar">
-                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                        <circle cx="11" cy="11" r="7" />
-                                        <path d="m20 20-3.5-3.5" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                            <label class="block">
-                                <span class="text-xs font-black uppercase tracking-wide text-atlantia-ink/55">Categoria</span>
-                                <select name="categoria_id" class="mt-1 w-full rounded-lg border border-atlantia-rose/25 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20" autocomplete="off" data-admin-product-filter data-admin-products-server-value="{{ $filterValues['categoria_id'] }}">
-                                    <option value="">Todas</option>
-                                    @foreach ($categorias as $categoria)
-                                        <option value="{{ $categoria->id }}" @selected($filterValues['categoria_id'] === (string) $categoria->id)>{{ $categoria->nombre }}</option>
-                                    @endforeach
-                                </select>
-                            </label>
-
-                            <label class="block">
-                                <span class="text-xs font-black uppercase tracking-wide text-atlantia-ink/55">Proveedor</span>
-                                <select name="vendor_id" class="mt-1 w-full rounded-lg border border-atlantia-rose/25 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20" autocomplete="off" data-admin-product-filter data-admin-products-server-value="{{ $filterValues['vendor_id'] }}">
-                                    <option value="">Todos</option>
-                                    @foreach ($vendors as $vendor)
-                                        <option value="{{ $vendor->id }}" @selected($filterValues['vendor_id'] === (string) $vendor->id)>{{ $vendor->business_name }}</option>
-                                    @endforeach
-                                </select>
-                            </label>
-
-                            <label class="block">
-                                <span class="text-xs font-black uppercase tracking-wide text-atlantia-ink/55">Estado</span>
-                                <select name="estado" class="mt-1 w-full rounded-lg border border-atlantia-rose/25 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20" autocomplete="off" data-admin-product-filter data-admin-products-server-value="{{ $filterValues['estado'] }}">
-                                    <option value="">Todos</option>
-                                    <option value="activo" @selected($filterValues['estado'] === 'activo')>Activos</option>
-                                    <option value="inactivo" @selected($filterValues['estado'] === 'inactivo')>Inactivos</option>
-                                </select>
-                            </label>
-
-                            <label class="block">
-                                <span class="text-xs font-black uppercase tracking-wide text-atlantia-ink/55">Stock</span>
-                                <select name="stock" class="mt-1 w-full rounded-lg border border-atlantia-rose/25 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20" autocomplete="off" data-admin-product-filter data-admin-products-server-value="{{ $filterValues['stock'] }}">
-                                    <option value="">Todos</option>
-                                    <option value="disponible" @selected($filterValues['stock'] === 'disponible')>Disponible</option>
-                                    <option value="bajo" @selected($filterValues['stock'] === 'bajo')>Stock bajo</option>
-                                    <option value="agotado" @selected($filterValues['stock'] === 'agotado')>Agotado</option>
-                                </select>
-                            </label>
-
-                            <label class="block">
-                                <span class="text-xs font-black uppercase tracking-wide text-atlantia-ink/55">Ordenar por</span>
-                                <select name="orden" class="mt-1 w-full rounded-lg border border-atlantia-rose/25 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20" autocomplete="off" data-admin-product-filter data-admin-products-server-value="{{ $filterValues['orden'] }}">
-                                    <option value="recientes" @selected($filterValues['orden'] === 'recientes')>Mas recientes</option>
-                                    <option value="nombre" @selected($filterValues['orden'] === 'nombre')>Nombre</option>
-                                    <option value="precio_asc" @selected($filterValues['orden'] === 'precio_asc')>Precio menor</option>
-                                    <option value="precio_desc" @selected($filterValues['orden'] === 'precio_desc')>Precio mayor</option>
-                                    <option value="stock_asc" @selected($filterValues['orden'] === 'stock_asc')>Menor stock</option>
-                                </select>
-                            </label>
-                        </div>
-
-                        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                            <div class="flex flex-wrap items-center gap-2 text-xs font-bold">
-                                <span class="rounded-full border border-atlantia-rose/20 bg-white px-3 py-1.5 text-atlantia-ink/65">
-                                    Filtros activos: {{ $activeFilters->count() }}
+                        <div class="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-5">
+                            <div class="relative col-span-full">
+                                <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-atlantia-ink/40">
+                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
                                 </span>
+                                <input type="search" name="q" value="{{ $filterValues['q'] }}" placeholder="Buscar por nombre, SKU o código de barras" aria-label="Buscar producto"
+                                       class="h-10 w-full rounded-lg border border-atlantia-rose/25 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20"
+                                       autocomplete="off" data-admin-products-server-value="{{ $filterValues['q'] }}">
+                            </div>
 
-                                @foreach ($activeFilters as $label => $value)
-                                    <span class="rounded-full bg-atlantia-blush px-3 py-1.5 text-atlantia-wine">{{ $label }}</span>
+                            <select name="categoria_id" aria-label="Categoría" class="{{ $selectClase }}" autocomplete="off" data-admin-product-filter data-admin-products-server-value="{{ $filterValues['categoria_id'] }}">
+                                <option value="">Todas las categorías</option>
+                                @foreach ($categorias as $categoria)
+                                    <option value="{{ $categoria->id }}" @selected($filterValues['categoria_id'] === (string) $categoria->id)>{{ $categoria->nombre }}</option>
                                 @endforeach
+                            </select>
 
-                                @if ($activeFilters->isNotEmpty())
-                                    <a href="{{ route('admin.productos.index') }}" class="rounded-full px-3 py-1.5 text-atlantia-wine underline-offset-4 hover:underline">Limpiar filtros</a>
-                                @endif
-                            </div>
+                            <select name="vendor_id" aria-label="Tienda" class="{{ $selectClase }}" autocomplete="off" data-admin-product-filter data-admin-products-server-value="{{ $filterValues['vendor_id'] }}">
+                                <option value="">Todas las tiendas</option>
+                                @foreach ($vendors as $vendor)
+                                    <option value="{{ $vendor->id }}" @selected($filterValues['vendor_id'] === (string) $vendor->id)>{{ $vendor->business_name }}</option>
+                                @endforeach
+                            </select>
 
-                            <div class="flex items-center gap-2">
-                                <button type="submit" class="rounded-lg border border-atlantia-rose/25 bg-white px-4 py-2 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                                    Aplicar filtros
-                                </button>
-                                <div class="hidden items-center rounded-lg border border-atlantia-rose/20 bg-white p-1 sm:flex">
-                                    <span class="rounded-md bg-atlantia-blush px-3 py-1.5 text-xs font-black text-atlantia-wine">Cards</span>
-                                    <span class="px-3 py-1.5 text-xs font-black text-atlantia-ink/45">Lista</span>
-                                </div>
-                            </div>
+                            <select name="estado" aria-label="Estado" class="{{ $selectClase }}" autocomplete="off" data-admin-product-filter data-admin-products-server-value="{{ $filterValues['estado'] }}">
+                                <option value="">Activos e inactivos</option>
+                                <option value="activo" @selected($filterValues['estado'] === 'activo')>Solo activos</option>
+                                <option value="inactivo" @selected($filterValues['estado'] === 'inactivo')>Solo inactivos</option>
+                            </select>
+
+                            <select name="stock" aria-label="Stock" class="{{ $selectClase }}" autocomplete="off" data-admin-product-filter data-admin-products-server-value="{{ $filterValues['stock'] }}">
+                                <option value="">Cualquier stock</option>
+                                <option value="disponible" @selected($filterValues['stock'] === 'disponible')>Disponible</option>
+                                <option value="bajo" @selected($filterValues['stock'] === 'bajo')>Stock bajo</option>
+                                <option value="agotado" @selected($filterValues['stock'] === 'agotado')>Agotado</option>
+                            </select>
+
+                            <select name="orden" aria-label="Ordenar por" class="{{ $selectClase }}" autocomplete="off" data-admin-product-filter data-admin-products-server-value="{{ $filterValues['orden'] }}">
+                                <option value="recientes" @selected($filterValues['orden'] === 'recientes')>Más recientes</option>
+                                <option value="nombre" @selected($filterValues['orden'] === 'nombre')>Nombre A-Z</option>
+                                <option value="precio_asc" @selected($filterValues['orden'] === 'precio_asc')>Precio menor</option>
+                                <option value="precio_desc" @selected($filterValues['orden'] === 'precio_desc')>Precio mayor</option>
+                                <option value="stock_asc" @selected($filterValues['orden'] === 'stock_asc')>Menor stock</option>
+                            </select>
                         </div>
+
+                        @if ($activeFilters->isNotEmpty())
+                            <div class="flex flex-wrap items-center gap-2 text-xs font-bold">
+                                <span class="text-atlantia-ink/55">Filtrando por:</span>
+                                @foreach ($activeFilters as $label => $value)
+                                    <span class="rounded-full bg-atlantia-blush px-3 py-1 text-atlantia-wine">{{ $label }}</span>
+                                @endforeach
+                                <a href="{{ route('admin.productos.index') }}" class="px-1 text-atlantia-wine underline-offset-4 hover:underline">Quitar filtros</a>
+                            </div>
+                        @endif
+                        <button type="submit" class="sr-only">Aplicar filtros</button>
                     </form>
                 </div>
 
@@ -278,7 +233,7 @@
                                             <span>Editar</span>
                                         </a>
                                         @can('delete', $producto)
-                                            <form method="POST" action="{{ route('admin.productos.destroy', $producto) }}" onsubmit="return confirm('Eliminar el producto {{ addslashes($producto->nombre) }}?')">
+                                            <form method="POST" action="{{ route('admin.productos.destroy', $producto) }}" data-confirm="Eliminar el producto {{ $producto->nombre }}?">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="w-full rounded-lg border border-rose-200 bg-white px-1.5 py-1.5 text-rose-700 transition hover:bg-rose-50">
@@ -657,21 +612,34 @@
 
                             <div class="mt-3 grid gap-3 md:grid-cols-2">
                                 <div>
-                                    <label class="text-xs font-bold text-atlantia-ink">Precio base</label>
+                                    <label class="text-xs font-bold text-atlantia-ink">Precio sin IVA</label>
+                                    <input type="hidden" name="precio_sin_iva" value="1">
                                     <div class="mt-1 flex overflow-hidden rounded-md border border-atlantia-rose/30 bg-white transition focus-within:border-atlantia-wine focus-within:ring-2 focus-within:ring-atlantia-rose/20">
                                         <span class="flex items-center px-3 text-sm font-black text-atlantia-ink/70">Q</span>
-                                        <input name="precio_base" type="number" step="0.01" min="0.01" value="{{ old('precio_base') }}" placeholder="0.00" class="min-w-0 flex-1 border-0 px-2 py-2 text-sm outline-none focus:ring-0" required>
+                                        <input name="precio_base" type="number" step="0.01" min="0.01" value="{{ old('precio_base') }}" placeholder="0.00" class="min-w-0 flex-1 border-0 px-2 py-2 text-sm outline-none focus:ring-0" data-iva-input required>
                                     </div>
+                                    <span class="mt-1 block text-[11px] font-bold text-emerald-700" data-iva-output>Precio de venta con IVA (12%): Q 0.00</span>
                                     @error('precio_base') <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
                                 </div>
 
                                 <div>
-                                    <label class="text-xs font-bold text-atlantia-ink">Oferta</label>
+                                    <label class="text-xs font-bold text-atlantia-ink">Oferta sin IVA</label>
                                     <div class="mt-1 flex overflow-hidden rounded-md border border-atlantia-rose/30 bg-white transition focus-within:border-atlantia-wine focus-within:ring-2 focus-within:ring-atlantia-rose/20">
                                         <span class="flex items-center px-3 text-sm font-black text-atlantia-ink/70">Q</span>
-                                        <input name="precio_oferta" type="number" step="0.01" min="0" value="{{ old('precio_oferta') }}" placeholder="0.00" class="min-w-0 flex-1 border-0 px-2 py-2 text-sm outline-none focus:ring-0">
+                                        <input name="precio_oferta" type="number" step="0.01" min="0" value="{{ old('precio_oferta') }}" placeholder="0.00" class="min-w-0 flex-1 border-0 px-2 py-2 text-sm outline-none focus:ring-0" data-iva-input>
                                     </div>
+                                    <span class="mt-1 block text-[11px] font-bold text-emerald-700" data-iva-output data-iva-empty="Sin oferta">Sin oferta</span>
                                     @error('precio_oferta') <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
+                                </div>
+
+                                <div>
+                                    <label class="text-xs font-bold text-atlantia-ink">Costo de compra (con IVA) <span class="font-normal text-atlantia-ink/50">· solo Atlantia Store</span></label>
+                                    <div class="mt-1 flex overflow-hidden rounded-md border border-atlantia-rose/30 bg-white transition focus-within:border-atlantia-wine focus-within:ring-2 focus-within:ring-atlantia-rose/20">
+                                        <span class="flex items-center px-3 text-sm font-black text-atlantia-ink/70">Q</span>
+                                        <input name="costo_compra" type="number" step="0.01" min="0" value="{{ old('costo_compra') }}" placeholder="Lo que te cuesta" class="min-w-0 flex-1 border-0 px-2 py-2 text-sm outline-none focus:ring-0">
+                                    </div>
+                                    <span class="mt-1 block text-[11px] text-atlantia-ink/55">Interno: sirve para calcular tu margen. El cliente nunca lo ve.</span>
+                                    @error('costo_compra') <p class="mt-1 text-xs font-semibold text-red-600">{{ $message }}</p> @enderror
                                 </div>
 
                                 <div>

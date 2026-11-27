@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Nombre visible de la version de prueba, para distinguirla de la de produccion. -->
+    <string name="app_name">Atlantia Repartidor (prueba)</string>
+    <string name="title_activity_main">Atlantia Repartidor (prueba)</string>
+</resources>

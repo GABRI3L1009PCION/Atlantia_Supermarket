@@ -112,9 +112,10 @@ production_preflight() {
     require_value INFILE_PASSWORD
     require_value INFILE_WEBHOOK_SECRET
     require_value PAYMENT_GATEWAY_WEBHOOK_SECRET
-    require_value STRIPE_PUBLISHABLE_KEY
-    require_value STRIPE_SECRET_KEY
-    require_value STRIPE_WEBHOOK_SECRET
+    if [ "${ATLANTIA_CARD_PAYMENT_MODE:-pos}" = "recurrente" ]; then
+        require_value RECURRENTE_SECRET_KEY
+        require_value RECURRENTE_WEBHOOK_SECRET
+    fi
     require_value ML_SERVICE_URL
     require_value ML_SERVICE_TOKEN
     require_value ML_WEBHOOK_SECRET

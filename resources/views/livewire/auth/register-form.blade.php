@@ -53,7 +53,7 @@
     </div>
 
     <div>
-        <label for="register-email" class="mb-1 block text-sm font-medium text-atlantia-ink">Correo electronico</label>
+        <label for="register-email" class="mb-1 block text-sm font-medium text-atlantia-ink">Correo electrónico</label>
         <div class="relative">
             <input
                 id="register-email"
@@ -71,7 +71,7 @@
     </div>
 
     <div>
-        <label for="register-phone" class="mb-1 block text-sm font-medium text-atlantia-ink">Telefono</label>
+        <label for="register-phone" class="mb-1 block text-sm font-medium text-atlantia-ink">Teléfono</label>
         <div class="relative">
             <input
                 id="register-phone"
@@ -90,7 +90,7 @@
     </div>
 
     <div>
-        <label for="register-password" class="mb-1 block text-sm font-medium text-atlantia-ink">Contrasena</label>
+        <label for="register-password" class="mb-1 block text-sm font-medium text-atlantia-ink">Contraseña</label>
         <div class="relative">
             <input
                 id="register-password"
@@ -103,7 +103,7 @@
             <button
                 type="button"
                 class="absolute inset-y-0 right-9 flex items-center rounded-md px-2 text-atlantia-ink/50 transition hover:text-atlantia-wine"
-                aria-label="Mostrar u ocultar contrasena"
+                aria-label="Mostrar u ocultar contraseña"
                 @click="showPassword = !showPassword"
             >
                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -115,12 +115,12 @@
                 {!! $this->fieldState('password') === 'valid' ? '&#10003;' : ($this->fieldState('password') === 'invalid' ? '&#10005;' : '&bull;') !!}
             </span>
         </div>
-        <p class="mt-1 text-xs text-atlantia-ink/60">Usa minimo 12 caracteres, con letras, numeros y simbolos.</p>
+        <p class="mt-1 text-xs text-atlantia-ink/60">Mínimo 8 caracteres, con mayúscula, minúscula, número y símbolo.</p>
         @error('password') <p data-field-error class="mt-1 text-sm text-rose-700">{{ $message }}</p> @enderror
     </div>
 
     <div>
-        <label for="register-password-confirmation" class="mb-1 block text-sm font-medium text-atlantia-ink">Confirmar contrasena</label>
+        <label for="register-password-confirmation" class="mb-1 block text-sm font-medium text-atlantia-ink">Confirmar contraseña</label>
         <div class="relative">
             <input
                 id="register-password-confirmation"
@@ -133,7 +133,7 @@
             <button
                 type="button"
                 class="absolute inset-y-0 right-9 flex items-center rounded-md px-2 text-atlantia-ink/50 transition hover:text-atlantia-wine"
-                aria-label="Mostrar u ocultar confirmacion de contrasena"
+                aria-label="Mostrar u ocultar confirmación de contraseña"
                 @click="showPasswordConfirmation = !showPasswordConfirmation"
             >
                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -158,7 +158,7 @@
                 wire:model.live="acepta_terminos"
                 class="mt-1 rounded border-atlantia-rose text-atlantia-wine"
             >
-            <span>Acepto los terminos y condiciones de Atlantia Delivery.</span>
+            <span>Acepto los <a href="{{ route('legal.terminos') }}" class="font-bold text-atlantia-wine underline decoration-atlantia-wine/40 underline-offset-2 hover:text-atlantia-wine-700" target="_blank" rel="noopener">Términos y Condiciones</a> de Atlantia Store.</span>
         </label>
         @error('acepta_terminos') <p class="text-sm font-semibold text-red-700">{{ $message }}</p> @enderror
 
@@ -171,7 +171,7 @@
                 wire:model.live="acepta_privacidad"
                 class="mt-1 rounded border-atlantia-rose text-atlantia-wine"
             >
-            <span>Acepto la politica de privacidad y tratamiento de datos.</span>
+            <span>Acepto la <a href="{{ route('legal.privacidad') }}" class="font-bold text-atlantia-wine underline decoration-atlantia-wine/40 underline-offset-2 hover:text-atlantia-wine-700" target="_blank" rel="noopener">Política de Privacidad</a> y el tratamiento de mis datos.</span>
         </label>
         @error('acepta_privacidad') <p class="text-sm font-semibold text-red-700">{{ $message }}</p> @enderror
 

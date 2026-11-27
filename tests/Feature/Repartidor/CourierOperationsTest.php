@@ -154,12 +154,23 @@ class CourierOperationsTest extends TestCase
             'confirmation_code' => '7284',
         ]);
 
+        try {
+            app(PedidoRepartidorService::class)->deliver($pedido->fresh(), [
+                'confirmation_code' => '7284',
+            ], $repartidor);
+            $this->fail('La entrega en efectivo debe exigir confirmar el cobro.');
+        } catch (TransaccionFallidaException $exception) {
+            $this->assertStringContainsString('Confirma que recibiste el pago', $exception->getMessage());
+        }
+
         app(PedidoRepartidorService::class)->deliver($pedido->fresh(), [
             'confirmation_code' => '7284',
             'notas' => 'Entregado',
+            'collection_confirmed' => true,
         ], $repartidor);
 
         $this->assertSame(EstadoPedido::Entregado->value, $pedido->fresh()->estadoValor());
+        $this->assertSame('pagado', $pedido->fresh()->estadoPagoValor());
         $this->assertNotNull($route->fresh()->delivered_code_confirmed_at);
         $this->assertDatabaseHas('courier_wallet_movements', [
             'user_id' => $repartidor->id,
@@ -231,7 +242,7 @@ class CourierOperationsTest extends TestCase
         $this->assertSame(EstadoPedido::EnRuta->value, $pedido->fresh()->estadoValor());
         $this->assertNotNull($route->fresh()->delivered_code_confirmed_at);
 
-        app(PedidoRepartidorService::class)->deliver($pedido->fresh(), [], $repartidor);
+        app(PedidoRepartidorService::class)->deliver($pedido->fresh(), ['collection_confirmed' => true], $repartidor);
 
         $this->assertSame(EstadoPedido::Entregado->value, $pedido->fresh()->estadoValor());
     }

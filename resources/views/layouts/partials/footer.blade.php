@@ -1,4 +1,4 @@
-<footer class="hidden bg-[linear-gradient(100deg,#4a071c_0%,#7a1238_48%,#4a071c_100%)] text-white lg:block">
+<footer class="hidden bg-[linear-gradient(100deg,#3a0004_0%,#5e0008_48%,#3a0004_100%)] text-white lg:block">
     @if (request()->routeIs('comercios.index', 'categorias.index', 'cliente.pedidos.index'))
         <div class="mx-auto hidden w-full max-w-7xl grid-cols-[1.05fr_1fr_1fr_1fr_1.2fr] items-center gap-5 px-8 py-4 lg:grid">
             <div class="flex items-center gap-3">
@@ -32,16 +32,27 @@
             @endforeach
 
             <p class="text-right text-[9px] font-semibold text-white/75">
-                &copy; {{ now()->year }} Atlantia Delivery.<br>Todos los derechos reservados.
+                &copy; {{ now()->year }} Atlantia Store.<br>Todos los derechos reservados.
             </p>
         </div>
     @endif
 
     <div class="{{ request()->routeIs('comercios.index', 'categorias.index', 'cliente.pedidos.index') ? 'lg:hidden' : '' }} mx-auto flex w-full max-w-7xl flex-col items-center justify-center gap-1 px-4 py-5 pb-safe text-center text-xs leading-6 sm:px-6 sm:text-sm lg:px-8">
         <p class="max-w-full">
-            <span class="font-bold">Atlantia Delivery</span>
+            <span class="font-bold">Atlantia Store</span>
             <span>&copy; {{ now()->year }}. Todos los derechos reservados.</span>
         </p>
         <p class="text-white/80">Santo Tomas de Castilla y Puerto Barrios, Izabal.</p>
+        <p class="flex flex-wrap items-center justify-center gap-x-3 text-white/85">
+            <a href="{{ route('vende') }}" class="font-bold underline-offset-2 hover:underline">Vende en Atlantia</a>
+            <span aria-hidden="true">·</span>
+            <a href="{{ route('envios.create') }}" class="underline-offset-2 hover:underline">Atlantia Envíos</a>
+            <span aria-hidden="true">·</span>
+            <a href="{{ route('anunciate') }}" class="underline-offset-2 hover:underline">Anúnciate</a>
+            <span aria-hidden="true">·</span>
+            <a href="{{ route('legal.terminos') }}" class="underline-offset-2 hover:underline">Términos y Condiciones</a>
+            <span aria-hidden="true">·</span>
+            <a href="{{ route('legal.privacidad') }}" class="underline-offset-2 hover:underline">Política de Privacidad</a>
+        </p>
     </div>
 </footer>

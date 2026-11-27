@@ -19,6 +19,8 @@ class StoreHeroBannerRequest extends FormRequest
             'is_active' => ['sometimes', 'boolean'],
             'inicia_en' => ['nullable', 'date'],
             'termina_en' => ['nullable', 'date', 'after_or_equal:inicia_en'],
+            'anunciante' => ['nullable', 'string', 'max:160'],
+            'url_destino' => ['nullable', 'url', 'starts_with:https://,http://', 'max:500'],
             'desktop_image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'mobile_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ];

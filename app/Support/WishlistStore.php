@@ -52,6 +52,17 @@ class WishlistStore
         return true;
     }
 
+    public static function ids(Request $request, ?User $user): array
+    {
+        if ($user !== null) {
+            self::syncSessionToDatabase($request, $user);
+
+            return $user->wishlists()->pluck('producto_id')->map(fn ($id) => (int) $id)->all();
+        }
+
+        return self::sessionIds($request);
+    }
+
     public static function contains(Request $request, int $productoId, ?User $user): bool
     {
         if ($user !== null) {

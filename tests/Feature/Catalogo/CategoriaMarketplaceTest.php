@@ -35,10 +35,9 @@ class CategoriaMarketplaceTest extends TestCase
         $response->assertOk();
         $response->assertSee('Alimentos frescos', false);
         $response->assertSee('1 producto', false);
-        $response->assertSee(route('comercios.index', [
-            'categoria' => $parent->id,
-            'municipio' => 'Puerto Barrios',
-        ]));
+        $response->assertSee(route('catalogo.index', [
+            'categoria_id' => $parent->id,
+        ]).'#productos');
         $response->assertDontSee('Frutas tropicales', false);
     }
 

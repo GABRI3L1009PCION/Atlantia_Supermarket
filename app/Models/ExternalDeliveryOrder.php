@@ -18,6 +18,32 @@ class ExternalDeliveryOrder extends Model
     use SoftDeletes;
 
     /**
+     * Estados visibles en español: [texto, clases del distintivo].
+     */
+    public const ESTADOS = [
+        'requested' => ['Sin repartidor', 'bg-amber-50 text-amber-800'],
+        'offered' => ['Ofertada', 'bg-sky-50 text-sky-800'],
+        'assigned' => ['Asignada', 'bg-sky-50 text-sky-800'],
+        'accepted' => ['Aceptada', 'bg-indigo-50 text-indigo-800'],
+        'arrived_pickup' => ['En el punto de recogida', 'bg-violet-50 text-violet-800'],
+        'pickup_not_ready' => ['Pedido no estaba listo', 'bg-red-50 text-red-700'],
+        'picked_up' => ['En camino', 'bg-atlantia-blush text-atlantia-wine'],
+        'arrived_customer' => ['Llegó con el cliente', 'bg-atlantia-blush text-atlantia-wine'],
+        'delivered' => ['Entregada', 'bg-emerald-50 text-emerald-700'],
+        'cancelled' => ['Cancelada', 'bg-slate-100 text-slate-600'],
+    ];
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    public function estadoVisible(): array
+    {
+        $clave = $this->status instanceof \BackedEnum ? $this->status->value : (string) $this->status;
+
+        return self::ESTADOS[$clave] ?? [ucfirst(str_replace('_', ' ', $clave)), 'bg-slate-100 text-slate-600'];
+    }
+
+    /**
      * Atributos asignables masivamente.
      *
      * @var array<int, string>

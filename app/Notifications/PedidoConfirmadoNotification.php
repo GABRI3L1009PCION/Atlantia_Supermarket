@@ -3,27 +3,19 @@
 namespace App\Notifications;
 
 use App\Models\Pedido;
+use App\Notifications\Concerns\AvisaPedidoPorWhatsApp;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
 /**
- * Notificacion in-app de pedido confirmado.
+ * Aviso de pedido confirmado (plataforma y WhatsApp).
  */
 class PedidoConfirmadoNotification extends Notification
 {
+    use AvisaPedidoPorWhatsApp;
     use Queueable;
 
     public function __construct(private readonly Pedido $pedido) {}
-
-    /**
-     * Canales utilizados.
-     *
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
-    {
-        return ['database'];
-    }
 
     /**
      * Payload de base de datos.
@@ -39,5 +31,29 @@ class PedidoConfirmadoNotification extends Notification
             'pedido_uuid' => $this->pedido->uuid,
             'variant' => 'success',
         ];
+    }
+
+    /**
+     * Mensaje de WhatsApp.
+     *
+     * @return array{telefono: ?string, plantilla: string, parametros: array<int, string>, texto: string}
+     */
+    public function toWhatsApp(object $notifiable): array
+    {
+        $nombre = $this->nombreCliente($notifiable);
+        $numero = $this->pedido->numero_pedido;
+        $enlace = $this->enlaceSeguimiento($notifiable);
+
+        return $this->mensajeWhatsApp(
+            $notifiable,
+            'pedido_confirmado',
+            [$nombre, $numero, $enlace],
+            "Hola {$nombre}, tu pedido {$numero} de Atlantia Store fue confirmado. Te avisaremos cuando vaya en camino. Síguelo aquí: {$enlace}"
+        );
+    }
+
+    protected function pedidoAvisado(): Pedido
+    {
+        return $this->pedido;
     }
 }

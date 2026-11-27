@@ -2,7 +2,7 @@
 
 @section('content')
     <section class="mx-auto w-full max-w-full pb-24 sm:max-w-lg md:max-w-2xl xl:max-w-4xl">
-        <div class="overflow-hidden rounded-none bg-[#fbf7f9] shadow-sm sm:rounded-2xl sm:border sm:border-atlantia-rose/20">
+        <div class="overflow-hidden rounded-none bg-[#fbf7f7] shadow-sm sm:rounded-2xl sm:border sm:border-atlantia-rose/20">
 
             <header class="bg-atlantia-wine px-4 pb-5 pt-5 text-white sm:px-6 md:px-8">
                 <div class="flex items-center justify-between gap-4">

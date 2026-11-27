@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Repartidor;
 
+use App\Rules\ContrasenaSegura;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -24,7 +25,7 @@ class UpdateRepartidorRequest extends FormRequest
             'email' => ['required', 'string', 'email:rfc', 'max:190', Rule::unique('users', 'email')->ignore($repartidor?->id)],
             'phone' => ['nullable', 'string', 'max:30'],
             'status' => ['required', 'in:active,inactive,suspended'],
-            'password' => ['nullable', 'string', 'min:12', 'max:128', 'confirmed'],
+            'password' => ['nullable', 'string', 'confirmed', new ContrasenaSegura],
         ];
     }
 

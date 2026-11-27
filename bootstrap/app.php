@@ -4,16 +4,19 @@ use App\Exceptions\AtlantiaDomainException;
 use App\Http\Middleware\AuditoriaRequest;
 use App\Http\Middleware\BloquearPorIntentos;
 use App\Http\Middleware\ForceHttps;
+use App\Http\Middleware\LimitarPorRuta;
 use App\Http\Middleware\PrivateNetworkAccess;
 use App\Http\Middleware\RateLimitCheckout;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\VendedorAprobado;
+use App\Http\Middleware\VerificarFirmaRecurrente;
 use App\Http\Middleware\VerificarMlServiceToken;
 use App\Http\Middleware\VerificarOwnership;
 use App\Http\Middleware\VerificarWebhookHmac;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
@@ -48,6 +51,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             ForceHttps::class,
             SecurityHeaders::class,
+            /* Permite "cerrar sesión en los demás dispositivos" al cambiar la contraseña. */
+            \App\Http\Middleware\AutenticarSesion::class,
         ]);
         $middleware->api(append: [
             ForceHttps::class,
@@ -58,6 +63,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'webhooks/certificador-fel',
             'webhooks/courier-externo',
             'webhooks/ml-service',
+            'webhooks/recurrente',
         ]);
 
         $middleware->alias([
@@ -71,11 +77,41 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'security.headers' => SecurityHeaders::class,
+            /* Contador de intentos independiente por ruta (ver LimitarPorRuta). */
+            'throttle' => LimitarPorRuta::class,
             'vendedor.aprobado' => VendedorAprobado::class,
             'verify.webhook.hmac' => VerificarWebhookHmac::class,
+            'verify.webhook.recurrente' => VerificarFirmaRecurrente::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        /*
+         * Demasiados intentos al enviar un formulario: se regresa al mismo formulario
+         * con un aviso claro y lo escrito, en vez de dejar a la persona en una página
+         * de error. Solo las peticiones GET o JSON muestran la página 429.
+         */
+        $exceptions->render(function (ThrottleRequestsException $exception, Request $request) {
+            /* Solo si se sabe de qué formulario vino; si no, se muestra la página de espera. */
+            $anterior = (string) ($request->headers->get('referer') ?: ($request->hasSession() ? $request->session()->previousUrl() : ''));
+
+            if ($request->expectsJson() || $request->isMethod('GET') || $anterior === '' || ! str_starts_with($anterior, url('/')) || $anterior === $request->fullUrl()) {
+                return null;
+            }
+
+            $segundos = max(1, (int) ($exception->getHeaders()['Retry-After'] ?? 60));
+            $espera = match (true) {
+                $segundos < 60 => 'unos segundos',
+                $segundos < 120 => '1 minuto',
+                $segundos < 3600 => (int) ceil($segundos / 60).' minutos',
+                $segundos < 7200 => '1 hora',
+                default => (int) ceil($segundos / 3600).' horas',
+            };
+
+            return redirect()->to($anterior)
+                ->withInput($request->except(['password', 'password_confirmation', 'current_password', 'code', '_token']))
+                ->with('error', "Hiciste varios intentos seguidos. Por seguridad, espera {$espera} y vuelve a intentarlo.");
+        });
+
         $exceptions->render(function (AtlantiaDomainException $exception, Request $request) {
             if ($request->expectsJson()) {
                 return response()->json([

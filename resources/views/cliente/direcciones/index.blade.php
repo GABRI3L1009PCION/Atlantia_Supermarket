@@ -82,9 +82,9 @@
                             class="mt-2 w-full rounded-md border border-atlantia-rose/30 px-4 py-3 text-sm
                                 focus:border-atlantia-wine focus:ring-atlantia-rose"
                         >
-                            @foreach (['Puerto Barrios', 'Santo Tomas', 'Morales', 'Los Amates', 'Livingston', 'El Estor'] as $municipio)
+                            @foreach (\App\Support\Municipios::operativos() as $municipio)
                                 <option value="{{ $municipio }}" @selected(old('municipio') === $municipio)>
-                                    {{ $municipio }}
+                                    {{ \App\Support\Municipios::nombre($municipio) }}
                                 </option>
                             @endforeach
                         </select>
@@ -338,7 +338,7 @@
                                         <form
                                             method="POST"
                                             action="{{ route('cliente.direcciones.destroy', $direccion) }}"
-                                            onsubmit="return confirm('Deseas eliminar esta direccion?');"
+                                            data-confirm="Deseas eliminar esta direccion?"
                                         >
                                             @csrf
                                             @method('DELETE')

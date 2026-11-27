@@ -33,12 +33,7 @@ use Illuminate\Support\Facades\Route;
 Route::as('api.')
     ->middleware(['api', 'security.headers'])
     ->group(function (): void {
-        Route::options('/{any}', fn () => response('', 204)->withHeaders([
-            'Access-Control-Allow-Origin' => '*',
-            'Access-Control-Allow-Methods' => 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With, Accept',
-            'Access-Control-Allow-Private-Network' => 'true',
-        ]))->where('any', '.*')->name('options');
+        Route::options('/{any}', fn () => response('', 204))->where('any', '.*')->name('options');
 
         Route::get('/buscar', BusquedaController::class)->middleware('throttle:busqueda')->name('buscar');
         Route::get('/stock/{producto:uuid}', [StockApiController::class, 'show'])

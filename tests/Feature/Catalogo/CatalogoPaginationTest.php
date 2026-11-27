@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Catalogo;
 
+use App\Models\Inventario;
 use App\Models\Producto;
 use App\Models\Vendor;
 use App\Services\Busqueda\MeilisearchService;
@@ -20,22 +21,53 @@ class CatalogoPaginationTest extends TestCase
         Cache::flush();
     }
 
-    public function test_home_does_not_render_global_product_catalog(): void
+    public function test_home_renders_paginated_products_from_affiliated_stores(): void
     {
+        $vendor = Vendor::factory()->approved()->create(['municipio' => 'Puerto Barrios']);
         Producto::factory()
             ->count(50)
             ->publicado()
             ->sequence(fn ($sequence): array => [
                 'publicado_at' => now()->subMinutes($sequence->index),
             ])
-            ->create();
+            ->create(['vendor_id' => $vendor->id, 'precio_oferta' => null])
+            ->each(fn (Producto $producto) => Inventario::query()->create([
+                'producto_id' => $producto->id,
+                'stock_actual' => 12,
+                'stock_reservado' => 0,
+                'stock_minimo' => 1,
+                'stock_maximo' => 100,
+                'ultima_actualizacion' => now(),
+            ]));
 
-        $response = $this->get(route('home'));
+        $agotado = Producto::factory()->publicado()->create([
+            'vendor_id' => $vendor->id,
+            'nombre' => 'Producto agotado de prueba',
+            'publicado_at' => now(),
+        ]);
+        Inventario::query()->create([
+            'producto_id' => $agotado->id,
+            'stock_actual' => 3,
+            'stock_reservado' => 3,
+            'stock_minimo' => 1,
+            'stock_maximo' => 100,
+            'ultima_actualizacion' => now(),
+        ]);
+
+        $response = $this->get(route('home', ['per_page' => 48]));
 
         $response->assertOk();
-        $response->assertSee('Listo para tu primer pedido?', false);
-        $response->assertDontSee('Pagina 1 de 2', false);
-        $response->assertDontSee('Agregar al carrito', false);
+        $response->assertSee('Productos disponibles', false);
+        $response->assertSee('Mostrando 48 de 50 productos', false);
+        $response->assertSee('Ver más productos', false);
+        $response->assertSee('page=2', false);
+        $response->assertSee('12 disponibles', false);
+        $response->assertDontSee('Producto agotado de prueba', false);
+        $response->assertDontSee('Sin existencias', false);
+        $response->assertDontSee('Solo disponibles', false);
+        $document = new \DOMDocument;
+        @$document->loadHTML($response->getContent());
+        $this->assertSame(48, (new \DOMXPath($document))->query('//article[@data-storefront-product]')->length);
     }
 
     public function test_comercio_shows_published_products_for_selected_vendor(): void
@@ -53,7 +85,7 @@ class CatalogoPaginationTest extends TestCase
                 ['nombre' => 'Frijol Atlantia'],
                 ['nombre' => 'Cafe Atlantia'],
             )
-            ->create(['vendor_id' => $vendor->id]);
+            ->create(['vendor_id' => $vendor->id, 'precio_oferta' => null]);
 
         $response = $this->get(route('comercios.show', ['vendor' => $vendor->slug]));
 
@@ -62,8 +94,8 @@ class CatalogoPaginationTest extends TestCase
         $response->assertSee('Arroz Atlantia', false);
         $response->assertSee('Frijol Atlantia', false);
         $response->assertSee('Cafe Atlantia', false);
-        $response->assertSee('data-product-carousel', false);
-        $response->assertSee('data-carousel-track', false);
+        $response->assertSee('data-product-grid', false);
+        $response->assertSee('Todos los productos', false);
 
         $document = new \DOMDocument;
         @$document->loadHTML($response->getContent());
@@ -101,7 +133,8 @@ class CatalogoPaginationTest extends TestCase
         $response->assertOk();
         $response->assertSee('Tomate fresco', false);
         $response->assertDontSee('Arroz blanco', false);
-        $response->assertSee('1 resultado(s)', false);
+        $response->assertSee('Resultados', false);
+        $response->assertSee('Quitar filtros', false);
     }
 
     public function test_marketplace_mobile_navigation_and_product_detail_use_shared_layout(): void
@@ -119,8 +152,9 @@ class CatalogoPaginationTest extends TestCase
         $home = $this->get(route('home'));
         $home->assertOk();
         $home->assertSee('Navegacion inferior', false);
-        $home->assertSee('Explora por Categoria', false);
-        $home->assertSee('Comercios disponibles', false);
+        $home->assertSee('Explora por Categoría', false);
+        $home->assertSee('Productos disponibles', false);
+        $home->assertSee('Tiendas afiliadas', false);
 
         $detail = $this->get(route('productos.show', ['producto' => $producto->uuid]));
         $detail->assertOk();
@@ -156,7 +190,7 @@ class CatalogoPaginationTest extends TestCase
         $response->assertSessionHasErrors('municipio');
     }
 
-    public function test_comercios_use_selected_municipio_from_session(): void
+    public function test_comercios_filtran_por_municipio_solicitado_y_por_defecto_muestran_todos(): void
     {
         $morales = Vendor::factory()->approved()->create([
             'business_name' => 'Tienda Morales',
@@ -172,13 +206,18 @@ class CatalogoPaginationTest extends TestCase
         Producto::factory()->publicado()->create(['vendor_id' => $morales->id]);
         Producto::factory()->publicado()->create(['vendor_id' => $puerto->id]);
 
-        $response = $this
-            ->withSession(['cliente_municipio' => 'Morales'])
-            ->get(route('comercios.index'));
+        $response = $this->get(route('comercios.index', ['municipio' => 'Morales']));
 
         $response->assertOk();
         $response->assertSee('Tienda Morales', false);
         $response->assertDontSee('Tienda Puerto', false);
+
+        /* Una seleccion antigua guardada en sesion ya no oculta comercios. */
+        $this->withSession(['cliente_municipio' => 'Morales'])
+            ->get(route('comercios.index'))
+            ->assertOk()
+            ->assertSee('Tienda Morales', false)
+            ->assertSee('Tienda Puerto', false);
     }
 
     public function test_catalogo_search_service_honors_requested_page(): void

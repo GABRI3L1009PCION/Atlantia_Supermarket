@@ -18,6 +18,11 @@ class ForceHttps
      */
     public function handle(Request $request, Closure $next): Response
     {
+        if (app()->environment('production')) {
+            $host = parse_url((string) config('app.url'), PHP_URL_HOST);
+            abort_unless(is_string($host) && strcasecmp($request->getHost(), $host) === 0, 400, 'Host no permitido.');
+        }
+
         if ($this->shouldForceHttps($request)) {
             return redirect()->secure($request->getRequestUri(), 301);
         }
@@ -35,10 +40,6 @@ class ForceHttps
         }
 
         if ($request->secure()) {
-            return false;
-        }
-
-        if ($request->headers->get('X-Forwarded-Proto') === 'https') {
             return false;
         }
 

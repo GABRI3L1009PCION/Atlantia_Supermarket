@@ -2,246 +2,122 @@
 
 @section('content')
     @php
-        $filters = [
-            'q' => (string) request('q', ''),
-            'horizonte' => (string) request('horizonte', (string) ($dashboard['horizonte_activo'] ?? 7)),
-            'orden' => (string) request('orden', 'mayor_demanda'),
-        ];
-        $rows = collect($predicciones->items());
-        $max = max(1, (float) ($dashboard['max_prediccion'] ?? $rows->max('valor_predicho')));
-        $chartPoints = $rows->values()->map(function ($prediction, $index) use ($rows, $max) {
-            $count = max(1, $rows->count() - 1);
-            $x = 8 + (($index / $count) * 84);
-            $y = 78 - (((float) $prediction->valor_predicho / $max) * 54);
-            return round($x, 2) . ',' . round($y, 2);
-        })->implode(' ');
-        $areaPoints = $chartPoints ? '8,84 ' . $chartPoints . ' 92,84' : '';
-        $metricCards = [
-            ['label' => 'Demanda esperada', 'value' => number_format((float) ($dashboard['total_predicho'] ?? 0)), 'hint' => 'Unidades proyectadas', 'tone' => 'rose', 'icon' => 'activity'],
-            ['label' => 'Productos evaluados', 'value' => number_format((int) ($dashboard['productos_evaluados'] ?? 0)), 'hint' => 'Con prediccion ML', 'tone' => 'blue', 'icon' => 'box'],
-            ['label' => 'Demanda alta', 'value' => number_format((int) ($dashboard['demanda_alta'] ?? 0)), 'hint' => 'Sobre promedio', 'tone' => 'green', 'icon' => 'trend'],
-            ['label' => 'Riesgo de stock', 'value' => number_format((int) ($dashboard['riesgo_stock'] ?? 0)), 'hint' => 'Revisar inventario', 'tone' => 'amber', 'icon' => 'alert'],
-        ];
-        $tones = [
-            'rose' => 'bg-atlantia-blush text-atlantia-wine',
-            'blue' => 'bg-blue-50 text-blue-700',
-            'green' => 'bg-emerald-50 text-emerald-700',
-            'amber' => 'bg-amber-50 text-amber-700',
-        ];
-        $icons = [
-            'activity' => '<path d="M22 12h-4l-3 8-6-16-3 8H2"/>',
-            'box' => '<path d="m12 3 8 4.5-8 4.5-8-4.5L12 3Z"/><path d="M4 7.5v9L12 21l8-4.5v-9"/>',
-            'trend' => '<path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
-            'alert' => '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+        $h = $proyeccion['horizonte'];
+        $resumen = $proyeccion['resumen'];
+        $filas = $proyeccion['filas'];
+        $q = (string) request('q', '');
+        $estados = [
+            'agotado' => ['Agotado: repón ya', 'bg-rose-50 text-rose-700 ring-rose-200'],
+            'pedir' => ['Pide más pronto', 'bg-amber-50 text-amber-800 ring-amber-200'],
+            'atento' => ['Vigílalo', 'bg-sky-50 text-sky-700 ring-sky-200'],
+            'bien' => ['Tienes suficiente', 'bg-emerald-50 text-emerald-700 ring-emerald-200'],
+            'sin_ventas' => ['Sin ventas aún', 'bg-slate-100 text-slate-600 ring-slate-200'],
         ];
     @endphp
 
-    <section class="mx-auto max-w-[1280px] space-y-5 pb-10">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-                <p class="text-xs font-black uppercase tracking-[0.22em] text-atlantia-rose">Atlantia Supermarket</p>
-                <h1 class="mt-2 text-3xl font-black leading-tight text-atlantia-ink sm:text-4xl">Prediccion de demanda</h1>
-                <p class="mt-2 max-w-3xl text-sm leading-6 text-atlantia-ink/62">
-                    Pronosticos por producto para anticipar inventario, reabasto y disponibilidad.
-                </p>
+    <section class="mx-auto max-w-[1180px] space-y-4 pb-10">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+            <div class="max-w-2xl">
+                <h1 class="text-2xl font-black text-atlantia-ink">Predicción de demanda</h1>
+                <p class="mt-0.5 text-sm text-atlantia-ink/60">Cuánto vas a vender y si te alcanzan tus existencias. Se calcula con tus ventas de los últimos 30 días{{ $resumen['con_modelo'] > 0 ? ' y el modelo de Atlantia' : '' }}.</p>
             </div>
-            <span class="inline-flex items-center gap-2 self-start rounded-lg border border-atlantia-rose/20 bg-white px-4 py-3 text-sm text-atlantia-ink/60 shadow-sm lg:self-auto">
-                <svg class="h-4 w-4 text-atlantia-wine" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-                Actualizado {{ now()->format('d/m/Y H:i') }}
-            </span>
+            <div class="inline-flex rounded-lg bg-[#f5efee] p-1" role="group" aria-label="Periodo">
+                @foreach (\App\Services\Ml\PrediccionDemandaService::HORIZONTES as $dias)
+                    <a href="{{ route('vendedor.predicciones.index', array_filter(['horizonte' => $dias, 'q' => $q])) }}" @class([
+                        'h-9 rounded-md px-3 text-sm font-bold leading-9 transition',
+                        'bg-white text-atlantia-wine shadow-sm' => $h === $dias,
+                        'text-atlantia-ink/60 hover:text-atlantia-wine' => $h !== $dias,
+                    ]) @if ($h === $dias) aria-current="true" @endif>Próximos {{ $dias }} días</a>
+                @endforeach
+            </div>
         </div>
 
-        <form method="GET" action="{{ route('vendedor.predicciones.index') }}" class="grid gap-3 rounded-lg border border-atlantia-rose/15 bg-white p-4 shadow-[0_12px_32px_rgba(42,16,24,0.05)] lg:grid-cols-[1fr_220px_240px_140px]" autocomplete="off" data-demand-filters>
-            <div class="relative">
-                <input type="search" name="q" value="{{ $filters['q'] }}" placeholder="Buscar producto o SKU" class="w-full rounded-lg border border-atlantia-rose/25 bg-white px-4 py-3 pl-11 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                <svg class="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-atlantia-ink/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <dl class="grid gap-3 sm:grid-cols-3" data-resumen-prediccion>
+            <div class="rounded-xl border border-atlantia-rose/15 bg-white p-4">
+                <dt class="text-xs font-bold uppercase tracking-wide text-atlantia-ink/55">Se espera vender</dt>
+                <dd class="mt-0.5 text-2xl font-black text-atlantia-ink">{{ number_format($resumen['esperado']) }} <span class="text-sm font-semibold text-atlantia-ink/50">unidades</span></dd>
+                <dd class="text-xs text-atlantia-ink/55">en los próximos {{ $h }} días · {{ $resumen['con_ventas'] }} de {{ $resumen['productos'] }} productos con ventas</dd>
             </div>
-            <select name="horizonte" class="rounded-lg border border-atlantia-rose/25 bg-white px-4 py-3 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                <option value="7" @selected($filters['horizonte'] === '7')>Horizonte 7 dias</option>
-                <option value="14" @selected($filters['horizonte'] === '14')>Horizonte 14 dias</option>
-                <option value="30" @selected($filters['horizonte'] === '30')>Horizonte 30 dias</option>
-            </select>
-            <select name="orden" class="rounded-lg border border-atlantia-rose/25 bg-white px-4 py-3 text-sm outline-none transition focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20">
-                <option value="mayor_demanda" @selected($filters['orden'] === 'mayor_demanda')>Mayor demanda</option>
-                <option value="menor_demanda" @selected($filters['orden'] === 'menor_demanda')>Menor demanda</option>
-                <option value="recientes" @selected($filters['orden'] === 'recientes')>Mas recientes</option>
-            </select>
-            <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-atlantia-wine px-5 py-3 text-sm font-black text-white transition hover:bg-atlantia-wine-700">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
-                Actualizar
-            </button>
-        </form>
+            <div @class(['rounded-xl border p-4', 'border-amber-200 bg-amber-50' => $resumen['pedir'] > 0, 'border-atlantia-rose/15 bg-white' => $resumen['pedir'] === 0])>
+                <dt class="text-xs font-bold uppercase tracking-wide text-atlantia-ink/55">Por reponer pronto</dt>
+                <dd class="mt-0.5 text-2xl font-black {{ $resumen['pedir'] > 0 ? 'text-amber-800' : 'text-atlantia-ink' }}">{{ $resumen['pedir'] }}</dd>
+                <dd class="text-xs text-atlantia-ink/55">{{ $resumen['pedir'] > 0 ? 'no te alcanzan para estos días' : 'tus existencias alcanzan' }}</dd>
+            </div>
+            <div class="rounded-xl border border-atlantia-rose/15 bg-white p-4">
+                <dt class="text-xs font-bold uppercase tracking-wide text-atlantia-ink/55">Sin ventas aún</dt>
+                <dd class="mt-0.5 text-2xl font-black text-atlantia-ink">{{ $resumen['sin_ventas'] }}</dd>
+                <dd class="text-xs text-atlantia-ink/55">no hay datos para predecirlos todavía</dd>
+            </div>
+        </dl>
 
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            @foreach ($metricCards as $card)
-                <article class="rounded-lg border border-atlantia-rose/15 bg-white p-5 shadow-[0_12px_32px_rgba(42,16,24,0.05)]">
-                    <div class="flex items-center gap-4">
-                        <span class="{{ $tones[$card['tone']] }} grid h-14 w-14 shrink-0 place-items-center rounded-full">
-                            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $icons[$card['icon']] !!}</svg>
-                        </span>
-                        <div class="min-w-0">
-                            <p class="truncate text-sm text-atlantia-ink/60">{{ $card['label'] }}</p>
-                            <p class="mt-1 text-3xl font-black leading-none text-atlantia-ink">{{ $card['value'] }}</p>
-                            <p class="mt-1 text-xs text-atlantia-ink/55">{{ $card['hint'] }}</p>
-                        </div>
-                    </div>
-                </article>
-            @endforeach
-        </div>
+        <article class="overflow-hidden rounded-xl border border-atlantia-rose/15 bg-white shadow-[0_12px_32px_rgba(42,16,24,0.05)]">
+            <form method="GET" action="{{ route('vendedor.predicciones.index') }}" class="flex flex-wrap items-center gap-2 border-b border-atlantia-rose/10 p-3">
+                <input type="hidden" name="horizonte" value="{{ $h }}">
+                <label class="relative min-w-[14rem] flex-1">
+                    <span class="sr-only">Buscar producto</span>
+                    <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-atlantia-ink/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                    <input type="search" name="q" value="{{ $q }}" placeholder="Buscar producto o SKU" class="h-10 w-full rounded-lg border border-atlantia-rose/25 pl-9 pr-3 text-sm outline-none focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-blush">
+                </label>
+                <a href="{{ route('vendedor.inventario.index') }}" class="inline-flex h-10 items-center rounded-lg border border-atlantia-rose/25 px-4 text-sm font-bold text-atlantia-wine hover:bg-atlantia-blush">Ir a Inventario</a>
+            </form>
 
-        <div class="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-            <article class="rounded-lg border border-atlantia-rose/15 bg-white p-5 shadow-[0_12px_32px_rgba(42,16,24,0.05)]">
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <h2 class="text-xl font-black text-atlantia-wine">Demanda proyectada</h2>
-                        <p class="mt-1 text-sm text-atlantia-ink/55">Productos ordenados por demanda esperada.</p>
-                    </div>
-                    <span class="rounded-lg bg-atlantia-blush px-4 py-2 text-xs font-black text-atlantia-wine">{{ $filters['horizonte'] }} dias</span>
+            @if ($filas->isEmpty())
+                <div class="px-6 py-14 text-center">
+                    <p class="text-base font-black text-atlantia-ink">{{ $q !== '' ? 'No hay productos con esa búsqueda' : 'Aún no tienes productos activos' }}</p>
+                    <p class="mt-1 text-sm text-atlantia-ink/60">Publica productos y, cuando empiecen a venderse, aquí verás cuánto necesitarás.</p>
                 </div>
-                <div class="mt-5 h-[260px]">
-                    @if ($rows->isNotEmpty())
-                        <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="h-full w-full overflow-visible">
-                            <defs>
-                                <linearGradient id="demand-area" x1="0" x2="0" y1="0" y2="1">
-                                    <stop offset="0%" stop-color="#9b174d" stop-opacity="0.22"/>
-                                    <stop offset="100%" stop-color="#9b174d" stop-opacity="0.02"/>
-                                </linearGradient>
-                            </defs>
-                            @foreach ([24, 39, 54, 69, 84] as $line)
-                                <line x1="6" y1="{{ $line }}" x2="94" y2="{{ $line }}" stroke="#ead5dd" stroke-width="0.35"/>
-                            @endforeach
-                            <polygon points="{{ $areaPoints }}" fill="url(#demand-area)"/>
-                            <polyline points="{{ $chartPoints }}" fill="none" stroke="#9b174d" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                            @foreach ($rows->values() as $index => $prediction)
-                                @php
-                                    $count = max(1, $rows->count() - 1);
-                                    $x = 8 + (($index / $count) * 84);
-                                    $y = 78 - (((float) $prediction->valor_predicho / $max) * 54);
-                                @endphp
-                                <circle cx="{{ $x }}" cy="{{ $y }}" r="1.5" fill="#9b174d" stroke="white" stroke-width="0.7"/>
-                            @endforeach
-                        </svg>
-                    @else
-                        <div class="grid h-full place-items-center rounded-lg border border-dashed border-atlantia-rose/25 bg-atlantia-blush/20 text-center">
-                            <div>
-                                <p class="font-black text-atlantia-ink">Aun no hay predicciones</p>
-                                <p class="mt-1 text-sm text-atlantia-ink/55">Genera pronosticos desde el flujo ML para ver el tablero.</p>
-                            </div>
-                        </div>
-                    @endif
+            @else
+                <div class="hidden grid-cols-[minmax(0,1fr)_6rem_7rem_5.5rem_7rem_9.5rem] gap-3 border-b border-atlantia-rose/10 bg-[#fbf8f7] px-4 py-2 text-xs font-bold text-atlantia-ink/55 lg:grid">
+                    <span>Producto</span>
+                    <span class="text-right">Vendidas (30 días)</span>
+                    <span class="text-right">Se espera ({{ $h }} días)</span>
+                    <span class="text-right">Tienes</span>
+                    <span class="text-right">Te alcanza para</span>
+                    <span class="text-right">Qué hacer</span>
                 </div>
-            </article>
-
-            <article class="rounded-lg border border-atlantia-rose/15 bg-white p-5 shadow-[0_12px_32px_rgba(42,16,24,0.05)]">
-                <h2 class="text-xl font-black text-atlantia-wine">Prioridad operativa</h2>
-                <div class="mt-5 space-y-3">
-                    @forelse ($rows->take(5) as $prediction)
+                <ul class="divide-y divide-atlantia-rose/10">
+                    @foreach ($filas as $fila)
                         @php
-                            $stock = (int) ($prediction->producto?->inventario?->stock_actual ?? 0);
-                            $forecast = (float) $prediction->valor_predicho;
-                            $risk = $stock > 0 && $forecast >= $stock;
-                            $coverage = $forecast > 0 ? round(($stock / $forecast) * 100) : 100;
+                            $producto = $fila['producto'];
+                            $imagen = $producto->getFirstMediaUrl('productos', 'thumbnail') ?: $producto->getFirstMediaUrl('productos') ?: ($producto->imagenPrincipal?->path ? \Illuminate\Support\Facades\Storage::url($producto->imagenPrincipal->path) : null);
                         @endphp
-                        <div class="rounded-lg border border-atlantia-rose/15 p-4">
-                            <div class="flex items-start justify-between gap-4">
-                                <div class="min-w-0">
-                                    <p class="truncate font-black text-atlantia-ink">{{ $prediction->producto?->nombre ?? 'Producto no disponible' }}</p>
-                                    <p class="mt-1 text-xs text-atlantia-ink/55">Stock {{ $stock }} unidades · cobertura {{ $coverage }}%</p>
+                        <li class="grid grid-cols-2 items-center gap-x-3 gap-y-1.5 px-4 py-3 lg:grid-cols-[minmax(0,1fr)_6rem_7rem_5.5rem_7rem_9.5rem]" data-fila-prediccion data-estado="{{ $fila['estado'] }}">
+                            <div class="col-span-2 flex min-w-0 items-center gap-3 lg:col-span-1">
+                                <div class="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-[#f8f4f3] p-1">
+                                    @if ($imagen)<img src="{{ $imagen }}" alt="" class="h-full w-full object-contain mix-blend-multiply" loading="lazy">@else<span class="font-black text-atlantia-wine">{{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($producto->nombre, 0, 1)) }}</span>@endif
                                 </div>
-                                <span class="{{ $risk ? 'bg-red-50 text-red-700 ring-red-200' : 'bg-emerald-50 text-emerald-700 ring-emerald-200' }} rounded-full px-3 py-1 text-xs font-black ring-1">
-                                    {{ $risk ? 'Reabasto' : 'Normal' }}
-                                </span>
+                                <div class="min-w-0">
+                                    <p class="truncate font-bold text-atlantia-ink">{{ $producto->nombre }}</p>
+                                    @if ($fila['fuente'] === 'modelo')
+                                        <p class="text-[11px] text-atlantia-ink/45">Predicción del modelo de Atlantia</p>
+                                    @endif
+                                </div>
                             </div>
-                            <div class="mt-3 h-2 rounded-full bg-atlantia-blush">
-                                <div class="h-2 rounded-full bg-atlantia-wine" style="width: {{ max(5, min(100, ($forecast / $max) * 100)) }}%"></div>
+                            <p class="text-sm text-atlantia-ink/70 lg:text-right"><span class="text-xs text-atlantia-ink/45 lg:hidden">Vendidas en 30 días: </span>{{ $fila['vendidas_30'] }}</p>
+                            <p class="text-sm font-bold text-atlantia-ink lg:text-right"><span class="text-xs font-normal text-atlantia-ink/45 lg:hidden">Se espera en {{ $h }} días: </span>{{ $fila['estado'] === 'sin_ventas' ? '—' : $fila['esperado'] }}</p>
+                            <p class="text-sm text-atlantia-ink/70 lg:text-right"><span class="text-xs text-atlantia-ink/45 lg:hidden">Tienes: </span>{{ $fila['disponible'] }}</p>
+                            <p class="text-sm text-atlantia-ink/70 lg:text-right">
+                                <span class="text-xs text-atlantia-ink/45 lg:hidden">Te alcanza para: </span>
+                                @if ($fila['alcanza_dias'] === null)
+                                    —
+                                @elseif ($fila['alcanza_dias'] > 365)
+                                    más de un año
+                                @else
+                                    {{ $fila['alcanza_dias'] }} {{ $fila['alcanza_dias'] === 1 ? 'día' : 'días' }}
+                                @endif
+                            </p>
+                            <div class="col-span-2 lg:col-span-1 lg:text-right">
+                                <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1 {{ $estados[$fila['estado']][1] }}">{{ $estados[$fila['estado']][0] }}</span>
+                                @if (in_array($fila['estado'], ['agotado', 'pedir'], true) && $fila['faltan'] > 0)
+                                    <p class="mt-0.5 text-[11px] text-atlantia-ink/55">Te faltarían {{ $fila['faltan'] }}</p>
+                                @endif
                             </div>
-                        </div>
-                    @empty
-                        <p class="rounded-lg border border-dashed border-atlantia-rose/25 p-8 text-center text-sm text-atlantia-ink/55">Sin datos para priorizar.</p>
-                    @endforelse
-                </div>
-            </article>
-        </div>
-
-        <article class="overflow-hidden rounded-lg border border-atlantia-rose/15 bg-white shadow-[0_12px_32px_rgba(42,16,24,0.05)]">
-            <div class="border-b border-atlantia-rose/15 px-5 py-4">
-                <h2 class="text-xl font-black text-atlantia-ink">Predicciones por producto</h2>
-                <p class="mt-1 text-sm text-atlantia-ink/55">Rango estimado, modelo y fecha de prediccion.</p>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-sm">
-                    <thead class="bg-atlantia-cream/45 text-left text-xs font-black uppercase tracking-wide text-atlantia-ink/55">
-                        <tr>
-                            <th class="px-5 py-3">Producto</th>
-                            <th class="px-5 py-3">Horizonte</th>
-                            <th class="px-5 py-3">Prediccion</th>
-                            <th class="px-5 py-3">Rango estimado</th>
-                            <th class="px-5 py-3">Modelo</th>
-                            <th class="px-5 py-3 text-right">Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-atlantia-rose/12">
-                        @forelse ($predicciones as $prediction)
-                            @php
-                                $image = $prediction->producto?->getFirstMediaUrl('productos', 'thumbnail')
-                                    ?: $prediction->producto?->getFirstMediaUrl('productos')
-                                    ?: ($prediction->producto?->imagenPrincipal?->path ? \Illuminate\Support\Facades\Storage::url($prediction->producto->imagenPrincipal->path) : null);
-                                $stock = (int) ($prediction->producto?->inventario?->stock_actual ?? 0);
-                                $risk = $stock > 0 && (float) $prediction->valor_predicho >= $stock;
-                            @endphp
-                            <tr class="hover:bg-atlantia-cream/35">
-                                <td class="px-5 py-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg border border-atlantia-rose/15 bg-atlantia-cream">
-                                            @if ($image)
-                                                <img src="{{ $image }}" alt="{{ $prediction->producto?->nombre }}" class="h-full w-full object-cover">
-                                            @else
-                                                <span class="text-xs font-black text-atlantia-wine">ML</span>
-                                            @endif
-                                        </div>
-                                        <div class="min-w-0">
-                                            <p class="truncate font-black text-atlantia-ink">{{ $prediction->producto?->nombre ?? 'Producto no disponible' }}</p>
-                                            <p class="truncate text-xs text-atlantia-ink/50">{{ $prediction->producto?->sku ?? 'SKU sin dato' }}</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-5 py-4 font-bold text-atlantia-ink">{{ $prediction->horizonte_dias }} dias</td>
-                                <td class="px-5 py-4">
-                                    <p class="text-xl font-black text-atlantia-wine">{{ number_format((float) $prediction->valor_predicho, 0) }}</p>
-                                    <p class="text-xs text-atlantia-ink/50">unidades</p>
-                                </td>
-                                <td class="px-5 py-4 text-atlantia-ink/70">
-                                    {{ number_format((float) ($prediction->intervalo_inferior ?? 0), 0) }}
-                                    -
-                                    {{ number_format((float) ($prediction->intervalo_superior ?? 0), 0) }}
-                                    unidades
-                                </td>
-                                <td class="px-5 py-4 text-atlantia-ink/60">{{ $prediction->modeloVersion?->nombre ?? 'Fallback local' }}</td>
-                                <td class="px-5 py-4 text-right">
-                                    <span class="{{ $risk ? 'bg-red-50 text-red-700 ring-red-200' : 'bg-emerald-50 text-emerald-700 ring-emerald-200' }} inline-flex rounded-full px-3 py-1 text-xs font-black ring-1">
-                                        {{ $risk ? 'Revisar stock' : 'Controlado' }}
-                                    </span>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="6" class="px-5 py-12 text-center text-atlantia-ink/55">No hay predicciones con estos filtros.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-            <div class="flex flex-col gap-3 border-t border-atlantia-rose/15 px-5 py-3 text-sm text-atlantia-ink/55 sm:flex-row sm:items-center sm:justify-between">
-                <p>Mostrando {{ $predicciones->firstItem() ?? 0 }} a {{ $predicciones->lastItem() ?? 0 }} de {{ $predicciones->total() }} predicciones</p>
-                {{ $predicciones->links() }}
-            </div>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
         </article>
-    </section>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.querySelector('[data-demand-filters]');
-            form?.querySelectorAll('select').forEach((select) => {
-                select.addEventListener('change', () => form.submit());
-            });
-        });
-    </script>
+        <p class="text-xs text-atlantia-ink/50">Es una estimación: si vendes más o menos de lo normal, cambia. Mientras más ventas tengas, más acertada será.</p>
+    </section>
 @endsection

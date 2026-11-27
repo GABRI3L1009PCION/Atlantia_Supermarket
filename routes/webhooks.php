@@ -4,6 +4,7 @@ use App\Http\Controllers\Webhook\CertificadorFelController;
 use App\Http\Controllers\Webhook\CourierExternoController;
 use App\Http\Controllers\Webhook\MlServiceWebhookController;
 use App\Http\Controllers\Webhook\PasarelaPagoController;
+use App\Http\Controllers\Webhook\RecurrenteController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -24,3 +25,8 @@ Route::prefix('webhooks')
         Route::post('/courier-externo', CourierExternoController::class)->name('courier-externo');
         Route::post('/ml-service', MlServiceWebhookController::class)->name('ml-service');
     });
+
+/* Recurrente firma con Svix; usa su propio verificador en lugar del HMAC generico. */
+Route::post('/webhooks/recurrente', RecurrenteController::class)
+    ->middleware(['api', 'throttle:120,1', 'verify.webhook.recurrente'])
+    ->name('webhooks.recurrente');

@@ -9,14 +9,19 @@ use App\Exceptions\StockInsuficienteException;
 use App\Exceptions\TransaccionFallidaException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cliente\CheckoutRequest;
+use App\Models\CarritoItem;
 use App\Models\Cliente\Direccion;
 use App\Models\Pedido;
 use App\Models\User;
 use App\Services\Carrito\CarritoService;
 use App\Services\Geolocalizacion\DeliveryCoverageService;
 use App\Services\Pedidos\CheckoutService;
+use App\Support\CoberturaColonias;
+use App\Support\HorarioTienda;
+use App\Support\PedidoMinimo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -38,13 +43,27 @@ class CheckoutController extends Controller
     /**
      * Muestra la pantalla de checkout.
      */
-    public function create(Request $request): View
+    public function create(Request $request): View|RedirectResponse
     {
         if ($request->user() !== null) {
             $this->authorize('checkout', Pedido::class);
         }
 
-        return view('cliente.checkout.create', ['checkout' => $this->checkoutService->summary($request)]);
+        $items = $this->carritoService->current($request)->items()->with('producto.vendor')->get();
+
+        /* Si alguna tienda no llega a su pedido minimo, se vuelve al carrito donde se ve cuanto falta. */
+        $faltaMinimo = PedidoMinimo::pendientes($items)->first();
+        if ($faltaMinimo !== null) {
+            return redirect()->route('cliente.carrito.index')->with('error', PedidoMinimo::mensaje($faltaMinimo));
+        }
+
+        return view('cliente.checkout.create', [
+            'checkout' => $this->checkoutService->summary($request),
+            /* Las colonias excluidas solo aplican cuando el pedido trae productos de Atlantia. */
+            'aplicaCoberturaAtlantia' => CoberturaColonias::incluyeProductosAtlantia($items),
+            'coberturaColonias' => CoberturaColonias::catalogo(),
+            'horarioTiendas' => $this->horarioTiendas($items),
+        ]);
     }
 
     /**
@@ -62,7 +81,9 @@ class CheckoutController extends Controller
             if ($startedAsGuest) {
                 [$cliente, $direccion] = $this->prepareGuestCustomer($request, $data);
                 $data['direccion_id'] = $direccion->id;
-                $data['envio'] = app(DeliveryCoverageService::class)->deliveryCostFor($direccion) ?? ($data['envio'] ?? 0);
+                $data['envio'] = ($data['tipo_entrega'] ?? 'domicilio') === 'recoger'
+                    ? 0
+                    : (app(DeliveryCoverageService::class)->deliveryCostFor($direccion) ?? ($data['envio'] ?? 0));
                 $data['notas'] = $this->appendGuestContactToNotes($data);
                 $loginAfterCheckout = $request->boolean('crear_cuenta');
             }
@@ -75,8 +96,14 @@ class CheckoutController extends Controller
                 PedidoDTO::fromCheckoutArray($data)
             );
 
+            $checkoutUrl = $this->checkoutUrlPendiente($pedido);
+
             if ($loginAfterCheckout) {
                 Auth::login($cliente);
+
+                if ($checkoutUrl !== null) {
+                    return redirect()->away($checkoutUrl);
+                }
 
                 return redirect()->route('cliente.pedidos.show', $pedido)->with('success', 'Pedido creado correctamente. Tu cuenta quedo lista para futuras compras.');
             }
@@ -85,7 +112,15 @@ class CheckoutController extends Controller
                 $request->session()->push('guest_order_uuids', $pedido->uuid);
                 $request->session()->put("guest_order_email.{$pedido->uuid}", $data['guest_email'] ?? null);
 
+                if ($checkoutUrl !== null) {
+                    return redirect()->away($checkoutUrl);
+                }
+
                 return redirect()->route('cliente.pedidos.guest-show', $pedido)->with('success', 'Pedido creado correctamente.');
+            }
+
+            if ($checkoutUrl !== null) {
+                return redirect()->away($checkoutUrl);
             }
 
             return redirect()->route('cliente.pedidos.show', $pedido)->with('success', 'Pedido creado correctamente.');
@@ -99,6 +134,48 @@ class CheckoutController extends Controller
                 ->with('error', $exception->publicMessage())
                 ->with('error_type', class_basename($exception));
         }
+    }
+
+    /**
+     * Devuelve el enlace del checkout en linea si el pedido espera el pago con tarjeta.
+     */
+    private function checkoutUrlPendiente(Pedido $pedido): ?string
+    {
+        $payment = $pedido->payments()->latest('id')->first();
+
+        if (! CheckoutService::esperaPagoEnLinea($payment)) {
+            return null;
+        }
+
+        $url = (string) ($payment->pasarela_payload['checkout_url'] ?? '');
+
+        /* El pago se hace dentro de Atlantia: la pagina propia embebe el checkout de Recurrente. */
+        return str_starts_with($url, 'https://') ? route('cliente.pagos.recurrente.pagar', $payment) : null;
+    }
+
+    /**
+     * Resume si alguna tienda del carrito esta cerrada o en pausa.
+     *
+     * @param  Collection<int, CarritoItem>  $items
+     * @return array{cerrado: bool, pausado: bool, mensajes: array<int, string>}
+     */
+    private function horarioTiendas($items): array
+    {
+        $resumen = ['cerrado' => false, 'pausado' => false, 'mensajes' => []];
+
+        foreach ($items->map(fn ($item) => $item->producto?->vendor)->filter()->unique('id') as $vendor) {
+            $estado = HorarioTienda::estado($vendor);
+
+            if ($estado['abierto']) {
+                continue;
+            }
+
+            $resumen['cerrado'] = true;
+            $resumen['pausado'] = $resumen['pausado'] || $estado['pausado'];
+            $resumen['mensajes'][] = $vendor->business_name.': '.$estado['mensaje'];
+        }
+
+        return $resumen;
     }
 
     /**
@@ -140,8 +217,8 @@ class CheckoutController extends Controller
             'direccion_linea_1' => (string) $data['guest_direccion'],
             'direccion_linea_2' => null,
             'referencia' => $data['guest_referencia'] ?? null,
-            'latitude' => $data['guest_latitude'],
-            'longitude' => $data['guest_longitude'],
+            'latitude' => $data['guest_latitude'] ?? null,
+            'longitude' => $data['guest_longitude'] ?? null,
             'mapbox_place_id' => null,
             'es_principal' => true,
             'activa' => true,
@@ -181,12 +258,12 @@ class CheckoutController extends Controller
         $tipoEntrega = (string) ($data['tipo_entrega'] ?? 'domicilio');
         $entrega = match ($tipoEntrega) {
             'programado' => sprintf(
-                'Entrega programada: %s a las %s.',
+                'Entrega programada: %s, horario %s.',
                 $data['programado_fecha'] ?? 'sin fecha',
-                $data['programado_hora'] ?? 'sin hora'
+                $data['ventana_entrega'] ?? ($data['programado_hora'] ?? 'sin horario')
             ),
-            'recoger' => sprintf('Tipo de entrega: recoger en tienda. Ventana: %s.', $data['ventana_entrega'] ?? 'sin ventana'),
-            default => sprintf('Tipo de entrega: domicilio. Ventana: %s.', $data['ventana_entrega'] ?? 'sin ventana'),
+            'recoger' => 'Tipo de entrega: recoger en tienda.',
+            default => 'Tipo de entrega: domicilio, lo antes posible.',
         };
 
         return $notas === '' ? $entrega : $notas."\n\n".$entrega;
@@ -203,7 +280,9 @@ class CheckoutController extends Controller
         $metodo = (string) ($data['metodo_pago'] ?? 'efectivo');
 
         $detalle = match ($metodo) {
-            'tarjeta' => 'Cobro con POS al entregar. El repartidor debe llevar terminal para tarjeta.',
+            'tarjeta' => config('atlantia.payments.card.mode') === 'recurrente'
+                ? 'Pago con tarjeta en linea por Recurrente. Despachar solo con el pago acreditado.'
+                : 'Cobro con POS al entregar. El repartidor debe llevar terminal para tarjeta.',
             'transferencia' => 'Cobro por transferencia al entregar. Confirmar referencia con el cliente antes de cerrar la entrega.',
             default => 'Cobro en efectivo al entregar.',
         };

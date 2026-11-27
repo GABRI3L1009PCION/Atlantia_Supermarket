@@ -1,102 +1,12 @@
-@extends('layouts.guest')
-
-@section('guestShellClass', 'w-full border-0 bg-transparent shadow-none backdrop-blur-0')
-@section('guestMaxWidth', 'max-w-7xl')
-@section('guestPadding', 'p-0')
-@section('guestLogoClass', 'hidden')
+@extends('layouts.marketplace')
 
 @section('content')
-    @php
-        $logoPath = file_exists(public_path('images/logo.png')) ? 'images/logo.png' : 'images/atlantia-logo.svg';
-        $fondoPath = file_exists(public_path('images/fondo.png')) ? asset('images/fondo.png') : null;
-        $backHref = route('home');
-    @endphp
-
-    <div class="relative overflow-hidden rounded-[24px] shadow-[0_24px_70px_rgba(135,22,61,0.14)]">
-        @if ($fondoPath)
-            <div
-                class="absolute inset-0"
-                style="background: url('{{ $fondoPath }}') center center / cover no-repeat;"
-                aria-hidden="true"
-            ></div>
-        @else
-            <div
-                class="absolute inset-0 bg-[linear-gradient(135deg,#fffafc_0%,#fff4f8_42%,#f7dce8_100%)]"
-                aria-hidden="true"
-            ></div>
-        @endif
-
-        <div class="relative grid min-h-[340px] lg:grid-cols-[0.9fr_0.78fr]">
-            <aside class="relative flex min-h-[190px] flex-col p-3 sm:p-4 lg:p-4">
-
-                <div class="relative z-10 flex items-start justify-between gap-4">
-                    <a
-                        href="{{ $backHref }}"
-                        class="inline-flex h-9 items-center gap-2 rounded-xl border border-atlantia-rose/20 bg-white/96 px-3.5 text-sm font-bold text-atlantia-wine shadow-[0_10px_24px_rgba(135,22,61,0.12)] transition hover:bg-white"
-                    >
-                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path d="M15 5L8 12L15 19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        Regresar
-                    </a>
-                </div>
-
-                <div class="relative z-10 flex flex-1 flex-col items-center justify-start pt-10 text-center sm:pt-12 lg:pt-14">
-                    <img
-                        src="{{ asset($logoPath) }}"
-                        alt="Atlantia Delivery"
-                        class="h-12 w-auto sm:h-14 lg:h-[4rem]"
-                    >
-
-                    <div class="mt-3 max-w-[15rem] space-y-2 px-0 py-1">
-                        <p class="text-[0.64rem] font-extrabold uppercase text-atlantia-wine sm:text-[0.72rem]">
-                            Atlantia Delivery
-                        </p>
-
-                        <div class="mx-auto flex w-full max-w-[140px] items-center justify-center gap-3 text-atlantia-wine/80">
-                            <span class="h-px flex-1 bg-atlantia-rose/35"></span>
-                            <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M4 5H6L8.1 15.2C8.3 16.2 9.2 17 10.3 17H17.8C18.8 17 19.6 16.4 19.9 15.5L21 9H7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M10 21C10.6 21 11 20.6 11 20C11 19.4 10.6 19 10 19C9.4 19 9 19.4 9 20C9 20.6 9.4 21 10 21Z" fill="currentColor"/>
-                                <path d="M18 21C18.6 21 19 20.6 19 20C19 19.4 18.6 19 18 19C17.4 19 17 19.4 17 20C17 20.6 17.4 21 18 21Z" fill="currentColor"/>
-                            </svg>
-                            <span class="h-px flex-1 bg-atlantia-rose/35"></span>
-                        </div>
-
-                        <p class="mx-auto max-w-[11rem] text-sm leading-5 text-atlantia-ink/78 sm:text-[0.92rem]">
-                            Tu red de comercios y entregas,
-                        </p>
-                        <p class="mx-auto max-w-[9rem] text-sm leading-5 text-atlantia-ink/78 sm:text-[0.92rem]">
-                            siempre cerca de ti.
-                        </p>
-                    </div>
-                </div>
-            </aside>
-
-            <section class="flex items-center justify-center px-3 py-3 sm:px-4 lg:px-4">
-                <div class="w-full max-w-[400px] rounded-[16px] border border-atlantia-rose/15 bg-white px-4 py-3.5 shadow-[0_18px_46px_rgba(135,22,61,0.12)] sm:px-4.5">
-                    <div class="mx-auto flex max-w-[345px] flex-col items-center text-center">
-                        <div class="flex h-11 w-11 items-center justify-center rounded-full bg-atlantia-blush/75 text-atlantia-wine">
-                            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M7 10V8C7 5.2 9.2 3 12 3C14.8 3 17 5.2 17 8V10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                                <path d="M6 10H18V20H6V10Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                                <path d="M12 14V16.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                            </svg>
-                        </div>
-
-                        <h1 class="mt-2.5 text-[1.95rem] font-black leading-none text-atlantia-wine sm:text-[2.2rem]">
-                            Ingresar
-                        </h1>
-                        <p class="mt-1 text-sm leading-5 text-atlantia-ink/65 sm:text-[0.92rem]">
-                            Accede a tu cuenta de Atlantia Delivery.
-                        </p>
-                    </div>
-
-                    <form method="POST" action="{{ route('login.store') }}" class="mx-auto mt-3.5 max-w-[345px] space-y-2.5" data-protect-submit x-data="{ showPassword: false }">
+<x-auth.panel titulo="Ingresar" subtitulo="Accede a tu cuenta de Atlantia Store para comprar, guardar direcciones y seguir tus pedidos.">
+                    <form method="POST" action="{{ route('login.store') }}" class="space-y-3" data-protect-submit x-data="{ showPassword: false }">
                         @csrf
 
                         <label for="email" class="block">
-                            <span class="mb-1 block text-sm font-black text-atlantia-ink">Correo electronico</span>
+                            <span class="mb-1 block text-sm font-black text-atlantia-ink">Correo electrónico</span>
                             <span class="flex min-h-[44px] items-center rounded-xl border border-atlantia-rose/45 bg-white px-3.5 shadow-sm transition focus-within:border-atlantia-wine focus-within:ring-2 focus-within:ring-atlantia-rose/35">
                                 <svg class="h-5 w-5 shrink-0 text-atlantia-ink/45" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                     <path d="M4 6.5H20V17.5H4V6.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
@@ -121,7 +31,7 @@
                         </label>
 
                         <label for="password" class="block">
-                            <span class="mb-1 block text-sm font-black text-atlantia-ink">Contrasena</span>
+                            <span class="mb-1 block text-sm font-black text-atlantia-ink">Contraseña</span>
                             <span class="flex min-h-[44px] items-center rounded-xl border border-atlantia-rose/35 bg-white px-3.5 shadow-sm transition focus-within:border-atlantia-wine focus-within:ring-2 focus-within:ring-atlantia-rose/35">
                                 <svg class="h-5 w-5 shrink-0 text-atlantia-ink/45" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                     <path d="M7 10V8C7 5.2 9.2 3 12 3C14.8 3 17 5.2 17 8V10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -134,14 +44,14 @@
                                     :type="showPassword ? 'text' : 'password'"
                                     required
                                     autocomplete="current-password"
-                                    placeholder="Ingresa tu contrasena"
+                                    placeholder="Ingresa tu contraseña"
                                     class="min-w-0 flex-1 border-0 bg-transparent px-3 py-2.5 text-[0.95rem] text-atlantia-ink placeholder:text-atlantia-ink/42 focus:outline-none focus:ring-0"
                                     aria-invalid="@error('password') true @else false @enderror"
                                 >
                                 <button
                                     type="button"
                                     class="shrink-0 rounded-md p-1 text-atlantia-ink/50 transition hover:bg-atlantia-blush hover:text-atlantia-wine"
-                                    aria-label="Mostrar u ocultar contrasena"
+                                    aria-label="Mostrar u ocultar contraseña"
                                     @click="showPassword = !showPassword"
                                 >
                                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -155,37 +65,49 @@
                             @enderror
                         </label>
 
-                        <x-ui.button type="submit" class="w-full py-2.5 text-[0.95rem] shadow-[0_12px_22px_rgba(135,22,61,0.18)]">
+                        <div class="flex items-center justify-between gap-3 pt-0.5">
+                            <label class="inline-flex items-center gap-2 text-sm font-semibold text-atlantia-ink/75">
+                                <input type="checkbox" name="remember" value="1" class="h-4 w-4 rounded border-atlantia-rose/50 text-atlantia-wine focus:ring-atlantia-rose" @checked(old('remember'))>
+                                Recordarme
+                            </label>
+                            <a href="{{ route('password.request') }}" class="text-sm font-bold text-atlantia-wine hover:text-atlantia-wine-700">Olvidé mi contraseña</a>
+                        </div>
+
+                        <x-ui.button type="submit" class="mt-1 w-full py-2.5 text-[0.95rem] shadow-[0_12px_22px_rgba(127,18,32,0.18)]">
                             Ingresar
                         </x-ui.button>
                     </form>
 
-                    <a href="{{ route('password.request') }}" class="mx-auto mt-2.5 block w-fit border-b border-dashed border-atlantia-wine text-sm font-bold text-atlantia-wine hover:text-atlantia-wine-700">
-                        Olvide mi contrasena
-                    </a>
-
-                    <div class="mx-auto mt-3 grid max-w-[345px] gap-2.5 rounded-2xl border border-atlantia-rose/18 bg-atlantia-cream/50 p-2.5 text-atlantia-ink sm:grid-cols-[44px_1fr] sm:items-center">
-                        <div class="mx-auto flex h-[42px] w-[42px] items-center justify-center rounded-full border border-atlantia-rose/18 bg-white text-atlantia-wine shadow-sm">
-                            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M4 5H6L8.1 15.2C8.3 16.2 9.2 17 10.3 17H17.8C18.8 17 19.6 16.4 19.9 15.5L21 9H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M10 21C10.6 21 11 20.6 11 20C11 19.4 10.6 19 10 19C9.4 19 9 19.4 9 20C9 20.6 9.4 21 10 21Z" fill="currentColor"/>
-                                <path d="M18 21C18.6 21 19 20.6 19 20C19 19.4 18.6 19 18 19C17.4 19 17 19.4 17 20C17 20.6 17.4 21 18 21Z" fill="currentColor"/>
-                            </svg>
-                        </div>
-
-                        <div class="text-center sm:text-left">
-                            <p class="text-[0.98rem] font-black text-atlantia-wine">Eres nuevo en Atlantia?</p>
-                            <p class="mt-1 text-sm leading-5 text-atlantia-ink/72">
-                                Crea tu cuenta gratis para guardar direcciones, realizar pedidos y seguir tus entregas.
-                            </p>
-                            <a href="{{ route('register') }}" class="mt-1 inline-flex items-center gap-2 text-sm font-black text-atlantia-wine hover:text-atlantia-wine-700">
-                                Registrarme como cliente
-                                <span aria-hidden="true">&rarr;</span>
+                    {{-- Acceso sin contrasena para clientes (el codigo por telefono solo si WhatsApp esta activo). --}}
+                    @php
+                        $accesoTelefono = app(\App\Services\Notificaciones\WhatsAppService::class)->habilitado();
+                        $accesoGoogle = \App\Http\Controllers\Auth\AccesoRapidoController::googleConfigurado();
+                    @endphp
+                    @if ($accesoTelefono || $accesoGoogle)
+                    <div class="mt-4">
+                        <p class="flex items-center gap-3 text-xs font-bold text-atlantia-ink/45 before:h-px before:flex-1 before:bg-atlantia-rose/20 after:h-px after:flex-1 after:bg-atlantia-rose/20">o entra sin contraseña</p>
+                        <div class="mt-2.5 grid gap-2">
+                            @if ($accesoTelefono)
+                            <a href="{{ route('acceso.telefono') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-sm font-black text-white hover:brightness-95" data-acceso-telefono>
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.87 9.87 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91A9.9 9.9 0 0 0 12.04 2Z"/></svg>
+                                Con mi teléfono (código por WhatsApp)
                             </a>
+                            @endif
+                            @if ($accesoGoogle)
+                                <a href="{{ route('acceso.google') }}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50" data-acceso-google>
+                                    <svg class="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true"><path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.6 3.8-5.5 3.8-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.2 14.6 2.2 12 2.2 6.6 2.2 2.2 6.6 2.2 12S6.6 21.8 12 21.8c5.7 0 9.4-4 9.4-9.6 0-.6-.1-1.1-.2-1.6H12Z"/></svg>
+                                    Continuar con Google
+                                </a>
+                            @endif
                         </div>
                     </div>
-                </div>
-            </section>
-        </div>
-    </div>
+                    @endif
+
+    <x-slot:pie>
+        <p class="mt-4 text-center text-sm text-atlantia-ink/65">
+            ¿Eres nuevo en Atlantia?
+            <a href="{{ route('register') }}" class="font-black text-atlantia-wine hover:text-atlantia-wine-700">Crear cuenta gratis</a>
+        </p>
+    </x-slot:pie>
+</x-auth.panel>
 @endsection

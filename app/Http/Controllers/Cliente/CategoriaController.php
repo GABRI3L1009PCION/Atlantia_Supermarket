@@ -41,7 +41,7 @@ class CategoriaController extends Controller
 
         return view('cliente.categorias.index', [
             'categorias' => $categorias,
-            'municipioActivo' => (string) $request->session()->get('cliente_municipio', 'Puerto Barrios'),
+            'zonaEntrega' => implode(' y ', (array) config('atlantia.marketplace.municipios', ['Puerto Barrios', 'Santo Tomas'])),
         ]);
     }
 }

@@ -2,350 +2,256 @@
 
 @section('content')
     @php
+        $vendor = auth()->user()?->vendor;
         $field = fn (string $name, mixed $fallback = '') => old($name, $perfil?->{$name} ?? $fallback);
-        $inputBase = 'mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm text-atlantia-ink outline-none transition placeholder:text-atlantia-ink/35 focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-rose/20';
-        $inputNormal = 'border-atlantia-rose/25';
-        $inputError = 'border-rose-500 bg-rose-50';
-        $errorText = 'mt-1 text-xs font-semibold text-rose-700';
+        $campo = 'mt-1 h-10 w-full rounded-lg border bg-white px-3 text-sm text-atlantia-ink outline-none placeholder:text-atlantia-ink/35 focus:border-atlantia-wine focus:ring-2 focus:ring-atlantia-blush';
+        $borde = fn (string $name): string => $errors->has($name) ? 'border-rose-500 bg-rose-50' : 'border-atlantia-rose/30';
+        $error = 'mt-1 text-xs font-semibold text-rose-700';
+        $ayuda = 'mt-1 block text-[11px] text-atlantia-ink/50';
 
-        $sections = [
-            'Datos fiscales' => filled($field('nit')) && filled($field('razon_social')) && filled($field('direccion_fiscal')),
-            'Configuracion SAT' => filled($field('regimen_sat')) && filled($field('codigo_establecimiento')) && filled($field('afiliacion_iva')),
-            'Configuracion FEL' => filled($field('certificador_fel')) && filled($field('fel_usuario')) && filled($field('fel_llave_firma')) && filled($field('fel_llave_certificador')),
-            'Datos bancarios' => filled($field('banco_nombre')) && filled($field('cuenta_bancaria')) && filled($field('cuenta_bancaria_tipo')) && filled($field('cuenta_bancaria_titular')),
-            'Validacion' => (bool) ($perfil?->fel_activo ?? false),
+        $completo = [
+            'banco' => filled($perfil?->banco_nombre) && filled($perfil?->cuenta_bancaria),
+            'fiscal' => filled($perfil?->nit) && filled($perfil?->razon_social) && filled($perfil?->direccion_fiscal) && filled($perfil?->codigo_establecimiento) && ! str_starts_with((string) $perfil?->codigo_establecimiento, 'PEND-'),
+            'fel' => (bool) ($perfil?->fel_activo ?? false) || ($perfil?->modoFacturacion() ?? 'manual_sat') === 'manual_sat',
         ];
-        $completed = collect($sections)->filter()->count();
-        $totalSections = count($sections);
-        $progress = (int) round(($completed / max($totalSections, 1)) * 100);
-        $regimenLabels = [
-            'pequeno_contribuyente' => 'Pequeno contribuyente',
-            'general' => 'General',
-            'exento' => 'Exento',
+        $pestanas = [
+            'banco' => ['Cuenta para tus pagos', 'Donde te depositamos lo que vendes'],
+            'fiscal' => ['Datos para facturar', 'Tu NIT y datos de SAT'],
+            'fel' => ['Factura electrónica', 'Cómo facturas tus ventas'],
         ];
-        $cuentaLabels = [
-            'monetaria' => 'Cuenta Monetaria',
-            'ahorro' => 'Cuenta de Ahorro',
-        ];
+        $activa = old('seccion', request('seccion'));
+        if (! array_key_exists((string) $activa, $pestanas)) {
+            $activa = ! $completo['banco'] ? 'banco' : (! $completo['fiscal'] ? 'fiscal' : 'fel');
+        }
+        $bancos = ['Banrural', 'Banco Industrial', 'BAM', 'BAC Credomatic', 'G&T Continental', 'Banco Promerica', 'Banco Azteca', 'Bantrab', 'Banco Inmobiliario', 'Interbanco', 'Vivibanco', 'Otro'];
+        $bancoActual = (string) $field('banco_nombre');
+        $cuentaGuardada = (string) ($perfil?->cuenta_bancaria ?? '');
     @endphp
 
-    <section class="mx-auto max-w-[1280px] space-y-5 pb-10">
+    <section class="mx-auto max-w-[1000px] space-y-4 pb-10">
         <div>
-            <p class="text-xs font-black uppercase tracking-[0.22em] text-atlantia-rose">Atlantia Supermarket</p>
-            <h1 class="mt-2 text-3xl font-black leading-tight text-atlantia-ink sm:text-4xl">Perfil fiscal</h1>
-            <p class="mt-2 max-w-2xl text-sm leading-6 text-atlantia-ink/62">
-                Configura y mantiene tu informacion fiscal para la emision de DTE ante SAT.
-            </p>
+            <h1 class="text-2xl font-black text-atlantia-ink">Datos de facturación y pagos</h1>
+            <p class="mt-0.5 text-sm text-atlantia-ink/60">Cada parte se guarda por separado. Para cobrar tus ventas solo necesitas la cuenta bancaria.</p>
         </div>
 
-        <div class="grid gap-5 xl:grid-cols-[1fr_300px]">
-            <form
-                method="POST"
-                action="{{ route('vendedor.perfil-fiscal.update') }}"
-                class="rounded-lg border border-atlantia-rose/15 bg-white shadow-[0_12px_32px_rgba(42,16,24,0.05)]"
-            >
-                @csrf
-                @method('PUT')
+        <div class="overflow-hidden rounded-xl border border-atlantia-rose/15 bg-white shadow-[0_12px_32px_rgba(42,16,24,0.05)]">
+            <nav class="grid border-b border-atlantia-rose/10 sm:grid-cols-3" aria-label="Secciones">
+                @foreach ($pestanas as $clave => [$titulo, $sub])
+                    <a href="{{ route('vendedor.perfil-fiscal.edit', ['seccion' => $clave]) }}" @class([
+                        'flex items-center gap-3 border-b-2 px-4 py-3 transition sm:border-b-2',
+                        'border-atlantia-wine bg-atlantia-blush/30' => $activa === $clave,
+                        'border-transparent hover:bg-[#fdfafa]' => $activa !== $clave,
+                    ]) @if ($activa === $clave) aria-current="page" @endif data-seccion="{{ $clave }}">
+                        <span @class([
+                            'grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-black',
+                            'bg-emerald-100 text-emerald-700' => $completo[$clave],
+                            'bg-amber-100 text-amber-800' => ! $completo[$clave],
+                        ])>
+                            @if ($completo[$clave])
+                                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+                            @else
+                                !
+                            @endif
+                        </span>
+                        <span class="min-w-0">
+                            <span @class(['block text-sm font-black', 'text-atlantia-wine' => $activa === $clave, 'text-atlantia-ink' => $activa !== $clave])>{{ $titulo }}</span>
+                            <span class="block truncate text-xs text-atlantia-ink/50">{{ $completo[$clave] ? ($clave === 'fel' ? 'Activa' : 'Completo') : $sub }}</span>
+                        </span>
+                    </a>
+                @endforeach
+            </nav>
 
-                <div class="space-y-6 p-5 sm:p-6">
-                    <section>
-                        <div class="flex items-center gap-2">
-                            <span class="grid h-8 w-8 place-items-center rounded-lg bg-atlantia-blush text-atlantia-wine">
-                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h5"/>
-                                </svg>
-                            </span>
-                            <h2 class="text-sm font-black text-atlantia-wine">1. Datos fiscales</h2>
-                        </div>
+            @if ($activa === 'banco')
+                <form method="POST" action="{{ route('vendedor.perfil-fiscal.update') }}" class="p-5" data-seccion-form="banco">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="seccion" value="banco">
+                    <p class="text-sm text-atlantia-ink/65">Aquí te depositamos lo que vendes cuando solicitas tu pago en <a href="{{ route('vendedor.pagos.index') }}" class="font-bold text-atlantia-wine hover:underline">Ventas y pagos</a>.</p>
 
-                        <div class="mt-4 grid gap-4 lg:grid-cols-3">
-                            <label class="block">
-                                <span class="text-xs font-bold text-atlantia-ink">NIT <span class="text-atlantia-wine">*</span></span>
-                                <input name="nit" value="{{ $field('nit') }}" placeholder="CF-10" class="{{ $inputBase }} {{ $errors->has('nit') ? $inputError : $inputNormal }}" required>
-                                <span class="mt-1 block text-[11px] text-atlantia-ink/48">Escribe tu NIT tal como aparece en SAT.</span>
-                                @error('nit') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                            </label>
-
-                            <label class="block">
-                                <span class="text-xs font-bold text-atlantia-ink">Razon social <span class="text-atlantia-wine">*</span></span>
-                                <input name="razon_social" value="{{ $field('razon_social', auth()->user()?->name) }}" class="{{ $inputBase }} {{ $errors->has('razon_social') ? $inputError : $inputNormal }}" required>
-                                <span class="mt-1 block text-[11px] text-atlantia-ink/48">Nombre o razon social registrada.</span>
-                                @error('razon_social') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                            </label>
-
-                            <label class="block">
-                                <span class="text-xs font-bold text-atlantia-ink">Nombre comercial SAT</span>
-                                <input name="nombre_comercial_sat" value="{{ $field('nombre_comercial_sat', auth()->user()?->vendor?->business_name) }}" placeholder="Atlantia Supermarket" class="{{ $inputBase }} {{ $errors->has('nombre_comercial_sat') ? $inputError : $inputNormal }}">
-                                <span class="mt-1 block text-[11px] text-atlantia-ink/48">Tal como esta registrado en SAT.</span>
-                                @error('nombre_comercial_sat') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                            </label>
-                        </div>
-
-                        <label class="mt-4 block">
-                            <span class="text-xs font-bold text-atlantia-ink">Direccion fiscal <span class="text-atlantia-wine">*</span></span>
-                            <textarea name="direccion_fiscal" rows="3" class="{{ $inputBase }} {{ $errors->has('direccion_fiscal') ? $inputError : $inputNormal }}" required>{{ $field('direccion_fiscal') }}</textarea>
-                            <span class="mt-1 block text-[11px] text-atlantia-ink/48">Direccion fiscal completa registrada ante SAT.</span>
-                            @error('direccion_fiscal') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
+                    <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                        <label class="block">
+                            <span class="text-xs font-bold text-atlantia-ink">Banco</span>
+                            <select name="banco_nombre" class="{{ $campo }} {{ $borde('banco_nombre') }}" required>
+                                <option value="">Elige tu banco</option>
+                                @foreach ($bancos as $banco)
+                                    <option value="{{ $banco }}" @selected($bancoActual === $banco)>{{ $banco }}</option>
+                                @endforeach
+                                @if ($bancoActual !== '' && ! in_array($bancoActual, $bancos, true))
+                                    <option value="{{ $bancoActual }}" selected>{{ $bancoActual }}</option>
+                                @endif
+                            </select>
+                            @error('banco_nombre') <p class="{{ $error }}">{{ $message }}</p> @enderror
                         </label>
-                    </section>
-
-                    <section class="border-t border-atlantia-rose/15 pt-5">
-                        <div class="flex items-center gap-2">
-                            <span class="grid h-8 w-8 place-items-center rounded-lg bg-atlantia-blush text-atlantia-wine">
-                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M5 3v18l2-1 2 1 2-1 2 1 2-1 2 1 2-1V3Z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/>
-                                </svg>
-                            </span>
-                            <h2 class="text-sm font-black text-atlantia-wine">2. Configuracion SAT</h2>
-                        </div>
-
-                        <div class="mt-4 grid gap-4 lg:grid-cols-3">
-                            <label class="block">
-                                <span class="text-xs font-bold text-atlantia-ink">Regimen SAT <span class="text-atlantia-wine">*</span></span>
-                                <select name="regimen_sat" class="{{ $inputBase }} {{ $errors->has('regimen_sat') ? $inputError : $inputNormal }}" required>
-                                    @foreach ($regimenLabels as $value => $label)
-                                        <option value="{{ $value }}" @selected($field('regimen_sat', 'general') === $value)>{{ $label }}</option>
-                                    @endforeach
-                                </select>
-                                @error('regimen_sat') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                            </label>
-
-                            <label class="block">
-                                <span class="text-xs font-bold text-atlantia-ink">Codigo de establecimiento <span class="text-atlantia-wine">*</span></span>
-                                <input name="codigo_establecimiento" value="{{ $field('codigo_establecimiento') }}" placeholder="ADM-10" class="{{ $inputBase }} {{ $errors->has('codigo_establecimiento') ? $inputError : $inputNormal }}" required>
-                                <span class="mt-1 block text-[11px] text-atlantia-ink/48">Codigo asignado por SAT.</span>
-                                @error('codigo_establecimiento') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                            </label>
-
-                            <label class="block">
-                                <span class="text-xs font-bold text-atlantia-ink">Afiliacion IVA <span class="text-atlantia-wine">*</span></span>
-                                <input name="afiliacion_iva" value="{{ $field('afiliacion_iva', 'GEN') }}" placeholder="GEN" class="{{ $inputBase }} {{ $errors->has('afiliacion_iva') ? $inputError : $inputNormal }}" required>
-                                @error('afiliacion_iva') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                            </label>
-                        </div>
-                    </section>
-
-                    <section class="border-t border-atlantia-rose/15 pt-5">
-                        <div class="flex items-center gap-2">
-                            <span class="grid h-8 w-8 place-items-center rounded-lg bg-atlantia-blush text-atlantia-wine">
-                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-5"/>
-                                </svg>
-                            </span>
-                            <h2 class="text-sm font-black text-atlantia-wine">3. Configuracion FEL</h2>
-                        </div>
-
-                        <div class="mt-4 grid gap-4 xl:grid-cols-[1fr_250px]">
-                            <div class="grid gap-4 lg:grid-cols-2">
-                                <label class="block">
-                                    <span class="text-xs font-bold text-atlantia-ink">Certificador FEL <span class="text-atlantia-wine">*</span></span>
-                                    <select name="certificador_fel" class="{{ $inputBase }} {{ $errors->has('certificador_fel') ? $inputError : $inputNormal }}" required>
-                                        <option value="infile" @selected($field('certificador_fel', 'infile') === 'infile')>INFILE</option>
-                                    </select>
-                                    @error('certificador_fel') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                                </label>
-
-                                <label class="block">
-                                    <span class="text-xs font-bold text-atlantia-ink">Usuario FEL</span>
-                                    <input name="fel_usuario" value="{{ $field('fel_usuario') }}" placeholder="miusuario.fel" class="{{ $inputBase }} {{ $errors->has('fel_usuario') ? $inputError : $inputNormal }}">
-                                    <span class="mt-1 block text-[11px] text-atlantia-ink/48">Usuario proporcionado por tu certificador.</span>
-                                    @error('fel_usuario') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                                </label>
-
-                                <label class="block">
-                                    <span class="text-xs font-bold text-atlantia-ink">Llave de firma</span>
-                                    <input name="fel_llave_firma" type="password" value="{{ old('fel_llave_firma') }}" placeholder="{{ filled($perfil?->fel_llave_firma) ? 'Llave configurada; escribe una nueva para cambiarla' : 'Pega la llave de firma' }}" autocomplete="new-password" class="{{ $inputBase }} {{ $errors->has('fel_llave_firma') ? $inputError : $inputNormal }}">
-                                    <span class="mt-1 block text-[11px] text-atlantia-ink/48">Clave privada o llave en formato PEM.</span>
-                                    @error('fel_llave_firma') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                                </label>
-
-                                <label class="block">
-                                    <span class="text-xs font-bold text-atlantia-ink">Llave certificador</span>
-                                    <input name="fel_llave_certificador" type="password" value="{{ old('fel_llave_certificador') }}" placeholder="{{ filled($perfil?->fel_llave_certificador) ? 'Llave configurada; escribe una nueva para cambiarla' : 'Pega la llave del certificador' }}" autocomplete="new-password" class="{{ $inputBase }} {{ $errors->has('fel_llave_certificador') ? $inputError : $inputNormal }}">
-                                    <span class="mt-1 block text-[11px] text-atlantia-ink/48">Llave publica del certificador.</span>
-                                    @error('fel_llave_certificador') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                                </label>
-
-                                <div class="lg:col-span-2">
-                                    <span class="text-xs font-bold text-atlantia-ink">FEL activo</span>
-                                    <div class="mt-2 flex items-center gap-3">
-                                        <span @class([
-                                            'relative inline-flex h-7 w-12 items-center rounded-full transition',
-                                            'bg-atlantia-wine' => (bool) ($perfil?->fel_activo ?? false),
-                                            'bg-atlantia-rose/25' => ! (bool) ($perfil?->fel_activo ?? false),
-                                        ])>
-                                            <span @class([
-                                                'inline-block h-5 w-5 rounded-full bg-white shadow transition',
-                                                'translate-x-6' => (bool) ($perfil?->fel_activo ?? false),
-                                                'translate-x-1' => ! (bool) ($perfil?->fel_activo ?? false),
-                                            ])></span>
-                                        </span>
-                                        <span class="text-xs text-atlantia-ink/55">Activa para emitir DTE despues de la validacion.</span>
-                                    </div>
-                                </div>
+                        <fieldset>
+                            <legend class="text-xs font-bold text-atlantia-ink">Tipo de cuenta</legend>
+                            <div class="mt-1 grid grid-cols-2 gap-2">
+                                @foreach (['monetaria' => 'Monetaria', 'ahorro' => 'De ahorro'] as $valor => $texto)
+                                    <label class="flex h-10 cursor-pointer items-center justify-center rounded-lg border border-atlantia-rose/30 text-sm font-bold text-atlantia-ink has-[:checked]:border-atlantia-wine has-[:checked]:bg-atlantia-wine has-[:checked]:text-white">
+                                        <input type="radio" name="cuenta_bancaria_tipo" value="{{ $valor }}" class="sr-only" @checked($field('cuenta_bancaria_tipo') === $valor) required>
+                                        {{ $texto }}
+                                    </label>
+                                @endforeach
                             </div>
-
-                            <aside class="rounded-lg border border-atlantia-rose/15 bg-atlantia-cream/45 p-4">
-                                <p class="text-sm font-black text-atlantia-wine">Estado de FEL</p>
-                                <span class="mt-3 inline-flex rounded-md bg-orange-50 px-3 py-1 text-xs font-black text-orange-700 ring-1 ring-orange-200">
-                                    {{ $perfil?->fel_activo ? 'Validado' : 'Pendiente de validar' }}
-                                </span>
-                                <p class="mt-3 text-xs leading-5 text-atlantia-ink/58">
-                                    Completa la configuracion y valida para confirmar la conexion con SAT.
-                                </p>
-                                <button type="button" class="mt-4 w-full rounded-lg border border-atlantia-wine/35 bg-white px-4 py-2 text-xs font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                                    Validar configuracion
-                                </button>
-                            </aside>
-                        </div>
-                    </section>
-
-                    <section class="border-t border-atlantia-rose/15 pt-5">
-                        <div class="flex items-center gap-2">
-                            <span class="grid h-8 w-8 place-items-center rounded-lg bg-atlantia-blush text-atlantia-wine">
-                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M3 9h18"/><path d="M5 9V6l7-3 7 3v3"/><path d="M6 12v6"/><path d="M10 12v6"/><path d="M14 12v6"/><path d="M18 12v6"/><path d="M4 21h16"/>
-                                </svg>
-                            </span>
-                            <h2 class="text-sm font-black text-atlantia-wine">4. Datos bancarios</h2>
-                        </div>
-
-                        <div class="mt-4 grid gap-4 lg:grid-cols-4">
-                            <label class="block">
-                                <span class="text-xs font-bold text-atlantia-ink">Banco</span>
-                                <input name="banco_nombre" value="{{ $field('banco_nombre') }}" placeholder="Banco Industrial" class="{{ $inputBase }} {{ $errors->has('banco_nombre') ? $inputError : $inputNormal }}">
-                                @error('banco_nombre') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                            </label>
-
-                            <label class="block">
-                                <span class="text-xs font-bold text-atlantia-ink">Tipo de cuenta</span>
-                                <select name="cuenta_bancaria_tipo" class="{{ $inputBase }} {{ $errors->has('cuenta_bancaria_tipo') ? $inputError : $inputNormal }}">
-                                    <option value="">Selecciona</option>
-                                    @foreach ($cuentaLabels as $value => $label)
-                                        <option value="{{ $value }}" @selected($field('cuenta_bancaria_tipo') === $value)>{{ $label }}</option>
-                                    @endforeach
-                                </select>
-                                @error('cuenta_bancaria_tipo') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                            </label>
-
-                            <label class="block">
-                                <span class="text-xs font-bold text-atlantia-ink">Numero de cuenta</span>
-                                <input name="cuenta_bancaria" value="{{ $field('cuenta_bancaria') }}" placeholder="123-456789-0" class="{{ $inputBase }} {{ $errors->has('cuenta_bancaria') ? $inputError : $inputNormal }}">
-                                @error('cuenta_bancaria') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                            </label>
-
-                            <label class="block">
-                                <span class="text-xs font-bold text-atlantia-ink">Titular de la cuenta</span>
-                                <input name="cuenta_bancaria_titular" value="{{ $field('cuenta_bancaria_titular', $field('razon_social', auth()->user()?->name)) }}" class="{{ $inputBase }} {{ $errors->has('cuenta_bancaria_titular') ? $inputError : $inputNormal }}">
-                                @error('cuenta_bancaria_titular') <p class="{{ $errorText }}">{{ $message }}</p> @enderror
-                            </label>
-                        </div>
-                    </section>
-                </div>
-
-                <div class="flex flex-col gap-3 border-t border-atlantia-rose/15 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-                    <a href="{{ route('vendedor.dashboard') }}" class="inline-flex items-center justify-center rounded-lg border border-atlantia-rose/35 bg-white px-5 py-2.5 text-sm font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                        Cancelar
-                    </a>
-                    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
-                        @if (session('success'))
-                            <span class="text-xs font-bold text-emerald-700">Cambios guardados {{ now()->format('d/m/Y H:i') }}</span>
-                        @endif
-                        <button type="submit" class="inline-flex min-w-52 items-center justify-center gap-2 rounded-lg bg-atlantia-wine px-6 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-atlantia-wine-700">
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/>
-                            </svg>
-                            Guardar cambios
-                        </button>
-                    </div>
-                </div>
-            </form>
-
-            <aside class="space-y-4">
-                <section class="rounded-lg border border-atlantia-rose/15 bg-white p-5 shadow-[0_12px_32px_rgba(42,16,24,0.05)]">
-                    <h2 class="text-sm font-black text-atlantia-wine">Estado de configuracion</h2>
-                    <div class="mt-5 flex items-center gap-4">
-                        <div class="grid h-20 w-20 place-items-center rounded-full bg-atlantia-blush/70">
-                            <div class="grid h-14 w-14 place-items-center rounded-full bg-white text-sm font-black text-atlantia-wine shadow-sm">
-                                {{ $progress }}%
-                            </div>
-                        </div>
-                        <div>
-                            <p class="text-xl font-black text-atlantia-ink">{{ $completed }} de {{ $totalSections }}</p>
-                            <p class="text-xs text-atlantia-ink/55">Secciones completas</p>
-                        </div>
+                            @error('cuenta_bancaria_tipo') <p class="{{ $error }}">{{ $message }}</p> @enderror
+                        </fieldset>
+                        <label class="block">
+                            <span class="text-xs font-bold text-atlantia-ink">Número de cuenta</span>
+                            <input name="cuenta_bancaria" value="{{ old('cuenta_bancaria', $cuentaGuardada) }}" inputmode="numeric" autocomplete="off" placeholder="Ej. 3045123456" class="{{ $campo }} {{ $borde('cuenta_bancaria') }} font-mono" required>
+                            <span class="{{ $ayuda }}">Revísalo bien: aquí llega tu dinero.</span>
+                            @error('cuenta_bancaria') <p class="{{ $error }}">{{ $message }}</p> @enderror
+                        </label>
+                        <label class="block">
+                            <span class="text-xs font-bold text-atlantia-ink">A nombre de</span>
+                            <input name="cuenta_bancaria_titular" value="{{ $field('cuenta_bancaria_titular', auth()->user()?->name) }}" class="{{ $campo }} {{ $borde('cuenta_bancaria_titular') }}" required>
+                            <span class="{{ $ayuda }}">Como aparece en tu cuenta del banco.</span>
+                            @error('cuenta_bancaria_titular') <p class="{{ $error }}">{{ $message }}</p> @enderror
+                        </label>
                     </div>
 
-                    <div class="mt-5 space-y-2">
-                        @foreach ($sections as $label => $done)
-                            <div @class([
-                                'flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-bold',
-                                'bg-atlantia-blush/55 text-atlantia-wine' => ! $done && $label === 'Configuracion FEL',
-                                'text-atlantia-ink/65' => $done || $label !== 'Configuracion FEL',
-                            ])>
-                                <span @class([
-                                    'grid h-5 w-5 place-items-center rounded-full border text-[10px]',
-                                    'border-emerald-300 bg-emerald-50 text-emerald-700' => $done,
-                                    'border-orange-300 bg-orange-50 text-orange-700' => ! $done && $label === 'Configuracion FEL',
-                                    'border-slate-300 bg-white text-slate-400' => ! $done && $label !== 'Configuracion FEL',
-                                ])>
-                                    @if ($done)
-                                        <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                            <path d="m5 12 4 4L19 6"/>
-                                        </svg>
-                                    @elseif ($label === 'Configuracion FEL')
-                                        !
-                                    @endif
-                                </span>
-                                {{ $label }}
-                            </div>
-                        @endforeach
+                    <div class="mt-5 flex justify-end">
+                        <button type="submit" class="h-10 rounded-lg bg-atlantia-wine px-5 text-sm font-bold text-white hover:bg-atlantia-wine-700">Guardar cuenta</button>
                     </div>
-                </section>
+                </form>
+            @elseif ($activa === 'fiscal')
+                <form method="POST" action="{{ route('vendedor.perfil-fiscal.update') }}" class="p-5" data-seccion-form="fiscal">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="seccion" value="fiscal">
+                    <p class="text-sm text-atlantia-ink/65">Solo si tienes NIT y quieres que tus ventas se facturen a tu nombre. Copia los datos tal como aparecen en tu RTU de SAT.</p>
 
-                <section class="rounded-lg border border-atlantia-rose/15 bg-white p-5 shadow-[0_12px_32px_rgba(42,16,24,0.05)]">
-                    <h2 class="text-sm font-black text-atlantia-wine">Necesitas ayuda?</h2>
-                    <div class="mt-4 space-y-3">
-                        <a href="#" class="flex gap-3 rounded-lg p-2 transition hover:bg-atlantia-blush/45">
-                            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-atlantia-blush text-atlantia-wine">
-                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/>
-                                </svg>
-                            </span>
+                    <div class="mt-4 grid gap-4 sm:grid-cols-3">
+                        <label class="block">
+                            <span class="text-xs font-bold text-atlantia-ink">NIT</span>
+                            <input name="nit" value="{{ $field('nit') }}" placeholder="Ej. 1234567-8" class="{{ $campo }} {{ $borde('nit') }} font-mono uppercase" required>
+                            @error('nit') <p class="{{ $error }}">{{ $message }}</p> @enderror
+                        </label>
+                        <label class="block sm:col-span-2">
+                            <span class="text-xs font-bold text-atlantia-ink">Nombre o razón social</span>
+                            <input name="razon_social" value="{{ $field('razon_social', auth()->user()?->name) }}" class="{{ $campo }} {{ $borde('razon_social') }}" required>
+                            @error('razon_social') <p class="{{ $error }}">{{ $message }}</p> @enderror
+                        </label>
+                        <label class="block sm:col-span-2">
+                            <span class="text-xs font-bold text-atlantia-ink">Dirección fiscal</span>
+                            <input name="direccion_fiscal" value="{{ $field('direccion_fiscal') }}" placeholder="Como aparece en tu RTU" class="{{ $campo }} {{ $borde('direccion_fiscal') }}" required>
+                            @error('direccion_fiscal') <p class="{{ $error }}">{{ $message }}</p> @enderror
+                        </label>
+                        <label class="block">
+                            <span class="text-xs font-bold text-atlantia-ink">Nombre comercial <span class="font-normal text-atlantia-ink/45">(opcional)</span></span>
+                            <input name="nombre_comercial_sat" value="{{ $field('nombre_comercial_sat', $vendor?->business_name) }}" class="{{ $campo }} {{ $borde('nombre_comercial_sat') }}">
+                        </label>
+                        <label class="block">
+                            <span class="text-xs font-bold text-atlantia-ink">Régimen</span>
+                            <select name="regimen_sat" class="{{ $campo }} {{ $borde('regimen_sat') }}" required>
+                                @foreach (['pequeno_contribuyente' => 'Pequeño contribuyente', 'general' => 'General (IVA)', 'exento' => 'Exento'] as $valor => $texto)
+                                    <option value="{{ $valor }}" @selected($field('regimen_sat', 'pequeno_contribuyente') === $valor)>{{ $texto }}</option>
+                                @endforeach
+                            </select>
+                            @error('regimen_sat') <p class="{{ $error }}">{{ $message }}</p> @enderror
+                        </label>
+                        <label class="block">
+                            <span class="text-xs font-bold text-atlantia-ink">N.º de establecimiento</span>
+                            <input name="codigo_establecimiento" value="{{ str_starts_with((string) $field('codigo_establecimiento'), 'PEND-') ? '' : $field('codigo_establecimiento') }}" placeholder="Ej. 1" class="{{ $campo }} {{ $borde('codigo_establecimiento') }}" required>
+                            <span class="{{ $ayuda }}">Aparece en tu RTU junto a cada negocio.</span>
+                            @error('codigo_establecimiento') <p class="{{ $error }}">{{ $message }}</p> @enderror
+                        </label>
+                        <label class="block">
+                            <span class="text-xs font-bold text-atlantia-ink">Afiliación de IVA</span>
+                            <input name="afiliacion_iva" value="{{ $field('afiliacion_iva', 'GEN') }}" placeholder="GEN o PEQ" class="{{ $campo }} {{ $borde('afiliacion_iva') }} uppercase" required>
+                            <span class="{{ $ayuda }}">GEN si es régimen general, PEQ si eres pequeño contribuyente.</span>
+                            @error('afiliacion_iva') <p class="{{ $error }}">{{ $message }}</p> @enderror
+                        </label>
+                    </div>
+
+                    <div class="mt-5 flex justify-end">
+                        <button type="submit" class="h-10 rounded-lg bg-atlantia-wine px-5 text-sm font-bold text-white hover:bg-atlantia-wine-700">Guardar datos para facturar</button>
+                    </div>
+                </form>
+            @else
+                <form method="POST" action="{{ route('vendedor.perfil-fiscal.update') }}" class="border-b border-atlantia-rose/10 p-5" data-modo-facturacion>
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="seccion" value="modo">
+                    @php $modo = old('modo_facturacion', $perfil?->modoFacturacion() ?? 'manual_sat'); @endphp
+                    <h2 class="text-base font-black text-atlantia-ink">¿Cómo facturas tus ventas?</h2>
+                    <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                        <label @class(['flex cursor-pointer gap-3 rounded-lg border p-4', 'border-atlantia-wine bg-atlantia-blush/40' => $modo === 'manual_sat', 'border-atlantia-rose/20' => $modo !== 'manual_sat'])>
+                            <input type="radio" name="modo_facturacion" value="manual_sat" @checked($modo === 'manual_sat') class="mt-1 h-4 w-4 text-atlantia-wine">
                             <span>
-                                <span class="block text-xs font-black text-atlantia-wine">Guia de configuracion FEL</span>
-                                <span class="mt-0.5 block text-[11px] text-atlantia-ink/55">Paso a paso para configurar tu FEL.</span>
+                                <span class="block text-sm font-black text-atlantia-ink">Facturo yo en la SAT</span>
+                                <span class="mt-0.5 block text-xs text-atlantia-ink/65">Emites cada factura en la Agencia Virtual de la SAT (FEL gratuito) o con tu sistema. En el pedido copias los datos del cliente y registras el número de autorización y el PDF; tu cliente la ve en su pedido.</span>
                             </span>
-                        </a>
-                        <a href="#" class="flex gap-3 rounded-lg p-2 transition hover:bg-atlantia-blush/45">
-                            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-atlantia-blush text-atlantia-wine">
-                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M9 11h6"/><path d="M9 15h6"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M14 3v5h5"/>
-                                </svg>
-                            </span>
+                        </label>
+                        <label @class(['flex cursor-pointer gap-3 rounded-lg border p-4', 'border-atlantia-wine bg-atlantia-blush/40' => $modo === 'certificador', 'border-atlantia-rose/20' => $modo !== 'certificador'])>
+                            <input type="radio" name="modo_facturacion" value="certificador" @checked($modo === 'certificador') class="mt-1 h-4 w-4 text-atlantia-wine">
                             <span>
-                                <span class="block text-xs font-black text-atlantia-wine">Requisitos SAT</span>
-                                <span class="mt-0.5 block text-[11px] text-atlantia-ink/55">Conoce los requisitos fiscales.</span>
+                                <span class="block text-sm font-black text-atlantia-ink">Con mi certificador (automático)</span>
+                                <span class="mt-0.5 block text-xs text-atlantia-ink/65">Atlantia emite la factura sola al vender, con las credenciales de tu certificador FEL. Atlantia revisa y activa tus credenciales.</span>
                             </span>
-                        </a>
-                        <a href="#" class="flex gap-3 rounded-lg p-2 transition hover:bg-atlantia-blush/45">
-                            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-atlantia-blush text-atlantia-wine">
-                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <circle cx="12" cy="12" r="9"/><path d="M12 17h.01"/><path d="M9.5 9a2.5 2.5 0 1 1 3.9 2.1c-.9.6-1.4 1.2-1.4 2.4"/>
-                                </svg>
-                            </span>
-                            <span>
-                                <span class="block text-xs font-black text-atlantia-wine">Centro de ayuda</span>
-                                <span class="mt-0.5 block text-[11px] text-atlantia-ink/55">Resuelve dudas frecuentes.</span>
-                            </span>
-                        </a>
+                        </label>
+                    </div>
+                    <div class="mt-3 flex justify-end">
+                        <button type="submit" class="h-10 rounded-lg bg-atlantia-wine px-5 text-sm font-bold text-white hover:bg-atlantia-wine-700">Guardar</button>
+                    </div>
+                </form>
+                @if (($perfil?->modoFacturacion() ?? 'manual_sat') === 'manual_sat')
+                    <div class="p-5 text-sm text-atlantia-ink/70" data-facturacion-manual-info>
+                        <p><strong class="text-atlantia-ink">Así funciona:</strong> en cada pedido, en la sección <em>Factura</em>, tienes los datos del cliente listos para copiar en la SAT. Cuando la emitas, escribe la serie, el número y la autorización, y sube el PDF. Todas tus facturas quedan en <a href="{{ route('vendedor.dte.index') }}" class="font-bold text-atlantia-wine hover:underline">Facturas</a>, con un resumen por mes para tu declaración.</p>
+                    </div>
+                @else
+                <form method="POST" action="{{ route('vendedor.perfil-fiscal.update') }}" class="p-5" data-seccion-form="fel">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="seccion" value="fel">
+                    <input type="hidden" name="certificador_fel" value="infile">
+
+                    <div @class([
+                        'flex items-start gap-3 rounded-lg px-4 py-3 text-sm',
+                        'bg-emerald-50 text-emerald-900' => $completo['fel'],
+                        'bg-amber-50 text-amber-900' => ! $completo['fel'],
+                    ])>
+                        <span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full {{ $completo['fel'] ? 'bg-emerald-500' : 'bg-amber-500' }}"></span>
+                        <p>
+                            @if ($completo['fel'])
+                                <strong>Factura electrónica activa</strong>{{ $perfil?->fel_validado_at ? ' desde el '.$perfil->fel_validado_at->format('d/m/Y') : '' }}. Tus ventas se facturan automáticamente a tu nombre.
+                            @else
+                                <strong>Aún no está activa.</strong> Llena tus datos para facturar y las credenciales de tu certificador. Atlantia las revisa y la activa; te avisaremos.
+                            @endif
+                        </p>
                     </div>
 
-                    <a href="{{ route('vendedor.dashboard') }}" class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-atlantia-wine/35 bg-white px-4 py-2.5 text-xs font-black text-atlantia-wine transition hover:bg-atlantia-blush">
-                        Contactar soporte
-                    </a>
-                </section>
-            </aside>
+                    @unless ($completo['fiscal'])
+                        <p class="mt-3 text-sm text-atlantia-ink/65">Primero completa <a href="{{ route('vendedor.perfil-fiscal.edit', ['seccion' => 'fiscal']) }}" class="font-bold text-atlantia-wine hover:underline">Datos para facturar</a>.</p>
+                    @endunless
+
+                    <div class="mt-4 grid gap-4 sm:grid-cols-3">
+                        <label class="block">
+                            <span class="text-xs font-bold text-atlantia-ink">Certificador</span>
+                            <input value="INFILE" disabled class="{{ $campo }} border-atlantia-rose/20 bg-[#f8f5f4] text-atlantia-ink/60">
+                        </label>
+                        <label class="block sm:col-span-2">
+                            <span class="text-xs font-bold text-atlantia-ink">Usuario de INFILE</span>
+                            <input name="fel_usuario" value="{{ old('fel_usuario', $perfil?->fel_usuario) }}" autocomplete="off" class="{{ $campo }} {{ $borde('fel_usuario') }}">
+                            @error('fel_usuario') <p class="{{ $error }}">{{ $message }}</p> @enderror
+                        </label>
+                        <label class="block sm:col-span-3 lg:col-span-1">
+                            <span class="text-xs font-bold text-atlantia-ink">Llave de firma</span>
+                            <input name="fel_llave_firma" type="password" autocomplete="new-password" placeholder="{{ filled($perfil?->fel_llave_firma) ? 'Guardada · escribe otra para cambiarla' : 'Pégala aquí' }}" class="{{ $campo }} {{ $borde('fel_llave_firma') }}">
+                            @error('fel_llave_firma') <p class="{{ $error }}">{{ $message }}</p> @enderror
+                        </label>
+                        <label class="block sm:col-span-3 lg:col-span-2">
+                            <span class="text-xs font-bold text-atlantia-ink">Llave del certificador</span>
+                            <input name="fel_llave_certificador" type="password" autocomplete="new-password" placeholder="{{ filled($perfil?->fel_llave_certificador) ? 'Guardada · escribe otra para cambiarla' : 'Pégala aquí' }}" class="{{ $campo }} {{ $borde('fel_llave_certificador') }}">
+                            @error('fel_llave_certificador') <p class="{{ $error }}">{{ $message }}</p> @enderror
+                        </label>
+                    </div>
+                    <p class="mt-2 text-xs text-atlantia-ink/50">Las llaves se guardan cifradas y nunca se muestran de nuevo. INFILE te las entrega al contratar la factura electrónica.</p>
+
+                    <div class="mt-5 flex justify-end">
+                        <button type="submit" class="h-10 rounded-lg bg-atlantia-wine px-5 text-sm font-bold text-white hover:bg-atlantia-wine-700">Guardar credenciales</button>
+                    </div>
+                </form>
+                @endif
+            @endif
         </div>
     </section>
 @endsection

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Empleado;
 
+use App\Rules\ContrasenaSegura;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,7 +22,7 @@ class UpdateEmpleadoRequest extends FormRequest
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'string', 'email:rfc', 'max:190', Rule::unique('users', 'email')->ignore($userId)],
             'phone' => ['nullable', 'string', 'max:30'],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'password' => ['nullable', 'string', 'confirmed', new ContrasenaSegura],
             'codigo_empleado' => ['required', 'string', 'max:40', Rule::unique('empleados', 'codigo_empleado')->ignore($empleadoId)],
             'departamento' => ['required', Rule::in(['administracion', 'operaciones', 'soporte_cliente', 'finanzas', 'logistica', 'moderacion'])],
             'puesto' => ['required', 'string', 'max:120'],

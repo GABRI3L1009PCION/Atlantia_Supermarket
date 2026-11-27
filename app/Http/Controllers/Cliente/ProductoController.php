@@ -24,6 +24,21 @@ class ProductoController extends Controller
     {
         $this->authorize('viewCatalogo', $producto);
 
-        return view('cliente.productos.show', ['producto' => $this->productoCatalogoService->detail($producto)]);
+        $publicadas = $producto->resenas()->aprobadas();
+        $total = (clone $publicadas)->count();
+        $distribucion = [];
+        foreach ([5, 4, 3, 2, 1] as $estrellas) {
+            $distribucion[$estrellas] = (clone $publicadas)->where('calificacion', $estrellas)->count();
+        }
+
+        return view('cliente.productos.show', [
+            'producto' => $this->productoCatalogoService->detail($producto),
+            'opiniones' => [
+                'total' => $total,
+                'promedio' => $total > 0 ? round((float) (clone $publicadas)->avg('calificacion'), 1) : null,
+                'distribucion' => $distribucion,
+                'lista' => (clone $publicadas)->with('cliente:id,name')->latest()->limit(10)->get(),
+            ],
+        ]);
     }
 }

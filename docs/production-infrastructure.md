@@ -20,7 +20,7 @@ flowchart LR
     PHP --> ML["FastAPI ML service"]
     ML --> MLQ["Celery broker/backend"]
     MLQ --> MLW["ML workers"]
-    PHP --> EXT["Stripe / FEL / courier / SMTP"]
+    PHP --> EXT["Recurrente / FEL / courier / SMTP"]
 ```
 
 ## Required Production Principles

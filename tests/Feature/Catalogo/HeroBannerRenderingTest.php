@@ -43,7 +43,7 @@ class HeroBannerRenderingTest extends TestCase
 
         $response->assertOk();
         $response->assertSee($active->getFirstMediaUrl('hero_desktop'), false);
-        $response->assertSee('class="hidden h-full w-full object-cover object-center md:block"', false);
+        $response->assertSee('data-storefront-carousel', false);
         $response->assertSee('alt="Banner promocional Banner vigente principal"', false);
     }
 

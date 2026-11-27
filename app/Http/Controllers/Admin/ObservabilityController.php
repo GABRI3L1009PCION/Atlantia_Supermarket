@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\Admin\DashboardService;
 use App\Services\Observability\PlatformHealthService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -12,7 +13,10 @@ use Illuminate\View\View;
  */
 class ObservabilityController extends Controller
 {
-    public function __construct(private readonly PlatformHealthService $platformHealthService) {}
+    public function __construct(
+        private readonly PlatformHealthService $platformHealthService,
+        private readonly DashboardService $dashboard,
+    ) {}
 
     /**
      * Muestra salud tecnica, alertas y contexto de release.
@@ -23,6 +27,7 @@ class ObservabilityController extends Controller
 
         return view('admin.observabilidad.index', [
             'snapshot' => $this->platformHealthService->operationsSnapshot(),
+            'plataforma' => $request->user()->isSuperAdmin() ? $this->dashboard->superAdminMetrics($request->user()) : null,
         ]);
     }
 }

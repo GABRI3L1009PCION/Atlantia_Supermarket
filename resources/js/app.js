@@ -1,4 +1,31 @@
 import QRCode from 'qrcode';
+import './load-more';
+import './iva-preview';
+import './acciones-seguras';
+
+function initializeStorefront() {
+    document.querySelectorAll('[data-storefront-carousel]').forEach((carousel) => {
+        if (carousel.dataset.ready) return;
+        carousel.dataset.ready = 'true';
+        const track = carousel.querySelector('[data-storefront-track]');
+        const position = carousel.querySelector('[data-storefront-position]');
+        const step = () => (track.firstElementChild?.getBoundingClientRect().width || track.clientWidth) + 16;
+        const update = () => {
+            if (position) position.textContent = `${Math.min(track.children.length, Math.round(track.scrollLeft / step()) + 1)} / ${track.children.length}`;
+        };
+        carousel.querySelector('[data-storefront-prev]')?.addEventListener('click', () => track.scrollBy({ left: -step(), behavior: 'smooth' }));
+        carousel.querySelector('[data-storefront-next]')?.addEventListener('click', () => track.scrollBy({ left: step(), behavior: 'smooth' }));
+        track.addEventListener('scroll', update, { passive: true });
+        update();
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initializeStorefront);
+document.addEventListener('livewire:navigated', initializeStorefront);
+document.addEventListener('change', (event) => {
+    const form = event.target.closest('[data-storefront-filters]');
+    if (form) form.requestSubmit();
+});
 
 document.addEventListener('click', (event) => {
     const closeButton = event.target.closest('[data-flash-close]');
@@ -70,7 +97,7 @@ function initializeOfferCountdowns() {
             counter.textContent = String(remaining);
 
             if (ring) {
-                ring.style.background = `conic-gradient(#8b0832 ${progress}%, rgba(139, 8, 50, .16) 0)`;
+                ring.style.background = `conic-gradient(#7f0b18 ${progress}%, rgba(139, 8, 50, .16) 0)`;
             }
 
             return remaining;
@@ -256,10 +283,30 @@ document.addEventListener('livewire:init', () => {
         return;
     }
 
+    /*
+     * La pantalla de carga solo aparece si la peticion tarda mas de 700 ms.
+     * Asi las validaciones rapidas (al escribir o marcar casillas) no tapan la pagina.
+     */
+    let pendingRequests = 0;
+    let overlayTimer = null;
+
     window.Livewire.hook('request', ({ succeed, fail }) => {
-        showOverlay();
-        succeed(() => hideOverlay());
-        fail(() => hideOverlay());
+        pendingRequests += 1;
+        if (overlayTimer === null) {
+            overlayTimer = window.setTimeout(showOverlay, 700);
+        }
+
+        const done = () => {
+            pendingRequests = Math.max(0, pendingRequests - 1);
+            if (pendingRequests === 0) {
+                window.clearTimeout(overlayTimer);
+                overlayTimer = null;
+                hideOverlay();
+            }
+        };
+
+        succeed(done);
+        fail(done);
     });
 });
 
@@ -285,8 +332,15 @@ document.querySelectorAll('[data-retry-countdown]').forEach((element) => {
 
     let seconds = Math.max(0, Math.ceil((retryUntil - Date.now()) / 1000));
 
+    /* Tiempo legible: "45 segundos", "2 min 05 s", "1 h 03 min". */
     const render = () => {
-        element.textContent = `${seconds} segundos`;
+        if (seconds < 60) {
+            element.textContent = `${seconds} ${seconds === 1 ? 'segundo' : 'segundos'}`;
+        } else if (seconds < 3600) {
+            element.textContent = `${Math.floor(seconds / 60)} min ${String(seconds % 60).padStart(2, '0')} s`;
+        } else {
+            element.textContent = `${Math.floor(seconds / 3600)} h ${String(Math.floor((seconds % 3600) / 60)).padStart(2, '0')} min`;
+        }
     };
 
     const redirect = () => {
@@ -310,374 +364,6 @@ document.querySelectorAll('[data-retry-countdown]').forEach((element) => {
             redirect();
         }
     }, 1000);
-});
-
-const stripeCheckoutState = {
-    stripe: null,
-    elements: null,
-    cardNumber: null,
-    cardExpiry: null,
-    cardCvc: null,
-    mountedCardNumberElement: null,
-    cardReady: {
-        number: false,
-        expiry: false,
-        cvc: false,
-    },
-    cardReadyPromise: null,
-};
-
-function elementIsVisible(element) {
-    return Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length)
-        && !element.closest('.hidden');
-}
-
-function checkoutUsesCard(form) {
-    const checkedMethod = form.querySelector('input[type="radio"][name="metodo_pago"]:checked')?.value;
-
-    if (checkedMethod) {
-        return checkedMethod === 'tarjeta';
-    }
-
-    return new FormData(form).getAll('metodo_pago').includes('tarjeta');
-}
-
-function stripeErrorElement(form) {
-    return form.querySelector('[data-stripe-payment-errors], [data-stripe-card-errors]');
-}
-
-function showStripeError(form, message) {
-    const error = stripeErrorElement(form);
-
-    if (!error) {
-        return;
-    }
-
-    error.textContent = message;
-    error.classList.remove('hidden');
-}
-
-function clearStripeError(form) {
-    const error = stripeErrorElement(form);
-
-    if (!error) {
-        return;
-    }
-
-    error.textContent = '';
-    error.classList.add('hidden');
-}
-
-function syncCheckoutPaymentMethod(form) {
-    const checkedMethod = form.querySelector('input[type="radio"][name="metodo_pago"]:checked')?.value;
-
-    if (!checkedMethod) {
-        return;
-    }
-
-    form.querySelectorAll('input[type="hidden"][name="metodo_pago"]').forEach((input) => {
-        input.value = checkedMethod;
-    });
-
-    form.querySelectorAll('[data-checkout-payment-summary]').forEach((input) => {
-        input.value = checkedMethod;
-    });
-}
-
-function syncStripeCardPanel(form) {
-    const panel = form.querySelector('[data-stripe-card-panel]');
-
-    if (!panel) {
-        return;
-    }
-
-    const usesCard = checkoutUsesCard(form);
-    panel.classList.toggle('hidden', !usesCard);
-
-    panel.querySelectorAll('input, select, textarea, button').forEach((control) => {
-        if (control.matches('[data-stripe-payment-method]')) {
-            control.disabled = !usesCard;
-            return;
-        }
-
-        if (control.matches('[data-stripe-cardholder-name]')) {
-            control.disabled = !usesCard;
-        }
-    });
-}
-
-function setStripeCheckoutSubmitting(form, submitting) {
-    form.dataset.stripeSubmitting = submitting ? 'true' : 'false';
-
-    form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach((button) => {
-        button.disabled = submitting;
-        button.classList.toggle('opacity-70', submitting);
-    });
-}
-
-function waitForStripe() {
-    return new Promise((resolve, reject) => {
-        let attempts = 0;
-        const interval = setInterval(() => {
-            attempts += 1;
-
-            if (window.Stripe) {
-                clearInterval(interval);
-                resolve(window.Stripe);
-            }
-
-            if (attempts >= 80) {
-                clearInterval(interval);
-                reject(new Error('No fue posible cargar Stripe. Revisa tu conexion e intenta de nuevo.'));
-            }
-        }, 50);
-    });
-}
-
-async function ensureStripeElements(form) {
-    const publishableKey = form.dataset.stripePublishableKey;
-
-    if (!publishableKey) {
-        showStripeError(form, 'Stripe no tiene clave publica configurada.');
-        return null;
-    }
-
-    const Stripe = await waitForStripe();
-
-    stripeCheckoutState.stripe = stripeCheckoutState.stripe ?? Stripe(publishableKey);
-    stripeCheckoutState.elements = stripeCheckoutState.elements ?? stripeCheckoutState.stripe.elements({ locale: 'es' });
-
-    return stripeCheckoutState.elements;
-}
-
-async function mountStripeCard(form) {
-    const cardNumberTarget = form.querySelector('[data-stripe-card-number-element]');
-    const cardExpiryTarget = form.querySelector('[data-stripe-card-expiry-element]');
-    const cardCvcTarget = form.querySelector('[data-stripe-card-cvc-element]');
-
-    if (!cardNumberTarget || !cardExpiryTarget || !cardCvcTarget) {
-        return stripeCheckoutState.cardNumber;
-    }
-
-    const targetIsVisible = elementIsVisible(cardNumberTarget)
-        && elementIsVisible(cardExpiryTarget)
-        && elementIsVisible(cardCvcTarget);
-
-    if (!targetIsVisible) {
-        return stripeCheckoutState.cardNumber;
-    }
-
-    if (stripeCheckoutState.mountedCardNumberElement === cardNumberTarget && stripeCheckoutState.cardNumber) {
-        return stripeCheckoutState.cardNumber;
-    }
-
-    const elements = await ensureStripeElements(form);
-
-    if (!elements) {
-        return null;
-    }
-
-    [stripeCheckoutState.cardNumber, stripeCheckoutState.cardExpiry, stripeCheckoutState.cardCvc].forEach((element) => {
-        element?.destroy();
-    });
-
-    const stripeElementStyle = {
-        base: {
-            color: '#211920',
-            fontFamily: 'Georgia, "Times New Roman", serif',
-            fontSize: '16px',
-            fontSmoothing: 'antialiased',
-            '::placeholder': {
-                color: '#8f828a',
-            },
-        },
-        invalid: {
-            color: '#be123c',
-        },
-    };
-
-    const markCardElementReady = (part) => {
-        stripeCheckoutState.cardReady[part] = true;
-
-        if (Object.values(stripeCheckoutState.cardReady).every(Boolean)) {
-            stripeCheckoutState.cardReadyResolver?.();
-        }
-    };
-
-    const syncCardElementError = (event) => {
-        if (event.error) {
-            showStripeError(form, event.error.message);
-        } else {
-            clearStripeError(form);
-        }
-    };
-
-    stripeCheckoutState.cardReady = {
-        number: false,
-        expiry: false,
-        cvc: false,
-    };
-    stripeCheckoutState.cardReadyPromise = new Promise((resolve) => {
-        stripeCheckoutState.cardReadyResolver = resolve;
-    });
-    stripeCheckoutState.cardNumber = elements.create('cardNumber', {
-        disableLink: true,
-        showIcon: true,
-        placeholder: '1234 1234 1234 1234',
-        style: stripeElementStyle,
-    });
-    stripeCheckoutState.cardExpiry = elements.create('cardExpiry', {
-        placeholder: 'MM / AA',
-        style: stripeElementStyle,
-    });
-    stripeCheckoutState.cardCvc = elements.create('cardCvc', {
-        placeholder: 'CVC',
-        style: stripeElementStyle,
-    });
-
-    stripeCheckoutState.cardNumber.on('change', syncCardElementError);
-    stripeCheckoutState.cardExpiry.on('change', syncCardElementError);
-    stripeCheckoutState.cardCvc.on('change', syncCardElementError);
-
-    stripeCheckoutState.cardNumber.on('ready', () => markCardElementReady('number'));
-    stripeCheckoutState.cardExpiry.on('ready', () => markCardElementReady('expiry'));
-    stripeCheckoutState.cardCvc.on('ready', () => markCardElementReady('cvc'));
-
-    stripeCheckoutState.cardNumber.mount(cardNumberTarget);
-    stripeCheckoutState.cardExpiry.mount(cardExpiryTarget);
-    stripeCheckoutState.cardCvc.mount(cardCvcTarget);
-    stripeCheckoutState.mountedCardNumberElement = cardNumberTarget;
-
-    return stripeCheckoutState.cardNumber;
-}
-
-async function ensureStripeCardReady(form) {
-    const cardNumber = await mountStripeCard(form);
-
-    if (!cardNumber) {
-        return null;
-    }
-
-    if (Object.values(stripeCheckoutState.cardReady).every(Boolean)) {
-        return cardNumber;
-    }
-
-    await stripeCheckoutState.cardReadyPromise;
-    return cardNumber;
-}
-
-function initializeStripeCheckout() {
-    document.querySelectorAll('[data-stripe-checkout]').forEach((form) => {
-        syncCheckoutPaymentMethod(form);
-        syncStripeCardPanel(form);
-
-        if (checkoutUsesCard(form)) {
-            mountStripeCard(form).catch((error) => showStripeError(form, error.message));
-        }
-    });
-}
-
-document.addEventListener('change', (event) => {
-    const method = event.target.closest('input[name="metodo_pago"]');
-
-    if (!method) {
-        return;
-    }
-
-    const form = method.closest('[data-stripe-checkout]');
-
-    if (!form) {
-        return;
-    }
-
-    syncCheckoutPaymentMethod(form);
-    syncStripeCardPanel(form);
-
-    if (checkoutUsesCard(form)) {
-        mountStripeCard(form).catch((error) => showStripeError(form, error.message));
-    }
-});
-
-document.addEventListener('submit', async (event) => {
-    const form = event.target.closest('[data-stripe-checkout]');
-
-    if (!form) {
-        return;
-    }
-
-    syncCheckoutPaymentMethod(form);
-    syncStripeCardPanel(form);
-
-    if (!checkoutUsesCard(form)) {
-        if (form.dataset.stripeSubmitting === 'true') {
-            event.preventDefault();
-            return;
-        }
-
-        setStripeCheckoutSubmitting(form, true);
-        return;
-    }
-
-    event.preventDefault();
-
-    if (form.dataset.stripeSubmitting === 'true') {
-        return;
-    }
-
-    clearStripeError(form);
-    setStripeCheckoutSubmitting(form, true);
-
-    try {
-        const card = await ensureStripeCardReady(form);
-        const tokenInput = form.querySelector('[data-stripe-payment-method]');
-
-        if (!stripeCheckoutState.stripe || !card || !tokenInput) {
-            throw new Error('No fue posible preparar el pago con tarjeta.');
-        }
-
-        const billingName = form.querySelector('[data-stripe-cardholder-name]')?.value
-            || form.querySelector('input[name="razon_social"]')?.value
-            || form.querySelector('input[name="guest_nombre"]')?.value
-            || undefined;
-
-        if (!billingName) {
-            throw new Error('Ingresa el nombre del titular de la tarjeta.');
-        }
-
-        const billingEmail = form.querySelector('input[name="guest_email"]')?.value
-            || form.querySelector('input[name="correo_facturacion"]')?.value
-            || undefined;
-        const result = await stripeCheckoutState.stripe.createPaymentMethod({
-            type: 'card',
-            card,
-            billing_details: {
-                name: billingName,
-                email: billingEmail,
-            },
-        });
-
-        if (result.error) {
-            throw new Error(result.error.message);
-        }
-
-        tokenInput.value = result.paymentMethod.id;
-        HTMLFormElement.prototype.submit.call(form);
-    } catch (error) {
-        showStripeError(form, error.message || 'No fue posible validar la tarjeta.');
-        setStripeCheckoutSubmitting(form, false);
-    }
-}, true);
-
-document.addEventListener('DOMContentLoaded', initializeStripeCheckout);
-document.addEventListener('livewire:navigated', initializeStripeCheckout);
-document.addEventListener('livewire:updated', initializeStripeCheckout);
-
-const stripeCheckoutObserver = new MutationObserver(initializeStripeCheckout);
-stripeCheckoutObserver.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ['class'],
-    childList: true,
-    subtree: true,
 });
 
 function ean13CheckDigit(body) {
@@ -827,7 +513,7 @@ function barcodeLabelMarkup(product, options = {}) {
 
     if (product.labelType === 'price') {
         return `
-            <div class="barcode-print-label price-print-label" style="width: 100%; break-inside: avoid; border: 1px solid #ead1da; border-radius: 7px; padding: 7px; text-align: center; background: #ffffff; overflow: hidden;">
+            <div class="barcode-print-label price-print-label" style="width: 100%; break-inside: avoid; border: 1px solid #ecd1d3; border-radius: 7px; padding: 7px; text-align: center; background: #ffffff; overflow: hidden;">
                 ${showName ? `<div class="label-name" style="margin-bottom: 4px; font-size: 10px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(product.name)}</div>` : ''}
                 ${showPrice ? `<div class="label-price" style="font-size: 20px; line-height: 1; font-weight: 900; color: #7f1734;">${escapeHtml(product.price)}</div>` : ''}
                 ${showSku ? `<div class="label-sku" style="margin-top: 4px; font-size: 8px; color: #7c6a73;">SKU: ${escapeHtml(product.sku)}</div>` : ''}
@@ -836,7 +522,7 @@ function barcodeLabelMarkup(product, options = {}) {
     }
 
     return `
-        <div class="barcode-print-label" style="width: 100%; break-inside: avoid; border: 1px solid #ead1da; border-radius: 7px; padding: 6px; text-align: center; background: #ffffff; overflow: hidden;">
+        <div class="barcode-print-label" style="width: 100%; break-inside: avoid; border: 1px solid #ecd1d3; border-radius: 7px; padding: 6px; text-align: center; background: #ffffff; overflow: hidden;">
             ${showName ? `<div class="label-name" style="margin-bottom: 2px; font-size: 9px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(product.name)}</div>` : ''}
             <div class="label-barcode" style="display: block; width: 100%;">${barcodeSvgMarkup(code, { moduleWidth: 1.25, barHeight: 26 })}</div>
             ${showSku ? `<div class="label-sku" style="margin-top: 2px; font-size: 8px; color: #7c6a73;">SKU: ${escapeHtml(product.sku)}</div>` : ''}
@@ -981,7 +667,7 @@ function printBarcodeLabels(asPdf = false) {
                         width: ${labelWidth}mm;
                         min-height: ${labelHeight}mm;
                         break-inside: avoid;
-                        border: 1px solid #ead1da;
+                        border: 1px solid #ecd1d3;
                         border-radius: 2mm;
                         padding: 2mm;
                         text-align: center;
@@ -1019,17 +705,16 @@ function printBarcodeLabels(asPdf = false) {
                 <main class="${pageClass}">
                     ${labels}
                 </main>
-                <script>
-                    window.addEventListener('load', () => {
-                        window.focus();
-                        window.print();
-                    });
-                <\/script>
             </body>
         </html>
     `);
 
     printWindow.document.close();
+    /* Un <script> dentro de la ventana lo bloquea la CSP: se imprime desde aqui. */
+    setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+    }, 350);
 }
 
 function initializeBarcodePrinting() {
@@ -1114,3 +799,41 @@ async function initializeOtpQr() {
 
 document.addEventListener('DOMContentLoaded', initializeOtpQr);
 document.addEventListener('livewire:navigated', initializeOtpQr);
+
+/* Cierra menus desplegables (<details data-close-outside>) al tocar fuera o elegir una opcion. */
+document.addEventListener('click', (event) => {
+    document.querySelectorAll('details[data-close-outside][open]').forEach((menu) => {
+        if (!menu.contains(event.target) || event.target.closest('a')) {
+            menu.open = false;
+        }
+    });
+});
+
+/* Flechas del carrusel de categorias: desplazan casi una pantalla y se ocultan en los extremos. */
+function initializeCategoryScroller() {
+    document.querySelectorAll('[data-category-scroller]').forEach((scroller) => {
+        if (scroller.dataset.ready === 'true') return;
+        scroller.dataset.ready = 'true';
+
+        const track = scroller.querySelector('[data-category-track]');
+        const prev = scroller.querySelector('[data-category-prev]');
+        const next = scroller.querySelector('[data-category-next]');
+        if (!track) return;
+
+        const update = () => {
+            const max = track.scrollWidth - track.clientWidth;
+            if (prev) prev.disabled = track.scrollLeft <= 4;
+            if (next) next.disabled = track.scrollLeft >= max - 4;
+        };
+        const move = (direction) => track.scrollBy({ left: direction * track.clientWidth * 0.8, behavior: 'smooth' });
+
+        prev?.addEventListener('click', () => move(-1));
+        next?.addEventListener('click', () => move(1));
+        track.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('resize', update);
+        update();
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initializeCategoryScroller);
+document.addEventListener('livewire:navigated', initializeCategoryScroller);

@@ -58,6 +58,7 @@ class DteFactura extends Model
         'estado',
         'fecha_certificacion',
         'certificador_respuesta',
+        'origen',
     ];
 
     /**

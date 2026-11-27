@@ -1,4 +1,4 @@
-@extends('layouts.guest')
+@extends('layouts.marketplace')
 
 @section('content')
     @php
@@ -6,11 +6,11 @@
         $isLocalLogMailer = app()->environment('local') && in_array($mailDriver, ['log', 'array'], true);
     @endphp
 
-    <x-page-header title="Verifica tu correo" subtitle="Ingresa el codigo de 6 digitos que enviamos a tu correo." />
+<x-auth.panel titulo="Verifica tu correo" subtitulo="Ingresa el código de 6 dígitos que enviamos a tu correo." etiqueta="Último paso">
 
     <div class="mb-5 rounded-lg border border-atlantia-rose/20 bg-atlantia-cream p-4 text-sm leading-6 text-atlantia-ink/75">
         <p>
-            Enviamos un codigo de verificacion a
+            Enviamos un código de verificación a
             <strong class="text-atlantia-ink">{{ auth()->user()?->email }}</strong>.
         </p>
 
@@ -18,8 +18,8 @@
             <div class="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
                 <p class="font-bold">Modo desarrollo detectado</p>
                 <p class="mt-1">
-                    Tu aplicacion esta usando <strong>MAIL_MAILER={{ $mailDriver }}</strong>, por eso el correo no
-                    llega a Gmail. Laravel guarda el codigo en <strong>storage/logs/laravel.log</strong>.
+                    Tu aplicación está usando <strong>MAIL_MAILER={{ $mailDriver }}</strong>, por eso el correo no
+                    llega a Gmail. Laravel guarda el código en <strong>storage/logs/laravel.log</strong>.
                 </p>
             </div>
         @else
@@ -65,4 +65,5 @@
             Usar otro correo
         </button>
     </form>
+</x-auth.panel>
 @endsection

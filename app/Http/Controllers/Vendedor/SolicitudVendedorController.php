@@ -7,13 +7,20 @@ use App\Http\Requests\Vendedor\StoreSolicitudVendedorRequest;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorFiscalProfile;
+use App\Notifications\NuevaSolicitudVendedorNotification;
+use App\Services\Monetizacion\PlanesVendedorService;
+use App\Services\Vendedores\AccesoVendedorService;
+use App\Services\Vendedores\AutoAprobacionService;
+use App\Support\CategoriasNegocio;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
+use Throwable;
 
 class SolicitudVendedorController extends Controller
 {
@@ -23,7 +30,10 @@ class SolicitudVendedorController extends Controller
     public function create(): View
     {
         return view('vendedor.solicitar.create', [
-            'municipios' => ['Puerto Barrios', 'Santo Tomas', 'Morales', 'Los Amates', 'Livingston', 'El Estor'],
+            'municipios' => (new StoreSolicitudVendedorRequest)->municipios(),
+            'nombresMunicipio' => ['Santo Tomas' => 'Santo Tomás de Castilla'],
+            'coloniasSugeridas' => collect((array) config('atlantia.cobertura_colonias', []))
+                ->flatMap(fn ($listas) => (array) ($listas['cubiertas'] ?? []))->unique()->sort()->values()->all(),
             'departamentos' => [
                 'Alta Verapaz',
                 'Baja Verapaz',
@@ -48,17 +58,7 @@ class SolicitudVendedorController extends Controller
                 'Totonicapan',
                 'Zacapa',
             ],
-            'categories' => [
-                'alimentos_frescos' => 'Alimentos frescos',
-                'panaderia_reposteria' => 'Panaderia/Reposteria',
-                'bebidas_licores' => 'Bebidas/Licores',
-                'artesania' => 'Artesania',
-                'ropa_accesorios' => 'Ropa/Accesorios',
-                'cosmeticos' => 'Cosmeticos/Cuidado personal',
-                'electronica' => 'Electronica',
-                'servicios' => 'Servicios',
-                'otro' => 'Otro',
-            ],
+            'categories' => [...CategoriasNegocio::OPCIONES, 'otro' => 'Otro'],
             'banks' => ['Banco Azteca', 'Banrural', 'Banco Industrial', 'BAM', 'BAC', 'G&T Continental', 'Banco Promerica', 'Otros'],
             'plans' => $this->sellerPlans(),
         ]);
@@ -93,10 +93,11 @@ class SolicitudVendedorController extends Controller
             $businessAddress = $this->businessAddress($data);
             $personalAddress = [
                 'calle' => $data['address_street'],
-                'numero' => $data['address_number'],
+                'colonia' => $data['address_colonia'] ?? null,
+                'numero' => $data['address_number'] ?? null,
                 'apto' => $data['address_suite'] ?? null,
                 'municipio' => $data['address_municipio'],
-                'departamento' => $data['address_departamento'],
+                'departamento' => $data['address_departamento'] ?? 'Izabal',
                 'codigo_postal' => $data['address_zip'] ?? null,
             ];
 
@@ -115,6 +116,7 @@ class SolicitudVendedorController extends Controller
                 'business_category' => $data['business_category'] === 'otro'
                     ? ($data['business_category_other'] ?? 'Otro')
                     : $data['business_category'],
+                'categorias_negocio' => $data['business_category'] === 'otro' ? null : [$data['business_category']],
                 'has_nit' => (bool) $data['has_nit'],
                 'logo_path' => $documents['business_logo'] ?? null,
                 'cover_path' => null,
@@ -134,7 +136,9 @@ class SolicitudVendedorController extends Controller
                 'documents' => $documents,
                 'is_approved' => false,
                 'status' => 'pending',
-                'commission_percentage' => $this->sellerPlans()[$data['seller_plan']]['commission'],
+                /* Elige su plan, pero opera con el plan Inicial hasta pagar la primera mensualidad desde su panel. */
+                'plan' => $data['seller_plan'],
+                'commission_percentage' => PlanesVendedorService::datos(PlanesVendedorService::base())['comision'],
                 'monthly_rent' => $this->sellerPlans()[$data['seller_plan']]['price'],
                 'accepts_cash' => true,
                 'accepts_transfer' => true,
@@ -160,14 +164,37 @@ class SolicitudVendedorController extends Controller
                     'cuenta_bancaria_titular' => $data['account_holder'],
                     'fel_activo' => false,
                 ]);
+            } else {
+                /* Sin NIT: solo se guarda la cuenta donde recibirá sus pagos. */
+                VendorFiscalProfile::query()->create([
+                    'vendor_id' => $vendor->id,
+                    'certificador_fel' => 'infile',
+                    'banco_nombre' => $data['bank'],
+                    'cuenta_bancaria' => $data['account_number'],
+                    'cuenta_bancaria_tipo' => $data['account_type'] === 'corriente' ? 'monetaria' : 'ahorro',
+                    'cuenta_bancaria_titular' => $data['account_holder'],
+                    'fel_activo' => false,
+                ]);
             }
 
             return $vendor;
         });
 
+        /* Si cumple los requisitos y no hay señales de riesgo, se aprueba sola y recibe su acceso por correo. */
+        $aprobada = false;
+        try {
+            $aprobada = app(AutoAprobacionService::class)->procesar($vendor);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
+        $this->avisarAdministradores($vendor->fresh());
+
         return redirect()
             ->route('vendedor.solicitud.show', $vendor->application_code)
-            ->with('status', 'Solicitud enviada correctamente.');
+            ->with('status', $aprobada
+                ? '¡Tu tienda fue aprobada! Te enviamos a tu correo el enlace para crear tu contraseña y entrar a tu panel.'
+                : 'Solicitud enviada correctamente. La revisaremos y te avisaremos por correo.');
     }
 
     /**
@@ -180,7 +207,33 @@ class SolicitudVendedorController extends Controller
             ->where('application_code', $codigo)
             ->firstOrFail();
 
-        return view('vendedor.solicitar.show', ['vendor' => $vendor]);
+        return view('vendedor.solicitar.show', [
+            'vendor' => $vendor,
+            'correoVisible' => AccesoVendedorService::correoEnmascarado($vendor->user?->email),
+            'yaTieneContrasena' => $vendor->user?->email_verified_at !== null,
+        ]);
+    }
+
+    /**
+     * Reenvía el enlace para crear contraseña. Solo va al correo registrado,
+     * así que conocer el código de seguimiento no permite tomar la cuenta.
+     */
+    public function reenviarAcceso(string $codigo, AccesoVendedorService $acceso): RedirectResponse
+    {
+        $vendor = Vendor::query()->with('user')->where('application_code', $codigo)->firstOrFail();
+
+        if ($vendor->status !== 'approved' || $vendor->user === null) {
+            return back()->with('error', 'Tu solicitud todavía no está aprobada.');
+        }
+
+        $enviado = $acceso->enviarBienvenida($vendor);
+
+        return back()->with(
+            $enviado ? 'status' : 'error',
+            $enviado
+                ? 'Te enviamos un enlace nuevo a '.AccesoVendedorService::correoEnmascarado($vendor->user->email).'. Revisa también la carpeta de spam.'
+                : 'No pudimos enviar el correo en este momento. Inténtalo de nuevo en unos minutos.'
+        );
     }
 
     /**
@@ -188,6 +241,26 @@ class SolicitudVendedorController extends Controller
      *
      * @return array<string, string>
      */
+    /**
+     * Avisa a los administradores que hay una solicitud nueva para revisar.
+     * Un fallo al notificar nunca debe impedir que la solicitud quede registrada.
+     */
+    private function avisarAdministradores(Vendor $vendor): void
+    {
+        try {
+            $roles = Role::query()->whereIn('name', ['super_admin', 'admin'])->pluck('name')->all();
+
+            if ($roles === []) {
+                return;
+            }
+
+            $administradores = User::query()->role($roles)->get();
+            Notification::send($administradores, new NuevaSolicitudVendedorNotification($vendor));
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+    }
+
     private function storeDocuments(Request $request, string $trackingCode): array
     {
         $path = 'vendor-applications/'.$trackingCode;
@@ -248,6 +321,7 @@ class SolicitudVendedorController extends Controller
             $address['calle'] ?? null,
             $address['numero'] ?? null,
             $address['apto'] ?? null,
+            $address['colonia'] ?? null,
             $address['municipio'] ?? null,
             $address['departamento'] ?? null,
             $address['codigo_postal'] ?? null,
@@ -267,57 +341,24 @@ class SolicitudVendedorController extends Controller
     }
 
     /**
-     * Planes comerciales disponibles para emprendedores.
+     * Planes mensuales (los mismos de la pagina "Vende en Atlantia" y del panel). El Personalizado se cotiza aparte.
      *
      * @return array<string, array<string, mixed>>
      */
     private function sellerPlans(): array
     {
-        return [
-            'starter' => [
-                'name' => 'Emprendedor Starter',
-                'price' => 0,
-                'commission' => 18,
-                'products' => 'Hasta 10 productos',
-                'users' => '1 usuario',
-                'payout' => 'Payout mensual',
-                'support' => 'Email en 48h',
-                'analytics' => 'Sin analytics',
-                'description' => 'Empieza gratis y paga solo cuando vendes.',
-            ],
-            'plus' => [
-                'name' => 'Emprendedor Plus',
-                'price' => 149,
-                'commission' => 15,
-                'products' => 'Hasta 50 productos',
-                'users' => '1 usuario',
-                'payout' => 'Payout mensual',
-                'support' => 'Email en 48h',
-                'analytics' => 'Analytics basico',
-                'description' => 'Mas catalogo y metricas simples para crecer.',
-            ],
-            'crecimiento' => [
-                'name' => 'Crecimiento',
-                'price' => 349,
-                'commission' => 12,
-                'products' => 'Hasta 150 productos',
-                'users' => '3 usuarios',
-                'payout' => 'Payout quincenal',
-                'support' => 'Chat en 24h',
-                'analytics' => 'Analytics avanzado y cupones ilimitados',
-                'description' => 'Para negocios con ventas constantes.',
-            ],
-            'profesional' => [
-                'name' => 'Profesional',
-                'price' => 699,
-                'commission' => 10,
-                'products' => 'Productos ilimitados',
-                'users' => '5 usuarios',
-                'payout' => 'Payout semanal',
-                'support' => 'Chat + email prioritario',
-                'analytics' => 'Email marketing e Instagram basico',
-                'description' => 'Para vendedores consolidados y con operacion formal.',
-            ],
-        ];
+        return collect(PlanesVendedorService::contratables())
+            ->map(fn (array $plan): array => [
+                'name' => $plan['nombre'],
+                'price' => (float) $plan['precio'],
+                'commission' => $plan['comision'],
+                'products' => 'Hasta '.number_format((int) $plan['max_productos']).' productos',
+                'users' => $plan['tipo'],
+                'payout' => $plan['liquidacion'],
+                'support' => $plan['soporte'],
+                'analytics' => $plan['carga_masiva'] ? 'Carga masiva con Excel' : 'Carga de productos uno por uno',
+                'description' => $plan['resumen'],
+            ])
+            ->all();
     }
 }

@@ -110,8 +110,12 @@ class CalculadoraComisionService
                 $periodo = $this->periodo($anio, $mes);
                 $totales = $this->totalesPeriodo($vendor, $periodo['inicio'], $periodo['fin']);
                 $porcentaje = (float) $vendor->commission_percentage;
-                $rentaFija = (float) $vendor->monthly_rent;
-                $montoComision = round($totales['total_ventas'] * ($porcentaje / 100), 2);
+                /* Mes con prueba gratis (promoción de apertura): no hay mensualidad. */
+                $conPrueba = $vendor->prueba_usada_at !== null && $vendor->prueba_hasta !== null
+                    && $vendor->prueba_usada_at->lte($periodo['fin']) && $vendor->prueba_hasta->gte($periodo['inicio']);
+                $rentaFija = $conPrueba ? 0.0 : (float) $vendor->monthly_rent;
+                /* La comisión es la que de verdad se descontó en cada venta (0 durante la prueba). */
+                $montoComision = round($totales['comision'], 2);
                 $montoTotal = round($montoComision + $rentaFija, 2);
 
                 return VendorCommission::query()->updateOrCreate(
@@ -223,10 +227,12 @@ class CalculadoraComisionService
         $totalVentas = PaymentSplit::query()
             ->where('vendor_id', $vendor->id)
             ->whereIn('estado', ['pendiente', 'liquidado'])
-            ->whereBetween('created_at', [$inicio, $fin])
-            ->sum('monto_bruto');
+            ->whereBetween('created_at', [$inicio, $fin]);
 
-        return ['total_ventas' => round((float) $totalVentas, 2)];
+        return [
+            'total_ventas' => round((float) (clone $totalVentas)->sum('monto_bruto'), 2),
+            'comision' => round((float) (clone $totalVentas)->sum('comision_atlantia'), 2),
+        ];
     }
 
     /**

@@ -1,5 +1,6 @@
 @php
-    $logoPath = file_exists(public_path('images/logo.png')) ? 'images/logo.png' : 'images/atlantia-logo.svg';
+    $logoPath = collect(['images/logo-atlantia-delivery.png', 'images/logo.png', 'images/atlantia-logo.svg'])
+        ->first(fn (string $ruta): bool => file_exists(public_path($ruta))) ?? 'images/atlantia-logo.svg';
     $user = auth()->user();
     $internalRoles = ['empleado', 'bodeguero', 'soporte', 'contabilidad_finanzas', 'supervisor_logistica'];
     $dashboardRoute = match (true) {
@@ -11,7 +12,7 @@
     };
 
     $panelTitle = match (true) {
-        $user?->hasRole('admin') => 'Administracion Atlantia Delivery',
+        $user?->hasRole('admin') => 'Administracion Atlantia Store',
         $user?->hasRole('vendedor') => 'Panel de vendedor',
         $user?->hasRole('repartidor') => 'Panel de repartidor',
         $user?->hasRole('bodeguero') => 'Panel de bodega',
@@ -19,7 +20,7 @@
         $user?->hasRole('contabilidad_finanzas') => 'Panel contable y financiero',
         $user?->hasRole('supervisor_logistica') => 'Panel de supervision logistica',
         $user?->hasRole('empleado') => 'Panel operativo Atlantia',
-        default => 'Atlantia Delivery',
+        default => 'Atlantia Store',
     };
 
     $quickLinks = match (true) {
@@ -32,6 +33,9 @@
             ['label' => 'Pedidos', 'route' => route('admin.pedidos.index'), 'active' => request()->routeIs('admin.pedidos.*')],
             ['label' => 'Entregas externas', 'route' => route('admin.entregas-externas.index'), 'active' => request()->routeIs('admin.entregas-externas.*')],
             ['label' => 'Cupones', 'route' => route('admin.cupones.index'), 'active' => request()->routeIs('admin.cupones.*')],
+            ['label' => 'Promociones', 'route' => route('admin.promociones.index'), 'active' => request()->routeIs('admin.promociones.*')],
+            ['label' => 'Planes y publicidad', 'route' => route('admin.servicios.index'), 'active' => request()->routeIs('admin.servicios.*')],
+            ['label' => 'Datos de mercado', 'route' => route('admin.datos-mercado.index'), 'active' => request()->routeIs('admin.datos-mercado.*')],
             ['label' => 'Nominas', 'route' => route('admin.nominas.index'), 'active' => request()->routeIs('admin.nominas.*')],
             ['label' => 'DTE', 'route' => route('admin.dte.index'), 'active' => request()->routeIs('admin.dte.*')],
             ['label' => 'ML', 'route' => route('admin.ml.monitor'), 'active' => request()->routeIs('admin.ml.*')],
@@ -79,12 +83,21 @@
                 ['label' => 'Banners hero', 'route' => route('admin.hero-banners.index'), 'active' => request()->routeIs('admin.hero-banners.*')],
                 ['label' => 'Pedidos', 'route' => route('admin.pedidos.index'), 'active' => request()->routeIs('admin.pedidos.*')],
                 ['label' => 'Entregas externas', 'route' => route('admin.entregas-externas.index'), 'active' => request()->routeIs('admin.entregas-externas.*')],
+                ['label' => 'Atlantia Store', 'route' => route('admin.tienda-atlantia.index'), 'active' => request()->routeIs('admin.tienda-atlantia.*')],
+                ['label' => 'Mensajes', 'route' => route('admin.mensajes.index'), 'active' => request()->routeIs('admin.mensajes.*')],
+                ['label' => 'Denuncias', 'route' => route('admin.denuncias.index'), 'active' => request()->routeIs('admin.denuncias.*')],
                 ['label' => 'Zonas de entrega', 'route' => route('admin.zonas-entrega.index'), 'active' => request()->routeIs('admin.zonas-entrega.*')],
             ],
             'Finanzas y control' => [
+                ['label' => 'Utilidad', 'route' => route('admin.utilidad.index'), 'active' => request()->routeIs('admin.utilidad.*')],
+                ['label' => 'Pagos a vendedores', 'route' => route('admin.liquidaciones.index'), 'active' => request()->routeIs('admin.liquidaciones.*')],
                 ['label' => 'Comisiones', 'route' => route('admin.comisiones.index'), 'active' => request()->routeIs('admin.comisiones.*')],
                 ['label' => 'Nominas', 'route' => route('admin.nominas.index'), 'active' => request()->routeIs('admin.nominas.*')],
                 ['label' => 'Cupones', 'route' => route('admin.cupones.index'), 'active' => request()->routeIs('admin.cupones.*')],
+                ['label' => 'Promociones', 'route' => route('admin.promociones.index'), 'active' => request()->routeIs('admin.promociones.*')],
+                ['label' => 'Planes y publicidad', 'route' => route('admin.servicios.index'), 'active' => request()->routeIs('admin.servicios.*')],
+                ['label' => 'Precios de planes', 'route' => route('admin.precios-planes.index'), 'active' => request()->routeIs('admin.precios-planes.*')],
+                ['label' => 'Datos de mercado', 'route' => route('admin.datos-mercado.index'), 'active' => request()->routeIs('admin.datos-mercado.*')],
                 ['label' => 'DTE y FEL', 'route' => route('admin.dte.index'), 'active' => request()->routeIs('admin.dte.*')],
                 ['label' => 'Resenas', 'route' => route('admin.resenas.index'), 'active' => request()->routeIs('admin.resenas.*')],
                 ['label' => 'Devoluciones', 'route' => route('admin.devoluciones.index'), 'active' => request()->routeIs('admin.devoluciones.*')],
@@ -98,21 +111,33 @@
             ],
         ],
         $user?->hasRole('vendedor') => [
-            'Tienda' => [
+            'Mi tienda' => [
                 ['label' => 'Vista general', 'route' => route('vendedor.dashboard'), 'active' => request()->routeIs('vendedor.dashboard')],
+                ['label' => 'Pedidos', 'route' => route('vendedor.pedidos.index'), 'active' => request()->routeIs('vendedor.pedidos.*')],
                 ['label' => 'Productos', 'route' => route('vendedor.productos.index'), 'active' => request()->routeIs('vendedor.productos.*')],
                 ['label' => 'Inventario', 'route' => route('vendedor.inventario.index'), 'active' => request()->routeIs('vendedor.inventario.*')],
-                ['label' => 'Pedidos', 'route' => route('vendedor.pedidos.index'), 'active' => request()->routeIs('vendedor.pedidos.*')],
-                ['label' => 'Zonas de entrega', 'route' => route('vendedor.zonas-entrega.index'), 'active' => request()->routeIs('vendedor.zonas-entrega.*')],
-                ['label' => 'Resenas', 'route' => route('vendedor.resenas.index'), 'active' => request()->routeIs('vendedor.resenas.*')],
+                ['label' => 'Promociones', 'route' => route('vendedor.promociones.index'), 'active' => request()->routeIs('vendedor.promociones.*')],
+                ['label' => 'Reseñas', 'route' => route('vendedor.resenas.index'), 'active' => request()->routeIs('vendedor.resenas.*')],
             ],
-            'Fiscal y ML' => [
-                ['label' => 'Perfil fiscal', 'route' => route('vendedor.perfil-fiscal.edit'), 'active' => request()->routeIs('vendedor.perfil-fiscal.*')],
-                ['label' => 'DTE', 'route' => route('vendedor.dte.index'), 'active' => request()->routeIs('vendedor.dte.*')],
-                ['label' => 'Comisiones', 'route' => route('vendedor.comisiones.index'), 'active' => request()->routeIs('vendedor.comisiones.*')],
+            'Entregas y horario' => [
+                ['label' => 'Zonas de entrega', 'route' => route('vendedor.zonas-entrega.index'), 'active' => request()->routeIs('vendedor.zonas-entrega.*')],
+                ['label' => 'Horario y pausa', 'route' => route('vendedor.operacion.edit'), 'active' => request()->routeIs('vendedor.operacion.*')],
+            ],
+            'Mi dinero' => [
+                ['label' => 'Ventas y pagos', 'route' => route('vendedor.pagos.index'), 'active' => request()->routeIs('vendedor.pagos.*')],
+                ...(\App\Support\TiendaAtlantia::es($user->vendor) ? [] : [
+                    ['label' => 'Comisiones', 'route' => route('vendedor.comisiones.index'), 'active' => request()->routeIs('vendedor.comisiones.*')],
+                    ['label' => 'Mi plan y publicidad', 'route' => route('vendedor.plan.index'), 'active' => request()->routeIs('vendedor.plan.*')],
+                ]),
                 ['label' => 'Reportes', 'route' => route('vendedor.reportes.index'), 'active' => request()->routeIs('vendedor.reportes.*')],
-                ['label' => 'Prediccion demanda', 'route' => route('vendedor.predicciones.index'), 'active' => request()->routeIs('vendedor.predicciones.*')],
-                ['label' => 'Reabasto ML', 'route' => route('vendedor.reabasto.index'), 'active' => request()->routeIs('vendedor.reabasto.*')],
+            ],
+            'Facturación' => [
+                ['label' => 'Datos de facturación', 'route' => route('vendedor.perfil-fiscal.edit'), 'active' => request()->routeIs('vendedor.perfil-fiscal.*')],
+                ['label' => 'Facturas (DTE)', 'route' => route('vendedor.dte.index'), 'active' => request()->routeIs('vendedor.dte.*')],
+            ],
+            'Inteligencia' => [
+                ['label' => 'Predicción de demanda', 'route' => route('vendedor.predicciones.index'), 'active' => request()->routeIs('vendedor.predicciones.*')],
+                ['label' => 'Reabasto sugerido', 'route' => route('vendedor.reabasto.index'), 'active' => request()->routeIs('vendedor.reabasto.*')],
             ],
         ],
         $user?->hasAnyRole($internalRoles) => [
@@ -137,6 +162,38 @@
             ],
         ],
         default => [],
+    };
+
+    /* Ubicación actual para la ruta de navegación (sección / página). */
+    $seccionActual = null;
+    $paginaActual = null;
+    foreach ($mobileSections as $tituloSeccion => $enlaces) {
+        foreach ($enlaces as $enlace) {
+            if ($enlace['active']) {
+                [$seccionActual, $paginaActual] = [$tituloSeccion, $enlace['label']];
+            }
+        }
+    }
+    $panelCorto = match (true) {
+        $user?->hasRole('vendedor') => 'Mi panel',
+        $user?->hasRole('repartidor') => 'Reparto',
+        default => 'Panel',
+    };
+
+    /* Página pública de la tienda del vendedor. */
+    $miTiendaUrl = $user?->hasRole('vendedor') && $user->vendor?->slug ? route('comercios.show', $user->vendor->slug) : null;
+
+    [$etiquetaRol, $opcionesCuenta] = match (true) {
+        $user?->hasRole('vendedor') => ['Vendedor', array_values(array_filter([
+            $miTiendaUrl ? ['texto' => 'Ver mi tienda', 'url' => $miTiendaUrl, 'nueva' => true] : null,
+            ['texto' => 'Horario y pausa', 'url' => route('vendedor.operacion.edit')],
+            \App\Support\TiendaAtlantia::es($user->vendor) ? null : ['texto' => 'Mi plan y publicidad', 'url' => route('vendedor.plan.index')],
+            ['texto' => 'Datos de facturación', 'url' => route('vendedor.perfil-fiscal.edit')],
+            ['texto' => 'Seguridad de la cuenta', 'url' => route('cuenta.seguridad')],
+        ]))],
+        $user?->hasRole('repartidor') => ['Repartidor', [['texto' => 'Mi perfil', 'url' => route('repartidor.perfil.edit')], ['texto' => 'Mis ganancias', 'url' => route('repartidor.ganancias.index')], ['texto' => 'Seguridad de la cuenta', 'url' => route('cuenta.seguridad')]]],
+        $user?->hasRole('admin') => ['Administrador', [['texto' => 'Ver la tienda', 'url' => route('home'), 'nueva' => true], ['texto' => 'Seguridad de la cuenta', 'url' => route('cuenta.seguridad')]]],
+        default => [$panelTitle, [['texto' => 'Ver la tienda', 'url' => route('home'), 'nueva' => true]]],
     };
 @endphp
 
@@ -186,40 +243,33 @@
             <a href="{{ $dashboardRoute }}" class="shrink-0 xl:hidden" aria-label="Inicio">
                 <img src="{{ asset($logoPath) }}" alt="Atlantia" class="h-8 w-auto sm:h-9">
             </a>
-            <div class="min-w-0 hidden sm:block">
-                <p class="text-[10px] font-black uppercase text-atlantia-rose/80">Atlantia</p>
-                <p class="truncate text-sm font-black text-atlantia-ink leading-tight">{{ $panelTitle }}</p>
-            </div>
+            <nav class="hidden min-w-0 items-center gap-2 text-sm sm:flex" aria-label="Ubicación">
+                <a href="{{ $dashboardRoute }}" class="shrink-0 font-bold text-atlantia-ink/45 transition hover:text-atlantia-wine">{{ $panelCorto }}</a>
+                @if ($seccionActual)
+                    <span class="text-atlantia-ink/25" aria-hidden="true">/</span>
+                    <span class="hidden shrink-0 font-bold text-atlantia-ink/45 md:inline">{{ $seccionActual }}</span>
+                    <span class="hidden text-atlantia-ink/25 md:inline" aria-hidden="true">/</span>
+                    <span class="truncate font-black text-atlantia-ink">{{ $paginaActual }}</span>
+                @endif
+            </nav>
         </div>
 
-        {{-- Derecha: notificaciones + usuario + cerrar sesion --}}
+        {{-- Derecha: ver mi tienda, notificaciones y cuenta --}}
         <div class="flex shrink-0 items-center gap-2">
-            <livewire:cliente.campanilla-notificaciones />
+            @if ($miTiendaUrl)
+                <a href="{{ $miTiendaUrl }}" target="_blank" rel="noopener" class="hidden items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-bold text-atlantia-ink/65 transition hover:bg-atlantia-blush/50 hover:text-atlantia-wine sm:inline-flex" title="Así ven tu tienda los clientes">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h16l-1-5H5ZM6 10v10h12V10M9 20v-6h6v6"/></svg>
+                    Ver mi tienda
+                </a>
+            @endif
 
-            {{-- Nombre del usuario (solo md+) --}}
-            <div class="hidden md:flex flex-col items-end leading-tight">
-                <p class="text-sm font-black text-atlantia-ink">{{ $user?->name }}</p>
-                <p class="text-xs text-atlantia-ink/50">{{ $user?->email }}</p>
-            </div>
-
-            {{-- Cerrar sesion --}}
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                {{-- Movil: solo icono --}}
-                <button type="submit"
-                    class="flex items-center gap-1.5 rounded-lg bg-atlantia-wine px-3 py-2 text-xs font-black text-white transition active:scale-95 sm:px-4 sm:text-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/>
-                    </svg>
-                    <span class="hidden sm:inline">Salir</span>
-                </button>
-            </form>
+            @include('layouts.partials.panel-cuenta', ['etiquetaRol' => $etiquetaRol, 'opcionesCuenta' => $opcionesCuenta])
         </div>
     </div>
 
     {{-- Barra de navegacion rapida (solo roles con quickLinks, solo < xl) --}}
     @if ($quickLinks !== [])
-        <div class="border-t border-atlantia-rose/10 bg-[#fff8fb] xl:hidden">
+        <div class="border-t border-atlantia-rose/10 bg-[#fff8f8] xl:hidden">
             <div class="flex gap-2 overflow-x-auto px-4 py-2.5 sm:px-6 lg:px-8"
                  style="-webkit-overflow-scrolling: touch; scrollbar-width: none;">
                 @foreach ($quickLinks as $link)

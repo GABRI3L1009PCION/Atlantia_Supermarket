@@ -6,13 +6,14 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="csp-nonce" content="{{ request()->attributes->get('csp_nonce') }}">
 
-    <title>{{ $title ?? 'Atlantia Delivery' }}</title>
+    @include('layouts.partials.favicon')
+    <title>{{ $title ?? 'Atlantia Store' }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
     @livewireStyles(['nonce' => request()->attributes->get('csp_nonce')])
 </head>
-<body class="min-h-screen bg-[#fbf7f9] text-atlantia-ink antialiased">
+<body class="min-h-screen bg-[#fbf7f7] text-atlantia-ink antialiased">
     <div class="min-h-screen xl:grid xl:grid-cols-[18rem_1fr]">
         @include('layouts.partials.sidebar')
 
@@ -44,6 +45,7 @@
         </div>
     </div>
     @include('layouts.partials.protect-submit')
+    @include('layouts.partials.panel-avisos')
     @stack('scripts')
 </body>
 </html>

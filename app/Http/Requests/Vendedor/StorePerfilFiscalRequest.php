@@ -25,11 +25,21 @@ class StorePerfilFiscalRequest extends FormRequest
      *
      * @return array<string, mixed>
      */
+    /** Secciones que se guardan por separado. */
+    public const SECCIONES = ['banco', 'fiscal', 'fel', 'modo'];
+
     public function rules(): array
     {
         $vendorId = $this->user()?->vendor?->id;
+        $seccion = $this->input('seccion');
 
-        return [
+        $banco = [
+            'banco_nombre' => ['required', 'string', 'max:120'],
+            'cuenta_bancaria' => ['required', 'string', 'regex:/^[0-9\-\s]{5,40}$/'],
+            'cuenta_bancaria_tipo' => ['required', Rule::in(['monetaria', 'ahorro'])],
+            'cuenta_bancaria_titular' => ['required', 'string', 'min:3', 'max:180'],
+        ];
+        $fiscal = [
             'nit' => [
                 'required',
                 'string',
@@ -42,36 +52,49 @@ class StorePerfilFiscalRequest extends FormRequest
             'regimen_sat' => ['required', Rule::in(['pequeno_contribuyente', 'general', 'exento'])],
             'codigo_establecimiento' => ['required', 'string', 'max:50'],
             'afiliacion_iva' => ['required', 'string', 'max:80'],
+        ];
+        $fel = [
             'certificador_fel' => ['required', Rule::in(['infile'])],
             'fel_usuario' => ['nullable', 'string', 'max:190'],
             'fel_llave_firma' => ['nullable', 'string', 'max:5000'],
             'fel_llave_certificador' => ['nullable', 'string', 'max:5000'],
-            'banco_nombre' => ['nullable', 'string', 'max:120'],
-            'cuenta_bancaria' => ['nullable', 'string', 'max:120'],
-            'cuenta_bancaria_tipo' => ['nullable', Rule::in(['monetaria', 'ahorro'])],
-            'cuenta_bancaria_titular' => ['nullable', 'string', 'max:180'],
         ];
+
+        return ['seccion' => ['nullable', Rule::in(self::SECCIONES)]] + match ($seccion) {
+            'banco' => $banco,
+            'fiscal' => $fiscal,
+            'fel' => $fel,
+            'modo' => ['modo_facturacion' => ['required', Rule::in(['manual_sat', 'certificador'])]],
+            /* Sin sección: el formulario completo de antes (todo lo fiscal obligatorio, banco opcional). */
+            default => $fiscal + $fel + array_map(
+                fn (array $reglas): array => ['nullable', ...array_values(array_diff($reglas, ['required']))],
+                $banco,
+            ),
+        };
     }
 
     /**
-     * Mensajes personalizados.
-     *
      * @return array<string, string>
      */
     public function messages(): array
     {
         return [
-            'nit.required' => 'Ingresa el NIT registrado ante SAT.',
-            'nit.regex' => 'Ingresa un NIT valido para Guatemala.',
-            'nit.unique' => 'Este NIT ya esta registrado en otro perfil fiscal.',
-            'razon_social.required' => 'Ingresa la razon social.',
-            'direccion_fiscal.required' => 'Ingresa la direccion fiscal.',
-            'regimen_sat.required' => 'Selecciona el regimen SAT.',
-            'regimen_sat.in' => 'El regimen SAT seleccionado no es valido.',
-            'codigo_establecimiento.required' => 'Ingresa el codigo de establecimiento.',
-            'afiliacion_iva.required' => 'Ingresa la afiliacion IVA.',
-            'certificador_fel.in' => 'El certificador FEL seleccionado no esta disponible.',
-            'cuenta_bancaria_tipo.in' => 'El tipo de cuenta bancaria no es valido.',
+            'banco_nombre.required' => 'Elige tu banco.',
+            'cuenta_bancaria.required' => 'Escribe tu número de cuenta.',
+            'cuenta_bancaria.regex' => 'El número de cuenta solo puede tener números y guiones.',
+            'cuenta_bancaria_tipo.required' => 'Elige el tipo de cuenta.',
+            'cuenta_bancaria_titular.required' => 'Escribe a nombre de quién está la cuenta.',
+            'nit.required' => 'Escribe tu NIT.',
+            'nit.regex' => 'El NIT solo puede tener números, guion y la letra K.',
+            'nit.unique' => 'Ese NIT ya está registrado en otra tienda.',
+            'razon_social.required' => 'Escribe tu nombre o razón social como aparece en SAT.',
+            'direccion_fiscal.required' => 'Escribe tu dirección fiscal.',
+            'codigo_establecimiento.required' => 'Escribe el número de establecimiento que te dio SAT.',
+            'regimen_sat.required' => 'Elige tu régimen en SAT.',
+            'regimen_sat.in' => 'El régimen elegido no es válido.',
+            'afiliacion_iva.required' => 'Escribe tu afiliación de IVA.',
+            'certificador_fel.in' => 'Ese certificador no está disponible.',
+            'cuenta_bancaria_tipo.in' => 'Elige monetaria o de ahorro.',
         ];
     }
 

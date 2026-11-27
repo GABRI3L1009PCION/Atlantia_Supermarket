@@ -59,12 +59,14 @@ use App\Policies\RolePolicy;
 use App\Policies\UserPolicy;
 use App\Policies\VendorCommissionPolicy;
 use App\Policies\VendorPolicy;
+use App\Services\Clientes\ReferidosService;
 use App\Services\Fel\CertificadorFelInterface;
 use App\Services\Fel\InfileCertificadorService;
 use App\Services\Ml\MlServiceClient;
 use App\Services\Ml\MlServiceClientInterface;
 use App\Services\Notificaciones\NotificationService;
 use App\Services\Pagos\PasarelaPagoService;
+use App\Services\Seguridad\ProductionSecurityGuard;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
@@ -94,6 +96,23 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        app(ProductionSecurityGuard::class)->enforce();
+
+        /* Precios de planes y publicidad cambiados desde el panel del administrador. */
+        \App\Support\AjustesMonetizacion::aplicar();
+
+        /* Una cuenta creada despues de abrir un enlace de invitacion queda vinculada a quien invito. */
+        User::created(function (User $user): void {
+            if ((app()->runningInConsole() && ! app()->runningUnitTests()) || ! request()->hasSession() || str_ends_with((string) $user->email, '@invitados.atlantia.local')) {
+                return;
+            }
+
+            $codigo = request()->session()->pull('referido_codigo');
+            if ($codigo !== null) {
+                app(ReferidosService::class)->vincular($user, $codigo);
+            }
+        });
+
         if (app()->environment('production') && (bool) env('APP_DEBUG', false)) {
             throw new \RuntimeException('APP_DEBUG no puede estar activo en produccion.');
         }
