@@ -276,6 +276,9 @@ class RecurrentePagoTest extends TestCase
         $otro = User::factory()->cliente()->create();
 
         $this->actingAs($otro)->get(route('cliente.pagos.recurrente.pagar', $payment->uuid))->assertForbidden();
+
+        /* Sin embebido (no depende de si APP_URL es localhost o https): el dueño va directo al checkout. */
+        config(['services.recurrente.embebido' => false]);
         $this->actingAs($cliente)
             ->get(route('cliente.pagos.recurrente.pagar', $payment->uuid))
             ->assertRedirect('https://app.recurrente.com/checkout-session/'.self::CHECKOUT_ID);

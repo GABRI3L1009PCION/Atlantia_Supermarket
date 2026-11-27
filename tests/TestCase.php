@@ -19,6 +19,9 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        /* Las pruebas no dependen de los assets compilados (en CI no se corre npm run build). */
+        $this->withoutVite();
+
         DB::enableQueryLog();
     }
 
